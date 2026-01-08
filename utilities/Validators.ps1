@@ -430,14 +430,5 @@ function Show-ValidationResult {
 
 #endregion
 
-# Export functions if loaded as module
-if ($MyInvocation.MyCommand.Name -ne $MyInvocation.MyCommand.Path) {
-    Export-ModuleMember -Function @(
-        'Test-AppLockerPolicy',
-        'Test-PolicySecurity',
-        'Compare-AppLockerPolicies',
-        'Get-PolicyRuleIdentifiers',
-        'Test-ScanData',
-        'Show-ValidationResult'
-    )
-}
+# Functions are exported automatically when dot-sourced
+# No Export-ModuleMember needed for .ps1 script files
