@@ -175,6 +175,13 @@ Write-Host ""
 # Results collection
 $results = [System.Collections.Generic.List[PSCustomObject]]::new()
 
+# Clean up any leftover jobs from previous runs
+$oldJobs = Get-Job -Name "Scan-*" -ErrorAction SilentlyContinue
+if ($oldJobs) {
+    Write-Host "Cleaning up $($oldJobs.Count) leftover jobs from previous runs..." -ForegroundColor Yellow
+    $oldJobs | Remove-Job -Force -ErrorAction SilentlyContinue
+}
+
 # Process each computer
 $jobCount = 0
 
@@ -494,9 +501,11 @@ foreach ($computer in $computers) {
         return $result
     } -ErrorAction SilentlyContinue | Out-Null
 
-    # Throttle: wait if we have too many jobs
-    while ((Get-Job -State Running -ErrorAction SilentlyContinue).Count -ge $ThrottleLimit) {
+    # Throttle: wait if we have too many jobs (only count our scan jobs)
+    $runningJobs = Get-Job -Name "Scan-*" -ErrorAction SilentlyContinue | Where-Object { $_.State -eq 'Running' }
+    while ($runningJobs.Count -ge $ThrottleLimit) {
         Start-Sleep -Seconds 2
+        $runningJobs = Get-Job -Name "Scan-*" -ErrorAction SilentlyContinue | Where-Object { $_.State -eq 'Running' }
     }
 }
 
@@ -513,13 +522,17 @@ Write-Host "`nWaiting for scans to complete..." -ForegroundColor Yellow
 $allJobs = Get-Job -Name "Scan-*" -ErrorAction SilentlyContinue
 $completedCount = 0
 
-while ((Get-Job -Name "Scan-*" -State Running -ErrorAction SilentlyContinue).Count -gt 0) {
-    $newCompleted = (Get-Job -Name "Scan-*" -State Completed -ErrorAction SilentlyContinue).Count
+# Note: Get-Job doesn't allow -Name and -State together in some PS versions
+# So we get by name and filter with Where-Object
+while (($allJobs | Where-Object { $_.State -eq 'Running' }).Count -gt 0) {
+    $newCompleted = ($allJobs | Where-Object { $_.State -eq 'Completed' }).Count
     if ($newCompleted -gt $completedCount) {
         $completedCount = $newCompleted
         Write-Host "  Completed: $completedCount / $($computers.Count)" -ForegroundColor Gray
     }
     Start-Sleep -Seconds 3
+    # Refresh job list to get updated states
+    $allJobs = Get-Job -Name "Scan-*" -ErrorAction SilentlyContinue
 }
 
 # Collect results - use SilentlyContinue to prevent job errors from propagating
