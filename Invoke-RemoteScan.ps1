@@ -3,6 +3,8 @@
     Remotely collects AppLocker data from target computers for policy creation.
 
 .DESCRIPTION
+    Part of GA-AppLocker toolkit. Use Start-AppLockerWorkflow.ps1 for guided experience.
+
     This script connects to remote computers via WinRM (Windows Remote Management) and
     collects comprehensive data needed for AppLocker policy creation:
 
@@ -115,6 +117,17 @@ param(
 )
 
 #Requires -Version 5.1
+
+# Import utilities module and config
+$scriptRoot = $PSScriptRoot
+$modulePath = Join-Path $scriptRoot "utilities\Common.psm1"
+if (Test-Path $modulePath) {
+    Import-Module $modulePath -Force
+    $config = Get-AppLockerConfig
+}
+else {
+    $config = $null
+}
 
 # Validate inputs
 if (!(Test-Path -Path $ComputerListPath)) {

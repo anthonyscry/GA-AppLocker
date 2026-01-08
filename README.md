@@ -2,24 +2,44 @@
 
 Simplified AppLocker deployment scripts for Windows 11/Server 2019+. No external dependencies required.
 
-## Quick Start
+## Quick Start (Recommended)
 
-```cmd
-REM 1. Setup AD structure (on Domain Controller)
-powershell.exe -ExecutionPolicy Bypass -File ".\Utilities\New-AppLockerADStructure.ps1" -DomainName "YOURDOMAIN"
+```powershell
+# Interactive workflow - guides you through all steps
+.\Start-AppLockerWorkflow.ps1
 
-REM 2. Scan computers
-powershell.exe -ExecutionPolicy Bypass -File ".\Invoke-RemoteScan.ps1" -ComputerListPath ".\computers.txt" -SharePath "\\server\share\Scans"
+# Or use direct mode commands:
+.\Start-AppLockerWorkflow.ps1 -Mode Scan -ComputerList .\computers.txt -OutputPath .\Scans
+.\Start-AppLockerWorkflow.ps1 -Mode Generate -ScanPath .\Scans -Simplified
+.\Start-AppLockerWorkflow.ps1 -Mode Validate -PolicyPath .\policy.xml
+```
 
-REM 3. Generate policy
-powershell.exe -ExecutionPolicy Bypass -File ".\New-AppLockerPolicyFromGuide.ps1" -TargetType Workstation -DomainName "YOURDOMAIN" -Phase 1
+---
 
-REM 4. Deploy via GPO in Audit mode, review logs, then enforce
+## Project Structure
+
+```
+GA-AppLocker/
+├── Start-AppLockerWorkflow.ps1     # Single entry point (recommended)
+├── Invoke-RemoteScan.ps1           # Remote data collection
+├── New-AppLockerPolicyFromGuide.ps1 # Policy generation
+├── Merge-AppLockerPolicies.ps1     # Policy merging
+├── utilities/
+│   ├── Common.psm1                 # Shared functions (SID, XML helpers)
+│   ├── Config.psd1                 # Central configuration (LOLBins, paths)
+│   └── Validators.ps1              # Policy validation functions
+└── README.md
 ```
 
 ---
 
 ## Scripts
+
+### Main Entry Point
+
+| Script | Description |
+|--------|-------------|
+| `Start-AppLockerWorkflow.ps1` | **Unified workflow** - Interactive menu or direct mode |
 
 ### Core Scripts
 
@@ -29,157 +49,135 @@ REM 4. Deploy via GPO in Audit mode, review logs, then enforce
 | `New-AppLockerPolicyFromGuide.ps1` | Generates policies (Build Guide or Simplified mode) |
 | `Merge-AppLockerPolicies.ps1` | Merges multiple policies and removes duplicates |
 
-### Utility Scripts (in `Utilities/`)
+### Utilities (`utilities/`)
 
-| Script | Description |
-|--------|-------------|
-| `New-AppLockerADStructure.ps1` | Creates AppLocker OU and security groups in AD |
-| `Export-ADUserGroups.ps1` | Exports AD users and group memberships to CSV |
-| `Import-ADUserGroups.ps1` | Imports group changes from edited CSV back to AD |
-| `Compare-SoftwareInventory.ps1` | Compares software between machines |
+| File | Description |
+|------|-------------|
+| `Common.psm1` | Shared functions: SID resolution, XML generation, logging |
+| `Config.psd1` | Central configuration: LOLBins, deny paths, scan paths, SIDs |
+| `Validators.ps1` | Policy and scan data validation functions |
 
 ---
 
 ## Workflows
 
-### Workflow A: Enterprise Deployment (Build Guide Mode)
+### Workflow A: Interactive Mode (Easiest)
 
-**Step 1: Setup AD Structure**
-```cmd
-powershell.exe -ExecutionPolicy Bypass -File ".\Utilities\New-AppLockerADStructure.ps1" ^
-    -DomainName "CONTOSO" ^
-    -ParentOU "OU=Security,OU=IT,DC=contoso,DC=com"
-```
-
-Creates:
-- `OU=AppLocker` with Groups and Policies sub-OUs
-- `AppLocker-Admins` - Bypass all restrictions
-- `AppLocker-StandardUsers` - Standard policy
-- `AppLocker-ServiceAccounts` - Service exceptions
-- `AppLocker-Installers` - MSI installation rights
-
-**Step 2: Add Members to Groups**
 ```powershell
-Add-ADGroupMember -Identity 'AppLocker-Admins' -Members 'admin1','admin2'
-Add-ADGroupMember -Identity 'AppLocker-ServiceAccounts' -Members 'svc_backup','svc_deploy'
-Add-ADGroupMember -Identity 'AppLocker-Installers' -Members 'helpdesk1'
+# Launch interactive menu
+.\Start-AppLockerWorkflow.ps1
+
+# Menu options:
+# [1] Scan       - Collect data from remote computers
+# [2] Generate   - Create AppLocker policy from scan data
+# [3] Merge      - Combine multiple policy files
+# [4] Validate   - Check a policy file for issues
+# [5] Full       - Complete workflow (Scan + Generate)
 ```
 
-**Step 3: Scan Computers**
-```cmd
-powershell.exe -ExecutionPolicy Bypass -File ".\Invoke-RemoteScan.ps1" ^
-    -ComputerListPath ".\computers.txt" ^
-    -SharePath "\\server\share\Scans" ^
-    -ScanUserProfiles
+### Workflow B: Enterprise Deployment (Build Guide Mode)
+
+**Step 1: Scan Computers**
+```powershell
+.\Start-AppLockerWorkflow.ps1 -Mode Scan `
+    -ComputerList ".\computers.txt" `
+    -OutputPath "\\server\share\Scans"
 ```
 
-**Step 4: Generate Phase 1 Policy**
-```cmd
-powershell.exe -ExecutionPolicy Bypass -File ".\New-AppLockerPolicyFromGuide.ps1" ^
-    -TargetType Workstation ^
-    -DomainName "CONTOSO" ^
-    -Phase 1 ^
-    -ScanPath "\\server\share\Scans\Scan-20240108"
+**Step 2: Generate Phase 1 Policy**
+```powershell
+.\Start-AppLockerWorkflow.ps1 -Mode Generate `
+    -ScanPath "\\server\share\Scans\Scan-20240108" `
+    -TargetType Workstation `
+    -DomainName "CONTOSO" `
+    -Phase 1
 ```
 
-**Step 5: Deploy via GPO**
+**Step 3: Deploy via GPO**
 1. Open Group Policy Management Console
 2. Create GPO linked to target OUs
 3. Import generated XML policy
 4. Set to "Audit only" mode
 
-**Step 6: Monitor**
+**Step 4: Monitor Events**
 - Event ID 8003: Allowed (audit)
 - Event ID 8004: Would have been blocked (audit)
 - Location: `Applications and Services Logs > Microsoft > Windows > AppLocker`
 
-**Step 7: Advance Phases**
-```cmd
-REM Phase 2: Add Script rules
-powershell.exe -ExecutionPolicy Bypass -File ".\New-AppLockerPolicyFromGuide.ps1" ^
-    -TargetType Workstation -DomainName "CONTOSO" -Phase 2
+**Step 5: Advance Phases**
+```powershell
+# Phase 2: Add Script rules
+.\New-AppLockerPolicyFromGuide.ps1 -TargetType Workstation -DomainName "CONTOSO" -Phase 2
 
-REM Phase 3: Add MSI rules
-powershell.exe -ExecutionPolicy Bypass -File ".\New-AppLockerPolicyFromGuide.ps1" ^
-    -TargetType Workstation -DomainName "CONTOSO" -Phase 3
+# Phase 3: Add MSI rules
+.\New-AppLockerPolicyFromGuide.ps1 -TargetType Workstation -DomainName "CONTOSO" -Phase 3
 
-REM Phase 4: Full policy including DLL (audit 14+ days before enforcing)
-powershell.exe -ExecutionPolicy Bypass -File ".\New-AppLockerPolicyFromGuide.ps1" ^
-    -TargetType Workstation -DomainName "CONTOSO" -Phase 4
+# Phase 4: Full policy including DLL (audit 14+ days before enforcing)
+.\New-AppLockerPolicyFromGuide.ps1 -TargetType Workstation -DomainName "CONTOSO" -Phase 4
 ```
 
-**Step 8: Enforce**
-```cmd
-powershell.exe -ExecutionPolicy Bypass -File ".\New-AppLockerPolicyFromGuide.ps1" ^
-    -TargetType Workstation -DomainName "CONTOSO" -Phase 2 ^
-    -EnforcementMode Enabled
-```
-
----
-
-### Workflow B: Quick Deployment (Simplified Mode)
+### Workflow C: Quick Deployment (Simplified Mode)
 
 For testing, lab environments, or standalone machines.
 
-```cmd
-REM Scan
-powershell.exe -ExecutionPolicy Bypass -File ".\Invoke-RemoteScan.ps1" ^
-    -ComputerListPath ".\computers.txt" ^
-    -SharePath ".\Scans"
+```powershell
+# One command: Scan + Generate simplified policy
+.\Start-AppLockerWorkflow.ps1 -Mode Generate `
+    -ScanPath ".\Scans" `
+    -Simplified
 
-REM Generate simplified policy
-powershell.exe -ExecutionPolicy Bypass -File ".\New-AppLockerPolicyFromGuide.ps1" ^
-    -Simplified ^
-    -ScanPath ".\Scans\Scan-20240108" ^
-    -TargetUser "BUILTIN\Users" ^
-    -IncludeDenyRules ^
+# Or with deny rules for LOLBins
+.\New-AppLockerPolicyFromGuide.ps1 -Simplified `
+    -ScanPath ".\Scans" `
+    -TargetUser "BUILTIN\Users" `
+    -IncludeDenyRules `
     -IncludeHashRules
 
-REM Apply locally (test)
-Set-AppLockerPolicy -XmlPolicy ".\AppLockerPolicy-Simplified.xml"
+# Apply locally (test)
+Set-AppLockerPolicy -XmlPolicy ".\Outputs\AppLockerPolicy-Simplified.xml"
 ```
 
----
+### Workflow D: Merge Policies
 
-### Workflow C: Merge Policies
+```powershell
+.\Start-AppLockerWorkflow.ps1 -Mode Merge `
+    -ScanPath "\\server\share\AllPolicies" `
+    -OutputPath ".\MergedPolicy.xml"
 
-```cmd
-powershell.exe -ExecutionPolicy Bypass -File ".\Merge-AppLockerPolicies.ps1" ^
-    -InputPath "\\server\share\AllPolicies" ^
-    -OutputPath ".\MergedPolicy.xml" ^
+# Or directly:
+.\Merge-AppLockerPolicies.ps1 `
+    -InputPath "\\server\share\AllPolicies" `
+    -OutputPath ".\MergedPolicy.xml" `
     -EnforcementMode AuditOnly
 ```
 
----
+### Workflow E: Validate Policy
 
-### Workflow D: Software Comparison
-
-```cmd
-powershell.exe -ExecutionPolicy Bypass -File ".\Utilities\Compare-SoftwareInventory.ps1" ^
-    -ReferencePath ".\Scans\BASELINE-PC\Executables.csv" ^
-    -ComparePath ".\Scans\TARGET-PC\Executables.csv" ^
-    -ExportFormat Both
+```powershell
+.\Start-AppLockerWorkflow.ps1 -Mode Validate -PolicyPath ".\policy.xml"
 ```
 
 ---
 
-### Workflow E: AD Group Management
+## Configuration
 
-```cmd
-REM Export users
-powershell.exe -ExecutionPolicy Bypass -File ".\Utilities\Export-ADUserGroups.ps1" ^
-    -SearchBase "OU=Employees,DC=contoso,DC=com" ^
-    -OutputPath ".\users.csv"
+Edit `utilities/Config.psd1` to customize:
 
-REM Edit CSV (AddToGroups, RemoveFromGroups columns)
+- **LOLBins** - Binaries to block (mshta.exe, wscript.exe, etc.)
+- **DefaultDenyPaths** - User-writable paths to block (%TEMP%, Downloads, etc.)
+- **ServerDenyPaths** - Additional paths for servers (inetpub, etc.)
+- **WellKnownSids** - Windows security identifiers
+- **DefaultScanPaths** - Paths to scan for executables
+- **Phases** - Build Guide phase definitions
 
-REM Preview changes
-powershell.exe -ExecutionPolicy Bypass -File ".\Utilities\Import-ADUserGroups.ps1" ^
-    -InputPath ".\users.csv" -WhatIf
-
-REM Apply changes
-powershell.exe -ExecutionPolicy Bypass -File ".\Utilities\Import-ADUserGroups.ps1" ^
-    -InputPath ".\users.csv"
+Example customization:
+```powershell
+# Add a custom LOLBin
+LOLBins = @(
+    @{ Name = "mshta.exe"; Description = "HTML Application Host" }
+    @{ Name = "custom.exe"; Description = "Your custom entry" }
+    # ...
+)
 ```
 
 ---
@@ -188,14 +186,12 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Utilities\Import-ADUserGroups.ps
 
 | Task | Command |
 |------|---------|
-| Setup AD structure | `New-AppLockerADStructure.ps1 -DomainName CONTOSO` |
-| Scan computers | `Invoke-RemoteScan.ps1 -ComputerListPath .\computers.txt -SharePath \\share\Scans` |
-| Build Guide policy | `New-AppLockerPolicyFromGuide.ps1 -TargetType Workstation -DomainName CONTOSO -Phase 1` |
-| Simplified policy | `New-AppLockerPolicyFromGuide.ps1 -Simplified -ScanPath .\Scans -IncludeDenyRules` |
-| Merge policies | `Merge-AppLockerPolicies.ps1 -InputPath .\Policies -OutputPath .\Merged.xml` |
-| Compare software | `Compare-SoftwareInventory.ps1 -ReferencePath .\baseline.csv -ComparePath .\target.csv` |
-| Export AD users | `Export-ADUserGroups.ps1 -OutputPath .\users.csv` |
-| Import AD changes | `Import-ADUserGroups.ps1 -InputPath .\users.csv -WhatIf` |
+| Interactive mode | `.\Start-AppLockerWorkflow.ps1` |
+| Scan computers | `.\Start-AppLockerWorkflow.ps1 -Mode Scan -ComputerList .\computers.txt` |
+| Build Guide policy | `.\Start-AppLockerWorkflow.ps1 -Mode Generate -ScanPath .\Scans -TargetType Workstation -DomainName CONTOSO` |
+| Simplified policy | `.\Start-AppLockerWorkflow.ps1 -Mode Generate -ScanPath .\Scans -Simplified` |
+| Merge policies | `.\Start-AppLockerWorkflow.ps1 -Mode Merge -ScanPath .\Policies` |
+| Validate policy | `.\Start-AppLockerWorkflow.ps1 -Mode Validate -PolicyPath .\policy.xml` |
 
 ---
 
@@ -203,8 +199,7 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Utilities\Import-ADUserGroups.ps
 
 - PowerShell 5.1+
 - Windows 11 / Server 2019+
-- WinRM enabled on target computers
-- ActiveDirectory module (for AD scripts)
+- WinRM enabled on target computers (for remote scans)
 - Admin credentials with remote access
 
 ---

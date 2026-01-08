@@ -1,0 +1,193 @@
+@{
+    # ==========================================================================
+    # GA-AppLocker Central Configuration
+    # ==========================================================================
+    # Edit this file to customize AppLocker policy generation for your environment.
+    # All scripts reference this single configuration file.
+    # ==========================================================================
+
+    # --------------------------------------------------------------------------
+    # Well-Known Security Identifiers (SIDs)
+    # --------------------------------------------------------------------------
+    # These are standard Windows SIDs that don't require AD lookup.
+    # Do not modify unless you know what you're doing.
+
+    WellKnownSids = @{
+        "NT AUTHORITY\SYSTEM"              = "S-1-5-18"
+        "NT AUTHORITY\LOCAL SERVICE"       = "S-1-5-19"
+        "NT AUTHORITY\NETWORK SERVICE"     = "S-1-5-20"
+        "BUILTIN\Administrators"           = "S-1-5-32-544"
+        "BUILTIN\Users"                    = "S-1-5-32-545"
+        "BUILTIN\Power Users"              = "S-1-5-32-547"
+        "Everyone"                         = "S-1-1-0"
+        "NT AUTHORITY\Authenticated Users" = "S-1-5-11"
+        "NT AUTHORITY\INTERACTIVE"         = "S-1-5-4"
+        "NT AUTHORITY\SERVICE"             = "S-1-5-6"
+    }
+
+    # --------------------------------------------------------------------------
+    # LOLBins (Living Off The Land Binaries)
+    # --------------------------------------------------------------------------
+    # These are legitimate Windows binaries commonly abused by attackers.
+    # Deny rules are created for these in simplified mode with -IncludeDenyRules.
+    # Add or remove entries based on your security requirements.
+
+    LOLBins = @(
+        @{ Name = "mshta.exe"; Description = "HTML Application Host - executes .hta files" }
+        @{ Name = "PresentationHost.exe"; Description = "XAML Browser Applications host" }
+        @{ Name = "InstallUtil.exe"; Description = ".NET Installation Utility - code execution" }
+        @{ Name = "RegAsm.exe"; Description = ".NET Assembly Registration - code execution" }
+        @{ Name = "RegSvcs.exe"; Description = ".NET Component Services - code execution" }
+        @{ Name = "MSBuild.exe"; Description = "Microsoft Build Engine - code execution" }
+        @{ Name = "cscript.exe"; Description = "Console Script Host - runs VBScript/JScript" }
+        @{ Name = "wscript.exe"; Description = "Windows Script Host - runs VBScript/JScript" }
+        @{ Name = "msiexec.exe"; Description = "Windows Installer - can download and execute" }
+        @{ Name = "certutil.exe"; Description = "Certificate utility - can download files" }
+        @{ Name = "bitsadmin.exe"; Description = "BITS Admin - can download files" }
+        @{ Name = "rundll32.exe"; Description = "Run DLL - executes DLL exports" }
+        @{ Name = "regsvr32.exe"; Description = "Register Server - can execute remote scripts" }
+        @{ Name = "hh.exe"; Description = "HTML Help - can execute scripts" }
+        @{ Name = "mmc.exe"; Description = "Microsoft Management Console - snap-in execution" }
+        @{ Name = "control.exe"; Description = "Control Panel - can load arbitrary CPL files" }
+        @{ Name = "pcalua.exe"; Description = "Program Compatibility Assistant - bypass" }
+        @{ Name = "SyncAppvPublishingServer.exe"; Description = "App-V Publishing - PowerShell execution" }
+    )
+
+    # --------------------------------------------------------------------------
+    # Default Deny Paths
+    # --------------------------------------------------------------------------
+    # User-writable locations where code execution should be blocked.
+    # These apply to ALL users including administrators in strict mode.
+
+    DefaultDenyPaths = @(
+        @{ Path = "%USERPROFILE%\Downloads\*"; Description = "User Downloads folder" }
+        @{ Path = "%USERPROFILE%\Desktop\*"; Description = "User Desktop" }
+        @{ Path = "%APPDATA%\*"; Description = "Roaming AppData" }
+        @{ Path = "%LOCALAPPDATA%\*"; Description = "Local AppData" }
+        @{ Path = "%LOCALAPPDATA%\Temp\*"; Description = "Local Temp folder" }
+        @{ Path = "%TEMP%\*"; Description = "System Temp folder" }
+        @{ Path = "%TMP%\*"; Description = "TMP folder" }
+    )
+
+    # Additional deny paths for servers
+    ServerDenyPaths = @(
+        @{ Path = "C:\inetpub\wwwroot\*"; Description = "IIS Web Root" }
+        @{ Path = "%SYSTEMDRIVE%\Temp\*"; Description = "System Drive Temp" }
+        @{ Path = "C:\PerfLogs\*"; Description = "Performance Logs folder" }
+    )
+
+    # --------------------------------------------------------------------------
+    # Default Safe Paths (Allow Rules)
+    # --------------------------------------------------------------------------
+    # Standard Windows paths that are protected by NTFS permissions.
+    # Code execution is generally safe from these locations.
+
+    DefaultAllowPaths = @(
+        @{ Path = "%WINDIR%\*"; Description = "Windows Directory" }
+        @{ Path = "%PROGRAMFILES%\*"; Description = "Program Files" }
+        @{ Path = "%PROGRAMFILES(X86)%\*"; Description = "Program Files (x86)" }
+    )
+
+    # --------------------------------------------------------------------------
+    # Trusted Microsoft Publishers
+    # --------------------------------------------------------------------------
+    # Microsoft certificate subjects for publisher rules.
+
+    MicrosoftPublishers = @(
+        "O=MICROSOFT CORPORATION*"
+        "O=MICROSOFT CORPORATION, L=REDMOND, S=WASHINGTON, C=US"
+    )
+
+    # --------------------------------------------------------------------------
+    # Default Scan Paths
+    # --------------------------------------------------------------------------
+    # Paths scanned by Invoke-RemoteScan.ps1 for executables.
+
+    DefaultScanPaths = @(
+        "%ProgramFiles%"
+        "%ProgramFiles(x86)%"
+        "%SystemRoot%\System32"
+        "%SystemRoot%\SysWOW64"
+    )
+
+    # User profile paths (optional, use -ScanUserProfiles)
+    UserProfileScanPaths = @(
+        "%SystemDrive%\Users\*\AppData\Local\Programs"
+        "%SystemDrive%\Users\*\AppData\Local\Microsoft"
+        "%SystemDrive%\Users\*\Desktop"
+        "%SystemDrive%\Users\*\Downloads"
+    )
+
+    # --------------------------------------------------------------------------
+    # File Extensions
+    # --------------------------------------------------------------------------
+    # Extensions to scan and categorize.
+
+    ExecutableExtensions = @(".exe", ".com", ".scr")
+    DllExtensions        = @(".dll", ".ocx")
+    ScriptExtensions     = @(".ps1", ".bat", ".cmd", ".vbs", ".js", ".wsf", ".wsh")
+    InstallerExtensions  = @(".msi", ".msp", ".mst")
+
+    # All scannable extensions
+    AllScanExtensions = @(
+        "*.exe", "*.dll", "*.msi", "*.ps1", "*.bat", "*.cmd",
+        "*.vbs", "*.js", "*.wsf", "*.com", "*.scr", "*.ocx"
+    )
+
+    # --------------------------------------------------------------------------
+    # Policy Generation Defaults
+    # --------------------------------------------------------------------------
+
+    DefaultEnforcementMode = "AuditOnly"  # AuditOnly, Enabled, NotConfigured
+    DefaultOutputPath      = ".\Outputs"
+    DefaultRuleGranularity = "PublisherProductBinary"  # Publisher, PublisherProduct, PublisherProductBinary
+
+    # --------------------------------------------------------------------------
+    # Remote Scan Defaults
+    # --------------------------------------------------------------------------
+
+    DefaultThrottleLimit   = 10           # Max concurrent remote connections
+    MaxFilesPerPath        = 5000         # Limit files scanned per path (timeout prevention)
+    MaxDirectoriesPerPath  = 2000         # Limit directories for writable scan
+    ScanTimeout            = 300          # Seconds per computer
+
+    # --------------------------------------------------------------------------
+    # Build Guide Phase Descriptions
+    # --------------------------------------------------------------------------
+    # Reference information for the phased deployment approach.
+
+    Phases = @{
+        1 = @{
+            Name        = "EXE Rules"
+            Description = "Executable control - foundation of AppLocker"
+            Collections = @("Exe")
+        }
+        2 = @{
+            Name        = "Script Rules"
+            Description = "Script control - highest security risk"
+            Collections = @("Exe", "Script")
+        }
+        3 = @{
+            Name        = "MSI/Installer Rules"
+            Description = "Installer control - software deployment"
+            Collections = @("Exe", "Script", "Msi")
+        }
+        4 = @{
+            Name        = "DLL Rules"
+            Description = "DLL control - most comprehensive, enable last"
+            Collections = @("Exe", "Script", "Msi", "Dll")
+        }
+    }
+
+    # --------------------------------------------------------------------------
+    # Workflow Mode Descriptions
+    # --------------------------------------------------------------------------
+
+    WorkflowModes = @{
+        Scan     = "Collect data from remote computers"
+        Generate = "Create AppLocker policy from scan data"
+        Merge    = "Combine multiple policy files"
+        Full     = "Complete workflow: Scan -> Generate -> Merge"
+        Validate = "Validate an existing policy file"
+    }
+}
