@@ -178,13 +178,21 @@ $results = [System.Collections.Generic.List[PSCustomObject]]::new()
 # Process each computer
 $jobCount = 0
 
+# Extract credential components to pass through job (PSCredential doesn't serialize properly in Start-Job)
+$credUsername = $Credential.UserName
+$credPassword = $Credential.Password
+
 foreach ($computer in $computers) {
     $jobCount++
     Write-Host "[$jobCount/$($computers.Count)] Starting: $computer" -ForegroundColor Gray
 
     # Start job for this computer
-    Start-Job -Name "Scan-$computer" -ArgumentList $computer, $Credential, $outputRoot, $ScanPaths, $ScanUserProfiles.IsPresent, $SkipWritableDirectoryScan.IsPresent -ScriptBlock {
-        param($Computer, $Credential, $OutputRoot, $ExtraScanPaths, $ScanUserProfiles, $SkipWritableScan)
+    # Note: Pass username and SecureString password separately, then reconstruct credential inside job
+    Start-Job -Name "Scan-$computer" -ArgumentList $computer, $credUsername, $credPassword, $outputRoot, $ScanPaths, $ScanUserProfiles.IsPresent, $SkipWritableDirectoryScan.IsPresent -ScriptBlock {
+        param($Computer, $CredUsername, $CredPassword, $OutputRoot, $ExtraScanPaths, $ScanUserProfiles, $SkipWritableScan)
+
+        # Reconstruct the credential from username and SecureString password
+        $Credential = New-Object System.Management.Automation.PSCredential($CredUsername, $CredPassword)
 
         # Clear any problematic defaults that could cause parameter binding issues
         $PSDefaultParameterValues.Clear()
