@@ -202,6 +202,18 @@ LOLBins = @(
 - WinRM enabled on target computers (for remote scans)
 - Admin credentials with remote access
 
+### First-Time Setup
+
+If you downloaded these scripts from the internet, run these commands once to allow execution:
+
+```powershell
+# Set execution policy (one-time)
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+# Unblock downloaded files (removes internet zone identifier)
+Get-ChildItem -Path "C:\GA-AppLocker" -Recurse -Include *.ps1,*.psm1 | Unblock-File
+```
+
 ---
 
 ## Phased Deployment
