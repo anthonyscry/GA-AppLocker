@@ -1,0 +1,1109 @@
+<#
+.SYNOPSIS
+Creates AppLocker policies using Build Guide methodology or simplified mode.
+
+.DESCRIPTION
+Generates enterprise-ready AppLocker policies with two operational modes:
+
+BUILD GUIDE MODE (default):
+- Proper principal scoping (SYSTEM, LOCAL SERVICE, NETWORK SERVICE, Administrators)
+- Custom AD group support (Admins, StandardUsers, Service-Accounts, Installers)
+- Microsoft Publisher rules scoped correctly (NOT Everyone)
+- Explicit deny rules for user-writable paths
+- Phased deployment support (Phase 1-4)
+- Target-specific policies (Workstation, Server, DomainController)
+
+SIMPLIFIED MODE (-Simplified switch):
+- Single target user/group (e.g., "Everyone", "BUILTIN\Users")
+- Administrators get full access
+- Publisher rules from scan data (auto-deduplicated)
+- Optional hash rules for unsigned executables
+- Optional deny rules for LOLBins
+- Good for quick deployments or testing
+
+Follows the principle: "Allow who may run trusted code, deny where code can never run"
+
+.PARAMETER Simplified
+Use simplified mode instead of Build Guide methodology.
+Requires -ScanPath, does not require -TargetType or -DomainName.
+
+.PARAMETER ScanPath
+Path to scan results from Invoke-RemoteScan.ps1.
+Required for -Simplified mode, optional for Build Guide mode.
+
+.PARAMETER OutputPath
+Path to save generated policies. Defaults to .\Outputs.
+
+.PARAMETER TargetType
+(Build Guide mode) Type of systems: Workstation, Server, or DomainController.
+
+.PARAMETER DomainName
+(Build Guide mode) Domain name for group resolution (e.g., "CONTOSO").
+
+.PARAMETER TargetUser
+(Simplified mode) User/group for rules. Examples:
+- "Everyone" (S-1-1-0) - Default
+- "BUILTIN\Users" (S-1-5-32-545)
+- "DOMAIN\GroupName" - Custom AD group
+
+.PARAMETER AdminGroup
+(Simplified mode) Admin group with full access. Default: "BUILTIN\Administrators"
+
+.PARAMETER AdminsGroup
+(Build Guide mode) Custom AppLocker Admins group.
+
+.PARAMETER StandardUsersGroup
+(Build Guide mode) Custom Standard Users group.
+
+.PARAMETER ServiceAccountsGroup
+(Build Guide mode) Custom Service Accounts group.
+
+.PARAMETER InstallersGroup
+(Build Guide mode) Custom Installers group.
+
+.PARAMETER Phase
+(Build Guide mode) Build phase 1-4.
+
+.PARAMETER EnforcementMode
+AuditOnly (default) or Enabled.
+
+.PARAMETER IncludeVendorPublishers
+Include vendor publisher rules from scan data.
+
+.PARAMETER VendorPublishers
+Additional vendor publishers to trust (array).
+
+.PARAMETER IncludeDenyRules
+(Simplified mode) Include deny rules for LOLBins.
+
+.PARAMETER SkipDenyRules
+(Build Guide mode) Skip explicit deny rules.
+
+.PARAMETER IncludeHashRules
+(Simplified mode) Include hash rules for unsigned files.
+
+.PARAMETER RuleGranularity
+(Simplified mode) Publisher rule specificity:
+- Publisher: Trust all from publisher (broadest)
+- PublisherProduct: Trust publisher + product
+- PublisherProductBinary: Trust specific binary (default)
+
+.PARAMETER DLLEnforcement
+DLL rule enforcement: NotConfigured (default), AuditOnly, or Enabled.
+
+.EXAMPLE
+# BUILD GUIDE: Phase 1 for workstations
+.\New-AppLockerPolicyFromGuide.ps1 -TargetType Workstation -DomainName "CONTOSO" -Phase 1
+
+.EXAMPLE
+# BUILD GUIDE: Full policy for servers with vendors
+.\New-AppLockerPolicyFromGuide.ps1 -TargetType Server -DomainName "CONTOSO" -Phase 4 `
+    -ScanPath \\share\Scans -IncludeVendorPublishers
+
+.EXAMPLE
+# SIMPLIFIED: Quick policy for testing
+.\New-AppLockerPolicyFromGuide.ps1 -Simplified -ScanPath .\Scans -TargetUser "BUILTIN\Users"
+
+.EXAMPLE
+# SIMPLIFIED: With deny rules for LOLBins
+.\New-AppLockerPolicyFromGuide.ps1 -Simplified -ScanPath .\Scans -TargetUser "Everyone" -IncludeDenyRules
+
+.EXAMPLE
+# SIMPLIFIED: With hash rules for unsigned files
+.\New-AppLockerPolicyFromGuide.ps1 -Simplified -ScanPath .\Scans -IncludeHashRules -IncludeDenyRules
+#>
+
+[CmdletBinding(DefaultParameterSetName='BuildGuide')]
+param(
+    # === SIMPLIFIED MODE ===
+    [Parameter(ParameterSetName='Simplified', Mandatory=$true)]
+    [switch]$Simplified,
+
+    [Parameter(ParameterSetName='Simplified')]
+    [string]$TargetUser = "Everyone",
+
+    [Parameter(ParameterSetName='Simplified')]
+    [string]$AdminGroup = "BUILTIN\Administrators",
+
+    [Parameter(ParameterSetName='Simplified')]
+    [switch]$IncludeDenyRules,
+
+    [Parameter(ParameterSetName='Simplified')]
+    [switch]$IncludeHashRules,
+
+    [Parameter(ParameterSetName='Simplified')]
+    [ValidateSet("Publisher", "PublisherProduct", "PublisherProductBinary")]
+    [string]$RuleGranularity = "PublisherProductBinary",
+
+    # === BUILD GUIDE MODE ===
+    [Parameter(ParameterSetName='BuildGuide', Mandatory=$true)]
+    [ValidateSet("Workstation", "Server", "DomainController")]
+    [string]$TargetType,
+
+    [Parameter(ParameterSetName='BuildGuide', Mandatory=$true)]
+    [string]$DomainName,
+
+    [Parameter(ParameterSetName='BuildGuide')]
+    [string]$AdminsGroup,
+
+    [Parameter(ParameterSetName='BuildGuide')]
+    [string]$StandardUsersGroup,
+
+    [Parameter(ParameterSetName='BuildGuide')]
+    [string]$ServiceAccountsGroup,
+
+    [Parameter(ParameterSetName='BuildGuide')]
+    [string]$InstallersGroup,
+
+    [Parameter(ParameterSetName='BuildGuide')]
+    [ValidateRange(1,4)]
+    [int]$Phase = 1,
+
+    [Parameter(ParameterSetName='BuildGuide')]
+    [switch]$SkipDenyRules,
+
+    # === COMMON PARAMETERS ===
+    [string]$ScanPath,
+
+    [string]$OutputPath = ".\Outputs",
+
+    [ValidateSet("AuditOnly", "Enabled")]
+    [string]$EnforcementMode = "AuditOnly",
+
+    [switch]$IncludeVendorPublishers,
+
+    [string[]]$VendorPublishers = @(),
+
+    [ValidateSet("NotConfigured", "AuditOnly", "Enabled")]
+    [string]$DLLEnforcement = "NotConfigured"
+)
+
+#Requires -Version 5.1
+
+$timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
+New-Item -ItemType Directory -Path $OutputPath -Force | Out-Null
+
+#region Simplified Mode Validation
+if ($Simplified) {
+    if (-not $ScanPath -or -not (Test-Path $ScanPath)) {
+        throw "Simplified mode requires -ScanPath with valid scan data from Invoke-RemoteScan.ps1"
+    }
+}
+#endregion
+
+#==============================================================================
+# SIMPLIFIED MODE - Quick policy from scan data
+#==============================================================================
+if ($Simplified) {
+
+    Write-Host @"
+
+================================================================================
+                    AppLocker Policy Generator (Simplified Mode)
+================================================================================
+  Creates policies from scan data with auto-deduplicated publisher rules.
+  Use Build Guide mode (-TargetType) for enterprise deployments.
+================================================================================
+
+"@ -ForegroundColor Cyan
+
+    Write-Host "Configuration:" -ForegroundColor Yellow
+    Write-Host "  Mode: Simplified" -ForegroundColor Gray
+    Write-Host "  Scan Path: $ScanPath" -ForegroundColor Gray
+    Write-Host "  Target User: $TargetUser" -ForegroundColor Gray
+    Write-Host "  Enforcement: $EnforcementMode" -ForegroundColor Gray
+    Write-Host ""
+
+    #region SID Resolution (Simplified)
+    function Get-SidFromNameSimple {
+        param([string]$Name)
+        if ($Name -match "^S-1-") { return $Name }
+        $wellKnown = @{
+            "Everyone" = "S-1-1-0"
+            "BUILTIN\Administrators" = "S-1-5-32-544"
+            "BUILTIN\Users" = "S-1-5-32-545"
+            "NT AUTHORITY\Authenticated Users" = "S-1-5-11"
+            "NT AUTHORITY\SYSTEM" = "S-1-5-18"
+        }
+        if ($wellKnown.ContainsKey($Name)) { return $wellKnown[$Name] }
+        try {
+            $account = New-Object System.Security.Principal.NTAccount($Name)
+            $sid = $account.Translate([System.Security.Principal.SecurityIdentifier])
+            return $sid.Value
+        }
+        catch {
+            Write-Warning "Could not resolve '$Name' to SID."
+            return $Name
+        }
+    }
+
+    $targetSid = Get-SidFromNameSimple -Name $TargetUser
+    $adminSid = Get-SidFromNameSimple -Name $AdminGroup
+
+    Write-Host "Target SID: $targetSid" -ForegroundColor Gray
+    Write-Host "Admin SID: $adminSid" -ForegroundColor Gray
+    Write-Host ""
+    #endregion
+
+    #region Load Scan Data
+    Write-Host "Loading scan data..." -ForegroundColor Cyan
+
+    $computerFolders = Get-ChildItem -Path $ScanPath -Directory |
+        Where-Object { Test-Path (Join-Path $_.FullName "*.csv") }
+
+    if ($computerFolders.Count -eq 0) {
+        throw "No scan data found in $ScanPath. Run Invoke-RemoteScan.ps1 first."
+    }
+
+    Write-Host "  Found data from $($computerFolders.Count) computers" -ForegroundColor Gray
+
+    $allExecutables = @()
+    $allWritableDirs = @()
+
+    foreach ($folder in $computerFolders) {
+        $exePath = Join-Path $folder.FullName "Executables.csv"
+        if (Test-Path $exePath) {
+            $allExecutables += Import-Csv -Path $exePath
+        }
+        $writablePath = Join-Path $folder.FullName "WritableDirectories.csv"
+        if (Test-Path $writablePath) {
+            $allWritableDirs += Import-Csv -Path $writablePath
+        }
+    }
+
+    Write-Host "  Total executables: $($allExecutables.Count)" -ForegroundColor Gray
+    Write-Host "  Writable directories: $($allWritableDirs.Count)" -ForegroundColor Gray
+    #endregion
+
+    #region Build Publisher Rules (deduplicated)
+    Write-Host "`nBuilding publisher rules..." -ForegroundColor Cyan
+
+    $publisherRules = @{}
+    $signedExes = $allExecutables | Where-Object { $_.IsSigned -eq "True" -and $_.Publisher }
+
+    foreach ($exe in $signedExes) {
+        $publisher = $exe.Publisher
+        $product = if ($exe.Path -match "\\([^\\]+)\\[^\\]+$") { $matches[1] } else { "*" }
+        $binary = $exe.Name
+
+        switch ($RuleGranularity) {
+            "Publisher" {
+                $key = $publisher
+                $productName = "*"
+                $binaryName = "*"
+            }
+            "PublisherProduct" {
+                $key = "$publisher|$product"
+                $productName = $product
+                $binaryName = "*"
+            }
+            "PublisherProductBinary" {
+                $key = "$publisher|$product|$binary"
+                $productName = $product
+                $binaryName = $binary
+            }
+        }
+
+        if (-not $publisherRules.ContainsKey($key)) {
+            $publisherRules[$key] = @{
+                Publisher = $publisher
+                Product = $productName
+                Binary = $binaryName
+            }
+        }
+    }
+
+    Write-Host "  Unique publisher rules: $($publisherRules.Count)" -ForegroundColor Green
+    #endregion
+
+    #region Build Hash Rules (if requested)
+    $hashRules = @{}
+
+    if ($IncludeHashRules) {
+        Write-Host "`nBuilding hash rules for unsigned files..." -ForegroundColor Cyan
+        $writablePaths = $allWritableDirs | Select-Object -ExpandProperty Path -Unique
+
+        $unsignedInWritable = $allExecutables | Where-Object {
+            $_.IsSigned -ne "True" -and $_.Hash -and $_.Extension -in @(".exe", ".dll", ".msi")
+        } | Where-Object {
+            $exePath = $_.Path
+            foreach ($wp in $writablePaths) {
+                if ($exePath -like "$wp*") { return $true }
+            }
+            return $false
+        }
+
+        foreach ($exe in $unsignedInWritable) {
+            if (-not $hashRules.ContainsKey($exe.Hash)) {
+                $hashRules[$exe.Hash] = @{
+                    Name = $exe.Name
+                    Path = $exe.Path
+                    Hash = $exe.Hash
+                    Size = $exe.Size
+                }
+            }
+        }
+        Write-Host "  Unique hash rules: $($hashRules.Count)" -ForegroundColor Green
+    }
+    #endregion
+
+    #region Build Deny Rules for LOLBins (if requested)
+    $simplifiedDenyRules = @()
+
+    if ($IncludeDenyRules) {
+        Write-Host "`nBuilding deny rules for LOLBins..." -ForegroundColor Yellow
+        $lolbins = @(
+            @{ Name = "mshta.exe"; Desc = "HTML Application Host" },
+            @{ Name = "PresentationHost.exe"; Desc = "XAML Browser Applications" },
+            @{ Name = "InstallUtil.exe"; Desc = ".NET Installation Utility" },
+            @{ Name = "RegAsm.exe"; Desc = ".NET Assembly Registration" },
+            @{ Name = "RegSvcs.exe"; Desc = ".NET Component Services" },
+            @{ Name = "MSBuild.exe"; Desc = "Microsoft Build Engine" },
+            @{ Name = "cscript.exe"; Desc = "Console Script Host" },
+            @{ Name = "wscript.exe"; Desc = "Windows Script Host" }
+        )
+        foreach ($lolbin in $lolbins) {
+            $simplifiedDenyRules += @{
+                Name = $lolbin.Name
+                Description = "Deny $($lolbin.Desc)"
+                Path = "%SYSTEM32%\$($lolbin.Name)"
+            }
+        }
+        Write-Host "  Deny rules: $($simplifiedDenyRules.Count)" -ForegroundColor Yellow
+    }
+    #endregion
+
+    #region Generate Simplified Policy XML
+    Write-Host "`nGenerating policy XML..." -ForegroundColor Cyan
+
+    $simplifiedXml = @"
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  AppLocker Policy - Simplified Mode
+  Generated: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
+  Target User: $TargetUser
+  Enforcement: $EnforcementMode
+-->
+<AppLockerPolicy Version="1">
+  <RuleCollection Type="Exe" EnforcementMode="$EnforcementMode">
+    <!-- Admin full access -->
+    <FilePathRule Id="$(New-Guid)" Name="(Default) All files - Administrators" Description="Administrators can run anything" UserOrGroupSid="$adminSid" Action="Allow">
+      <Conditions>
+        <FilePathCondition Path="*"/>
+      </Conditions>
+    </FilePathRule>
+
+    <!-- Default safe paths -->
+    <FilePathRule Id="$(New-Guid)" Name="(Default) Windows Directory" Description="Allow from Windows" UserOrGroupSid="$targetSid" Action="Allow">
+      <Conditions>
+        <FilePathCondition Path="%WINDIR%\*"/>
+      </Conditions>
+    </FilePathRule>
+    <FilePathRule Id="$(New-Guid)" Name="(Default) Program Files" Description="Allow from Program Files" UserOrGroupSid="$targetSid" Action="Allow">
+      <Conditions>
+        <FilePathCondition Path="%PROGRAMFILES%\*"/>
+      </Conditions>
+    </FilePathRule>
+
+"@
+
+    # Add deny rules
+    foreach ($deny in $simplifiedDenyRules) {
+        $simplifiedXml += @"
+    <FilePathRule Id="$(New-Guid)" Name="(Deny) $($deny.Name)" Description="$($deny.Description)" UserOrGroupSid="$targetSid" Action="Deny">
+      <Conditions>
+        <FilePathCondition Path="$($deny.Path)"/>
+      </Conditions>
+    </FilePathRule>
+
+"@
+    }
+
+    # Add publisher rules
+    foreach ($rule in $publisherRules.Values) {
+        $pubXml = [System.Security.SecurityElement]::Escape($rule.Publisher)
+        $prodXml = [System.Security.SecurityElement]::Escape($rule.Product)
+        $binXml = [System.Security.SecurityElement]::Escape($rule.Binary)
+        $ruleName = "Publisher: $($rule.Publisher)"
+        if ($rule.Product -ne "*") { $ruleName += " - $($rule.Product)" }
+        if ($rule.Binary -ne "*") { $ruleName += " - $($rule.Binary)" }
+
+        $simplifiedXml += @"
+    <FilePublisherRule Id="$(New-Guid)" Name="$([System.Security.SecurityElement]::Escape($ruleName))" Description="Auto-generated" UserOrGroupSid="$targetSid" Action="Allow">
+      <Conditions>
+        <FilePublisherCondition PublisherName="O=$pubXml*" ProductName="$prodXml" BinaryName="$binXml">
+          <BinaryVersionRange LowSection="*" HighSection="*"/>
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>
+
+"@
+    }
+
+    # Add hash rules
+    foreach ($rule in $hashRules.Values) {
+        $simplifiedXml += @"
+    <FileHashRule Id="$(New-Guid)" Name="Hash: $($rule.Name)" Description="From: $($rule.Path)" UserOrGroupSid="$targetSid" Action="Allow">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x$($rule.Hash)" SourceFileName="$($rule.Name)" SourceFileLength="$($rule.Size)"/>
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>
+
+"@
+    }
+
+    $simplifiedXml += @"
+  </RuleCollection>
+
+  <RuleCollection Type="Msi" EnforcementMode="$EnforcementMode">
+    <FilePathRule Id="$(New-Guid)" Name="(Default) All MSI - Administrators" Description="Administrators can install" UserOrGroupSid="$adminSid" Action="Allow">
+      <Conditions>
+        <FilePathCondition Path="*"/>
+      </Conditions>
+    </FilePathRule>
+    <FilePathRule Id="$(New-Guid)" Name="(Default) Windows Installer" Description="Allow from Installer cache" UserOrGroupSid="$targetSid" Action="Allow">
+      <Conditions>
+        <FilePathCondition Path="%WINDIR%\Installer\*"/>
+      </Conditions>
+    </FilePathRule>
+  </RuleCollection>
+
+  <RuleCollection Type="Script" EnforcementMode="$EnforcementMode">
+    <FilePathRule Id="$(New-Guid)" Name="(Default) All scripts - Administrators" Description="Administrators can run scripts" UserOrGroupSid="$adminSid" Action="Allow">
+      <Conditions>
+        <FilePathCondition Path="*"/>
+      </Conditions>
+    </FilePathRule>
+    <FilePathRule Id="$(New-Guid)" Name="(Default) Windows scripts" Description="Allow from Windows" UserOrGroupSid="$targetSid" Action="Allow">
+      <Conditions>
+        <FilePathCondition Path="%WINDIR%\*"/>
+      </Conditions>
+    </FilePathRule>
+    <FilePathRule Id="$(New-Guid)" Name="(Default) Program Files scripts" Description="Allow from Program Files" UserOrGroupSid="$targetSid" Action="Allow">
+      <Conditions>
+        <FilePathCondition Path="%PROGRAMFILES%\*"/>
+      </Conditions>
+    </FilePathRule>
+  </RuleCollection>
+
+  <RuleCollection Type="Dll" EnforcementMode="NotConfigured">
+  </RuleCollection>
+
+  <RuleCollection Type="Appx" EnforcementMode="$EnforcementMode">
+    <FilePublisherRule Id="$(New-Guid)" Name="(Default) Microsoft Store apps" Description="Microsoft-signed apps" UserOrGroupSid="$targetSid" Action="Allow">
+      <Conditions>
+        <FilePublisherCondition PublisherName="O=MICROSOFT CORPORATION, L=REDMOND, S=WASHINGTON, C=US" ProductName="*" BinaryName="*">
+          <BinaryVersionRange LowSection="*" HighSection="*"/>
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>
+  </RuleCollection>
+</AppLockerPolicy>
+"@
+    #endregion
+
+    #region Save Simplified Policy
+    $policyFileName = "AppLockerPolicy-Simplified-$EnforcementMode-$timestamp.xml"
+    $policyPath = Join-Path $OutputPath $policyFileName
+    $simplifiedXml | Out-File -FilePath $policyPath -Encoding UTF8
+
+    Write-Host @"
+
+================================================================================
+                         SIMPLIFIED POLICY COMPLETE
+================================================================================
+"@ -ForegroundColor Green
+
+    Write-Host "Policy File: $policyPath" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Summary:" -ForegroundColor Yellow
+    Write-Host "  Target: $TargetUser ($targetSid)"
+    Write-Host "  Publisher rules: $($publisherRules.Count)"
+    Write-Host "  Hash rules: $($hashRules.Count)"
+    Write-Host "  Deny rules: $($simplifiedDenyRules.Count)"
+    Write-Host "  Enforcement: $EnforcementMode"
+    Write-Host ""
+    Write-Host "To apply:" -ForegroundColor Cyan
+    Write-Host "  Set-AppLockerPolicy -XmlPolicy `"$policyPath`"" -ForegroundColor White
+    Write-Host ""
+
+    return $policyPath
+}
+#endregion
+
+#==============================================================================
+# BUILD GUIDE MODE - Enterprise deployment with proper principal scoping
+#==============================================================================
+
+#region Banner and Configuration Display
+Write-Host @"
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    AppLocker Policy Generator (Build Guide)                   ║
+║                                                                              ║
+║  "Allow who may run trusted code, deny where code can never run"             ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+"@ -ForegroundColor Cyan
+
+Write-Host "Configuration:" -ForegroundColor Yellow
+Write-Host "  Target Type: $TargetType" -ForegroundColor Gray
+Write-Host "  Domain: $DomainName" -ForegroundColor Gray
+Write-Host "  Phase: $Phase" -ForegroundColor Gray
+Write-Host "  Enforcement: $EnforcementMode" -ForegroundColor Gray
+Write-Host ""
+#endregion
+
+#region Set default group names if not provided
+if (-not $AdminsGroup) { $AdminsGroup = "$DomainName\AppLocker-Admins" }
+if (-not $StandardUsersGroup) { $StandardUsersGroup = "$DomainName\AppLocker-StandardUsers" }
+if (-not $ServiceAccountsGroup) { $ServiceAccountsGroup = "$DomainName\AppLocker-Service-Accounts" }
+if (-not $InstallersGroup) { $InstallersGroup = "$DomainName\AppLocker-Installers" }
+
+Write-Host "Security Groups:" -ForegroundColor Yellow
+Write-Host "  Admins: $AdminsGroup" -ForegroundColor Gray
+Write-Host "  Standard Users: $StandardUsersGroup" -ForegroundColor Gray
+Write-Host "  Service Accounts: $ServiceAccountsGroup" -ForegroundColor Gray
+Write-Host "  Installers: $InstallersGroup" -ForegroundColor Gray
+Write-Host ""
+#endregion
+
+#region SID Resolution Function
+function Get-SidFromName {
+    param([string]$Name)
+
+    if ($Name -match "^S-1-") { return $Name }
+
+    $wellKnown = @{
+        "NT AUTHORITY\SYSTEM" = "S-1-5-18"
+        "NT AUTHORITY\LOCAL SERVICE" = "S-1-5-19"
+        "NT AUTHORITY\NETWORK SERVICE" = "S-1-5-20"
+        "BUILTIN\Administrators" = "S-1-5-32-544"
+        "BUILTIN\Users" = "S-1-5-32-545"
+        "Everyone" = "S-1-1-0"
+        "NT AUTHORITY\Authenticated Users" = "S-1-5-11"
+    }
+
+    if ($wellKnown.ContainsKey($Name)) { return $wellKnown[$Name] }
+
+    try {
+        $account = New-Object System.Security.Principal.NTAccount($Name)
+        $sid = $account.Translate([System.Security.Principal.SecurityIdentifier])
+        return $sid.Value
+    }
+    catch {
+        Write-Warning "Could not resolve '$Name' to SID - using placeholder. Verify group exists in AD."
+        return "S-1-5-21-YOURDOMAINSID-YOURGROUP"
+    }
+}
+#endregion
+
+#region Resolve all SIDs
+Write-Host "Resolving Security Identifiers..." -ForegroundColor Cyan
+
+$sids = @{
+    # Mandatory Allow Principals (Build Guide requirement)
+    SYSTEM = Get-SidFromName "NT AUTHORITY\SYSTEM"
+    LocalService = Get-SidFromName "NT AUTHORITY\LOCAL SERVICE"
+    NetworkService = Get-SidFromName "NT AUTHORITY\NETWORK SERVICE"
+    BuiltinAdmins = Get-SidFromName "BUILTIN\Administrators"
+    Everyone = Get-SidFromName "Everyone"
+
+    # Custom AppLocker Groups
+    Admins = Get-SidFromName $AdminsGroup
+    StandardUsers = Get-SidFromName $StandardUsersGroup
+    ServiceAccounts = Get-SidFromName $ServiceAccountsGroup
+    Installers = Get-SidFromName $InstallersGroup
+}
+
+Write-Host "  SYSTEM: $($sids.SYSTEM)" -ForegroundColor DarkGray
+Write-Host "  Admins Group: $($sids.Admins)" -ForegroundColor DarkGray
+Write-Host ""
+#endregion
+
+#region Load vendor publishers from scan data if requested
+$vendorPubs = @()
+
+if ($IncludeVendorPublishers -and $ScanPath -and (Test-Path $ScanPath)) {
+    Write-Host "Loading vendor publishers from scan data..." -ForegroundColor Cyan
+
+    $publisherFiles = Get-ChildItem -Path $ScanPath -Filter "Publishers.csv" -Recurse
+    foreach ($file in $publisherFiles) {
+        $pubs = Import-Csv -Path $file.FullName
+        foreach ($pub in $pubs) {
+            if ($pub.Publisher -and $pub.Publisher -notmatch "MICROSOFT") {
+                $vendorPubs += $pub.Publisher
+            }
+        }
+    }
+    $vendorPubs = $vendorPubs | Select-Object -Unique
+    Write-Host "  Found $($vendorPubs.Count) unique vendor publishers" -ForegroundColor Gray
+}
+
+# Add manually specified vendors
+$vendorPubs += $VendorPublishers
+$vendorPubs = $vendorPubs | Select-Object -Unique
+#endregion
+
+#region Explicit Deny Paths (Build Guide requirement)
+$denyPaths = @(
+    @{ Path = "%USERPROFILE%\Downloads\*"; Desc = "User Downloads folder" },
+    @{ Path = "%APPDATA%\*"; Desc = "Roaming AppData" },
+    @{ Path = "%LOCALAPPDATA%\Temp\*"; Desc = "Local Temp folder" },
+    @{ Path = "%TEMP%\*"; Desc = "System Temp folder" },
+    @{ Path = "%USERPROFILE%\Desktop\*"; Desc = "User Desktop" }
+)
+
+# Additional deny paths for servers/DCs
+if ($TargetType -in @("Server", "DomainController")) {
+    $denyPaths += @(
+        @{ Path = "C:\inetpub\wwwroot\*"; Desc = "IIS Web Root" },
+        @{ Path = "%SYSTEMDRIVE%\Temp\*"; Desc = "System Temp" }
+    )
+}
+#endregion
+
+#region Helper function to generate rules
+function New-RuleXml {
+    param(
+        [string]$Type,        # FilePathRule, FilePublisherRule, FileHashRule
+        [string]$Name,
+        [string]$Description,
+        [string]$Sid,
+        [string]$Action,      # Allow, Deny
+        [string]$Condition    # Inner XML for condition
+    )
+
+    $id = [guid]::NewGuid().ToString()
+
+    return @"
+    <$Type Id="$id" Name="$([System.Security.SecurityElement]::Escape($Name))" Description="$([System.Security.SecurityElement]::Escape($Description))" UserOrGroupSid="$Sid" Action="$Action">
+      <Conditions>
+        $Condition
+      </Conditions>
+    </$Type>
+"@
+}
+
+function New-PathCondition {
+    param([string]$Path)
+    return "<FilePathCondition Path=`"$Path`"/>"
+}
+
+function New-PublisherCondition {
+    param(
+        [string]$Publisher,
+        [string]$Product = "*",
+        [string]$Binary = "*",
+        [string]$LowVersion = "*",
+        [string]$HighVersion = "*"
+    )
+    return @"
+<FilePublisherCondition PublisherName="$([System.Security.SecurityElement]::Escape($Publisher))" ProductName="$Product" BinaryName="$Binary">
+          <BinaryVersionRange LowSection="$LowVersion" HighSection="$HighVersion"/>
+        </FilePublisherCondition>
+"@
+}
+#endregion
+
+#region Build EXE Rules
+Write-Host "Building EXE Rules..." -ForegroundColor Yellow
+
+$exeRules = ""
+
+# === MANDATORY PRINCIPALS - Microsoft Publisher ===
+# Build Guide: Microsoft Publisher → SYSTEM, LOCAL SERVICE, NETWORK SERVICE, Administrators (NOT Everyone)
+
+foreach ($principal in @(
+    @{ Name = "SYSTEM"; Sid = $sids.SYSTEM },
+    @{ Name = "LOCAL SERVICE"; Sid = $sids.LocalService },
+    @{ Name = "NETWORK SERVICE"; Sid = $sids.NetworkService },
+    @{ Name = "BUILTIN\Administrators"; Sid = $sids.BuiltinAdmins }
+)) {
+    $exeRules += New-RuleXml -Type "FilePublisherRule" `
+        -Name "(Microsoft) All Microsoft-signed - $($principal.Name)" `
+        -Description "Allow Microsoft-signed executables for $($principal.Name)" `
+        -Sid $principal.Sid `
+        -Action "Allow" `
+        -Condition (New-PublisherCondition -Publisher "O=MICROSOFT CORPORATION*")
+    $exeRules += "`n"
+}
+
+# === APPLOCKER-ADMINS ===
+# Build Guide: Admins → Microsoft + approved vendor publishers (still blocked by Deny paths)
+
+$exeRules += New-RuleXml -Type "FilePublisherRule" `
+    -Name "(Admins) Microsoft Publisher" `
+    -Description "Allow Microsoft-signed for AppLocker Admins" `
+    -Sid $sids.Admins `
+    -Action "Allow" `
+    -Condition (New-PublisherCondition -Publisher "O=MICROSOFT CORPORATION*")
+$exeRules += "`n"
+
+foreach ($vendor in $vendorPubs) {
+    $exeRules += New-RuleXml -Type "FilePublisherRule" `
+        -Name "(Admins) Vendor: $vendor" `
+        -Description "Allow vendor-signed for AppLocker Admins" `
+        -Sid $sids.Admins `
+        -Action "Allow" `
+        -Condition (New-PublisherCondition -Publisher "O=$vendor*")
+    $exeRules += "`n"
+}
+
+# === APPLOCKER-SERVICE-ACCOUNTS ===
+# Build Guide: Service Accounts → Vendor Publisher only (no path allows)
+
+foreach ($vendor in $vendorPubs) {
+    $exeRules += New-RuleXml -Type "FilePublisherRule" `
+        -Name "(Service) Vendor: $vendor" `
+        -Description "Allow vendor-signed for Service Accounts" `
+        -Sid $sids.ServiceAccounts `
+        -Action "Allow" `
+        -Condition (New-PublisherCondition -Publisher "O=$vendor*")
+    $exeRules += "`n"
+}
+
+# === APPLOCKER-STANDARDUSERS ===
+# Build Guide: Users → Explicitly approved vendor apps only
+# For Standard Users, we allow from safe paths but vendors must be explicit
+
+$exeRules += New-RuleXml -Type "FilePathRule" `
+    -Name "(Users) Windows Directory" `
+    -Description "Allow execution from Windows for Standard Users" `
+    -Sid $sids.StandardUsers `
+    -Action "Allow" `
+    -Condition (New-PathCondition -Path "%WINDIR%\*")
+$exeRules += "`n"
+
+$exeRules += New-RuleXml -Type "FilePathRule" `
+    -Name "(Users) Program Files" `
+    -Description "Allow execution from Program Files for Standard Users" `
+    -Sid $sids.StandardUsers `
+    -Action "Allow" `
+    -Condition (New-PathCondition -Path "%PROGRAMFILES%\*")
+$exeRules += "`n"
+
+# === EXPLICIT DENY RULES (Everyone) ===
+# Build Guide: These override ALL allows including SYSTEM
+
+if (-not $SkipDenyRules) {
+    foreach ($deny in $denyPaths) {
+        $exeRules += New-RuleXml -Type "FilePathRule" `
+            -Name "(DENY) $($deny.Desc)" `
+            -Description "Block execution from $($deny.Path)" `
+            -Sid $sids.Everyone `
+            -Action "Deny" `
+            -Condition (New-PathCondition -Path $deny.Path)
+        $exeRules += "`n"
+    }
+}
+
+Write-Host "  EXE rules created" -ForegroundColor Green
+#endregion
+
+#region Build Script Rules (Phase 2+)
+$scriptRules = ""
+
+if ($Phase -ge 2) {
+    Write-Host "Building Script Rules..." -ForegroundColor Yellow
+
+    # Build Guide: Scripts - Highest Risk
+    # Allow: SYSTEM → Microsoft, Admins → Microsoft, Service Accounts → Vendor
+    # Do NOT allow: Standard Users, Everyone
+
+    foreach ($principal in @(
+        @{ Name = "SYSTEM"; Sid = $sids.SYSTEM },
+        @{ Name = "LOCAL SERVICE"; Sid = $sids.LocalService },
+        @{ Name = "NETWORK SERVICE"; Sid = $sids.NetworkService },
+        @{ Name = "BUILTIN\Administrators"; Sid = $sids.BuiltinAdmins }
+    )) {
+        $scriptRules += New-RuleXml -Type "FilePublisherRule" `
+            -Name "(Microsoft) Scripts - $($principal.Name)" `
+            -Description "Allow Microsoft-signed scripts for $($principal.Name)" `
+            -Sid $principal.Sid `
+            -Action "Allow" `
+            -Condition (New-PublisherCondition -Publisher "O=MICROSOFT CORPORATION*")
+        $scriptRules += "`n"
+    }
+
+    # Admins - Microsoft scripts only
+    $scriptRules += New-RuleXml -Type "FilePublisherRule" `
+        -Name "(Admins) Microsoft Scripts" `
+        -Description "Allow Microsoft-signed scripts for AppLocker Admins" `
+        -Sid $sids.Admins `
+        -Action "Allow" `
+        -Condition (New-PublisherCondition -Publisher "O=MICROSOFT CORPORATION*")
+    $scriptRules += "`n"
+
+    # Service Accounts - Vendor scripts if required
+    foreach ($vendor in $vendorPubs) {
+        $scriptRules += New-RuleXml -Type "FilePublisherRule" `
+            -Name "(Service) Vendor Scripts: $vendor" `
+            -Description "Allow vendor-signed scripts for Service Accounts" `
+            -Sid $sids.ServiceAccounts `
+            -Action "Allow" `
+            -Condition (New-PublisherCondition -Publisher "O=$vendor*")
+        $scriptRules += "`n"
+    }
+
+    # Explicit deny for scripts in user-writable paths
+    if (-not $SkipDenyRules) {
+        foreach ($deny in $denyPaths) {
+            $scriptRules += New-RuleXml -Type "FilePathRule" `
+                -Name "(DENY) Scripts - $($deny.Desc)" `
+                -Description "Block scripts from $($deny.Path)" `
+                -Sid $sids.Everyone `
+                -Action "Deny" `
+                -Condition (New-PathCondition -Path $deny.Path)
+            $scriptRules += "`n"
+        }
+    }
+
+    Write-Host "  Script rules created" -ForegroundColor Green
+}
+#endregion
+
+#region Build MSI Rules (Phase 3+)
+$msiRules = ""
+
+if ($Phase -ge 3) {
+    Write-Host "Building MSI/Installer Rules..." -ForegroundColor Yellow
+
+    # Build Guide: MSI - Allow SYSTEM → Microsoft, Installers → Vendor, Admins → Vendor
+
+    foreach ($principal in @(
+        @{ Name = "SYSTEM"; Sid = $sids.SYSTEM },
+        @{ Name = "BUILTIN\Administrators"; Sid = $sids.BuiltinAdmins }
+    )) {
+        $msiRules += New-RuleXml -Type "FilePublisherRule" `
+            -Name "(Microsoft) MSI - $($principal.Name)" `
+            -Description "Allow Microsoft installers for $($principal.Name)" `
+            -Sid $principal.Sid `
+            -Action "Allow" `
+            -Condition (New-PublisherCondition -Publisher "O=MICROSOFT CORPORATION*")
+        $msiRules += "`n"
+    }
+
+    # Installers group - vendor installers
+    $msiRules += New-RuleXml -Type "FilePublisherRule" `
+        -Name "(Installers) Microsoft MSI" `
+        -Description "Allow Microsoft installers for Installers group" `
+        -Sid $sids.Installers `
+        -Action "Allow" `
+        -Condition (New-PublisherCondition -Publisher "O=MICROSOFT CORPORATION*")
+    $msiRules += "`n"
+
+    foreach ($vendor in $vendorPubs) {
+        $msiRules += New-RuleXml -Type "FilePublisherRule" `
+            -Name "(Installers) Vendor MSI: $vendor" `
+            -Description "Allow vendor installers for Installers group" `
+            -Sid $sids.Installers `
+            -Action "Allow" `
+            -Condition (New-PublisherCondition -Publisher "O=$vendor*")
+        $msiRules += "`n"
+    }
+
+    # Admins - vendor installers
+    $msiRules += New-RuleXml -Type "FilePublisherRule" `
+        -Name "(Admins) Microsoft MSI" `
+        -Description "Allow Microsoft installers for AppLocker Admins" `
+        -Sid $sids.Admins `
+        -Action "Allow" `
+        -Condition (New-PublisherCondition -Publisher "O=MICROSOFT CORPORATION*")
+    $msiRules += "`n"
+
+    foreach ($vendor in $vendorPubs) {
+        $msiRules += New-RuleXml -Type "FilePublisherRule" `
+            -Name "(Admins) Vendor MSI: $vendor" `
+            -Description "Allow vendor installers for AppLocker Admins" `
+            -Sid $sids.Admins `
+            -Action "Allow" `
+            -Condition (New-PublisherCondition -Publisher "O=$vendor*")
+        $msiRules += "`n"
+    }
+
+    # Windows Installer cache
+    $msiRules += New-RuleXml -Type "FilePathRule" `
+        -Name "(SYSTEM) Windows Installer Cache" `
+        -Description "Allow MSI from Windows Installer cache" `
+        -Sid $sids.SYSTEM `
+        -Action "Allow" `
+        -Condition (New-PathCondition -Path "%WINDIR%\Installer\*")
+    $msiRules += "`n"
+
+    Write-Host "  MSI rules created" -ForegroundColor Green
+}
+#endregion
+
+#region Build DLL Rules (Phase 4 - Enable LAST)
+$dllRules = ""
+
+if ($Phase -ge 4) {
+    Write-Host "Building DLL Rules (CAUTION: Enable last, audit 7-14 days first)..." -ForegroundColor Yellow
+
+    # Build Guide: DLL - Allow SYSTEM → Microsoft, Admins → Microsoft, Service Accounts → Vendor
+
+    foreach ($principal in @(
+        @{ Name = "SYSTEM"; Sid = $sids.SYSTEM },
+        @{ Name = "LOCAL SERVICE"; Sid = $sids.LocalService },
+        @{ Name = "NETWORK SERVICE"; Sid = $sids.NetworkService },
+        @{ Name = "BUILTIN\Administrators"; Sid = $sids.BuiltinAdmins }
+    )) {
+        $dllRules += New-RuleXml -Type "FilePublisherRule" `
+            -Name "(Microsoft) DLL - $($principal.Name)" `
+            -Description "Allow Microsoft-signed DLLs for $($principal.Name)" `
+            -Sid $principal.Sid `
+            -Action "Allow" `
+            -Condition (New-PublisherCondition -Publisher "O=MICROSOFT CORPORATION*")
+        $dllRules += "`n"
+    }
+
+    # Admins - Microsoft DLLs
+    $dllRules += New-RuleXml -Type "FilePublisherRule" `
+        -Name "(Admins) Microsoft DLL" `
+        -Description "Allow Microsoft-signed DLLs for AppLocker Admins" `
+        -Sid $sids.Admins `
+        -Action "Allow" `
+        -Condition (New-PublisherCondition -Publisher "O=MICROSOFT CORPORATION*")
+    $dllRules += "`n"
+
+    # Service Accounts - Vendor DLLs
+    foreach ($vendor in $vendorPubs) {
+        $dllRules += New-RuleXml -Type "FilePublisherRule" `
+            -Name "(Service) Vendor DLL: $vendor" `
+            -Description "Allow vendor-signed DLLs for Service Accounts" `
+            -Sid $sids.ServiceAccounts `
+            -Action "Allow" `
+            -Condition (New-PublisherCondition -Publisher "O=$vendor*")
+        $dllRules += "`n"
+    }
+
+    Write-Host "  DLL rules created (remember: audit 7-14 days before enforcing)" -ForegroundColor Green
+}
+#endregion
+
+#region Assemble Final Policy XML
+Write-Host "`nAssembling policy XML..." -ForegroundColor Cyan
+
+# Determine enforcement modes
+$exeMode = $EnforcementMode
+$scriptMode = if ($Phase -ge 2) { $EnforcementMode } else { "NotConfigured" }
+$msiMode = if ($Phase -ge 3) { $EnforcementMode } else { "NotConfigured" }
+$dllMode = if ($Phase -ge 4) { $DLLEnforcement } else { "NotConfigured" }
+
+$policyXml = @"
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  AppLocker Policy - Generated by Build Guide Script
+  Target: $TargetType
+  Domain: $DomainName
+  Phase: $Phase
+  Generated: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
+
+  Build Guide Summary:
+  - Microsoft Publisher scoped to SYSTEM/Admins (NOT Everyone)
+  - Explicit Deny rules for user-writable paths
+  - Standard Users: least-privilege execution
+  - Service Accounts: vendor publisher only
+
+  IMPORTANT: Audit before enforcing!
+-->
+<AppLockerPolicy Version="1">
+  <!-- EXE Rules - Phase 1+ -->
+  <RuleCollection Type="Exe" EnforcementMode="$exeMode">
+$exeRules  </RuleCollection>
+
+  <!-- Script Rules - Phase 2+ (Highest Risk) -->
+  <RuleCollection Type="Script" EnforcementMode="$scriptMode">
+$scriptRules  </RuleCollection>
+
+  <!-- MSI/Installer Rules - Phase 3+ -->
+  <RuleCollection Type="Msi" EnforcementMode="$msiMode">
+$msiRules  </RuleCollection>
+
+  <!-- DLL Rules - Phase 4 (Enable LAST, audit 7-14 days) -->
+  <RuleCollection Type="Dll" EnforcementMode="$dllMode">
+$dllRules  </RuleCollection>
+
+  <!-- Packaged Apps (APPX) -->
+  <RuleCollection Type="Appx" EnforcementMode="$exeMode">
+    <FilePublisherRule Id="$(New-Guid)" Name="(Microsoft) Store Apps" Description="Allow Microsoft-signed packaged apps" UserOrGroupSid="$($sids.Everyone)" Action="Allow">
+      <Conditions>
+        <FilePublisherCondition PublisherName="O=MICROSOFT CORPORATION, L=REDMOND, S=WASHINGTON, C=US" ProductName="*" BinaryName="*">
+          <BinaryVersionRange LowSection="*" HighSection="*"/>
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>
+  </RuleCollection>
+</AppLockerPolicy>
+"@
+#endregion
+
+#region Save Policy
+$policyFileName = "AppLockerPolicy-$TargetType-Phase$Phase-$EnforcementMode-$timestamp.xml"
+$policyPath = Join-Path $OutputPath $policyFileName
+
+$policyXml | Out-File -FilePath $policyPath -Encoding UTF8
+
+Write-Host @"
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                           POLICY GENERATION COMPLETE                          ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+"@ -ForegroundColor Green
+
+Write-Host "Policy File: $policyPath" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "Summary:" -ForegroundColor Yellow
+Write-Host "  Target Type: $TargetType"
+Write-Host "  Phase: $Phase of 4"
+Write-Host "  EXE Rules: $exeMode"
+Write-Host "  Script Rules: $scriptMode"
+Write-Host "  MSI Rules: $msiMode"
+Write-Host "  DLL Rules: $dllMode"
+Write-Host "  Vendor Publishers: $($vendorPubs.Count)"
+Write-Host ""
+
+Write-Host "Security Groups Required in AD:" -ForegroundColor Yellow
+Write-Host "  ☐ $AdminsGroup"
+Write-Host "  ☐ $StandardUsersGroup"
+Write-Host "  ☐ $ServiceAccountsGroup"
+Write-Host "  ☐ $InstallersGroup"
+Write-Host ""
+
+Write-Host "Next Steps:" -ForegroundColor Yellow
+switch ($Phase) {
+    1 {
+        Write-Host "  1. Create the AD groups listed above"
+        Write-Host "  2. Apply policy via GPO in AUDIT mode"
+        Write-Host "  3. Review Event ID 8004 in Application log"
+        Write-Host "  4. When EXE audit is clean, run Phase 2"
+    }
+    2 {
+        Write-Host "  1. Apply policy via GPO (still AUDIT mode)"
+        Write-Host "  2. Review Script events - expect more blocks"
+        Write-Host "  3. Add vendor script publishers if needed"
+        Write-Host "  4. When Script audit is clean, run Phase 3"
+    }
+    3 {
+        Write-Host "  1. Apply policy via GPO (still AUDIT mode)"
+        Write-Host "  2. Test software installation workflows"
+        Write-Host "  3. Verify SCCM/Intune/patches work"
+        Write-Host "  4. When MSI audit is clean, run Phase 4"
+    }
+    4 {
+        Write-Host "  1. Apply policy via GPO (still AUDIT mode)"
+        Write-Host "  2. DLL rules: AUDIT FOR 7-14 DAYS minimum"
+        Write-Host "  3. Review all 8004 events thoroughly"
+        Write-Host "  4. Only then switch to -EnforcementMode Enabled"
+    }
+}
+Write-Host ""
+Write-Host "To apply policy:" -ForegroundColor Cyan
+Write-Host "  Set-AppLockerPolicy -XmlPolicy `"$policyPath`"" -ForegroundColor White
+Write-Host ""
+#endregion
+
+return $policyPath
