@@ -2,7 +2,32 @@
 
 Simplified AppLocker deployment scripts for Windows 11/Server 2019+. No external dependencies required.
 
-## Quick Start (Recommended)
+---
+
+## First-Time Setup
+
+If you downloaded these scripts from the internet, run these commands **once** before using:
+
+```powershell
+# Set execution policy (allows running local scripts)
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+# Unblock downloaded files (removes internet zone identifier)
+Get-ChildItem -Path "C:\GA-AppLocker" -Recurse -Include *.ps1,*.psm1 | Unblock-File
+```
+
+---
+
+## Requirements
+
+- PowerShell 5.1+
+- Windows 11 / Server 2019+
+- WinRM enabled on target computers (for remote scans)
+- Admin credentials with remote access
+
+---
+
+## Quick Start
 
 ```powershell
 # Interactive workflow - guides you through all steps
@@ -13,6 +38,19 @@ Simplified AppLocker deployment scripts for Windows 11/Server 2019+. No external
 .\Start-AppLockerWorkflow.ps1 -Mode Generate -ScanPath .\Scans -Simplified
 .\Start-AppLockerWorkflow.ps1 -Mode Validate -PolicyPath .\policy.xml
 ```
+
+---
+
+## Quick Reference
+
+| Task | Command |
+|------|---------|
+| Interactive mode | `.\Start-AppLockerWorkflow.ps1` |
+| Scan computers | `.\Start-AppLockerWorkflow.ps1 -Mode Scan -ComputerList .\computers.txt` |
+| Build Guide policy | `.\Start-AppLockerWorkflow.ps1 -Mode Generate -ScanPath .\Scans -TargetType Workstation -DomainName CONTOSO` |
+| Simplified policy | `.\Start-AppLockerWorkflow.ps1 -Mode Generate -ScanPath .\Scans -Simplified` |
+| Merge policies | `.\Start-AppLockerWorkflow.ps1 -Mode Merge -ScanPath .\Policies` |
+| Validate policy | `.\Start-AppLockerWorkflow.ps1 -Mode Validate -PolicyPath .\policy.xml` |
 
 ---
 
@@ -178,40 +216,6 @@ LOLBins = @(
     @{ Name = "custom.exe"; Description = "Your custom entry" }
     # ...
 )
-```
-
----
-
-## Quick Reference
-
-| Task | Command |
-|------|---------|
-| Interactive mode | `.\Start-AppLockerWorkflow.ps1` |
-| Scan computers | `.\Start-AppLockerWorkflow.ps1 -Mode Scan -ComputerList .\computers.txt` |
-| Build Guide policy | `.\Start-AppLockerWorkflow.ps1 -Mode Generate -ScanPath .\Scans -TargetType Workstation -DomainName CONTOSO` |
-| Simplified policy | `.\Start-AppLockerWorkflow.ps1 -Mode Generate -ScanPath .\Scans -Simplified` |
-| Merge policies | `.\Start-AppLockerWorkflow.ps1 -Mode Merge -ScanPath .\Policies` |
-| Validate policy | `.\Start-AppLockerWorkflow.ps1 -Mode Validate -PolicyPath .\policy.xml` |
-
----
-
-## Requirements
-
-- PowerShell 5.1+
-- Windows 11 / Server 2019+
-- WinRM enabled on target computers (for remote scans)
-- Admin credentials with remote access
-
-### First-Time Setup
-
-If you downloaded these scripts from the internet, run these commands once to allow execution:
-
-```powershell
-# Set execution policy (one-time)
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-
-# Unblock downloaded files (removes internet zone identifier)
-Get-ChildItem -Path "C:\GA-AppLocker" -Recurse -Include *.ps1,*.psm1 | Unblock-File
 ```
 
 ---
