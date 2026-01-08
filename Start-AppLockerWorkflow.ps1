@@ -179,9 +179,14 @@ function Invoke-ScanWorkflow {
 
     Write-Host "`n=== Remote Scan Workflow ===" -ForegroundColor Cyan
 
-    # Get computer list
-    if (-not $ComputerListPath) {
+    # Get computer list - validate input
+    if ([string]::IsNullOrWhiteSpace($ComputerListPath)) {
         $ComputerListPath = Read-Host "  Enter path to computer list file"
+    }
+
+    if ([string]::IsNullOrWhiteSpace($ComputerListPath)) {
+        Write-Host "  [-] Computer list path is required" -ForegroundColor Red
+        return $null
     }
 
     if (-not (Test-Path $ComputerListPath)) {
@@ -189,33 +194,46 @@ function Invoke-ScanWorkflow {
         return $null
     }
 
-    # Get output path
-    if (-not $OutputPath) {
+    # Get output path - validate and set default
+    if ([string]::IsNullOrWhiteSpace($OutputPath)) {
         $OutputPath = Read-Host "  Enter output path (default: .\Scans)"
         if ([string]::IsNullOrWhiteSpace($OutputPath)) {
             $OutputPath = ".\Scans"
         }
     }
 
-    # Get credentials
-    if (-not $Credential) {
+    # Get credentials if not provided
+    if ($null -eq $Credential) {
         Write-Host "  Enter credentials for remote connections:" -ForegroundColor Yellow
         $Credential = Get-Credential -Message "Remote scan credentials (DOMAIN\username)"
+    }
+
+    # Validate we have credentials
+    if ($null -eq $Credential) {
+        Write-Host "  [-] Credentials are required for remote scanning" -ForegroundColor Red
+        return $null
     }
 
     # Run scan
     $scanScript = Join-Path $scriptRoot "Invoke-RemoteScan.ps1"
     if (Test-Path $scanScript) {
         Write-Host "`n  Starting remote scan..." -ForegroundColor Cyan
+
+        # Build parameter hashtable with only valid, non-null values
         $scanParams = @{
             ComputerListPath = $ComputerListPath
             SharePath        = $OutputPath
+            Credential       = $Credential
         }
-        if ($Credential) {
-            $scanParams.Credential = $Credential
+
+        try {
+            & $scanScript @scanParams
+            return $OutputPath
         }
-        & $scanScript @scanParams
-        return $OutputPath
+        catch {
+            Write-Host "  [-] Scan failed: $($_.Exception.Message)" -ForegroundColor Red
+            return $null
+        }
     }
     else {
         Write-Host "  [-] Scan script not found: $scanScript" -ForegroundColor Red
@@ -235,9 +253,14 @@ function Invoke-GenerateWorkflow {
 
     Write-Host "`n=== Policy Generation Workflow ===" -ForegroundColor Cyan
 
-    # Get scan path
-    if (-not $ScanPath) {
+    # Get scan path - validate input
+    if ([string]::IsNullOrWhiteSpace($ScanPath)) {
         $ScanPath = Read-Host "  Enter path to scan results"
+    }
+
+    if ([string]::IsNullOrWhiteSpace($ScanPath)) {
+        Write-Host "  [-] Scan path is required" -ForegroundColor Red
+        return $null
     }
 
     if (-not (Test-Path $ScanPath)) {
@@ -257,15 +280,17 @@ function Invoke-GenerateWorkflow {
         Write-Host "  [+] Scan data validated: $($validation.ComputerCount) computers" -ForegroundColor Green
     }
 
-    # Determine generation mode
-    if (-not $Simplified -and -not $TargetType) {
+    # Determine generation mode - only prompt if neither Simplified nor TargetType is set
+    $useSimplified = $Simplified.IsPresent
+    if (-not $useSimplified -and [string]::IsNullOrWhiteSpace($TargetType)) {
         $modeChoice = Show-GenerateMenu
         switch ($modeChoice) {
-            "1" { $Simplified = $true }
+            "1" { $useSimplified = $true }
             "2" {
                 $TargetType = Read-Host "  Enter target type (Workstation/Server/DomainController)"
                 $DomainName = Read-Host "  Enter domain name (e.g., CONTOSO)"
-                $Phase = [int](Read-Host "  Enter phase (1-4, default: 1)")
+                $phaseInput = Read-Host "  Enter phase (1-4, default: 1)"
+                $Phase = if ([int]::TryParse($phaseInput, [ref]$null)) { [int]$phaseInput } else { 1 }
                 if ($Phase -lt 1 -or $Phase -gt 4) { $Phase = 1 }
             }
             "B" { return $null }
@@ -281,22 +306,49 @@ function Invoke-GenerateWorkflow {
     if (Test-Path $genScript) {
         Write-Host "`n  Generating policy..." -ForegroundColor Cyan
 
-        $params = @{
-            ScanPath   = $ScanPath
-            OutputPath = $OutputPath
+        # Build parameter hashtable carefully to avoid parameter set conflicts
+        $params = @{}
+
+        # Always add ScanPath if valid
+        if (-not [string]::IsNullOrWhiteSpace($ScanPath)) {
+            $params.ScanPath = $ScanPath
         }
 
-        if ($Simplified) {
+        # Always add OutputPath if valid
+        if (-not [string]::IsNullOrWhiteSpace($OutputPath)) {
+            $params.OutputPath = $OutputPath
+        }
+
+        if ($useSimplified) {
+            # Simplified mode - only add the switch
             $params.Simplified = $true
         }
         else {
+            # Build Guide mode - validate required parameters before adding
+            if ([string]::IsNullOrWhiteSpace($TargetType)) {
+                Write-Host "  [-] Target type is required for Build Guide mode" -ForegroundColor Red
+                return $null
+            }
+            if ([string]::IsNullOrWhiteSpace($DomainName)) {
+                Write-Host "  [-] Domain name is required for Build Guide mode" -ForegroundColor Red
+                return $null
+            }
+
             $params.TargetType = $TargetType
             $params.DomainName = $DomainName
-            $params.Phase = $Phase
+            if ($Phase -ge 1 -and $Phase -le 4) {
+                $params.Phase = $Phase
+            }
         }
 
-        $result = & $genScript @params
-        return $result
+        try {
+            $result = & $genScript @params
+            return $result
+        }
+        catch {
+            Write-Host "  [-] Policy generation failed: $($_.Exception.Message)" -ForegroundColor Red
+            return $null
+        }
     }
     else {
         Write-Host "  [-] Generation script not found: $genScript" -ForegroundColor Red
@@ -312,9 +364,14 @@ function Invoke-MergeWorkflow {
 
     Write-Host "`n=== Policy Merge Workflow ===" -ForegroundColor Cyan
 
-    # Get input path
-    if (-not $InputPath) {
+    # Get input path - validate
+    if ([string]::IsNullOrWhiteSpace($InputPath)) {
         $InputPath = Read-Host "  Enter path to folder containing policy files"
+    }
+
+    if ([string]::IsNullOrWhiteSpace($InputPath)) {
+        Write-Host "  [-] Input path is required" -ForegroundColor Red
+        return $null
     }
 
     if (-not (Test-Path $InputPath)) {
@@ -322,8 +379,8 @@ function Invoke-MergeWorkflow {
         return $null
     }
 
-    # Get output path
-    if (-not $OutputPath) {
+    # Get output path - validate and set default
+    if ([string]::IsNullOrWhiteSpace($OutputPath)) {
         $defaultOutput = ".\MergedPolicy.xml"
         $OutputPath = Read-Host "  Enter output file path (default: $defaultOutput)"
         if ([string]::IsNullOrWhiteSpace($OutputPath)) {
@@ -335,8 +392,22 @@ function Invoke-MergeWorkflow {
     $mergeScript = Join-Path $scriptRoot "Merge-AppLockerPolicies.ps1"
     if (Test-Path $mergeScript) {
         Write-Host "`n  Merging policies..." -ForegroundColor Cyan
-        $result = & $mergeScript -InputPath $InputPath -OutputPath $OutputPath
-        return $result
+
+        $mergeParams = @{
+            InputPath = $InputPath
+        }
+        if (-not [string]::IsNullOrWhiteSpace($OutputPath)) {
+            $mergeParams.OutputPath = $OutputPath
+        }
+
+        try {
+            $result = & $mergeScript @mergeParams
+            return $result
+        }
+        catch {
+            Write-Host "  [-] Merge failed: $($_.Exception.Message)" -ForegroundColor Red
+            return $null
+        }
     }
     else {
         Write-Host "  [-] Merge script not found: $mergeScript" -ForegroundColor Red
@@ -351,22 +422,33 @@ function Invoke-ValidateWorkflow {
 
     Write-Host "`n=== Policy Validation Workflow ===" -ForegroundColor Cyan
 
-    # Get policy path
-    if (-not $PolicyPath) {
+    # Get policy path - validate
+    if ([string]::IsNullOrWhiteSpace($PolicyPath)) {
         $PolicyPath = Read-Host "  Enter path to policy file"
+    }
+
+    if ([string]::IsNullOrWhiteSpace($PolicyPath)) {
+        Write-Host "  [-] Policy path is required" -ForegroundColor Red
+        return $null
     }
 
     if (-not (Test-Path $PolicyPath)) {
         Write-Host "  [-] Policy file not found: $PolicyPath" -ForegroundColor Red
-        return
+        return $null
     }
 
     # Run validation
     if (Get-Command Test-AppLockerPolicy -ErrorAction SilentlyContinue) {
         Write-Host "  Validating policy..." -ForegroundColor Gray
-        $validation = Test-AppLockerPolicy -PolicyPath $PolicyPath
-        Show-ValidationResult -ValidationResult $validation
-        return $validation
+        try {
+            $validation = Test-AppLockerPolicy -PolicyPath $PolicyPath
+            Show-ValidationResult -ValidationResult $validation
+            return $validation
+        }
+        catch {
+            Write-Host "  [-] Validation failed: $($_.Exception.Message)" -ForegroundColor Red
+            return $null
+        }
     }
     else {
         # Basic validation without module
@@ -391,7 +473,7 @@ function Invoke-ValidateWorkflow {
             }
         }
         catch {
-            Write-Host "  [-] Invalid XML: $_" -ForegroundColor Red
+            Write-Host "  [-] Invalid XML: $($_.Exception.Message)" -ForegroundColor Red
         }
     }
 }
@@ -411,8 +493,19 @@ function Invoke-FullWorkflow {
     Write-Host "  This will run: Scan -> Generate" -ForegroundColor Gray
     Write-Host ""
 
-    # Step 1: Scan
-    $scanOutput = Invoke-ScanWorkflow -ComputerListPath $ComputerList -OutputPath $OutputPath -Credential $Credential
+    # Step 1: Scan - pass parameters correctly
+    $scanParams = @{}
+    if (-not [string]::IsNullOrWhiteSpace($ComputerList)) {
+        $scanParams.ComputerListPath = $ComputerList
+    }
+    if (-not [string]::IsNullOrWhiteSpace($OutputPath)) {
+        $scanParams.OutputPath = $OutputPath
+    }
+    if ($null -ne $Credential) {
+        $scanParams.Credential = $Credential
+    }
+
+    $scanOutput = Invoke-ScanWorkflow @scanParams
 
     if (-not $scanOutput) {
         Write-Host "  [-] Scan failed, aborting workflow" -ForegroundColor Red
@@ -420,7 +513,9 @@ function Invoke-FullWorkflow {
     }
 
     # Find the latest scan folder
-    $latestScan = Get-ChildItem -Path $scanOutput -Directory | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+    $latestScan = Get-ChildItem -Path $scanOutput -Directory -ErrorAction SilentlyContinue |
+        Sort-Object LastWriteTime -Descending |
+        Select-Object -First 1
     if ($latestScan) {
         $scanDataPath = $latestScan.FullName
     }
@@ -431,9 +526,27 @@ function Invoke-FullWorkflow {
     Write-Host "`n  [+] Scan complete: $scanDataPath" -ForegroundColor Green
     Write-Host ""
 
-    # Step 2: Generate
-    $policyPath = Invoke-GenerateWorkflow -ScanPath $scanDataPath -OutputPath $OutputPath `
-        -Simplified:$Simplified -TargetType $TargetType -DomainName $DomainName -Phase $Phase
+    # Step 2: Generate - build parameters carefully
+    $genParams = @{
+        ScanPath = $scanDataPath
+    }
+    if (-not [string]::IsNullOrWhiteSpace($OutputPath)) {
+        $genParams.OutputPath = $OutputPath
+    }
+    if ($Simplified.IsPresent) {
+        $genParams.Simplified = $true
+    }
+    elseif (-not [string]::IsNullOrWhiteSpace($TargetType)) {
+        $genParams.TargetType = $TargetType
+        if (-not [string]::IsNullOrWhiteSpace($DomainName)) {
+            $genParams.DomainName = $DomainName
+        }
+        if ($Phase -ge 1 -and $Phase -le 4) {
+            $genParams.Phase = $Phase
+        }
+    }
+
+    $policyPath = Invoke-GenerateWorkflow @genParams
 
     if ($policyPath) {
         Write-Host "`n  [+] Full workflow complete!" -ForegroundColor Green

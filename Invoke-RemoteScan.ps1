@@ -98,27 +98,30 @@
     Merge-AppLockerPolicies.ps1 - Merges multiple policies together
 #>
 
-[CmdletBinding()]
+[CmdletBinding(DefaultParameterSetName='Standard')]
 param(
-    [Parameter(Mandatory=$true, Position=0)]
+    [Parameter(Mandatory=$true, Position=0, ParameterSetName='Standard')]
+    [ValidateNotNullOrEmpty()]
     [string]$ComputerListPath,
 
-    [Parameter(Mandatory=$true, Position=1)]
+    [Parameter(Mandatory=$true, Position=1, ParameterSetName='Standard')]
+    [ValidateNotNullOrEmpty()]
     [string]$SharePath,
 
-    [Parameter()]
+    [Parameter(ParameterSetName='Standard')]
     [PSCredential]$Credential,
 
-    [Parameter()]
+    [Parameter(ParameterSetName='Standard')]
+    [ValidateRange(1, 100)]
     [int]$ThrottleLimit = 10,
 
-    [Parameter()]
+    [Parameter(ParameterSetName='Standard')]
     [string[]]$ScanPaths = @(),
 
-    [Parameter()]
+    [Parameter(ParameterSetName='Standard')]
     [switch]$ScanUserProfiles,
 
-    [Parameter()]
+    [Parameter(ParameterSetName='Standard')]
     [switch]$SkipWritableDirectoryScan
 )
 
