@@ -97,17 +97,23 @@
     New-AppLockerPolicy.ps1 - Creates policies from scan data
 #>
 
+[CmdletBinding(DefaultParameterSetName='Standard')]
 param(
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory=$true, Position=0, ParameterSetName='Standard')]
+    [ValidateNotNullOrEmpty()]
     [string]$InputPath,
 
+    [Parameter(Position=1, ParameterSetName='Standard')]
     [string]$OutputPath = ".\MergedPolicy.xml",
 
+    [Parameter(ParameterSetName='Standard')]
     [switch]$RemoveDuplicates = $true,
 
+    [Parameter(ParameterSetName='Standard')]
     [ValidateSet("AuditOnly", "Enabled", "NotConfigured")]
     [string]$EnforcementMode,
 
+    [Parameter(ParameterSetName='Standard')]
     [string]$IncludePattern = "*.xml"
 )
 
