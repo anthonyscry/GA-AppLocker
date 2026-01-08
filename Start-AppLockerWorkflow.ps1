@@ -467,13 +467,30 @@ function Invoke-ValidateWorkflow {
                     $ruleCount += $count
                 }
                 Write-Host "  Total rules: $ruleCount" -ForegroundColor Cyan
+
+                # Return basic validation result
+                return @{
+                    IsValid = $true
+                    RuleCount = $ruleCount
+                    PolicyPath = $PolicyPath
+                }
             }
             else {
                 Write-Host "  [-] Missing AppLockerPolicy element" -ForegroundColor Red
+                return @{
+                    IsValid = $false
+                    Error = "Missing AppLockerPolicy element"
+                    PolicyPath = $PolicyPath
+                }
             }
         }
         catch {
             Write-Host "  [-] Invalid XML: $($_.Exception.Message)" -ForegroundColor Red
+            return @{
+                IsValid = $false
+                Error = $_.Exception.Message
+                PolicyPath = $PolicyPath
+            }
         }
     }
 }
@@ -565,21 +582,81 @@ Show-Banner
 if ($Mode -ne "Interactive") {
     switch ($Mode) {
         "Scan" {
-            Invoke-ScanWorkflow -ComputerListPath $ComputerList -OutputPath $OutputPath -Credential $Credential
+            $scanParams = @{}
+            if (-not [string]::IsNullOrWhiteSpace($ComputerList)) {
+                $scanParams.ComputerListPath = $ComputerList
+            }
+            if (-not [string]::IsNullOrWhiteSpace($OutputPath)) {
+                $scanParams.OutputPath = $OutputPath
+            }
+            if ($null -ne $Credential) {
+                $scanParams.Credential = $Credential
+            }
+            Invoke-ScanWorkflow @scanParams
         }
         "Generate" {
-            Invoke-GenerateWorkflow -ScanPath $ScanPath -OutputPath $OutputPath `
-                -Simplified:$Simplified -TargetType $TargetType -DomainName $DomainName -Phase $Phase
+            $genParams = @{}
+            if (-not [string]::IsNullOrWhiteSpace($ScanPath)) {
+                $genParams.ScanPath = $ScanPath
+            }
+            if (-not [string]::IsNullOrWhiteSpace($OutputPath)) {
+                $genParams.OutputPath = $OutputPath
+            }
+            if ($Simplified.IsPresent) {
+                $genParams.Simplified = $true
+            }
+            elseif (-not [string]::IsNullOrWhiteSpace($TargetType)) {
+                $genParams.TargetType = $TargetType
+                if (-not [string]::IsNullOrWhiteSpace($DomainName)) {
+                    $genParams.DomainName = $DomainName
+                }
+                if ($Phase -ge 1 -and $Phase -le 4) {
+                    $genParams.Phase = $Phase
+                }
+            }
+            Invoke-GenerateWorkflow @genParams
         }
         "Merge" {
-            Invoke-MergeWorkflow -InputPath $ScanPath -OutputPath $OutputPath
+            $mergeParams = @{}
+            if (-not [string]::IsNullOrWhiteSpace($ScanPath)) {
+                $mergeParams.InputPath = $ScanPath
+            }
+            if (-not [string]::IsNullOrWhiteSpace($OutputPath)) {
+                $mergeParams.OutputPath = $OutputPath
+            }
+            Invoke-MergeWorkflow @mergeParams
         }
         "Validate" {
-            Invoke-ValidateWorkflow -PolicyPath $PolicyPath
+            $validateParams = @{}
+            if (-not [string]::IsNullOrWhiteSpace($PolicyPath)) {
+                $validateParams.PolicyPath = $PolicyPath
+            }
+            Invoke-ValidateWorkflow @validateParams
         }
         "Full" {
-            Invoke-FullWorkflow -ComputerList $ComputerList -OutputPath $OutputPath -Credential $Credential `
-                -Simplified:$Simplified -TargetType $TargetType -DomainName $DomainName -Phase $Phase
+            $fullParams = @{}
+            if (-not [string]::IsNullOrWhiteSpace($ComputerList)) {
+                $fullParams.ComputerList = $ComputerList
+            }
+            if (-not [string]::IsNullOrWhiteSpace($OutputPath)) {
+                $fullParams.OutputPath = $OutputPath
+            }
+            if ($null -ne $Credential) {
+                $fullParams.Credential = $Credential
+            }
+            if ($Simplified.IsPresent) {
+                $fullParams.Simplified = $true
+            }
+            elseif (-not [string]::IsNullOrWhiteSpace($TargetType)) {
+                $fullParams.TargetType = $TargetType
+                if (-not [string]::IsNullOrWhiteSpace($DomainName)) {
+                    $fullParams.DomainName = $DomainName
+                }
+                if ($Phase -ge 1 -and $Phase -le 4) {
+                    $fullParams.Phase = $Phase
+                }
+            }
+            Invoke-FullWorkflow @fullParams
         }
     }
     exit

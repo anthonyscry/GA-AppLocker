@@ -264,10 +264,10 @@ $mergedXml = @"
   <RuleCollection Type="Exe" EnforcementMode="$exeMode">
 "@
 
-# Add EXE rules
-$exePublisherRules = $publisherRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Exe" }
-$exePathRules = $pathRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Exe" }
-$exeHashRules = $hashRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Exe" }
+# Add EXE rules - wrap in arrays to ensure .Count works correctly
+$exePublisherRules = @($publisherRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Exe" })
+$exePathRules = @($pathRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Exe" })
+$exeHashRules = @($hashRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Exe" })
 
 foreach ($rule in $exePublisherRules) { $mergedXml += "`n    " + $rule.Value.Rule }
 foreach ($rule in $exePathRules) { $mergedXml += "`n    " + $rule.Value.Rule }
@@ -291,10 +291,10 @@ $mergedXml += @"
   <RuleCollection Type="Msi" EnforcementMode="$msiMode">
 "@
 
-# Add MSI rules
-$msiPublisherRules = $publisherRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Msi" }
-$msiPathRules = $pathRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Msi" }
-$msiHashRules = $hashRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Msi" }
+# Add MSI rules - wrap in arrays to ensure .Count works correctly
+$msiPublisherRules = @($publisherRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Msi" })
+$msiPathRules = @($pathRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Msi" })
+$msiHashRules = @($hashRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Msi" })
 
 foreach ($rule in $msiPublisherRules) { $mergedXml += "`n    " + $rule.Value.Rule }
 foreach ($rule in $msiPathRules) { $mergedXml += "`n    " + $rule.Value.Rule }
@@ -317,10 +317,10 @@ $mergedXml += @"
   <RuleCollection Type="Script" EnforcementMode="$scriptMode">
 "@
 
-# Add Script rules
-$scriptPublisherRules = $publisherRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Script" }
-$scriptPathRules = $pathRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Script" }
-$scriptHashRules = $hashRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Script" }
+# Add Script rules - wrap in arrays to ensure .Count works correctly
+$scriptPublisherRules = @($publisherRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Script" })
+$scriptPathRules = @($pathRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Script" })
+$scriptHashRules = @($hashRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Script" })
 
 foreach ($rule in $scriptPublisherRules) { $mergedXml += "`n    " + $rule.Value.Rule }
 foreach ($rule in $scriptPathRules) { $mergedXml += "`n    " + $rule.Value.Rule }
@@ -343,10 +343,10 @@ $mergedXml += @"
   <RuleCollection Type="Dll" EnforcementMode="$dllMode">
 "@
 
-# Add DLL rules
-$dllPublisherRules = $publisherRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Dll" }
-$dllPathRules = $pathRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Dll" }
-$dllHashRules = $hashRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Dll" }
+# Add DLL rules - wrap in arrays to ensure .Count works correctly
+$dllPublisherRules = @($publisherRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Dll" })
+$dllPathRules = @($pathRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Dll" })
+$dllHashRules = @($hashRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Dll" })
 
 foreach ($rule in $dllPublisherRules) { $mergedXml += "`n    " + $rule.Value.Rule }
 foreach ($rule in $dllPathRules) { $mergedXml += "`n    " + $rule.Value.Rule }
@@ -358,9 +358,9 @@ $mergedXml += @"
   <RuleCollection Type="Appx" EnforcementMode="$appxMode">
 "@
 
-# Add Appx rules
-$appxPublisherRules = $publisherRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Appx" }
-$appxPathRules = $pathRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Appx" }
+# Add Appx rules - wrap in arrays to ensure .Count works correctly
+$appxPublisherRules = @($publisherRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Appx" })
+$appxPathRules = @($pathRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Appx" })
 
 foreach ($rule in $appxPublisherRules) { $mergedXml += "`n    " + $rule.Value.Rule }
 foreach ($rule in $appxPathRules) { $mergedXml += "`n    " + $rule.Value.Rule }

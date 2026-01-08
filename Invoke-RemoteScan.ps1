@@ -153,10 +153,15 @@ if ($null -eq $Credential) {
     $Credential = Get-Credential -Message "Enter credentials for remote connections (DOMAIN\username)"
 }
 
-# Load computer list
-$computers = Get-Content -Path $ComputerListPath |
+# Validate credentials were provided (user may have cancelled the dialog)
+if ($null -eq $Credential) {
+    throw "Credentials are required for remote scanning. Operation cancelled."
+}
+
+# Load computer list - ensure it's always an array
+$computers = @(Get-Content -Path $ComputerListPath |
     Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
-    ForEach-Object { $_.Trim() }
+    ForEach-Object { $_.Trim() })
 
 if ($computers.Count -eq 0) {
     throw "No computers found in $ComputerListPath"
