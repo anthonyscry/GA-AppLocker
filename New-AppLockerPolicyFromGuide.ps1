@@ -3,6 +3,8 @@
 Creates AppLocker policies using Build Guide methodology or simplified mode.
 
 .DESCRIPTION
+Part of GA-AppLocker toolkit. Use Start-AppLockerWorkflow.ps1 for guided experience.
+
 Generates enterprise-ready AppLocker policies with two operational modes:
 
 BUILD GUIDE MODE (default):
@@ -180,6 +182,17 @@ param(
 
 #Requires -Version 5.1
 
+# Import utilities module and config
+$scriptRoot = $PSScriptRoot
+$modulePath = Join-Path $scriptRoot "utilities\Common.psm1"
+if (Test-Path $modulePath) {
+    Import-Module $modulePath -Force
+    $config = Get-AppLockerConfig
+}
+else {
+    $config = $null
+}
+
 $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
 New-Item -ItemType Directory -Path $OutputPath -Force | Out-Null
 
@@ -352,16 +365,22 @@ if ($Simplified) {
 
     if ($IncludeDenyRules) {
         Write-Host "`nBuilding deny rules for LOLBins..." -ForegroundColor Yellow
-        $lolbins = @(
-            @{ Name = "mshta.exe"; Desc = "HTML Application Host" },
-            @{ Name = "PresentationHost.exe"; Desc = "XAML Browser Applications" },
-            @{ Name = "InstallUtil.exe"; Desc = ".NET Installation Utility" },
-            @{ Name = "RegAsm.exe"; Desc = ".NET Assembly Registration" },
-            @{ Name = "RegSvcs.exe"; Desc = ".NET Component Services" },
-            @{ Name = "MSBuild.exe"; Desc = "Microsoft Build Engine" },
-            @{ Name = "cscript.exe"; Desc = "Console Script Host" },
-            @{ Name = "wscript.exe"; Desc = "Windows Script Host" }
-        )
+        # Load LOLBins from config or use defaults
+        $lolbins = if ($config -and $config.LOLBins) {
+            $config.LOLBins | ForEach-Object { @{ Name = $_.Name; Desc = $_.Description } }
+        }
+        else {
+            @(
+                @{ Name = "mshta.exe"; Desc = "HTML Application Host" },
+                @{ Name = "PresentationHost.exe"; Desc = "XAML Browser Applications" },
+                @{ Name = "InstallUtil.exe"; Desc = ".NET Installation Utility" },
+                @{ Name = "RegAsm.exe"; Desc = ".NET Assembly Registration" },
+                @{ Name = "RegSvcs.exe"; Desc = ".NET Component Services" },
+                @{ Name = "MSBuild.exe"; Desc = "Microsoft Build Engine" },
+                @{ Name = "cscript.exe"; Desc = "Console Script Host" },
+                @{ Name = "wscript.exe"; Desc = "Windows Script Host" }
+            )
+        }
         foreach ($lolbin in $lolbins) {
             $simplifiedDenyRules += @{
                 Name = $lolbin.Name
@@ -648,20 +667,32 @@ $vendorPubs = $vendorPubs | Select-Object -Unique
 #endregion
 
 #region Explicit Deny Paths (Build Guide requirement)
-$denyPaths = @(
-    @{ Path = "%USERPROFILE%\Downloads\*"; Desc = "User Downloads folder" },
-    @{ Path = "%APPDATA%\*"; Desc = "Roaming AppData" },
-    @{ Path = "%LOCALAPPDATA%\Temp\*"; Desc = "Local Temp folder" },
-    @{ Path = "%TEMP%\*"; Desc = "System Temp folder" },
-    @{ Path = "%USERPROFILE%\Desktop\*"; Desc = "User Desktop" }
-)
+# Load deny paths from config or use defaults
+$denyPaths = if ($config -and $config.DefaultDenyPaths) {
+    $config.DefaultDenyPaths | ForEach-Object { @{ Path = $_.Path; Desc = $_.Description } }
+}
+else {
+    @(
+        @{ Path = "%USERPROFILE%\Downloads\*"; Desc = "User Downloads folder" },
+        @{ Path = "%APPDATA%\*"; Desc = "Roaming AppData" },
+        @{ Path = "%LOCALAPPDATA%\Temp\*"; Desc = "Local Temp folder" },
+        @{ Path = "%TEMP%\*"; Desc = "System Temp folder" },
+        @{ Path = "%USERPROFILE%\Desktop\*"; Desc = "User Desktop" }
+    )
+}
 
 # Additional deny paths for servers/DCs
 if ($TargetType -in @("Server", "DomainController")) {
-    $denyPaths += @(
-        @{ Path = "C:\inetpub\wwwroot\*"; Desc = "IIS Web Root" },
-        @{ Path = "%SYSTEMDRIVE%\Temp\*"; Desc = "System Temp" }
-    )
+    $serverPaths = if ($config -and $config.ServerDenyPaths) {
+        $config.ServerDenyPaths | ForEach-Object { @{ Path = $_.Path; Desc = $_.Description } }
+    }
+    else {
+        @(
+            @{ Path = "C:\inetpub\wwwroot\*"; Desc = "IIS Web Root" },
+            @{ Path = "%SYSTEMDRIVE%\Temp\*"; Desc = "System Temp" }
+        )
+    }
+    $denyPaths += $serverPaths
 }
 #endregion
 

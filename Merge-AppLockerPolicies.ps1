@@ -3,6 +3,8 @@
     Merges multiple AppLocker policy XML files and removes duplicate rules.
 
 .DESCRIPTION
+    Part of GA-AppLocker toolkit. Use Start-AppLockerWorkflow.ps1 for guided experience.
+
     This script consolidates AppLocker policies from multiple sources into a single,
     clean policy file. Essential for enterprise environments where policies are
     collected from multiple systems or created incrementally.
@@ -110,6 +112,13 @@ param(
 )
 
 #Requires -Version 5.1
+
+# Import utilities module
+$scriptRoot = $PSScriptRoot
+$modulePath = Join-Path $scriptRoot "utilities\Common.psm1"
+if (Test-Path $modulePath) {
+    Import-Module $modulePath -Force
+}
 
 # Validate input path
 if (!(Test-Path -Path $InputPath)) {
