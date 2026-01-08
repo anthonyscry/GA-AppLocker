@@ -182,17 +182,41 @@ $jobCount = 0
 $credUsername = $Credential.UserName
 $credPassword = $Credential.Password
 
+# Clear any default parameter values that might interfere with Start-Job
+# (some environments set $PSDefaultParameterValues that cause parameter set conflicts)
+$savedDefaults = @{}
+foreach ($key in $PSDefaultParameterValues.Keys) {
+    $savedDefaults[$key] = $PSDefaultParameterValues[$key]
+}
+$PSDefaultParameterValues.Clear()
+
+# Prepare ScanPaths for ArgumentList - convert to JSON string to avoid array flattening issues
+$scanPathsJson = if ($ScanPaths -and $ScanPaths.Count -gt 0) { $ScanPaths | ConvertTo-Json -Compress } else { "[]" }
+
 foreach ($computer in $computers) {
     $jobCount++
     Write-Host "[$jobCount/$($computers.Count)] Starting: $computer" -ForegroundColor Gray
 
     # Start job for this computer
     # Note: Pass username and SecureString password separately, then reconstruct credential inside job
-    Start-Job -Name "Scan-$computer" -ArgumentList $computer, $credUsername, $credPassword, $outputRoot, $ScanPaths, $ScanUserProfiles.IsPresent, $SkipWritableDirectoryScan.IsPresent -ScriptBlock {
-        param($Computer, $CredUsername, $CredPassword, $OutputRoot, $ExtraScanPaths, $ScanUserProfiles, $SkipWritableScan)
+    # ScanPaths is passed as JSON to avoid array flattening issues with ArgumentList
+    Start-Job -Name "Scan-$computer" -ArgumentList $computer, $credUsername, $credPassword, $outputRoot, $scanPathsJson, $ScanUserProfiles.IsPresent, $SkipWritableDirectoryScan.IsPresent -ScriptBlock {
+        param($Computer, $CredUsername, $CredPassword, $OutputRoot, $ExtraScanPathsJson, $ScanUserProfiles, $SkipWritableScan)
 
         # Reconstruct the credential from username and SecureString password
         $Credential = New-Object System.Management.Automation.PSCredential($CredUsername, $CredPassword)
+
+        # Parse ScanPaths from JSON
+        $ExtraScanPaths = @()
+        if ($ExtraScanPathsJson -and $ExtraScanPathsJson -ne "[]") {
+            try {
+                $parsed = $ExtraScanPathsJson | ConvertFrom-Json
+                if ($parsed) {
+                    $ExtraScanPaths = @($parsed)
+                }
+            }
+            catch { }
+        }
 
         # Clear any problematic defaults that could cause parameter binding issues
         $PSDefaultParameterValues.Clear()
@@ -476,6 +500,13 @@ foreach ($computer in $computers) {
     }
 }
 
+# Restore default parameter values
+if ($null -ne $savedDefaults) {
+    foreach ($key in $savedDefaults.Keys) {
+        $PSDefaultParameterValues[$key] = $savedDefaults[$key]
+    }
+}
+
 # Wait for all jobs to complete
 Write-Host "`nWaiting for scans to complete..." -ForegroundColor Yellow
 
@@ -494,17 +525,20 @@ while ((Get-Job -Name "Scan-*" -State Running -ErrorAction SilentlyContinue).Cou
 # Collect results - use SilentlyContinue to prevent job errors from propagating
 if ($null -ne $allJobs -and $allJobs.Count -gt 0) {
     foreach ($job in $allJobs) {
+        $computerName = $job.Name -replace '^Scan-', ''
         try {
-            $jobResult = Receive-Job -Job $job -ErrorAction SilentlyContinue
-            if ($null -ne $jobResult) {
-                $results.Add($jobResult)
-            } else {
-                # Job returned no result - create a failure entry
-                $computerName = $job.Name -replace '^Scan-', ''
+            # Check job state first
+            if ($job.State -eq 'Failed') {
+                # Job itself failed (not just the scriptblock)
+                $errorMsg = if ($job.ChildJobs -and $job.ChildJobs[0].JobStateInfo.Reason) {
+                    $job.ChildJobs[0].JobStateInfo.Reason.Message
+                } else {
+                    "Job failed to execute"
+                }
                 $results.Add([PSCustomObject]@{
                     Computer = $computerName
                     Status = "Failed"
-                    Message = "Job completed but returned no result"
+                    Message = $errorMsg
                     StartTime = $null
                     EndTime = Get-Date
                     ExeCount = 0
@@ -512,10 +546,27 @@ if ($null -ne $allJobs -and $allJobs.Count -gt 0) {
                     WritableDirCount = 0
                 })
             }
+            else {
+                $jobResult = Receive-Job -Job $job -ErrorAction SilentlyContinue
+                if ($null -ne $jobResult) {
+                    $results.Add($jobResult)
+                } else {
+                    # Job returned no result - create a failure entry
+                    $results.Add([PSCustomObject]@{
+                        Computer = $computerName
+                        Status = "Failed"
+                        Message = "Job completed but returned no result"
+                        StartTime = $null
+                        EndTime = Get-Date
+                        ExeCount = 0
+                        SignedCount = 0
+                        WritableDirCount = 0
+                    })
+                }
+            }
         }
         catch {
             # If we couldn't receive the job result, create a failure entry
-            $computerName = $job.Name -replace '^Scan-', ''
             $results.Add([PSCustomObject]@{
                 Computer = $computerName
                 Status = "Failed"
