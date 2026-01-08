@@ -207,7 +207,14 @@ function Invoke-ScanWorkflow {
     $scanScript = Join-Path $scriptRoot "Invoke-RemoteScan.ps1"
     if (Test-Path $scanScript) {
         Write-Host "`n  Starting remote scan..." -ForegroundColor Cyan
-        & $scanScript -ComputerListPath $ComputerListPath -SharePath $OutputPath -Credential $Credential
+        $scanParams = @{
+            ComputerListPath = $ComputerListPath
+            SharePath        = $OutputPath
+        }
+        if ($Credential) {
+            $scanParams.Credential = $Credential
+        }
+        & $scanScript @scanParams
         return $OutputPath
     }
     else {
