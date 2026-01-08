@@ -18,6 +18,39 @@ Get-ChildItem -Path "C:\GA-AppLocker" -Recurse -Include *.ps1,*.psm1 | Unblock-F
 
 ---
 
+## WinRM Setup (Required for Remote Scans)
+
+Remote scanning requires WinRM to be enabled on each target machine.
+
+**On each target machine** (run PowerShell as Administrator):
+
+```powershell
+# Enable PS Remoting (configures WinRM, firewall, and service)
+Enable-PSRemoting -Force
+```
+
+**For domain environments**, you can push this via Group Policy:
+- Computer Configuration → Administrative Templates → Windows Components → Windows Remote Management → WinRM Service
+- Enable "Allow remote server management through WinRM"
+
+**For workgroup/non-domain machines**, you may also need to trust targets on the scanning machine:
+
+```powershell
+# Trust specific machines
+Set-Item WSMan:\localhost\Client\TrustedHosts -Value "PC01,PC02,PC03"
+
+# Or trust all (less secure)
+Set-Item WSMan:\localhost\Client\TrustedHosts -Value "*"
+```
+
+**Test connectivity:**
+
+```powershell
+Test-WSMan -ComputerName "TARGET-PC"
+```
+
+---
+
 ## Requirements
 
 - PowerShell 5.1+
