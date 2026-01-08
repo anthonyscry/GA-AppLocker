@@ -186,8 +186,8 @@ foreach ($computer in $computers) {
     Start-Job -Name "Scan-$computer" -ArgumentList $computer, $Credential, $outputRoot, $ScanPaths, $ScanUserProfiles.IsPresent, $SkipWritableDirectoryScan.IsPresent -ScriptBlock {
         param($Computer, $Credential, $OutputRoot, $ExtraScanPaths, $ScanUserProfiles, $SkipWritableScan)
 
-        # Clear any problematic defaults
-        $PSDefaultParameterValues.Remove("*:Authentication")
+        # Clear any problematic defaults that could cause parameter binding issues
+        $PSDefaultParameterValues.Clear()
 
         $start = Get-Date
         $result = [PSCustomObject]@{
@@ -395,29 +395,49 @@ foreach ($computer in $computers) {
 
             #region 5. Get OS and system info
             $osInfo = Invoke-Command -Session $session -ScriptBlock {
-                $os = Get-CimInstance -ClassName Win32_OperatingSystem
-                $cs = Get-CimInstance -ClassName Win32_ComputerSystem
-                [PSCustomObject]@{
-                    ComputerName = $env:COMPUTERNAME
-                    OSName = $os.Caption
-                    OSVersion = $os.Version
-                    OSBuild = $os.BuildNumber
-                    Architecture = $os.OSArchitecture
-                    Domain = $cs.Domain
-                    Manufacturer = $cs.Manufacturer
-                    Model = $cs.Model
-                    TotalMemoryGB = [math]::Round($cs.TotalPhysicalMemory / 1GB, 2)
+                try {
+                    $os = Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction SilentlyContinue
+                    $cs = Get-CimInstance -ClassName Win32_ComputerSystem -ErrorAction SilentlyContinue
+                    [PSCustomObject]@{
+                        ComputerName = $env:COMPUTERNAME
+                        OSName = if ($os) { $os.Caption } else { "Unknown" }
+                        OSVersion = if ($os) { $os.Version } else { "Unknown" }
+                        OSBuild = if ($os) { $os.BuildNumber } else { "Unknown" }
+                        Architecture = if ($os) { $os.OSArchitecture } else { "Unknown" }
+                        Domain = if ($cs) { $cs.Domain } else { "Unknown" }
+                        Manufacturer = if ($cs) { $cs.Manufacturer } else { "Unknown" }
+                        Model = if ($cs) { $cs.Model } else { "Unknown" }
+                        TotalMemoryGB = if ($cs) { [math]::Round($cs.TotalPhysicalMemory / 1GB, 2) } else { 0 }
+                    }
+                }
+                catch {
+                    [PSCustomObject]@{
+                        ComputerName = $env:COMPUTERNAME
+                        OSName = "Error"
+                        OSVersion = "Error"
+                        OSBuild = "Error"
+                        Architecture = "Error"
+                        Domain = "Error"
+                        Manufacturer = "Error"
+                        Model = "Error"
+                        TotalMemoryGB = 0
+                    }
                 }
             }
 
-            $osInfo | Export-Csv -Path (Join-Path $computerFolder "SystemInfo.csv") -NoTypeInformation
+            if ($null -ne $osInfo) {
+                $osInfo | Export-Csv -Path (Join-Path $computerFolder "SystemInfo.csv") -NoTypeInformation
+            }
             #endregion
 
             #region 6. Get running processes (to see what's actually executing)
             $processes = Invoke-Command -Session $session -ScriptBlock {
-                Get-Process | Where-Object { $_.Path } |
-                    Select-Object Name, Path, Company, ProductVersion, Description |
-                    Sort-Object Path -Unique
+                try {
+                    Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.Path } |
+                        Select-Object Name, Path, Company, ProductVersion, Description |
+                        Sort-Object Path -Unique
+                }
+                catch { @() }
             }
 
             if ($null -ne $processes -and $processes.Count -gt 0) {
@@ -425,21 +445,25 @@ foreach ($computer in $computers) {
             }
             #endregion
 
-            Remove-PSSession $session
+            Remove-PSSession -Session $session -ErrorAction SilentlyContinue
             $result.Status = "Success"
         }
         catch {
             $result.Message = $_.Exception.Message
+            # Clean up session if it exists
+            if ($null -ne $session) {
+                Remove-PSSession -Session $session -ErrorAction SilentlyContinue
+            }
         }
         finally {
             $result.EndTime = Get-Date
         }
 
         return $result
-    } | Out-Null
+    } -ErrorAction SilentlyContinue | Out-Null
 
     # Throttle: wait if we have too many jobs
-    while ((Get-Job -State Running).Count -ge $ThrottleLimit) {
+    while ((Get-Job -State Running -ErrorAction SilentlyContinue).Count -ge $ThrottleLimit) {
         Start-Sleep -Seconds 2
     }
 }
@@ -447,11 +471,11 @@ foreach ($computer in $computers) {
 # Wait for all jobs to complete
 Write-Host "`nWaiting for scans to complete..." -ForegroundColor Yellow
 
-$allJobs = Get-Job -Name "Scan-*"
+$allJobs = Get-Job -Name "Scan-*" -ErrorAction SilentlyContinue
 $completedCount = 0
 
-while ((Get-Job -Name "Scan-*" -State Running).Count -gt 0) {
-    $newCompleted = (Get-Job -Name "Scan-*" -State Completed).Count
+while ((Get-Job -Name "Scan-*" -State Running -ErrorAction SilentlyContinue).Count -gt 0) {
+    $newCompleted = (Get-Job -Name "Scan-*" -State Completed -ErrorAction SilentlyContinue).Count
     if ($newCompleted -gt $completedCount) {
         $completedCount = $newCompleted
         Write-Host "  Completed: $completedCount / $($computers.Count)" -ForegroundColor Gray
@@ -459,18 +483,54 @@ while ((Get-Job -Name "Scan-*" -State Running).Count -gt 0) {
     Start-Sleep -Seconds 3
 }
 
-# Collect results
-foreach ($job in $allJobs) {
-    $jobResult = Receive-Job -Job $job
-    if ($null -ne $jobResult) {
-        $results.Add($jobResult)
+# Collect results - use SilentlyContinue to prevent job errors from propagating
+if ($null -ne $allJobs -and $allJobs.Count -gt 0) {
+    foreach ($job in $allJobs) {
+        try {
+            $jobResult = Receive-Job -Job $job -ErrorAction SilentlyContinue
+            if ($null -ne $jobResult) {
+                $results.Add($jobResult)
+            } else {
+                # Job returned no result - create a failure entry
+                $computerName = $job.Name -replace '^Scan-', ''
+                $results.Add([PSCustomObject]@{
+                    Computer = $computerName
+                    Status = "Failed"
+                    Message = "Job completed but returned no result"
+                    StartTime = $null
+                    EndTime = Get-Date
+                    ExeCount = 0
+                    SignedCount = 0
+                    WritableDirCount = 0
+                })
+            }
+        }
+        catch {
+            # If we couldn't receive the job result, create a failure entry
+            $computerName = $job.Name -replace '^Scan-', ''
+            $results.Add([PSCustomObject]@{
+                Computer = $computerName
+                Status = "Failed"
+                Message = $_.Exception.Message
+                StartTime = $null
+                EndTime = Get-Date
+                ExeCount = 0
+                SignedCount = 0
+                WritableDirCount = 0
+            })
+        }
+        Remove-Job -Job $job -Force -ErrorAction SilentlyContinue
     }
-    Remove-Job -Job $job
 }
 
 # Export results log
 $logPath = Join-Path $outputRoot "ScanResults.csv"
-$results | Export-Csv -Path $logPath -NoTypeInformation
+try {
+    $results | Export-Csv -Path $logPath -NoTypeInformation -ErrorAction SilentlyContinue
+}
+catch {
+    Write-Host "Warning: Could not write results log: $($_.Exception.Message)" -ForegroundColor Yellow
+}
 
 # Summary
 $successCount = ($results | Where-Object { $_.Status -eq "Success" }).Count
