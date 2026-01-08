@@ -98,6 +98,7 @@
     Merge-AppLockerPolicies.ps1 - Merges multiple policies together
 #>
 
+[CmdletBinding()]
 param(
     [Parameter(Mandatory=$true)]
     [string]$ComputerListPath,
