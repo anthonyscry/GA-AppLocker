@@ -57,14 +57,25 @@
     Only files containing valid <AppLockerPolicy> XML are processed.
 
 .PARAMETER TargetGroup
-    AD group name to replace "Everyone" (S-1-1-0) in all rules.
+    AD group name to use as the replacement target.
     Use this to scope merged policies to specific groups like "AppLocker-Workstations".
     The group name will be resolved to its SID automatically.
 
 .PARAMETER TargetSid
-    SID to replace "Everyone" (S-1-1-0) in all rules.
+    SID to use as the replacement target.
     Use this if you already know the SID or the group cannot be resolved.
     Alternative to -TargetGroup parameter.
+
+.PARAMETER ReplaceMode
+    Which SIDs to replace with the target group:
+    - 1 (Everyone): Only replace "Everyone" (S-1-1-0) - Default
+    - 2 (Users): Replace "Everyone" and "BUILTIN\Users" (S-1-5-32-545)
+    - 3 (Multiple): Replace specific SIDs listed in -ReplaceSids parameter
+    - 4 (All): Replace all non-admin user SIDs (Everyone, Users, Authenticated Users)
+
+.PARAMETER ReplaceSids
+    Array of specific SIDs to replace when using -ReplaceMode 3 (Multiple).
+    Example: -ReplaceSids "S-1-1-0","S-1-5-32-545"
 
 .EXAMPLE
     # Merge all policies from scan results
@@ -134,7 +145,14 @@ param(
     [string]$TargetGroup,
 
     [Parameter(ParameterSetName='Standard')]
-    [string]$TargetSid
+    [string]$TargetSid,
+
+    [Parameter(ParameterSetName='Standard')]
+    [ValidateSet("1", "2", "3", "4", "Everyone", "Users", "Multiple", "All")]
+    [string]$ReplaceMode = "1",
+
+    [Parameter(ParameterSetName='Standard')]
+    [string[]]$ReplaceSids
 )
 
 #Requires -Version 5.1
@@ -168,11 +186,44 @@ elseif ($TargetSid) {
     Write-Host "Using target SID: $replacementSid" -ForegroundColor Green
 }
 
+# Build list of SIDs to replace based on ReplaceMode
+$sidsToReplace = @()
+if ($replacementSid) {
+    switch ($ReplaceMode) {
+        { $_ -in "1", "Everyone" } {
+            $sidsToReplace = @("S-1-1-0")  # Everyone
+            Write-Host "Replace mode: Everyone only (S-1-1-0)" -ForegroundColor Gray
+        }
+        { $_ -in "2", "Users" } {
+            $sidsToReplace = @("S-1-1-0", "S-1-5-32-545")  # Everyone + BUILTIN\Users
+            Write-Host "Replace mode: Everyone + BUILTIN\Users" -ForegroundColor Gray
+        }
+        { $_ -in "3", "Multiple" } {
+            if ($ReplaceSids -and $ReplaceSids.Count -gt 0) {
+                $sidsToReplace = $ReplaceSids
+                Write-Host "Replace mode: Custom SIDs ($($ReplaceSids -join ', '))" -ForegroundColor Gray
+            }
+            else {
+                Write-Warning "ReplaceMode 3 (Multiple) requires -ReplaceSids parameter. Defaulting to Everyone only."
+                $sidsToReplace = @("S-1-1-0")
+            }
+        }
+        { $_ -in "4", "All" } {
+            # Everyone, BUILTIN\Users, Authenticated Users
+            $sidsToReplace = @("S-1-1-0", "S-1-5-32-545", "S-1-5-11")
+            Write-Host "Replace mode: All standard user SIDs (Everyone, Users, Authenticated Users)" -ForegroundColor Gray
+        }
+    }
+}
+
 Write-Host "=== AppLocker Policy Merger ===" -ForegroundColor Cyan
 Write-Host "Input: $InputPath" -ForegroundColor Cyan
 Write-Host "Output: $OutputPath" -ForegroundColor Cyan
-if ($replacementSid) {
-    Write-Host "Replacing 'Everyone' (S-1-1-0) with: $replacementSid" -ForegroundColor Cyan
+if ($replacementSid -and $sidsToReplace.Count -gt 0) {
+    Write-Host "Replacing SIDs with: $replacementSid" -ForegroundColor Cyan
+    foreach ($sid in $sidsToReplace) {
+        Write-Host "  - $sid" -ForegroundColor Gray
+    }
 }
 
 # Find all policy files
@@ -232,9 +283,9 @@ foreach ($policyFile in $policyFiles) {
                 else {
                     $ruleXml = $rule.OuterXml
                     $userSid = $rule.UserOrGroupSid
-                    # Replace Everyone SID with target group if specified
-                    if ($replacementSid -and $userSid -eq "S-1-1-0") {
-                        $ruleXml = $ruleXml -replace 'UserOrGroupSid="S-1-1-0"', "UserOrGroupSid=`"$replacementSid`""
+                    # Replace SIDs based on ReplaceMode
+                    if ($replacementSid -and $sidsToReplace -contains $userSid) {
+                        $ruleXml = $ruleXml -replace "UserOrGroupSid=`"$userSid`"", "UserOrGroupSid=`"$replacementSid`""
                         $userSid = $replacementSid
                     }
                     $publisherRules[$key] = @{
@@ -261,9 +312,9 @@ foreach ($policyFile in $policyFiles) {
                 else {
                     $ruleXml = $rule.OuterXml
                     $userSid = $rule.UserOrGroupSid
-                    # Replace Everyone SID with target group if specified
-                    if ($replacementSid -and $userSid -eq "S-1-1-0") {
-                        $ruleXml = $ruleXml -replace 'UserOrGroupSid="S-1-1-0"', "UserOrGroupSid=`"$replacementSid`""
+                    # Replace SIDs based on ReplaceMode
+                    if ($replacementSid -and $sidsToReplace -contains $userSid) {
+                        $ruleXml = $ruleXml -replace "UserOrGroupSid=`"$userSid`"", "UserOrGroupSid=`"$replacementSid`""
                         $userSid = $replacementSid
                     }
                     $pathRules[$key] = @{
@@ -290,9 +341,9 @@ foreach ($policyFile in $policyFiles) {
                 else {
                     $ruleXml = $rule.OuterXml
                     $userSid = $rule.UserOrGroupSid
-                    # Replace Everyone SID with target group if specified
-                    if ($replacementSid -and $userSid -eq "S-1-1-0") {
-                        $ruleXml = $ruleXml -replace 'UserOrGroupSid="S-1-1-0"', "UserOrGroupSid=`"$replacementSid`""
+                    # Replace SIDs based on ReplaceMode
+                    if ($replacementSid -and $sidsToReplace -contains $userSid) {
+                        $ruleXml = $ruleXml -replace "UserOrGroupSid=`"$userSid`"", "UserOrGroupSid=`"$replacementSid`""
                         $userSid = $replacementSid
                     }
                     $hashRules[$key] = @{
