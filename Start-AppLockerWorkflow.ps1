@@ -134,6 +134,7 @@ function Show-Banner {
     Write-Host ""
     Write-Host "  GA-AppLocker - AppLocker Policy Generation Toolkit" -ForegroundColor Cyan
     Write-Host "  -------------------------------------------------" -ForegroundColor DarkGray
+    Write-Host "  Author: Tony Tran, ISSO, GA-ASI" -ForegroundColor DarkGray
     Write-Host ""
 }
 
