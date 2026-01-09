@@ -116,6 +116,7 @@ The interactive menu provides guided access to all features:
 
   === Analysis ===
     [6] Compare    - Compare software inventories
+    [E] Events     - Collect AppLocker audit events (8003/8004)
 
   === Software Lists ===
     [S] Software   - Manage software lists for rule generation
@@ -285,6 +286,59 @@ Comparison methods:
 - **Hash**: Exact file match by SHA256
 - **Publisher**: Match by publisher/signer
 
+### AppLocker Event Collection
+
+Collect audit events from computers running AppLocker in Audit mode. This is essential for identifying applications that need allow rules before switching to Enforce mode.
+
+**Event IDs Collected:**
+- **8003/8005/8007**: Would have been allowed
+- **8004/8006/8008**: Would have been blocked (most useful for rule creation)
+
+```powershell
+# Interactive mode
+.\Start-AppLockerWorkflow.ps1
+# Select [E] Events
+
+# Direct mode - collect blocked events from last 14 days
+.\Start-AppLockerWorkflow.ps1 -Mode Events -ComputerList .\computers.txt
+
+# Collect from last 30 days
+.\Start-AppLockerWorkflow.ps1 -Mode Events -ComputerList .\computers.txt -DaysBack 30
+
+# Collect all audit events (blocked + allowed)
+.\Start-AppLockerWorkflow.ps1 -Mode Events -ComputerList .\computers.txt -IncludeAllowedEvents
+
+# Direct script usage
+.\Invoke-RemoteEventCollection.ps1 -ComputerListPath .\computers.txt -OutputPath .\Events -DaysBack 14 -BlockedOnly
+```
+
+**Output Structure:**
+```
+Events/
+├── Events-20260109-143000/
+│   ├── EventCollectionResults.csv   # Summary log
+│   ├── AllBlockedEvents.csv         # All blocked events consolidated
+│   ├── UniqueBlockedApps.csv        # Deduplicated for rule creation
+│   ├── WORKSTATION01/
+│   │   ├── BlockedEvents.csv        # Per-computer blocked events
+│   │   ├── AllowedEvents.csv        # If -IncludeAllowedEvents
+│   │   └── EventSummary.csv         # Event counts
+│   └── WORKSTATION02/
+│       └── ...
+```
+
+**Key Output Files:**
+- **UniqueBlockedApps.csv**: Deduplicated list of blocked applications with occurrence counts, affected computers, and users. Use this to identify which apps need allow rules.
+- **AllBlockedEvents.csv**: Consolidated view across all computers for analysis.
+
+**Recommended Workflow:**
+1. Deploy AppLocker in **Audit mode** for 14+ days
+2. Collect blocked events: `[E] Events`
+3. Review `UniqueBlockedApps.csv` to identify legitimate software
+4. Import to software list: `[S] Software → [3] Import`
+5. Approve items and generate rules: `[S] Software → [G] Generate`
+6. Add rules to policy, continue monitoring before enforcing
+
 ### Software Lists Workflow
 
 Create and manage curated software allowlists:
@@ -322,6 +376,7 @@ Create and manage curated software allowlists:
 GA-AppLocker/
 ├── Start-AppLockerWorkflow.ps1         # Main entry point (menu + direct mode)
 ├── Invoke-RemoteScan.ps1               # Remote data collection via WinRM
+├── Invoke-RemoteEventCollection.ps1    # AppLocker audit event collection
 ├── New-AppLockerPolicyFromGuide.ps1    # Policy generation engine
 ├── Merge-AppLockerPolicies.ps1         # Policy consolidation
 └── utilities/

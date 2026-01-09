@@ -6,6 +6,7 @@
 
 **Purpose:**
 - Collect application inventory data from Windows machines remotely via WinRM
+- Collect AppLocker audit events (8003/8004) to identify blocked applications
 - Generate enterprise-ready AppLocker policies based on real environment data
 - Support phased deployment (low-risk to high-risk enforcement)
 - Merge and validate AppLocker policies across organizations
@@ -27,6 +28,7 @@
 GA-AppLocker/
 ├── Start-AppLockerWorkflow.ps1      # Main entry point (interactive menu + parameter modes)
 ├── Invoke-RemoteScan.ps1            # WinRM-based remote data collection
+├── Invoke-RemoteEventCollection.ps1 # AppLocker audit event collection (8003/8004)
 ├── New-AppLockerPolicyFromGuide.ps1 # Policy generation (Build Guide + Simplified modes)
 ├── Merge-AppLockerPolicies.ps1      # Policy consolidation with deduplication
 ├── computers.txt                    # Target computer list
@@ -72,6 +74,7 @@ GA-AppLocker/
 
 ### Output Organization
 - Scans: `./Scans/Scan-YYYYMMDD-HHMMSS/[COMPUTERNAME]/`
+- Events: `./Events/Events-YYYYMMDD-HHMMSS/[COMPUTERNAME]/`
 - Policies: `./Outputs/AppLockerPolicy-[Mode].xml`
 - Software Lists: `./SoftwareLists/[ListName].json`
 
@@ -116,6 +119,15 @@ The toolkit includes advanced software list features for curated allowlists:
 
 # Full workflow (Scan + Generate)
 .\Start-AppLockerWorkflow.ps1 -Mode Full -ComputerList .\computers.txt
+
+# Collect AppLocker audit events (blocked apps from last 14 days)
+.\Start-AppLockerWorkflow.ps1 -Mode Events -ComputerList .\computers.txt
+
+# Collect events from last 30 days
+.\Start-AppLockerWorkflow.ps1 -Mode Events -ComputerList .\computers.txt -DaysBack 30
+
+# Collect all audit events (blocked + allowed)
+.\Start-AppLockerWorkflow.ps1 -Mode Events -ComputerList .\computers.txt -IncludeAllowedEvents
 ```
 
 ### Utility Scripts
@@ -147,6 +159,9 @@ The toolkit includes advanced software list features for curated allowlists:
 | `-ThrottleLimit` | Concurrent remote connections (default: 10) |
 | `-SoftwareListPath` | Path to software list JSON for policy generation |
 | `-OutputPath` | Output folder (defaults to `.\Outputs`) |
+| `-DaysBack` | Days of events to collect (default: 14, 0=all) |
+| `-BlockedOnly` | Only collect "would have been blocked" events |
+| `-IncludeAllowedEvents` | Also collect "would have been allowed" events |
 
 ## Security Principles
 
@@ -197,8 +212,22 @@ Set-AppLockerPolicy -XmlPolicy .\Outputs\AppLockerPolicy.xml
 2. **Scan** 14+ machines to collect inventory
 3. **Generate Phase 1** policies (EXE only - lowest risk)
 4. **Deploy via GPO** in Audit mode for 14+ days
-5. **Monitor Event Viewer** (Event IDs 8003/8004)
-6. **Advance through phases** progressively
+5. **Collect audit events** using `[E] Events` menu (collects 8003/8004)
+6. **Review blocked apps** in `UniqueBlockedApps.csv` output
+7. **Create rules** for legitimate blocked software via Software Lists
+8. **Advance through phases** progressively
+
+### Event Collection Details
+AppLocker audit events provide critical feedback during the deployment process:
+- **Event 8003**: Would have been allowed (EXE/DLL)
+- **Event 8004**: Would have been blocked (EXE/DLL) - most useful
+- **Event 8005/8006**: MSI and Script events
+- **Event 8007/8008**: Packaged app events
+
+The `Invoke-RemoteEventCollection.ps1` script collects these events and produces:
+- `UniqueBlockedApps.csv`: Deduplicated list with occurrence counts, affected computers
+- `AllBlockedEvents.csv`: Consolidated view for analysis
+- Per-computer CSV files with detailed event data
 
 ## File Naming Conventions
 
