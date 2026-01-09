@@ -899,15 +899,25 @@ function Import-ScanDataToSoftwareList {
 
     $list = Get-SoftwareList -ListPath $ListPath
 
-    # Find all scan data
-    $computerFolders = Get-ChildItem -Path $ScanPath -Directory |
-    Where-Object { Test-Path (Join-Path $_.FullName "*.csv") }
+    # Find all scan data - check if CSVs exist directly in the given path first
+    $directCsvPath = Join-Path $ScanPath "Executables.csv"
+    $computerFolders = @()
 
-    if ($computerFolders.Count -eq 0) {
-        throw "No scan data found in $ScanPath"
+    if (Test-Path $directCsvPath) {
+        # CSV files are directly in the given path (user selected a computer folder)
+        $computerFolders = @([PSCustomObject]@{ FullName = $ScanPath; Name = (Split-Path $ScanPath -Leaf) })
+        Write-Host "Loading scan data from: $(Split-Path $ScanPath -Leaf)..." -ForegroundColor Cyan
     }
+    else {
+        # Look for subfolders containing CSVs (user selected a scan date folder)
+        $computerFolders = Get-ChildItem -Path $ScanPath -Directory |
+            Where-Object { Test-Path (Join-Path $_.FullName "*.csv") }
 
-    Write-Host "Loading scan data from $($computerFolders.Count) computers..." -ForegroundColor Cyan
+        if ($computerFolders.Count -eq 0) {
+            throw "No scan data found in $ScanPath. Ensure the folder contains Executables.csv or subfolders with CSV files."
+        }
+        Write-Host "Loading scan data from $($computerFolders.Count) computers..." -ForegroundColor Cyan
+    }
 
     $allExecutables = @()
     foreach ($folder in $computerFolders) {

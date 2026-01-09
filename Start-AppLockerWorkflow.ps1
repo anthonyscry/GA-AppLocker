@@ -1030,17 +1030,16 @@ function Show-SoftwareListMenu {
     Write-Host "  === Basic Operations ===" -ForegroundColor Cyan
     Write-Host "    [1] Create     - Create a new software list" -ForegroundColor White
     Write-Host "    [2] View       - View/search existing software lists" -ForegroundColor White
-    Write-Host "    [3] Add        - Add software to a list manually" -ForegroundColor White
     Write-Host ""
     Write-Host "  === Import Methods ===" -ForegroundColor Cyan
-    Write-Host "    [4] Import     - Import from scan data or executable" -ForegroundColor White
-    Write-Host "    [5] Publishers - Import common trusted publishers" -ForegroundColor White
-    Write-Host "    [6] Policy     - Import from existing AppLocker policy" -ForegroundColor White
-    Write-Host "    [7] Folder     - Import from folder (scan executables)" -ForegroundColor White
+    Write-Host "    [3] Import     - Import from scan data or executable" -ForegroundColor White
+    Write-Host "    [4] Publishers - Import common trusted publishers" -ForegroundColor White
+    Write-Host "    [5] Policy     - Import from existing AppLocker policy" -ForegroundColor White
+    Write-Host "    [6] Folder     - Import from folder (scan executables)" -ForegroundColor White
     Write-Host ""
     Write-Host "  === Export & Generate ===" -ForegroundColor Cyan
-    Write-Host "    [8] Export     - Export list to CSV" -ForegroundColor White
-    Write-Host "    [9] Approve    - Bulk approve/unapprove items" -ForegroundColor White
+    Write-Host "    [7] Export     - Export list to CSV" -ForegroundColor White
+    Write-Host "    [8] Approve    - Bulk approve/unapprove items" -ForegroundColor White
     Write-Host "    [G] Generate   - Generate policy from software list" -ForegroundColor White
     Write-Host ""
     Write-Host "    [B] Back" -ForegroundColor Gray
@@ -1134,54 +1133,6 @@ function Invoke-SoftwareListWorkflow {
                 }
             }
             "3" {
-                # Add software to list
-                Write-Host "`n  --- Add Software to List ---" -ForegroundColor Cyan
-                $lists = Get-ChildItem -Path $defaultListPath -Filter "*.json" -ErrorAction SilentlyContinue
-                if ($lists.Count -eq 0) {
-                    Write-Host "  No software lists found. Create one first." -ForegroundColor Yellow
-                    continue
-                }
-
-                Write-Host "  Available lists:" -ForegroundColor Gray
-                $i = 1
-                foreach ($list in $lists) {
-                    Write-Host "    [$i] $($list.BaseName)" -ForegroundColor White
-                    $i++
-                }
-                $listChoice = Read-Host "  Select list number"
-                if (-not ($listChoice -match "^\d+$") -or [int]$listChoice -lt 1 -or [int]$listChoice -gt $lists.Count) {
-                    Write-Host "  [-] Invalid selection" -ForegroundColor Red
-                    continue
-                }
-                $selectedListPath = $lists[[int]$listChoice - 1].FullName
-
-                Write-Host ""
-                Write-Host "  Rule type:" -ForegroundColor Gray
-                Write-Host "    [1] Publisher (signature-based)" -ForegroundColor White
-                Write-Host "    [2] Hash (file hash-based)" -ForegroundColor White
-                $ruleTypeChoice = Read-Host "  Select rule type"
-
-                $name = Read-Host "  Software name"
-                $category = Read-Host "  Category (default: Uncategorized)"
-                if ([string]::IsNullOrWhiteSpace($category)) { $category = "Uncategorized" }
-
-                if ($ruleTypeChoice -eq "1") {
-                    $publisher = Read-Host "  Publisher name (e.g., ADOBE INC.)"
-                    $product = Read-Host "  Product name (default: *)"
-                    if ([string]::IsNullOrWhiteSpace($product)) { $product = "*" }
-
-                    Add-SoftwareListItem -ListPath $selectedListPath -Name $name -Publisher $publisher `
-                        -ProductName $product -Category $category -RuleType "Publisher" -Approved $true
-                }
-                else {
-                    $hash = Read-Host "  SHA256 hash"
-                    $fileName = Read-Host "  Original filename"
-
-                    Add-SoftwareListItem -ListPath $selectedListPath -Name $name -Hash $hash `
-                        -HashSourceFile $fileName -Category $category -RuleType "Hash" -Approved $true
-                }
-            }
-            "4" {
                 # Import from scan data or executable
                 Write-Host "`n  --- Import Software ---" -ForegroundColor Cyan
                 Write-Host "    [1] Import from scan data" -ForegroundColor White
@@ -1271,7 +1222,7 @@ function Invoke-SoftwareListWorkflow {
                     }
                 }
             }
-            "5" {
+            "4" {
                 # Import common trusted publishers
                 Write-Host "`n  --- Import Common Publishers ---" -ForegroundColor Cyan
 
@@ -1324,7 +1275,7 @@ function Invoke-SoftwareListWorkflow {
 
                 Import-CommonPublishersToSoftwareList @importParams
             }
-            "6" {
+            "5" {
                 # Import from existing AppLocker policy
                 Write-Host "`n  --- Import from AppLocker Policy ---" -ForegroundColor Cyan
 
@@ -1386,7 +1337,7 @@ function Invoke-SoftwareListWorkflow {
 
                 Import-AppLockerPolicyToSoftwareList @importParams
             }
-            "7" {
+            "6" {
                 # Import from folder
                 Write-Host "`n  --- Import from Folder ---" -ForegroundColor Cyan
 
@@ -1450,7 +1401,7 @@ function Invoke-SoftwareListWorkflow {
 
                 Import-FolderToSoftwareList @importParams
             }
-            "8" {
+            "7" {
                 # Export to CSV
                 Write-Host "`n  --- Export to CSV ---" -ForegroundColor Cyan
                 $lists = Get-ChildItem -Path $defaultListPath -Filter "*.json" -ErrorAction SilentlyContinue
@@ -1474,7 +1425,7 @@ function Invoke-SoftwareListWorkflow {
                 $csvPath = Join-Path $defaultListPath "$($selectedList.BaseName).csv"
                 Export-SoftwareListToCsv -ListPath $selectedList.FullName -OutputPath $csvPath
             }
-            "9" {
+            "8" {
                 # Bulk approve/unapprove items
                 Write-Host "`n  --- Bulk Approval Management ---" -ForegroundColor Cyan
                 $lists = Get-ChildItem -Path $defaultListPath -Filter "*.json" -ErrorAction SilentlyContinue
