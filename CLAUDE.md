@@ -75,6 +75,23 @@ GA-AppLocker/
 - Policies: `./Outputs/AppLockerPolicy-[Mode].xml`
 - Software Lists: `./SoftwareLists/[ListName].json`
 
+### Interactive UI Features
+- **Folder Browser**: Numbered selection for navigating scan folders
+- **Output Defaults**: Validate/Merge workflows default to `./Outputs` folder
+- **Auto-selection**: Compare workflow auto-selects InstalledSoftware.csv
+
+### Software List Management
+The toolkit includes advanced software list features for curated allowlists:
+
+**Import Methods:**
+- **Scan Data**: Import from remote scan CSV files
+- **Common Publishers**: Pre-defined trusted publishers (Microsoft, Adobe, Google, Security vendors, etc.)
+- **AppLocker Policy**: Extract rules from existing policy XML
+- **Folder Scan**: Scan local folders for executables
+
+**Publisher Categories:**
+- Microsoft, Productivity, Browser/Cloud, Development, Security, Communication, Remote Access
+
 ## Common Commands
 
 ### Interactive Mode
@@ -103,8 +120,9 @@ GA-AppLocker/
 
 ### Utility Scripts
 ```powershell
-# Software list management
-.\utilities\Manage-SoftwareLists.ps1
+# Software list management (use interactive menu [S] from main workflow)
+.\Start-AppLockerWorkflow.ps1
+# Select [S] Software → [4] Publishers to import trusted publishers
 
 # Compare inventories
 .\utilities\Compare-SoftwareInventory.ps1 -ReferencePath .\baseline.csv -ComparePath .\target.csv
@@ -127,6 +145,8 @@ GA-AppLocker/
 | `-IncludeVendorPublishers` | Trust vendor publishers from scan |
 | `-ScanUserProfiles` | Include user profile scanning |
 | `-ThrottleLimit` | Concurrent remote connections (default: 10) |
+| `-SoftwareListPath` | Path to software list JSON for policy generation |
+| `-OutputPath` | Output folder (defaults to `.\Outputs`) |
 
 ## Security Principles
 
@@ -150,9 +170,14 @@ The toolkit follows these security principles:
 - `LOLBins` - High-risk executables for deny rules
 - `DefaultDenyPaths` - User-writable locations
 - `DefaultAllowPaths` - Protected system paths
-- `TrustedMicrosoftPublishers` - Microsoft certificate subjects
+- `MicrosoftPublishers` - Microsoft certificate subjects
 - `DefaultScanPaths` - Paths to scan for executables
 - `FileExtensions` - Grouped by type (Exe, Dll, Script, Installer)
+
+### Manage-SoftwareLists.ps1 Key Features
+- `$Script:CommonPublishers` - Pre-defined trusted publishers by category
+- Categories: Microsoft, Productivity, Browser/Cloud, Development, Security, Communication, Remote Access
+- Functions: `New-SoftwareList`, `Import-ScanDataToSoftwareList`, `Import-CommonPublishersToSoftwareList`
 
 ### Testing Changes
 ```powershell
