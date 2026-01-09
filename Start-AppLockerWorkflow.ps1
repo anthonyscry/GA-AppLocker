@@ -76,7 +76,7 @@
 [CmdletBinding(DefaultParameterSetName = 'Interactive')]
 param(
     [Parameter(ParameterSetName = 'Direct')]
-    [ValidateSet("Scan", "Generate", "Merge", "Validate", "Full", "Interactive")]
+    [ValidateSet("Scan", "Generate", "Merge", "Validate", "Full", "Compare", "ADSetup", "ADExport", "ADImport", "Diagnostic", "Interactive")]
     [string]$Mode = "Interactive",
 
     [string]$ScanPath,
@@ -89,7 +89,26 @@ param(
     [string]$DomainName,
     [ValidateRange(1, 4)]
     [int]$Phase = 1,
-    [PSCredential]$Credential
+    [PSCredential]$Credential,
+
+    # Compare mode parameters
+    [string]$ReferencePath,
+    [string]$ComparePath,
+    [ValidateSet("Name", "NameVersion", "Hash", "Publisher")]
+    [string]$CompareBy = "Name",
+
+    # Diagnostic mode parameters
+    [ValidateSet("Connectivity", "JobSession", "JobFull", "SimpleScan")]
+    [string]$DiagnosticType,
+    [string]$ComputerName,
+
+    # AD mode parameters
+    [string]$ParentOU,
+    [string]$GroupPrefix = "AppLocker",
+    [string]$InputPath,
+    [string]$SearchBase,
+    [switch]$IncludeDisabled,
+    [switch]$Force
 )
 
 #Requires -Version 5.1
@@ -97,19 +116,13 @@ param(
 $ErrorActionPreference = "Stop"
 $scriptRoot = $PSScriptRoot
 
-# Import utilities
+# Import utilities (includes validation functions)
 $modulePath = Join-Path $scriptRoot "utilities\Common.psm1"
 if (Test-Path $modulePath) {
     Import-Module $modulePath -Force
 }
 else {
     Write-Warning "Utilities module not found. Some features may not work correctly."
-}
-
-# Dot-source validators
-$validatorsPath = Join-Path $scriptRoot "utilities\Validators.ps1"
-if (Test-Path $validatorsPath) {
-    . $validatorsPath
 }
 
 #region Banner and Menu
@@ -136,14 +149,24 @@ function Show-Banner {
 function Show-Menu {
     Write-Host "  Select an option:" -ForegroundColor Yellow
     Write-Host ""
+    Write-Host "  === Core Workflow ===" -ForegroundColor Cyan
     Write-Host "    [1] Scan       - Collect data from remote computers" -ForegroundColor White
     Write-Host "    [2] Generate   - Create AppLocker policy from scan data" -ForegroundColor White
     Write-Host "    [3] Merge      - Combine multiple policy files" -ForegroundColor White
     Write-Host "    [4] Validate   - Check a policy file for issues" -ForegroundColor White
     Write-Host "    [5] Full       - Complete workflow (Scan + Generate)" -ForegroundColor White
     Write-Host ""
-    Write-Host "    [6] WinRM      - Deploy WinRM GPO for domain computers" -ForegroundColor White
-    Write-Host "    [7] Remove GPO - Remove WinRM GPO from domain" -ForegroundColor White
+    Write-Host "  === Analysis ===" -ForegroundColor Cyan
+    Write-Host "    [6] Compare    - Compare software inventories" -ForegroundColor White
+    Write-Host ""
+    Write-Host "  === AD Management ===" -ForegroundColor Cyan
+    Write-Host "    [7] AD Setup   - Create AppLocker OUs and groups" -ForegroundColor White
+    Write-Host "    [8] AD Export  - Export user group memberships" -ForegroundColor White
+    Write-Host "    [9] AD Import  - Apply group membership changes" -ForegroundColor White
+    Write-Host ""
+    Write-Host "  === Infrastructure ===" -ForegroundColor Cyan
+    Write-Host "    [W] WinRM      - Deploy/Remove WinRM GPO" -ForegroundColor White
+    Write-Host "    [D] Diagnostic - Troubleshoot remote scanning" -ForegroundColor White
     Write-Host ""
     Write-Host "    [Q] Quit" -ForegroundColor Gray
     Write-Host ""
@@ -626,6 +649,310 @@ function Invoke-RemoveWinRMWorkflow {
     }
 }
 
+function Invoke-CompareWorkflow {
+    param(
+        [string]$RefPath,
+        [string]$CompPath,
+        [string]$Method = "Name",
+        [string]$OutPath
+    )
+
+    Write-Host "`n=== Software Inventory Comparison ===" -ForegroundColor Cyan
+
+    # Get reference path
+    if ([string]::IsNullOrWhiteSpace($RefPath)) {
+        $RefPath = Read-Host "  Enter path to reference/baseline CSV"
+    }
+
+    if ([string]::IsNullOrWhiteSpace($RefPath) -or -not (Test-Path $RefPath)) {
+        Write-Host "  [-] Reference file not found: $RefPath" -ForegroundColor Red
+        return $null
+    }
+
+    # Get comparison path
+    if ([string]::IsNullOrWhiteSpace($CompPath)) {
+        $CompPath = Read-Host "  Enter path to comparison CSV (or wildcard pattern)"
+    }
+
+    if ([string]::IsNullOrWhiteSpace($CompPath)) {
+        Write-Host "  [-] Comparison path is required" -ForegroundColor Red
+        return $null
+    }
+
+    # Get comparison method
+    if ([string]::IsNullOrWhiteSpace($Method)) {
+        Write-Host "  Compare by: [1] Name  [2] NameVersion  [3] Hash  [4] Publisher" -ForegroundColor Yellow
+        $methodChoice = Read-Host "  Enter choice (default: 1)"
+        $Method = switch ($methodChoice) {
+            "2" { "NameVersion" }
+            "3" { "Hash" }
+            "4" { "Publisher" }
+            default { "Name" }
+        }
+    }
+
+    # Run comparison
+    $compareScript = Join-Path $scriptRoot "utilities\Compare-SoftwareInventory.ps1"
+    if (Test-Path $compareScript) {
+        Write-Host "`n  Comparing inventories..." -ForegroundColor Cyan
+
+        $compareParams = @{
+            ReferencePath = $RefPath
+            ComparePath   = $CompPath
+            CompareBy     = $Method
+        }
+        if (-not [string]::IsNullOrWhiteSpace($OutPath)) {
+            $compareParams.OutputPath = $OutPath
+        }
+
+        try {
+            $result = & $compareScript @compareParams
+            return $result
+        }
+        catch {
+            Write-Host "  [-] Comparison failed: $($_.Exception.Message)" -ForegroundColor Red
+            return $null
+        }
+    }
+    else {
+        Write-Host "  [-] Compare script not found: $compareScript" -ForegroundColor Red
+        return $null
+    }
+}
+
+function Invoke-ADSetupWorkflow {
+    param(
+        [string]$Domain,
+        [string]$Parent,
+        [string]$Prefix,
+        [switch]$NoConfirm
+    )
+
+    Write-Host "`n=== AD Structure Setup ===" -ForegroundColor Cyan
+    Write-Host "  Creates AppLocker OUs and security groups in Active Directory." -ForegroundColor Gray
+    Write-Host "  Requires: ActiveDirectory module, Domain Admin privileges." -ForegroundColor Yellow
+    Write-Host ""
+
+    # Get domain name
+    if ([string]::IsNullOrWhiteSpace($Domain)) {
+        $Domain = Read-Host "  Enter domain name (e.g., CONTOSO)"
+    }
+
+    if ([string]::IsNullOrWhiteSpace($Domain)) {
+        Write-Host "  [-] Domain name is required" -ForegroundColor Red
+        return $null
+    }
+
+    $adScript = Join-Path $scriptRoot "utilities\Manage-ADResources.ps1"
+    if (Test-Path $adScript) {
+        $adParams = @{
+            Action     = "CreateStructure"
+            DomainName = $Domain
+        }
+        if (-not [string]::IsNullOrWhiteSpace($Parent)) {
+            $adParams.ParentOU = $Parent
+        }
+        if (-not [string]::IsNullOrWhiteSpace($Prefix)) {
+            $adParams.GroupPrefix = $Prefix
+        }
+        if ($NoConfirm) {
+            $adParams.Force = $true
+        }
+
+        try {
+            $result = & $adScript @adParams
+            return $result
+        }
+        catch {
+            Write-Host "  [-] AD setup failed: $($_.Exception.Message)" -ForegroundColor Red
+            return $null
+        }
+    }
+    else {
+        Write-Host "  [-] AD management script not found: $adScript" -ForegroundColor Red
+        return $null
+    }
+}
+
+function Invoke-ADExportWorkflow {
+    param(
+        [string]$Search,
+        [string]$OutPath,
+        [switch]$Disabled
+    )
+
+    Write-Host "`n=== AD User Export ===" -ForegroundColor Cyan
+    Write-Host "  Exports users and their group memberships to CSV for editing." -ForegroundColor Gray
+    Write-Host ""
+
+    # Get output path
+    if ([string]::IsNullOrWhiteSpace($OutPath)) {
+        $defaultPath = ".\ADUserGroups-Export.csv"
+        $OutPath = Read-Host "  Enter output path (default: $defaultPath)"
+        if ([string]::IsNullOrWhiteSpace($OutPath)) {
+            $OutPath = $defaultPath
+        }
+    }
+
+    $adScript = Join-Path $scriptRoot "utilities\Manage-ADResources.ps1"
+    if (Test-Path $adScript) {
+        $adParams = @{
+            Action     = "ExportUsers"
+            OutputPath = $OutPath
+        }
+        if (-not [string]::IsNullOrWhiteSpace($Search)) {
+            $adParams.SearchBase = $Search
+        }
+        if ($Disabled) {
+            $adParams.IncludeDisabled = $true
+        }
+
+        try {
+            $result = & $adScript @adParams
+            return $result
+        }
+        catch {
+            Write-Host "  [-] AD export failed: $($_.Exception.Message)" -ForegroundColor Red
+            return $null
+        }
+    }
+    else {
+        Write-Host "  [-] AD management script not found: $adScript" -ForegroundColor Red
+        return $null
+    }
+}
+
+function Invoke-ADImportWorkflow {
+    param(
+        [string]$InPath,
+        [switch]$Preview
+    )
+
+    Write-Host "`n=== AD User Import ===" -ForegroundColor Cyan
+    Write-Host "  Applies group membership changes from CSV to Active Directory." -ForegroundColor Gray
+    Write-Host ""
+
+    # Get input path
+    if ([string]::IsNullOrWhiteSpace($InPath)) {
+        $InPath = Read-Host "  Enter path to CSV file with group changes"
+    }
+
+    if ([string]::IsNullOrWhiteSpace($InPath) -or -not (Test-Path $InPath)) {
+        Write-Host "  [-] Input file not found: $InPath" -ForegroundColor Red
+        return $null
+    }
+
+    # Ask about preview mode
+    if (-not $Preview) {
+        $previewChoice = Read-Host "  Preview changes first? (Y/n)"
+        $Preview = ($previewChoice -ne 'n' -and $previewChoice -ne 'N')
+    }
+
+    $adScript = Join-Path $scriptRoot "utilities\Manage-ADResources.ps1"
+    if (Test-Path $adScript) {
+        $adParams = @{
+            Action    = "ImportUsers"
+            InputPath = $InPath
+        }
+
+        if ($Preview) {
+            Write-Host "`n  Running in preview mode (no changes will be made)..." -ForegroundColor Yellow
+            $adParams.WhatIf = $true
+        }
+
+        try {
+            & $adScript @adParams
+        }
+        catch {
+            Write-Host "  [-] AD import failed: $($_.Exception.Message)" -ForegroundColor Red
+        }
+    }
+    else {
+        Write-Host "  [-] AD management script not found: $adScript" -ForegroundColor Red
+    }
+}
+
+function Invoke-DiagnosticWorkflow {
+    param(
+        [string]$Type,
+        [string]$Computer,
+        [string]$ComputerList,
+        [string]$OutPath,
+        [PSCredential]$Cred
+    )
+
+    Write-Host "`n=== Diagnostic Tools ===" -ForegroundColor Cyan
+    Write-Host "  Troubleshoot remote scanning issues." -ForegroundColor Gray
+    Write-Host ""
+
+    # Select diagnostic type if not provided
+    if ([string]::IsNullOrWhiteSpace($Type)) {
+        Write-Host "  Diagnostic Types:" -ForegroundColor Yellow
+        Write-Host "    [1] Connectivity - Test ping, WinRM, sessions" -ForegroundColor White
+        Write-Host "    [2] JobSession   - Test PowerShell job execution" -ForegroundColor White
+        Write-Host "    [3] JobFull      - Full job test with tracing" -ForegroundColor White
+        Write-Host "    [4] SimpleScan   - Scan without parallel jobs" -ForegroundColor White
+        Write-Host ""
+
+        $typeChoice = Read-Host "  Enter choice"
+        $Type = switch ($typeChoice) {
+            "1" { "Connectivity" }
+            "2" { "JobSession" }
+            "3" { "JobFull" }
+            "4" { "SimpleScan" }
+            default { "Connectivity" }
+        }
+    }
+
+    $diagScript = Join-Path $scriptRoot "Test-AppLockerDiagnostic.ps1"
+    if (Test-Path $diagScript) {
+        $diagParams = @{
+            TestType = $Type
+        }
+
+        if ($Type -eq "SimpleScan") {
+            if (-not [string]::IsNullOrWhiteSpace($ComputerList)) {
+                $diagParams.ComputerListPath = $ComputerList
+            }
+        }
+        else {
+            if (-not [string]::IsNullOrWhiteSpace($Computer)) {
+                $diagParams.ComputerName = $Computer
+            }
+        }
+
+        if (-not [string]::IsNullOrWhiteSpace($OutPath)) {
+            $diagParams.OutputPath = $OutPath
+        }
+
+        if ($null -ne $Cred) {
+            $diagParams.Credential = $Cred
+        }
+
+        try {
+            & $diagScript @diagParams
+        }
+        catch {
+            Write-Host "  [-] Diagnostic failed: $($_.Exception.Message)" -ForegroundColor Red
+        }
+    }
+    else {
+        Write-Host "  [-] Diagnostic script not found: $diagScript" -ForegroundColor Red
+    }
+}
+
+function Show-WinRMMenu {
+    Write-Host ""
+    Write-Host "  WinRM GPO Options:" -ForegroundColor Yellow
+    Write-Host "    [1] Deploy  - Create WinRM GPO" -ForegroundColor White
+    Write-Host "    [2] Remove  - Remove WinRM GPO" -ForegroundColor White
+    Write-Host "    [B] Back" -ForegroundColor Gray
+    Write-Host ""
+
+    $choice = Read-Host "  Enter choice"
+    return $choice
+}
+
 #endregion
 
 #region Main Execution
@@ -713,6 +1040,77 @@ if ($Mode -ne "Interactive") {
             }
             Invoke-FullWorkflow @fullParams
         }
+        "Compare" {
+            $compareParams = @{}
+            if (-not [string]::IsNullOrWhiteSpace($ReferencePath)) {
+                $compareParams.RefPath = $ReferencePath
+            }
+            if (-not [string]::IsNullOrWhiteSpace($ComparePath)) {
+                $compareParams.CompPath = $ComparePath
+            }
+            if (-not [string]::IsNullOrWhiteSpace($CompareBy)) {
+                $compareParams.Method = $CompareBy
+            }
+            if (-not [string]::IsNullOrWhiteSpace($OutputPath)) {
+                $compareParams.OutPath = $OutputPath
+            }
+            Invoke-CompareWorkflow @compareParams
+        }
+        "ADSetup" {
+            $adParams = @{}
+            if (-not [string]::IsNullOrWhiteSpace($DomainName)) {
+                $adParams.Domain = $DomainName
+            }
+            if (-not [string]::IsNullOrWhiteSpace($ParentOU)) {
+                $adParams.Parent = $ParentOU
+            }
+            if (-not [string]::IsNullOrWhiteSpace($GroupPrefix)) {
+                $adParams.Prefix = $GroupPrefix
+            }
+            if ($Force) {
+                $adParams.NoConfirm = $true
+            }
+            Invoke-ADSetupWorkflow @adParams
+        }
+        "ADExport" {
+            $adParams = @{}
+            if (-not [string]::IsNullOrWhiteSpace($SearchBase)) {
+                $adParams.Search = $SearchBase
+            }
+            if (-not [string]::IsNullOrWhiteSpace($OutputPath)) {
+                $adParams.OutPath = $OutputPath
+            }
+            if ($IncludeDisabled) {
+                $adParams.Disabled = $true
+            }
+            Invoke-ADExportWorkflow @adParams
+        }
+        "ADImport" {
+            $adParams = @{}
+            if (-not [string]::IsNullOrWhiteSpace($InputPath)) {
+                $adParams.InPath = $InputPath
+            }
+            Invoke-ADImportWorkflow @adParams
+        }
+        "Diagnostic" {
+            $diagParams = @{}
+            if (-not [string]::IsNullOrWhiteSpace($DiagnosticType)) {
+                $diagParams.Type = $DiagnosticType
+            }
+            if (-not [string]::IsNullOrWhiteSpace($ComputerName)) {
+                $diagParams.Computer = $ComputerName
+            }
+            if (-not [string]::IsNullOrWhiteSpace($ComputerList)) {
+                $diagParams.ComputerList = $ComputerList
+            }
+            if (-not [string]::IsNullOrWhiteSpace($OutputPath)) {
+                $diagParams.OutPath = $OutputPath
+            }
+            if ($null -ne $Credential) {
+                $diagParams.Cred = $Credential
+            }
+            Invoke-DiagnosticWorkflow @diagParams
+        }
     }
     exit
 }
@@ -727,8 +1125,32 @@ do {
         "3" { Invoke-MergeWorkflow }
         "4" { Invoke-ValidateWorkflow }
         "5" { Invoke-FullWorkflow }
-        "6" { Invoke-WinRMWorkflow }
-        "7" { Invoke-RemoveWinRMWorkflow }
+        "6" { Invoke-CompareWorkflow }
+        "7" { Invoke-ADSetupWorkflow }
+        "8" { Invoke-ADExportWorkflow }
+        "9" { Invoke-ADImportWorkflow }
+        "W" {
+            $winrmChoice = Show-WinRMMenu
+            switch ($winrmChoice) {
+                "1" { Invoke-WinRMWorkflow }
+                "2" { Invoke-RemoveWinRMWorkflow }
+                "B" { }
+                "b" { }
+                default { Write-Host "  Invalid option" -ForegroundColor Red }
+            }
+        }
+        "w" {
+            $winrmChoice = Show-WinRMMenu
+            switch ($winrmChoice) {
+                "1" { Invoke-WinRMWorkflow }
+                "2" { Invoke-RemoveWinRMWorkflow }
+                "B" { }
+                "b" { }
+                default { Write-Host "  Invalid option" -ForegroundColor Red }
+            }
+        }
+        "D" { Invoke-DiagnosticWorkflow }
+        "d" { Invoke-DiagnosticWorkflow }
         "Q" {
             Write-Host "`n  Goodbye!" -ForegroundColor Cyan
             exit
@@ -742,7 +1164,7 @@ do {
         }
     }
 
-    if ($choice -in @("1", "2", "3", "4", "5", "6", "7")) {
+    if ($choice -in @("1", "2", "3", "4", "5", "6", "7", "8", "9", "W", "w", "D", "d")) {
         Write-Host ""
         Read-Host "  Press Enter to continue"
         Clear-Host
