@@ -77,6 +77,12 @@
     Array of specific SIDs to replace when using -ReplaceMode 3 (Multiple).
     Example: -ReplaceSids "S-1-1-0","S-1-5-32-545"
 
+.PARAMETER RemoveDefaultRules
+    Remove default AppLocker rules during merge. This filters out rules with:
+    - "(Default Rule)" in the name
+    - "All files" path rules for Administrators
+    - Default Windows/Microsoft rules that ship with AppLocker
+
 .EXAMPLE
     # Merge all policies from scan results
     .\Merge-AppLockerPolicies.ps1 -InputPath \\server\share\Scans -OutputPath .\MergedPolicy.xml
@@ -152,7 +158,10 @@ param(
     [string]$ReplaceMode = "1",
 
     [Parameter(ParameterSetName='Standard')]
-    [string[]]$ReplaceSids
+    [string[]]$ReplaceSids,
+
+    [Parameter(ParameterSetName='Standard')]
+    [switch]$RemoveDefaultRules
 )
 
 #Requires -Version 5.1
@@ -216,9 +225,34 @@ if ($replacementSid) {
     }
 }
 
+# Helper function to detect default rules
+function Test-IsDefaultRule {
+    param($Rule)
+
+    $name = $Rule.Name
+    $description = $Rule.Description
+
+    # Check for common default rule patterns
+    if ($name -match '\(Default Rule\)') { return $true }
+    if ($name -match '^All files$') { return $true }
+    if ($name -match 'All files located in') { return $true }
+    if ($description -match 'Allows members of .* to run') { return $true }
+    if ($description -match 'Default rule') { return $true }
+
+    # Check for path rules with "*" that are admin-only defaults
+    if ($Rule.Conditions.FilePathCondition.Path -eq "*") {
+        return $true
+    }
+
+    return $false
+}
+
 Write-Host "=== AppLocker Policy Merger ===" -ForegroundColor Cyan
 Write-Host "Input: $InputPath" -ForegroundColor Cyan
 Write-Host "Output: $OutputPath" -ForegroundColor Cyan
+if ($RemoveDefaultRules) {
+    Write-Host "Removing default rules: Yes" -ForegroundColor Cyan
+}
 if ($replacementSid -and $sidsToReplace.Count -gt 0) {
     Write-Host "Replacing SIDs with: $replacementSid" -ForegroundColor Cyan
     foreach ($sid in $sidsToReplace) {
@@ -257,6 +291,7 @@ $stats = @{
     PathRules = 0
     HashRules = 0
     DuplicatesRemoved = 0
+    DefaultRulesSkipped = 0
 }
 
 # Process each policy file
@@ -273,6 +308,12 @@ foreach ($policyFile in $policyFiles) {
             foreach ($rule in $collection.FilePublisherRule) {
                 if ($null -eq $rule) { continue }
                 $stats.TotalRules++
+
+                # Skip default rules if requested
+                if ($RemoveDefaultRules -and (Test-IsDefaultRule $rule)) {
+                    $stats.DefaultRulesSkipped++
+                    continue
+                }
 
                 $pub = $rule.Conditions.FilePublisherCondition
                 $key = "$collectionType|$($pub.PublisherName)|$($pub.ProductName)|$($pub.BinaryName)"
@@ -303,6 +344,12 @@ foreach ($policyFile in $policyFiles) {
                 if ($null -eq $rule) { continue }
                 $stats.TotalRules++
 
+                # Skip default rules if requested
+                if ($RemoveDefaultRules -and (Test-IsDefaultRule $rule)) {
+                    $stats.DefaultRulesSkipped++
+                    continue
+                }
+
                 $path = $rule.Conditions.FilePathCondition.Path
                 $key = "$collectionType|$($rule.Action)|$path"
 
@@ -331,6 +378,12 @@ foreach ($policyFile in $policyFiles) {
             foreach ($rule in $collection.FileHashRule) {
                 if ($null -eq $rule) { continue }
                 $stats.TotalRules++
+
+                # Skip default rules if requested
+                if ($RemoveDefaultRules -and (Test-IsDefaultRule $rule)) {
+                    $stats.DefaultRulesSkipped++
+                    continue
+                }
 
                 $hash = $rule.Conditions.FileHashCondition.FileHash.Data
                 $key = "$collectionType|$hash"
@@ -508,6 +561,9 @@ Write-Host "  Publisher rules: $($stats.PublisherRules)" -ForegroundColor Gray
 Write-Host "  Path rules: $($stats.PathRules)" -ForegroundColor Gray
 Write-Host "  Hash rules: $($stats.HashRules)" -ForegroundColor Gray
 Write-Host "Duplicates removed: $($stats.DuplicatesRemoved)" -ForegroundColor Yellow
+if ($stats.DefaultRulesSkipped -gt 0) {
+    Write-Host "Default rules skipped: $($stats.DefaultRulesSkipped)" -ForegroundColor Yellow
+}
 Write-Host "Final unique rules: $($stats.PublisherRules + $stats.PathRules + $stats.HashRules)" -ForegroundColor Green
 Write-Host "`nMerged policy saved to: $OutputPath" -ForegroundColor Cyan
 
