@@ -8,6 +8,7 @@
     - CreateStructure: Creates AppLocker OUs and security groups in AD
     - ExportUsers: Exports AD users and their group memberships to CSV
     - ImportUsers: Applies group membership changes from CSV to AD
+    - ExportComputers: Exports computer names from AD to a text file for scanning
 
     This consolidation simplifies AD management for AppLocker deployments by
     providing a single entry point for all AD operations.
@@ -17,6 +18,7 @@
     - CreateStructure: Create AppLocker AD OUs and security groups
     - ExportUsers: Export user group memberships to CSV for editing
     - ImportUsers: Import group membership changes from CSV
+    - ExportComputers: Export computer names to text file for scanning
 
 .PARAMETER DomainName
     NetBIOS domain name for CreateStructure action.
@@ -87,7 +89,7 @@
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet("CreateStructure", "ExportUsers", "ImportUsers")]
+    [ValidateSet("CreateStructure", "ExportUsers", "ImportUsers", "ExportComputers")]
     [string]$Action,
 
     # CreateStructure parameters
@@ -107,6 +109,11 @@ param(
     # ImportUsers parameters
     [string]$InputPath,
     [switch]$SkipValidation,
+
+    # ExportComputers parameters
+    [ValidateSet("All", "Workstations", "Servers", "DomainControllers")]
+    [string]$ComputerType = "All",
+    [switch]$EnabledOnly = $true,
 
     # Common parameters
     [string]$OutputPath,
@@ -523,6 +530,7 @@ function Invoke-ExportUsers {
         Write-Host ""
         Write-Host "To import group changes:" -ForegroundColor Yellow
         Write-Host "  .\Manage-ADResources.ps1 -Action ImportUsers -InputPath `"$fullGroupsPath`"" -ForegroundColor Cyan
+        Write-Host "  Or use the default: .\ADManagement\groups.csv" -ForegroundColor DarkGray
 
         return $fullPath
     }
@@ -873,6 +881,89 @@ function Invoke-ImportUsers {
 }
 #endregion
 
+#region ExportComputers Function
+function Invoke-ExportComputers {
+    <#
+    .SYNOPSIS
+    Exports computer names from Active Directory to a text file for scanning.
+    #>
+    param(
+        [string]$Output,
+        [string]$Type = "All",
+        [string]$Search,
+        [switch]$EnabledOnly = $true
+    )
+
+    Write-Host "`n=== Export AD Computers ===" -ForegroundColor Cyan
+
+    # Build filter based on computer type
+    $ldapFilter = switch ($Type) {
+        "Workstations" {
+            # Workstations - NOT servers, NOT domain controllers
+            "(&(objectCategory=computer)(!(operatingSystem=*Server*))(!(primaryGroupID=516)))"
+        }
+        "Servers" {
+            # Servers - Server OS but NOT domain controllers
+            "(&(objectCategory=computer)(operatingSystem=*Server*)(!(primaryGroupID=516)))"
+        }
+        "DomainControllers" {
+            # Domain Controllers only
+            "(&(objectCategory=computer)(primaryGroupID=516))"
+        }
+        default {
+            # All computers
+            "(objectCategory=computer)"
+        }
+    }
+
+    # Add enabled filter if requested
+    if ($EnabledOnly) {
+        $ldapFilter = "(&$ldapFilter(!(userAccountControl:1.2.840.113556.1.4.803:=2)))"
+    }
+
+    Write-Host "  Computer type: $Type" -ForegroundColor Gray
+    Write-Host "  Enabled only: $EnabledOnly" -ForegroundColor Gray
+    Write-Host "  LDAP Filter: $ldapFilter" -ForegroundColor DarkGray
+
+    try {
+        # Get computers from AD
+        $getParams = @{
+            LDAPFilter = $ldapFilter
+            Properties = @("Name", "DNSHostName", "OperatingSystem", "Enabled", "LastLogonDate")
+        }
+        if (-not [string]::IsNullOrWhiteSpace($Search)) {
+            $getParams.SearchBase = $Search
+        }
+
+        $computers = Get-ADComputer @getParams | Sort-Object Name
+
+        if ($computers.Count -eq 0) {
+            Write-Host "  [-] No computers found matching criteria" -ForegroundColor Yellow
+            return
+        }
+
+        Write-Host "  [+] Found $($computers.Count) computers" -ForegroundColor Green
+
+        # Export to CSV with ComputerName column
+        $computers | Select-Object @{N='ComputerName';E={$_.Name}}, OperatingSystem, Enabled, LastLogonDate |
+            Export-Csv -Path $Output -NoTypeInformation -Encoding UTF8
+
+        Write-Host "  [+] Exported to: $Output" -ForegroundColor Green
+        Write-Host ""
+        Write-Host "  Preview (first 10):" -ForegroundColor Yellow
+        $computers | Select-Object -First 10 | ForEach-Object {
+            Write-Host "    $($_.Name)" -ForegroundColor White
+        }
+        if ($computers.Count -gt 10) {
+            Write-Host "    ... and $($computers.Count - 10) more" -ForegroundColor DarkGray
+        }
+    }
+    catch {
+        Write-Host "  [-] Export failed: $($_.Exception.Message)" -ForegroundColor Red
+    }
+}
+#endregion
+
 #region Main Execution
 
 switch ($Action) {
@@ -912,6 +1003,17 @@ switch ($Action) {
             $LogPath = "$logsFolder\ADUserGroups-ChangeLog.csv"
         }
         Invoke-ImportUsers -InputFile $InputPath -Log $LogPath -NoValidation:$SkipValidation
+    }
+    "ExportComputers" {
+        if ([string]::IsNullOrWhiteSpace($OutputPath)) {
+            $OutputPath = ".\ADManagement\computers.csv"
+        }
+        # Ensure output directory exists
+        $outputDir = Split-Path -Parent $OutputPath
+        if (-not [string]::IsNullOrWhiteSpace($outputDir) -and -not (Test-Path $outputDir)) {
+            New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
+        }
+        Invoke-ExportComputers -Output $OutputPath -Type $ComputerType -Search $SearchBase -EnabledOnly:$EnabledOnly
     }
 }
 

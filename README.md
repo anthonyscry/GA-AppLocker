@@ -36,7 +36,7 @@ Get-ChildItem -Path "C:\GA-AppLocker" -Recurse -Include *.ps1,*.psm1 | Unblock-F
 .\Start-AppLockerWorkflow.ps1
 
 # Direct mode examples:
-.\Start-AppLockerWorkflow.ps1 -Mode Scan -ComputerList .\computers.txt
+.\Start-AppLockerWorkflow.ps1 -Mode Scan -ComputerList .\ADManagement\computers.csv
 .\Start-AppLockerWorkflow.ps1 -Mode Generate -ScanPath .\Scans -Simplified
 .\Start-AppLockerWorkflow.ps1 -Mode Validate -PolicyPath .\policy.xml
 ```
@@ -223,7 +223,7 @@ Step 3: Select comparison computer → [2] WORKSTATION02
 
 **Step 1: Scan**
 ```powershell
-.\Start-AppLockerWorkflow.ps1 -Mode Scan -ComputerList .\computers.txt
+.\Start-AppLockerWorkflow.ps1 -Mode Scan -ComputerList .\ADManagement\computers.csv
 ```
 
 **Step 2: Generate Phase 1**
@@ -300,17 +300,53 @@ Collect audit events from computers running AppLocker in Audit mode. This is ess
 # Select [E] Events
 
 # Direct mode - collect blocked events from last 14 days
-.\Start-AppLockerWorkflow.ps1 -Mode Events -ComputerList .\computers.txt
+.\Start-AppLockerWorkflow.ps1 -Mode Events -ComputerList .\ADManagement\computers.csv
 
 # Collect from last 30 days
-.\Start-AppLockerWorkflow.ps1 -Mode Events -ComputerList .\computers.txt -DaysBack 30
+.\Start-AppLockerWorkflow.ps1 -Mode Events -ComputerList .\ADManagement\computers.csv -DaysBack 30
 
 # Collect all audit events (blocked + allowed)
-.\Start-AppLockerWorkflow.ps1 -Mode Events -ComputerList .\computers.txt -IncludeAllowedEvents
+.\Start-AppLockerWorkflow.ps1 -Mode Events -ComputerList .\ADManagement\computers.csv -IncludeAllowedEvents
 
 # Direct script usage
-.\Invoke-RemoteEventCollection.ps1 -ComputerListPath .\computers.txt -OutputPath .\Events -DaysBack 14 -BlockedOnly
+.\Invoke-RemoteEventCollection.ps1 -ComputerListPath .\ADManagement\computers.csv -OutputPath .\Events -DaysBack 14 -BlockedOnly
 ```
+
+### Policy Merging with SID Replacement
+
+When merging policies from multiple sources, you can replace broad SIDs (like "Everyone") with specific AD groups for better scoping and management.
+
+```powershell
+# Merge and replace "Everyone" SID with a specific AD group
+.\Merge-AppLockerPolicies.ps1 -InputPath .\Policies -TargetGroup "DOMAIN\AppLocker-Workstations"
+
+# Replace "Everyone" and "BUILTIN\Users" with target group
+.\Merge-AppLockerPolicies.ps1 -InputPath .\Policies -TargetGroup "DOMAIN\AppLocker-Workstations" -ReplaceMode Users
+
+# Replace all standard user SIDs (Everyone, Users, Authenticated Users)
+.\Merge-AppLockerPolicies.ps1 -InputPath .\Policies -TargetGroup "DOMAIN\AppLocker-Workstations" -ReplaceMode All
+
+# Use a known SID directly instead of resolving a group name
+.\Merge-AppLockerPolicies.ps1 -InputPath .\Policies -TargetSid "S-1-5-21-123456789-987654321-111111111-1234"
+
+# Remove default AppLocker rules during merge (useful for clean policies)
+.\Merge-AppLockerPolicies.ps1 -InputPath .\Policies -RemoveDefaultRules
+
+# Combine: merge, replace SIDs, remove defaults, and set audit mode
+.\Merge-AppLockerPolicies.ps1 -InputPath .\Policies `
+    -TargetGroup "DOMAIN\AppLocker-Workstations" `
+    -ReplaceMode All `
+    -RemoveDefaultRules `
+    -EnforcementMode AuditOnly
+```
+
+**ReplaceMode Options:**
+| Mode | SIDs Replaced |
+|------|---------------|
+| `1` or `Everyone` | S-1-1-0 (Everyone) - Default |
+| `2` or `Users` | Everyone + BUILTIN\Users |
+| `3` or `Multiple` | Custom list via `-ReplaceSids` |
+| `4` or `All` | Everyone, Users, Authenticated Users |
 
 **Output Structure:**
 ```
@@ -364,9 +400,71 @@ Create and manage curated software allowlists:
 - **Productivity**: Adobe products
 - **Browser/Cloud**: Google Chrome, Google tools
 - **Development**: JetBrains, GitHub, Git, Node.js, Python, VSCode
-- **Security**: CrowdStrike, Carbon Black, Symantec, McAfee, Trend Micro, SentinelOne
+- **Security**: CrowdStrike, Carbon Black, Symantec, McAfee, Trend Micro, SentinelOne, Trellix, Cisco, Forescout, Splunk
 - **Communication**: Zoom, Slack, WebEx, Microsoft Teams
 - **Remote Access**: Citrix, VMware, Palo Alto GlobalProtect
+- **Utilities**: WinZip, MATLAB
+
+---
+
+## AD Group Management
+
+Manage Active Directory groups for AppLocker deployments. Export users, edit group memberships in CSV, and import changes back to AD.
+
+### Export Users
+
+```powershell
+# Export all users with their group memberships
+.\Start-AppLockerWorkflow.ps1
+# Select [8] AD Export
+
+# Direct mode
+.\utilities\Manage-ADResources.ps1 -Action ExportUsers -OutputPath .\ADUserGroups-Export.csv
+```
+
+The export creates two files:
+- `ADUserGroups-Export.csv` - Full export with all columns for editing
+- `users.csv` - Simple list with semicolon-separated usernames per group (useful for quick reference)
+
+### Import Users
+
+Two CSV formats are supported for importing group memberships:
+
+**Simple Format (Group-centric)** - Easiest for bulk additions:
+```csv
+Group,Users
+AppLocker-StandardUsers,jsmith;jdoe;asmith
+AppLocker-Admins,admin1;admin2
+AppLocker-Installers,helpdesk1 helpdesk2
+```
+
+Users can be separated by semicolons, commas, or spaces.
+
+**Full Format (User-centric)** - For granular control:
+```csv
+SamAccountName,DisplayName,CurrentGroups,AddToGroups,RemoveFromGroups
+jsmith,John Smith,Domain Users,AppLocker-StandardUsers,
+jdoe,Jane Doe,Domain Users;AppLocker-Admins,,AppLocker-Admins
+```
+
+```powershell
+# Preview changes before applying
+.\utilities\Manage-ADResources.ps1 -Action ImportUsers -InputPath .\GroupMembers.csv -WhatIf
+
+# Apply changes
+.\utilities\Manage-ADResources.ps1 -Action ImportUsers -InputPath .\GroupMembers.csv
+```
+
+### Create AD Structure
+
+```powershell
+# Create AppLocker OUs and security groups
+.\utilities\Manage-ADResources.ps1 -Action CreateStructure -DomainName "CONTOSO"
+```
+
+This creates:
+- AppLocker OU with Policies sub-OU
+- Security groups: AppLocker-Workstations, AppLocker-Servers, AppLocker-DCs, AppLocker-Exceptions
 
 ---
 
@@ -435,6 +533,45 @@ Customize `utilities/Config.psd1`:
 | **2** | EXE + Script | ⚠️ High | Scripts are bypass risk - monitor closely |
 | **3** | EXE + Script + MSI | ⚠️ Medium | Test software deployments thoroughly |
 | **4** | All + DLL | 🔴 Very High | **Audit 14+ days before enforcing!** |
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+**WinRM Connection Failures:**
+```powershell
+# Test basic connectivity
+Test-WSMan -ComputerName "TARGET-PC"
+
+# Run diagnostic
+.\Start-AppLockerWorkflow.ps1
+# Select [D] Diagnostic -> [1] Connectivity
+```
+
+**Scan Returns No Data:**
+- Verify WinRM is enabled on targets
+- Check firewall allows WinRM (TCP 5985/5986)
+- Ensure credentials have local admin rights on targets
+
+**Policy Not Blocking Applications:**
+- Confirm AppLocker service (AppIDSvc) is running
+- Check enforcement mode is "Enabled" not "AuditOnly"
+- Review event logs for rule matches
+
+**AD Group Resolution Fails:**
+- Ensure ActiveDirectory PowerShell module is installed
+- Verify network connectivity to domain controller
+- Check user has permission to query AD
+
+### Getting Help
+
+```powershell
+# View detailed help for any script
+Get-Help .\Start-AppLockerWorkflow.ps1 -Full
+Get-Help .\Merge-AppLockerPolicies.ps1 -Examples
+```
 
 ---
 

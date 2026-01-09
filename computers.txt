@@ -1,8 +1,0 @@
-# Computer list for AppLocker scanning
-# Add one computer name per line
-# Lines starting with # are ignored
-#
-# Example:
-# PC-001
-# PC-002
-# SERVER-01

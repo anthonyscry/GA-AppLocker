@@ -45,7 +45,7 @@
 
 .EXAMPLE
     # Run simplified scan for debugging
-    .\utilities\Test-AppLockerDiagnostic.ps1 -TestType SimpleScan -ComputerListPath .\computers.txt -OutputPath .\Scans
+    .\utilities\Test-AppLockerDiagnostic.ps1 -TestType SimpleScan -ComputerListPath .\ADManagement\computers.csv -OutputPath .\Scans
 
 .NOTES
     Part of GA-AppLocker toolkit.

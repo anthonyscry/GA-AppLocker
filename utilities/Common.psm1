@@ -460,6 +460,51 @@ function Get-TimestampedFileName {
     return "$BaseName-$timestamp.$Extension"
 }
 
+<#
+.SYNOPSIS
+    Reads a computer list from either TXT or CSV format.
+
+.DESCRIPTION
+    Supports two formats:
+    - TXT: One computer name per line (lines starting with # are comments)
+    - CSV: Must have a 'ComputerName' column header
+
+.PARAMETER Path
+    Path to the computer list file (.txt or .csv)
+
+.OUTPUTS
+    Array of computer names
+#>
+function Get-ComputerList {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateScript({ Test-Path $_ -PathType Leaf })]
+        [string]$Path
+    )
+
+    $extension = [System.IO.Path]::GetExtension($Path).ToLower()
+
+    if ($extension -eq ".csv") {
+        # CSV format - expect ComputerName column
+        $csv = Import-Csv -Path $Path
+        if (-not ($csv | Get-Member -Name "ComputerName" -MemberType NoteProperty)) {
+            throw "CSV file must have a 'ComputerName' column header"
+        }
+        $computers = @($csv |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_.ComputerName) } |
+            ForEach-Object { $_.ComputerName.Trim() })
+    }
+    else {
+        # TXT format - one computer per line, # for comments
+        $computers = @(Get-Content -Path $Path |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) -and -not $_.TrimStart().StartsWith("#") } |
+            ForEach-Object { $_.Trim() })
+    }
+
+    return $computers
+}
+
 #endregion
 
 #region Validation Functions

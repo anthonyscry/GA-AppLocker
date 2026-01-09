@@ -31,7 +31,10 @@ GA-AppLocker/
 ├── Invoke-RemoteEventCollection.ps1 # AppLocker audit event collection (8003/8004)
 ├── New-AppLockerPolicyFromGuide.ps1 # Policy generation (Build Guide + Simplified modes)
 ├── Merge-AppLockerPolicies.ps1      # Policy consolidation with deduplication
-├── computers.txt                    # Target computer list
+├── ADManagement/                    # AD-related files (created automatically)
+│   ├── computers.csv                # Target computer list (from AD export)
+│   ├── groups.csv                   # Group memberships for import
+│   └── ADUserGroups-Export.csv      # User export for editing
 ├── utilities/
 │   ├── Common.psm1                  # Shared functions (SID resolution, XML helpers, logging)
 │   ├── Config.psd1                  # Centralized configuration (LOLBins, SIDs, paths)
@@ -105,7 +108,7 @@ The toolkit includes advanced software list features for curated allowlists:
 ### Direct Parameter Mode
 ```powershell
 # Quick scan
-.\Start-AppLockerWorkflow.ps1 -Mode Scan -ComputerList .\computers.txt
+.\Start-AppLockerWorkflow.ps1 -Mode Scan -ComputerList .\ADManagement\computers.csv
 
 # Generate simplified policy
 .\Start-AppLockerWorkflow.ps1 -Mode Generate -ScanPath .\Scans -Simplified
@@ -118,16 +121,16 @@ The toolkit includes advanced software list features for curated allowlists:
 .\Start-AppLockerWorkflow.ps1 -Mode Validate -PolicyPath .\policy.xml
 
 # Full workflow (Scan + Generate)
-.\Start-AppLockerWorkflow.ps1 -Mode Full -ComputerList .\computers.txt
+.\Start-AppLockerWorkflow.ps1 -Mode Full -ComputerList .\ADManagement\computers.csv
 
 # Collect AppLocker audit events (blocked apps from last 14 days)
-.\Start-AppLockerWorkflow.ps1 -Mode Events -ComputerList .\computers.txt
+.\Start-AppLockerWorkflow.ps1 -Mode Events -ComputerList .\ADManagement\computers.csv
 
 # Collect events from last 30 days
-.\Start-AppLockerWorkflow.ps1 -Mode Events -ComputerList .\computers.txt -DaysBack 30
+.\Start-AppLockerWorkflow.ps1 -Mode Events -ComputerList .\ADManagement\computers.csv -DaysBack 30
 
 # Collect all audit events (blocked + allowed)
-.\Start-AppLockerWorkflow.ps1 -Mode Events -ComputerList .\computers.txt -IncludeAllowedEvents
+.\Start-AppLockerWorkflow.ps1 -Mode Events -ComputerList .\ADManagement\computers.csv -IncludeAllowedEvents
 ```
 
 ### Utility Scripts
