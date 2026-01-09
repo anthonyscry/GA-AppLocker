@@ -458,7 +458,7 @@ function Invoke-ExportUsers {
 
     Write-Progress -Activity "Processing Users" -Completed
 
-    # Export
+    # Export full format
     Write-Host ""
     Write-Host "Exporting to CSV..." -ForegroundColor Yellow
 
@@ -468,16 +468,59 @@ function Invoke-ExportUsers {
 
         Write-Host ""
         Write-Host "=== EXPORT COMPLETE ===" -ForegroundColor Green
-        Write-Host "  Output file: $fullPath" -ForegroundColor Cyan
+        Write-Host "  Full export: $fullPath" -ForegroundColor Cyan
         Write-Host "  Users exported: $($results.Count)" -ForegroundColor Cyan
+    }
+    catch {
+        Write-Error "Failed to export CSV: $_"
+        return
+    }
+
+    # Also create groups.csv (Group, Users format for easy import)
+    Write-Host ""
+    Write-Host "Creating groups.csv (simple import format)..." -ForegroundColor Yellow
+
+    try {
+        # Build group -> users mapping
+        $groupMembers = @{}
+        foreach ($user in $users) {
+            $username = $user.SamAccountName
+            if ($user.MemberOf) {
+                foreach ($groupDN in $user.MemberOf) {
+                    $groupName = ($groupDN -split ',')[0] -replace '^CN=', ''
+                    if (-not $groupMembers.ContainsKey($groupName)) {
+                        $groupMembers[$groupName] = @()
+                    }
+                    $groupMembers[$groupName] += $username
+                }
+            }
+        }
+
+        # Create group-centric output with sorted usernames
+        $groupExport = @()
+        foreach ($groupName in ($groupMembers.Keys | Sort-Object)) {
+            $sortedUsers = $groupMembers[$groupName] | Sort-Object
+            $groupExport += [PSCustomObject]@{
+                Group = $groupName
+                Users = ($sortedUsers -join ";")
+            }
+        }
+
+        $groupsPath = Join-Path (Split-Path $Output -Parent) "groups.csv"
+        $groupExport | Export-Csv -Path $groupsPath -NoTypeInformation -Encoding UTF8
+        $fullGroupsPath = (Resolve-Path $groupsPath).Path
+
+        Write-Host "  Groups export: $fullGroupsPath" -ForegroundColor Cyan
+        Write-Host "  Groups found: $($groupExport.Count)" -ForegroundColor Cyan
         Write-Host ""
-        Write-Host "Edit the CSV and use:" -ForegroundColor Yellow
-        Write-Host "  .\Manage-ADResources.ps1 -Action ImportUsers -InputPath `"$fullPath`"" -ForegroundColor Cyan
+        Write-Host "To import group changes:" -ForegroundColor Yellow
+        Write-Host "  .\Manage-ADResources.ps1 -Action ImportUsers -InputPath `"$fullGroupsPath`"" -ForegroundColor Cyan
 
         return $fullPath
     }
     catch {
-        Write-Error "Failed to export CSV: $_"
+        Write-Warning "Failed to create groups.csv: $_"
+        return $fullPath
     }
 }
 #endregion
@@ -836,14 +879,29 @@ switch ($Action) {
     }
     "ImportUsers" {
         if ([string]::IsNullOrWhiteSpace($InputPath)) {
-            $InputPath = Read-Host "Enter path to CSV file with group changes"
+            # Default to groups.csv
+            if (Test-Path ".\groups.csv" -PathType Leaf) {
+                $InputPath = ".\groups.csv"
+                Write-Host "Using default input file: .\groups.csv" -ForegroundColor Cyan
+            }
+            else {
+                $InputPath = Read-Host "Enter path to CSV file with group changes (default: .\groups.csv)"
+                if ([string]::IsNullOrWhiteSpace($InputPath)) {
+                    $InputPath = ".\groups.csv"
+                }
+            }
         }
         if (-not (Test-Path $InputPath -PathType Leaf)) {
             Write-Error "Input file not found: $InputPath"
             exit 1
         }
         if ([string]::IsNullOrWhiteSpace($LogPath)) {
-            $LogPath = ".\ADUserGroups-ChangeLog.csv"
+            # Use Logs folder, ensure it exists
+            $logsFolder = ".\Logs"
+            if (-not (Test-Path $logsFolder -PathType Container)) {
+                New-Item -ItemType Directory -Path $logsFolder -Force | Out-Null
+            }
+            $LogPath = "$logsFolder\ADUserGroups-ChangeLog.csv"
         }
         Invoke-ImportUsers -InputFile $InputPath -Log $LogPath -NoValidation:$SkipValidation
     }
