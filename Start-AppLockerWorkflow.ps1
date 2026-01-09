@@ -1916,23 +1916,29 @@ function Show-FolderBrowser {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
         [string]$Path,
 
+        [ValidateNotNullOrEmpty()]
         [string]$Title = "Select a folder",
 
+        [ValidateNotNullOrEmpty()]
         [string]$Filter = "*",
 
         [switch]$AllowManualEntry,
 
         [switch]$ShowFiles,
 
+        [ValidateNotNullOrEmpty()]
         [string]$FileFilter = "*.csv",
 
         [switch]$AllowSelectAll,
 
+        [ValidateNotNullOrEmpty()]
         [string]$SelectAllLabel = "Import all folders recursively"
     )
 
+    # Validate path exists
     if (-not (Test-Path $Path)) {
         Write-Host "  [-] Path not found: $Path" -ForegroundColor Red
         return $null
@@ -1953,6 +1959,9 @@ function Show-FolderBrowser {
         return $null
     }
 
+    # Check if select-all option should be available
+    $selectAllAvailable = $AllowSelectAll -and ($items.Count -gt 1)
+
     Write-Host ""
     Write-Host "  $Title" -ForegroundColor Yellow
     Write-Host "  Location: $Path" -ForegroundColor DarkGray
@@ -1969,8 +1978,8 @@ function Show-FolderBrowser {
     }
 
     Write-Host ""
-    if ($AllowSelectAll -and $items.Count -gt 1) {
-        Write-Host "    [A] $SelectAllLabel" -ForegroundColor Cyan
+    if ($selectAllAvailable) {
+        Write-Host "    [A] $SelectAllLabel ($($items.Count) folders)" -ForegroundColor Cyan
     }
     if ($AllowManualEntry) {
         Write-Host "    [M] Enter path manually" -ForegroundColor Gray
@@ -1981,24 +1990,40 @@ function Show-FolderBrowser {
 
     $choice = Read-Host "  Enter choice"
 
-    switch ($choice.ToUpper()) {
+    # Validate input - handle null, empty, or whitespace
+    if ([string]::IsNullOrWhiteSpace($choice)) {
+        Write-Host "  [-] No selection made" -ForegroundColor Red
+        return $null
+    }
+
+    $choice = $choice.Trim().ToUpper()
+
+    switch ($choice) {
         "A" {
-            if ($AllowSelectAll -and $items.Count -gt 1) {
+            if ($selectAllAvailable) {
                 return "ALL"
             }
+            Write-Host "  [-] Invalid selection" -ForegroundColor Red
+            return $null
         }
         "B" { return "BACK" }
         "C" { return $null }
         "M" {
-            if ($AllowManualEntry) {
-                $manualPath = Read-Host "  Enter path"
-                if (Test-Path $manualPath) {
-                    return $manualPath
-                } else {
-                    Write-Host "  [-] Path not found: $manualPath" -ForegroundColor Red
-                    return $null
-                }
+            if (-not $AllowManualEntry) {
+                Write-Host "  [-] Invalid selection" -ForegroundColor Red
+                return $null
             }
+            $manualPath = Read-Host "  Enter path"
+            if ([string]::IsNullOrWhiteSpace($manualPath)) {
+                Write-Host "  [-] No path entered" -ForegroundColor Red
+                return $null
+            }
+            $manualPath = $manualPath.Trim()
+            if (Test-Path $manualPath) {
+                return $manualPath
+            }
+            Write-Host "  [-] Path not found: $manualPath" -ForegroundColor Red
+            return $null
         }
         default {
             if ($choice -match "^\d+$") {
@@ -2006,6 +2031,8 @@ function Show-FolderBrowser {
                 if ($idx -ge 0 -and $idx -lt $items.Count) {
                     return $items[$idx].FullName
                 }
+                Write-Host "  [-] Selection out of range (1-$($items.Count))" -ForegroundColor Red
+                return $null
             }
             Write-Host "  [-] Invalid selection" -ForegroundColor Red
             return $null
@@ -2030,6 +2057,9 @@ function Show-FolderBrowser {
 .PARAMETER SelectFile
     If true, navigates all the way to file selection.
 
+.PARAMETER Prompt
+    Context label shown in folder selection prompts. Defaults to "baseline".
+
 .PARAMETER AllowRecursive
     If true, shows option to import all computer folders recursively.
 
@@ -2039,10 +2069,12 @@ function Show-FolderBrowser {
 function Select-ScanPath {
     [CmdletBinding()]
     param(
+        [ValidateNotNullOrEmpty()]
         [string]$ScansPath = ".\Scans",
 
         [switch]$SelectFile,
 
+        [ValidateNotNullOrEmpty()]
         [string]$Prompt = "baseline",
 
         [switch]$AllowRecursive
@@ -2065,6 +2097,12 @@ function Select-ScanPath {
         return $null
     }
 
+    # Validate selected folder exists (in case of manual entry)
+    if (-not (Test-Path $scanFolder)) {
+        Write-Host "  [-] Selected folder not found: $scanFolder" -ForegroundColor Red
+        return $null
+    }
+
     # Step 2: Select computer folder (with optional recursive import)
     $browserParams = @{
         Path             = $scanFolder
@@ -2083,13 +2121,27 @@ function Select-ScanPath {
         return $null
     }
     if ($computerFolder -eq "BACK") {
-        # Go back to scan folder selection
+        # Go back to scan folder selection (non-recursive to avoid deep call stacks)
         return Select-ScanPath -ScansPath $ScansPath -SelectFile:$SelectFile -Prompt $Prompt -AllowRecursive:$AllowRecursive
     }
     if ($computerFolder -eq "ALL") {
-        # Return the scan folder to process all computer subfolders
-        Write-Host "  [+] Selected: All computers in $(Split-Path $scanFolder -Leaf)" -ForegroundColor Green
+        # Validate that subfolders contain scan data before returning
+        $computerFolders = Get-ChildItem -Path $scanFolder -Directory -ErrorAction SilentlyContinue |
+            Where-Object { Test-Path (Join-Path $_.FullName "*.csv") }
+
+        if ($computerFolders.Count -eq 0) {
+            Write-Host "  [-] No computer folders with scan data found in: $(Split-Path $scanFolder -Leaf)" -ForegroundColor Red
+            return $null
+        }
+
+        Write-Host "  [+] Selected: All $($computerFolders.Count) computers in $(Split-Path $scanFolder -Leaf)" -ForegroundColor Green
         return $scanFolder
+    }
+
+    # Validate selected computer folder exists (in case of manual entry)
+    if (-not (Test-Path $computerFolder)) {
+        Write-Host "  [-] Selected folder not found: $computerFolder" -ForegroundColor Red
+        return $null
     }
 
     # Step 3: Auto-select InstalledSoftware.csv (if file selection requested)
