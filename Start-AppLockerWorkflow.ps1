@@ -79,7 +79,7 @@
 [CmdletBinding(DefaultParameterSetName = 'Interactive')]
 param(
     [Parameter(ParameterSetName = 'Direct')]
-    [ValidateSet("Scan", "Generate", "Merge", "Validate", "Full", "Compare", "ADSetup", "ADExport", "ADImport", "Diagnostic", "Interactive")]
+    [ValidateSet("Scan", "Generate", "Merge", "Validate", "Full", "Compare", "Events", "ADSetup", "ADExport", "ADImport", "Diagnostic", "Interactive")]
     [string]$Mode = "Interactive",
 
     [string]$ScanPath,
@@ -104,6 +104,12 @@ param(
     [ValidateSet("Connectivity", "JobSession", "JobFull", "SimpleScan")]
     [string]$DiagnosticType,
     [string]$ComputerName,
+
+    # Event collection mode parameters
+    [ValidateRange(0, 365)]
+    [int]$DaysBack = 14,
+    [switch]$BlockedOnly,
+    [switch]$IncludeAllowedEvents,
 
     # AD mode parameters
     [string]$ParentOU,
@@ -150,6 +156,7 @@ function Show-Menu {
     Write-Host ""
     Write-Host "  === Analysis ===" -ForegroundColor Cyan
     Write-Host "    [6] Compare    - Compare software inventories" -ForegroundColor White
+    Write-Host "    [E] Events     - Collect AppLocker audit events (8003/8004)" -ForegroundColor White
     Write-Host ""
     Write-Host "  === Software Lists ===" -ForegroundColor Cyan
     Write-Host "    [S] Software   - Manage software lists for rule generation" -ForegroundColor White
@@ -835,6 +842,120 @@ function Invoke-CompareWorkflow {
     }
     else {
         Write-Host "  [-] Compare script not found: $compareScript" -ForegroundColor Red
+        return $null
+    }
+}
+
+function Invoke-EventCollectionWorkflow {
+    param(
+        [string]$ComputerListPath,
+        [string]$OutPath,
+        [PSCredential]$Cred,
+        [int]$Days = 14,
+        [switch]$Blocked,
+        [switch]$IncludeAllowed
+    )
+
+    Write-Host "`n=== AppLocker Event Collection ===" -ForegroundColor Cyan
+    Write-Host "  Collects audit events (8003/8004/8005/8006) from remote computers." -ForegroundColor Gray
+    Write-Host "  These events show what AppLocker would have blocked/allowed in Audit mode." -ForegroundColor Gray
+    Write-Host ""
+
+    # Get computer list
+    if ([string]::IsNullOrWhiteSpace($ComputerListPath)) {
+        $ComputerListPath = Get-ValidatedPath -Prompt "  Enter path to computer list file" `
+            -DefaultValue ".\computers.txt" `
+            -MustExist -MustBeFile
+        if (-not $ComputerListPath) { return $null }
+    }
+    elseif (-not (Test-Path $ComputerListPath -PathType Leaf)) {
+        Write-Host "  [-] Computer list not found: $ComputerListPath" -ForegroundColor Red
+        return $null
+    }
+
+    # Get output path
+    if ([string]::IsNullOrWhiteSpace($OutPath)) {
+        $OutPath = Get-ValidatedPath -Prompt "  Enter output path" -DefaultValue ".\Events"
+        if (-not $OutPath) { return $null }
+    }
+
+    # Get credentials
+    if ($null -eq $Cred) {
+        Write-Host "  Enter credentials for remote connections:" -ForegroundColor Yellow
+        $Cred = Get-Credential -Message "Remote connection credentials (DOMAIN\username)"
+    }
+
+    if ($null -eq $Cred) {
+        Write-Host "  [-] Credentials are required" -ForegroundColor Red
+        return $null
+    }
+
+    # Configure event collection options
+    Write-Host ""
+    Write-Host "  Event Collection Options:" -ForegroundColor Yellow
+
+    # Days back
+    if ($Days -eq 14) {
+        Write-Host "  How many days of events to collect?" -ForegroundColor Gray
+        Write-Host "    [1] 7 days" -ForegroundColor White
+        Write-Host "    [2] 14 days (default)" -ForegroundColor White
+        Write-Host "    [3] 30 days" -ForegroundColor White
+        Write-Host "    [4] 90 days" -ForegroundColor White
+        Write-Host "    [5] All available" -ForegroundColor White
+        $daysChoice = Read-Host "  Enter choice (default: 2)"
+        $Days = switch ($daysChoice) {
+            "1" { 7 }
+            "3" { 30 }
+            "4" { 90 }
+            "5" { 0 }
+            default { 14 }
+        }
+    }
+
+    # Event types
+    if (-not $Blocked -and -not $IncludeAllowed) {
+        Write-Host ""
+        Write-Host "  Which events to collect?" -ForegroundColor Gray
+        Write-Host "    [1] Blocked only (8004/8006/8008) - for rule creation" -ForegroundColor White
+        Write-Host "    [2] All audit events (blocked + allowed)" -ForegroundColor White
+        $eventChoice = Read-Host "  Enter choice (default: 1)"
+        if ($eventChoice -eq "2") {
+            $IncludeAllowed = $true
+        } else {
+            $Blocked = $true
+        }
+    }
+
+    # Run collection
+    $eventScript = Join-Path $scriptRoot "Invoke-RemoteEventCollection.ps1"
+    if (Test-Path $eventScript) {
+        Write-Host "`n  Starting event collection..." -ForegroundColor Cyan
+
+        $eventParams = @{
+            ComputerListPath = $ComputerListPath
+            OutputPath       = $OutPath
+            Credential       = $Cred
+            DaysBack         = $Days
+        }
+
+        if ($Blocked) {
+            $eventParams.BlockedOnly = $true
+        }
+        if ($IncludeAllowed) {
+            $eventParams.IncludeAllowedEvents = $true
+        }
+
+        try {
+            $result = & $eventScript @eventParams
+            return $result
+        }
+        catch {
+            Write-Host "  [-] Event collection failed: $($_.Exception.Message)" -ForegroundColor Red
+            return $null
+        }
+    }
+    else {
+        Write-Host "  [-] Event collection script not found: $eventScript" -ForegroundColor Red
         return $null
     }
 }
@@ -2013,6 +2134,16 @@ function Get-WorkflowParameters {
                 OutPath  = $AllParams.OutputPath
             }
         }
+        "Events" {
+            Add-NonEmptyParameters -Hashtable $params -Parameters @{
+                ComputerListPath = $AllParams.ComputerList
+                OutPath          = $AllParams.OutputPath
+                Cred             = $AllParams.Credential
+                Days             = $AllParams.DaysBack
+                Blocked          = $AllParams.BlockedOnly
+                IncludeAllowed   = $AllParams.IncludeAllowedEvents
+            }
+        }
         "ADSetup" {
             Add-NonEmptyParameters -Hashtable $params -Parameters @{
                 Domain    = $AllParams.DomainName
@@ -2067,6 +2198,7 @@ if ($Mode -ne "Interactive") {
         "Validate"   { Invoke-ValidateWorkflow @workflowParams }
         "Full"       { Invoke-FullWorkflow @workflowParams }
         "Compare"    { Invoke-CompareWorkflow @workflowParams }
+        "Events"     { Invoke-EventCollectionWorkflow @workflowParams }
         "ADSetup"    { Invoke-ADSetupWorkflow @workflowParams }
         "ADExport"   { Invoke-ADExportWorkflow @workflowParams }
         "ADImport"   { Invoke-ADImportWorkflow @workflowParams }
@@ -2089,6 +2221,7 @@ do {
         "7" { Invoke-ADSetupWorkflow }
         "8" { Invoke-ADExportWorkflow }
         "9" { Invoke-ADImportWorkflow }
+        "E" { Invoke-EventCollectionWorkflow }
         "W" { Invoke-WinRMMenuWorkflow }
         "S" { Invoke-SoftwareListWorkflow }
         "D" { Invoke-DiagnosticWorkflow }
@@ -2101,7 +2234,7 @@ do {
         }
     }
 
-    if ($choice -in @("1", "2", "3", "4", "5", "6", "7", "8", "9", "W", "S", "D")) {
+    if ($choice -in @("1", "2", "3", "4", "5", "6", "7", "8", "9", "E", "W", "S", "D")) {
         Write-Host ""
         Read-Host "  Press Enter to continue"
         Clear-Host
