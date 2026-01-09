@@ -477,14 +477,90 @@ GA-AppLocker/
 ├── Invoke-RemoteEventCollection.ps1    # AppLocker audit event collection
 ├── New-AppLockerPolicyFromGuide.ps1    # Policy generation engine
 ├── Merge-AppLockerPolicies.ps1         # Policy consolidation
+├── Logs/                               # Operation log files (auto-created)
+│   ├── RemoteScan-YYYYMMDD-HHMMSS.log
+│   └── EventCollection-YYYYMMDD-HHMMSS.log
+├── Reports/                            # Compliance reports (auto-created)
+│   └── ComplianceReport-YYYYMMDD.html
 └── utilities/
-    ├── Common.psm1                     # Shared functions (SID, XML, validation)
+    ├── Common.psm1                     # Shared functions (SID, XML, validation, logging)
     ├── Config.psd1                     # Configuration (LOLBins, paths, SIDs)
+    ├── New-ComplianceReport.ps1        # Compliance report generator for auditors
     ├── Manage-SoftwareLists.ps1        # Software list management
     ├── Enable-WinRM-Domain.ps1         # WinRM GPO deployment
     ├── Manage-ADResources.ps1          # AD group/OU management
     ├── Compare-SoftwareInventory.ps1   # Software inventory comparison
     └── Test-AppLockerDiagnostic.ps1    # Connectivity diagnostics
+```
+
+---
+
+## Logging
+
+GA-AppLocker automatically creates detailed log files for all major operations. Logs are stored in the `./Logs` folder and provide an audit trail of all actions.
+
+### Log Files
+
+| Operation | Log File Pattern | Contents |
+|-----------|-----------------|----------|
+| Remote Scan | `RemoteScan-YYYYMMDD-HHMMSS.log` | Computer list, scan progress, results, errors |
+| Event Collection | `EventCollection-YYYYMMDD-HHMMSS.log` | Computers scanned, events found, failures |
+| Policy Generation | `PolicyGeneration-YYYYMMDD-HHMMSS.log` | Rules created, publishers, settings |
+
+### Log Format
+
+```
+================================================================================
+  GA-AppLocker Log File
+  Operation: RemoteScan
+  Started: 2026-01-09 14:30:00
+  Computer: ADMINPC01
+  User: DOMAIN\admin
+================================================================================
+
+[2026-01-09 14:30:01] [INFO   ] Remote scan operation started
+[2026-01-09 14:30:01] [INFO   ] Computer list: .\ADManagement\computers.csv
+[2026-01-09 14:30:01] [INFO   ] Loaded 15 computers from list
+[2026-01-09 14:30:05] [SUCCESS] WORKSTATION01: Scan completed
+[2026-01-09 14:30:08] [ERROR  ] WORKSTATION02: WinRM connection failed
+...
+```
+
+### Managing Logs
+
+```powershell
+# View recent logs (via PowerShell)
+Import-Module .\utilities\Common.psm1
+Get-LogFiles -Days 7
+
+# Clean up old logs (keeps last 30 days by default)
+Clear-OldLogs -RetentionDays 30
+
+# Preview what would be deleted
+Clear-OldLogs -RetentionDays 30 -WhatIf
+```
+
+### Using Logging in Scripts
+
+For custom scripts or extensions, use the logging functions from Common.psm1:
+
+```powershell
+Import-Module .\utilities\Common.psm1
+
+# Start logging session
+Start-Logging -LogName "CustomOperation"
+
+# Write log entries
+Write-Log "Starting operation" -Level Info
+Write-Log "Processing complete" -Level Success
+Write-Log "Minor issue detected" -Level Warning
+Write-Log "Critical failure" -Level Error
+
+# Add section headers
+Write-LogSection "Phase 2: Processing"
+
+# Stop logging and get log file path
+$logFile = Stop-Logging -Summary "Processed 100 items"
 ```
 
 ---
@@ -533,6 +609,405 @@ Customize `utilities/Config.psd1`:
 | **2** | EXE + Script | ⚠️ High | Scripts are bypass risk - monitor closely |
 | **3** | EXE + Script + MSI | ⚠️ Medium | Test software deployments thoroughly |
 | **4** | All + DLL | 🔴 Very High | **Audit 14+ days before enforcing!** |
+
+---
+
+## Security Workflow & Least Privilege Implementation
+
+This section documents the security methodology and audit trail for compliance reviews and cybersecurity inspectors.
+
+### Security Philosophy
+
+GA-AppLocker implements the principle of **least privilege** for application execution:
+
+> **"Allow only trusted code to run, executed by authorized principals, and deny execution from user-writable locations."**
+
+This approach ensures:
+- Only applications signed by trusted publishers or explicitly approved hashes can execute
+- Rules are scoped to specific user groups rather than broad principals like "Everyone"
+- High-risk locations (user-writable paths) are explicitly denied
+- Known attack vectors (LOLBins) are blocked proactively
+
+### Rule Creation Methodology
+
+**1. Evidence-Based Allowlisting**
+
+Rules are created from empirical data collected from production systems, not assumptions:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  STEP 1: INVENTORY COLLECTION                                       │
+│  ───────────────────────────────────────────────────────────────── │
+│  • Remote scan of target systems via WinRM                          │
+│  • Collect: Installed software, executables, digital signatures     │
+│  • Output: CSV files with publisher certificates, file hashes       │
+│  • Artifact: ./Scans/Scan-YYYYMMDD/[COMPUTER]/Executables.csv      │
+└─────────────────────────────────────────────────────────────────────┘
+                                    ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│  STEP 2: POLICY GENERATION                                          │
+│  ───────────────────────────────────────────────────────────────── │
+│  • Create rules from scan data (publisher-based preferred)          │
+│  • Apply least privilege: scope to specific AD groups               │
+│  • Include deny rules for user-writable paths                       │
+│  • Artifact: ./Outputs/AppLockerPolicy-[Target].xml                │
+└─────────────────────────────────────────────────────────────────────┘
+                                    ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│  STEP 3: AUDIT MODE DEPLOYMENT                                      │
+│  ───────────────────────────────────────────────────────────────── │
+│  • Deploy policy via GPO in AUDIT mode (not enforcing)              │
+│  • Minimum audit period: 14 days (recommended: 30 days)             │
+│  • No user impact during audit phase                                │
+│  • Artifact: GPO with EnforcementMode="AuditOnly"                  │
+└─────────────────────────────────────────────────────────────────────┘
+                                    ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│  STEP 4: EVENT ANALYSIS                                             │
+│  ───────────────────────────────────────────────────────────────── │
+│  • Collect AppLocker audit events (8003/8004/8005/8006)             │
+│  • Identify applications that would have been blocked               │
+│  • Review and approve legitimate software                           │
+│  • Artifact: ./Events/Events-YYYYMMDD/UniqueBlockedApps.csv        │
+└─────────────────────────────────────────────────────────────────────┘
+                                    ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│  STEP 5: POLICY REFINEMENT                                          │
+│  ───────────────────────────────────────────────────────────────── │
+│  • Create allow rules for approved blocked applications             │
+│  • Merge into existing policy with deduplication                    │
+│  • Re-deploy in audit mode, repeat analysis                         │
+│  • Artifact: Updated policy XML with audit trail                   │
+└─────────────────────────────────────────────────────────────────────┘
+                                    ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│  STEP 6: ENFORCEMENT                                                │
+│  ───────────────────────────────────────────────────────────────── │
+│  • Switch policy to ENFORCE mode only after audit validation        │
+│  • Monitor event logs for unexpected blocks                         │
+│  • Maintain exception process for legitimate new software           │
+│  • Artifact: GPO with EnforcementMode="Enabled"                    │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Least Privilege Implementation Details
+
+**Principal Scoping**
+
+Rules are NOT applied to "Everyone" or "Authenticated Users". Instead, rules target specific groups:
+
+| Principal Type | Example Groups | Purpose |
+|---------------|----------------|---------|
+| **Workstation Users** | DOMAIN\AppLocker-Workstations | Standard user endpoints |
+| **Server Operators** | DOMAIN\AppLocker-Servers | Server administrator access |
+| **Domain Controllers** | DOMAIN\AppLocker-DCs | DC-specific applications |
+| **Exceptions** | DOMAIN\AppLocker-Exceptions | Temporary bypass (monitored) |
+| **System Accounts** | NT AUTHORITY\SYSTEM | OS-level operations only |
+
+**Deny-by-Default Locations**
+
+User-writable paths are explicitly denied to prevent malware execution:
+
+| Path | Risk | Rationale |
+|------|------|-----------|
+| `%TEMP%` | Critical | Common malware staging location |
+| `%USERPROFILE%\Downloads` | Critical | Untrusted downloaded content |
+| `%APPDATA%` | High | User-writable, often targeted |
+| `%LOCALAPPDATA%` | High | User-writable application data |
+| `%USERPROFILE%\Desktop` | Medium | User-accessible execution point |
+
+**LOLBins Deny Rules**
+
+Living-off-the-land binaries are blocked to prevent abuse:
+
+- `mshta.exe` - HTML Application Host (script execution)
+- `wscript.exe` / `cscript.exe` - Windows Script Host
+- `regsvr32.exe` - COM registration (script execution)
+- `msbuild.exe` - Build tool (code execution)
+- `installutil.exe` - .NET installer (code execution)
+
+### Audit Trail & Artifacts
+
+For compliance verification, GA-AppLocker generates the following audit artifacts:
+
+| Artifact | Location | Purpose |
+|----------|----------|---------|
+| **Scan Results** | `./Scans/Scan-YYYYMMDD/ScanResults.csv` | Record of systems scanned |
+| **Software Inventory** | `./Scans/.../[PC]/InstalledSoftware.csv` | Applications found per system |
+| **Executable Signatures** | `./Scans/.../[PC]/Executables.csv` | Publisher certificates, hashes |
+| **Policy XML** | `./Outputs/AppLockerPolicy-*.xml` | Generated rules with justification |
+| **Blocked Events** | `./Events/.../UniqueBlockedApps.csv` | Applications flagged for review |
+| **Event Collection Log** | `./Events/.../EventCollectionResults.csv` | Audit event collection record |
+
+### Compliance Verification Checklist
+
+For auditors reviewing the AppLocker implementation:
+
+- [ ] **Evidence of inventory collection**: Scan folders exist with CSV data
+- [ ] **Policy uses specific principals**: Rules target AD groups, not "Everyone"
+- [ ] **Audit period documented**: Event collection shows 14+ days of data
+- [ ] **Blocked apps reviewed**: UniqueBlockedApps.csv shows approval decisions
+- [ ] **Deny rules present**: Policy includes user-writable path denials
+- [ ] **LOLBins blocked**: High-risk binaries have explicit deny rules
+- [ ] **Phased rollout**: Policy progression from Phase 1 to target phase
+- [ ] **Exception process**: Documented workflow for new software requests
+
+### Security Controls Mapping
+
+| Control Framework | Control ID | GA-AppLocker Implementation |
+|-------------------|------------|------------------------------|
+| **NIST 800-53** | CM-7 | Least functionality via application allowlisting |
+| **NIST 800-53** | CM-11 | User-installed software control |
+| **NIST 800-53** | SI-7 | Software integrity verification (signatures) |
+| **CIS Controls** | 2.5 | Allowlist authorized software |
+| **CIS Controls** | 2.6 | Allowlist authorized libraries |
+| **CMMC** | CM.L2-3.4.8 | Application execution control |
+
+### Continuous Monitoring
+
+After enforcement, ongoing monitoring ensures policy effectiveness:
+
+1. **Weekly Event Review**: Collect and analyze AppLocker events for anomalies
+2. **Monthly Policy Review**: Assess if new applications require rules
+3. **Quarterly Compliance Audit**: Verify policy matches documented baseline
+4. **Annual Full Assessment**: Re-scan environment for software drift
+
+### Compliance Reporting
+
+Generate compliance reports for auditors using the built-in report generator:
+
+```powershell
+# Generate HTML compliance report (recommended for auditors)
+.\utilities\New-ComplianceReport.ps1 -Format HTML
+
+# Generate Markdown report
+.\utilities\New-ComplianceReport.ps1 -Format Markdown
+
+# Generate plain text report
+.\utilities\New-ComplianceReport.ps1 -Format Text
+```
+
+The compliance report includes:
+- **Executive Summary** with compliance score (0-100%)
+- **Checklist Verification** against 9 compliance requirements
+- **Evidence Inventory** of all artifacts (scans, events, policies, logs)
+- **Recommendations** for addressing gaps
+- **Control Framework Mappings** (NIST, CIS, CMMC)
+
+---
+
+## Exception Handling Workflow
+
+A documented exception process ensures accountability while allowing legitimate business needs.
+
+### Exception Request Process
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  STEP 1: REQUEST SUBMISSION                                         │
+│  ───────────────────────────────────────────────────────────────── │
+│  User/Department submits request including:                         │
+│  • Application name, publisher, version                             │
+│  • Business justification                                           │
+│  • Risk acknowledgment                                              │
+│  • Requested duration (temporary vs permanent)                      │
+└─────────────────────────────────────────────────────────────────────┘
+                                    ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│  STEP 2: SECURITY REVIEW                                            │
+│  ───────────────────────────────────────────────────────────────── │
+│  Security team evaluates:                                           │
+│  • Is the application signed by a trusted publisher?                │
+│  • Has the application been scanned for malware?                    │
+│  • Are there alternative approved applications?                     │
+│  • What is the risk level of the exception?                         │
+└─────────────────────────────────────────────────────────────────────┘
+                                    ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│  STEP 3: APPROVAL/DENIAL                                            │
+│  ───────────────────────────────────────────────────────────────── │
+│  • Manager approval for standard requests                           │
+│  • CISO/Security Director approval for high-risk exceptions         │
+│  • Document decision with rationale                                 │
+│  • Set expiration date for temporary exceptions                     │
+└─────────────────────────────────────────────────────────────────────┘
+                                    ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│  STEP 4: IMPLEMENTATION                                             │
+│  ───────────────────────────────────────────────────────────────── │
+│  If approved:                                                       │
+│  • Add to Software List with approval metadata                      │
+│  • Generate publisher or hash rule                                  │
+│  • Deploy via GPO in Audit mode first                               │
+│  • Verify functionality, then enable Enforce mode                   │
+└─────────────────────────────────────────────────────────────────────┘
+                                    ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│  STEP 5: ONGOING MONITORING                                         │
+│  ───────────────────────────────────────────────────────────────── │
+│  • Review temporary exceptions before expiration                    │
+│  • Monitor exception usage via AppLocker events                     │
+│  • Annual review of all permanent exceptions                        │
+│  • Remove exceptions for decommissioned applications                │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Exception Categories
+
+| Category | Approval Level | Duration | Review Cycle |
+|----------|---------------|----------|--------------|
+| **Standard Software** | Security Team | Permanent | Annual |
+| **Temporary Testing** | Manager | 30 days max | At expiration |
+| **High-Risk Application** | CISO | Case-by-case | Quarterly |
+| **Emergency Access** | Security On-Call | 24-72 hours | Immediate post-incident |
+
+### Tracking Exceptions
+
+Use Software Lists to track approved exceptions with metadata:
+
+```powershell
+# Add approved software to list with approval info
+# Via interactive menu: [S] Software -> [3] Import
+
+# Software list entries include:
+# - Application name, publisher, version
+# - Approval status (Approved/Pending/Denied)
+# - Approver name and date
+# - Business justification
+# - Expiration date (if temporary)
+```
+
+---
+
+## Incident Response Integration
+
+AppLocker events provide valuable data for security incident response.
+
+### SIEM Integration
+
+Forward AppLocker events to your SIEM for correlation and alerting:
+
+**Event Log Paths:**
+```
+Microsoft-Windows-AppLocker/EXE and DLL
+Microsoft-Windows-AppLocker/MSI and Script
+Microsoft-Windows-AppLocker/Packaged app-Execution
+```
+
+**Key Events for SIEM Rules:**
+
+| Event ID | Severity | Description | SIEM Action |
+|----------|----------|-------------|-------------|
+| 8004 | High | Executable blocked | Alert + Investigate |
+| 8006 | High | Script blocked | Alert + Investigate |
+| 8007 | Medium | Packaged app blocked | Log + Review |
+| 8003 | Low | Executable allowed (audit) | Log only |
+
+### Incident Response Playbook
+
+**When AppLocker blocks an application:**
+
+1. **Triage** (0-15 minutes)
+   - Identify affected user and system
+   - Determine if block is expected or unexpected
+   - Check if application is known malware
+
+2. **Investigation** (15-60 minutes)
+   - Collect blocked event details from `UniqueBlockedApps.csv`
+   - Verify application legitimacy (publisher, hash, source)
+   - Check VirusTotal or internal sandbox for malware indicators
+
+3. **Response**
+   - **If Malware**: Isolate system, escalate to IR team
+   - **If Legitimate**: Process exception request (see above)
+   - **If Policy Error**: Update policy, test, redeploy
+
+4. **Documentation**
+   - Log incident in ticketing system
+   - Update policy documentation if changed
+   - Share lessons learned with security team
+
+### Forensic Evidence Collection
+
+When investigating blocked applications:
+
+```powershell
+# Collect detailed event data from specific computer
+.\Invoke-RemoteEventCollection.ps1 -ComputerListPath .\target.txt -DaysBack 7
+
+# Review blocked applications with occurrence context
+# Check: ./Events/Events-YYYYMMDD/UniqueBlockedApps.csv
+# Fields: FilePath, Publisher, Hash, Users, ComputerCount, FirstSeen, LastSeen
+```
+
+---
+
+## Metrics and Key Performance Indicators
+
+Track these metrics to demonstrate AppLocker effectiveness to leadership and auditors.
+
+### Operational Metrics
+
+| Metric | Target | Measurement Method |
+|--------|--------|-------------------|
+| **Policy Coverage** | 100% of endpoints | GPO scope verification |
+| **Audit Event Volume** | Trending downward | Weekly event collection |
+| **Blocked Legitimate Apps** | < 5 per week | Exception request tracking |
+| **Mean Time to Exception** | < 4 business hours | Request timestamp to deployment |
+| **Exception Backlog** | 0 overdue reviews | Software list expiration tracking |
+
+### Security Metrics
+
+| Metric | Target | Significance |
+|--------|--------|--------------|
+| **Unsigned Execution Attempts** | 0 in Enforce mode | Indicates policy effectiveness |
+| **LOLBins Block Rate** | 100% blocked | Measures attack surface reduction |
+| **User-Writable Path Blocks** | Trending to 0 | Shows user behavior improvement |
+| **Malware Prevention** | No successful execution | Primary security objective |
+
+### Compliance Metrics
+
+| Metric | Target | Audit Evidence |
+|--------|--------|----------------|
+| **Compliance Score** | ≥ 80% | Compliance report output |
+| **Inventory Currency** | ≤ 90 days old | Scan folder timestamps |
+| **Event Collection Currency** | ≤ 14 days | Event folder timestamps |
+| **Policy Review Cycle** | Monthly | Change log / git history |
+| **Exception Review Completion** | 100% on schedule | Software list review dates |
+
+### Generating Metrics Reports
+
+```powershell
+# Generate compliance report with metrics
+.\utilities\New-ComplianceReport.ps1 -Format HTML
+
+# View recent scan coverage
+Get-ChildItem .\Scans -Directory |
+    Sort-Object LastWriteTime -Descending |
+    Select-Object Name, LastWriteTime, @{N='Computers';E={(Get-ChildItem $_.FullName -Directory).Count}}
+
+# View event collection trends
+Get-ChildItem .\Events -Directory |
+    Sort-Object LastWriteTime -Descending |
+    ForEach-Object {
+        $blocked = Import-Csv (Join-Path $_.FullName "UniqueBlockedApps.csv") -ErrorAction SilentlyContinue
+        [PSCustomObject]@{
+            Collection = $_.Name
+            Date = $_.LastWriteTime
+            UniqueBlockedApps = if ($blocked) { $blocked.Count } else { 0 }
+        }
+    }
+```
+
+### Dashboard Recommendations
+
+For executive reporting, track these KPIs monthly:
+
+1. **AppLocker Deployment Status**: % of endpoints with policy applied
+2. **Block Rate Trend**: Number of blocks over time (should decrease)
+3. **Exception Volume**: New exceptions per month
+4. **Compliance Score**: From automated compliance report
+5. **Incident Prevention**: Malware/unauthorized software blocked
 
 ---
 

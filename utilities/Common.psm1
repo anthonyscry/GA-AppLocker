@@ -360,7 +360,414 @@ function Get-DefaultConfig {
 
 #endregion
 
-#region Logging Functions
+#region File Logging Functions
+
+# Script-level variable for current log file path
+$script:CurrentLogFile = $null
+$script:LoggingEnabled = $false
+
+<#
+.SYNOPSIS
+    Initializes file logging for the current session.
+
+.DESCRIPTION
+    Creates a timestamped log file in the Logs folder and sets up the logging context.
+    All subsequent Write-Log calls will write to this file until Stop-Logging is called.
+
+.PARAMETER LogName
+    Base name for the log file (e.g., "Scan", "Generate", "Merge").
+    The actual filename will be: {LogName}-{timestamp}.log
+
+.PARAMETER LogPath
+    Optional custom path for the Logs folder. Defaults to .\Logs relative to the script root.
+
+.PARAMETER PassThru
+    If specified, returns the log file path.
+
+.OUTPUTS
+    String (log file path) if -PassThru is specified.
+
+.EXAMPLE
+    Start-Logging -LogName "RemoteScan"
+    # Creates: .\Logs\RemoteScan-20260109-143000.log
+#>
+function Start-Logging {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$LogName,
+
+        [string]$LogPath,
+
+        [switch]$PassThru
+    )
+
+    # Determine log folder path
+    if (-not $LogPath) {
+        # Default to Logs folder in the GA-AppLocker root
+        $scriptRoot = if ($PSScriptRoot) {
+            Split-Path $PSScriptRoot -Parent
+        } else {
+            $PWD.Path
+        }
+        $LogPath = Join-Path $scriptRoot "Logs"
+    }
+
+    # Create Logs folder if it doesn't exist
+    if (-not (Test-Path $LogPath)) {
+        New-Item -ItemType Directory -Path $LogPath -Force | Out-Null
+    }
+
+    # Generate timestamped log filename
+    $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
+    $logFileName = "$LogName-$timestamp.log"
+    $script:CurrentLogFile = Join-Path $LogPath $logFileName
+    $script:LoggingEnabled = $true
+
+    # Write log header
+    $header = @"
+================================================================================
+  GA-AppLocker Log File
+  Operation: $LogName
+  Started: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
+  Computer: $env:COMPUTERNAME
+  User: $env:USERNAME
+================================================================================
+
+"@
+    $header | Out-File -FilePath $script:CurrentLogFile -Encoding UTF8
+
+    Write-Verbose "Logging initialized: $($script:CurrentLogFile)"
+
+    if ($PassThru) {
+        return $script:CurrentLogFile
+    }
+}
+
+<#
+.SYNOPSIS
+    Writes a log entry to the current log file.
+
+.DESCRIPTION
+    Writes a timestamped, leveled log entry to the active log file.
+    Optionally also writes to the console with appropriate coloring.
+
+.PARAMETER Message
+    The message to log.
+
+.PARAMETER Level
+    Log level: Info, Warning, Error, Debug, Success. Defaults to Info.
+
+.PARAMETER NoConsole
+    If specified, only writes to the log file (no console output).
+
+.PARAMETER Console
+    If specified, also writes to the console with color formatting.
+
+.EXAMPLE
+    Write-Log "Starting remote scan of 10 computers" -Level Info
+
+.EXAMPLE
+    Write-Log "Failed to connect to SERVER01" -Level Error -Console
+#>
+function Write-Log {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true, Position = 0)]
+        [string]$Message,
+
+        [Parameter(Position = 1)]
+        [ValidateSet("Info", "Warning", "Error", "Debug", "Success")]
+        [string]$Level = "Info",
+
+        [switch]$NoConsole,
+
+        [switch]$Console
+    )
+
+    # Skip if logging not initialized
+    if (-not $script:LoggingEnabled -or -not $script:CurrentLogFile) {
+        # Still write to console if requested
+        if ($Console -and -not $NoConsole) {
+            Write-LogToConsole -Message $Message -Level $Level
+        }
+        return
+    }
+
+    # Format the log entry
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $levelTag = $Level.ToUpper().PadRight(7)
+    $logEntry = "[$timestamp] [$levelTag] $Message"
+
+    # Write to log file
+    try {
+        $logEntry | Out-File -FilePath $script:CurrentLogFile -Append -Encoding UTF8
+    }
+    catch {
+        Write-Warning "Failed to write to log file: $_"
+    }
+
+    # Write to console if requested
+    if ($Console -and -not $NoConsole) {
+        Write-LogToConsole -Message $Message -Level $Level
+    }
+}
+
+<#
+.SYNOPSIS
+    Internal function to write log message to console with color.
+#>
+function Write-LogToConsole {
+    [CmdletBinding()]
+    param(
+        [string]$Message,
+        [string]$Level
+    )
+
+    $colors = @{
+        Info    = "Cyan"
+        Success = "Green"
+        Warning = "Yellow"
+        Error   = "Red"
+        Debug   = "DarkGray"
+    }
+
+    $prefix = @{
+        Info    = "[*]"
+        Success = "[+]"
+        Warning = "[!]"
+        Error   = "[-]"
+        Debug   = "[.]"
+    }
+
+    Write-Host "$($prefix[$Level]) $Message" -ForegroundColor $colors[$Level]
+}
+
+<#
+.SYNOPSIS
+    Writes a section separator to the log file.
+
+.PARAMETER Title
+    Title for the section.
+#>
+function Write-LogSection {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Title
+    )
+
+    if (-not $script:LoggingEnabled) { return }
+
+    $separator = @"
+
+--------------------------------------------------------------------------------
+  $Title
+--------------------------------------------------------------------------------
+"@
+    $separator | Out-File -FilePath $script:CurrentLogFile -Append -Encoding UTF8
+}
+
+<#
+.SYNOPSIS
+    Logs the results of a remote operation (scan, event collection, etc.).
+
+.PARAMETER Results
+    Array of result objects with Computer, Status, and Message properties.
+#>
+function Write-LogResults {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [array]$Results
+    )
+
+    if (-not $script:LoggingEnabled) { return }
+
+    Write-LogSection "Operation Results"
+
+    $successCount = ($Results | Where-Object { $_.Status -eq "Success" }).Count
+    $failCount = ($Results | Where-Object { $_.Status -eq "Failed" }).Count
+
+    Write-Log "Total: $($Results.Count) | Success: $successCount | Failed: $failCount" -Level Info
+
+    # Log failures with details
+    $failures = $Results | Where-Object { $_.Status -eq "Failed" }
+    if ($failures.Count -gt 0) {
+        Write-Log "Failed operations:" -Level Warning
+        foreach ($failure in $failures) {
+            Write-Log "  - $($failure.Computer): $($failure.Message)" -Level Error
+        }
+    }
+}
+
+<#
+.SYNOPSIS
+    Stops logging and writes the log footer.
+
+.DESCRIPTION
+    Finalizes the log file with a footer containing end time and duration.
+    Clears the logging context.
+
+.PARAMETER Summary
+    Optional summary message to include in the footer.
+#>
+function Stop-Logging {
+    [CmdletBinding()]
+    param(
+        [string]$Summary = ""
+    )
+
+    if (-not $script:LoggingEnabled -or -not $script:CurrentLogFile) {
+        return
+    }
+
+    # Write log footer
+    $footer = @"
+
+================================================================================
+  Operation Completed: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
+  $(if ($Summary) { "Summary: $Summary" } else { "" })
+================================================================================
+"@
+    $footer | Out-File -FilePath $script:CurrentLogFile -Append -Encoding UTF8
+
+    $logPath = $script:CurrentLogFile
+    $script:CurrentLogFile = $null
+    $script:LoggingEnabled = $false
+
+    Write-Verbose "Logging stopped. Log file: $logPath"
+
+    return $logPath
+}
+
+<#
+.SYNOPSIS
+    Gets the path to the current log file.
+
+.OUTPUTS
+    String path to the current log file, or $null if logging is not active.
+#>
+function Get-CurrentLogFile {
+    [CmdletBinding()]
+    param()
+
+    return $script:CurrentLogFile
+}
+
+<#
+.SYNOPSIS
+    Checks if logging is currently active.
+
+.OUTPUTS
+    Boolean indicating whether logging is enabled.
+#>
+function Test-LoggingEnabled {
+    [CmdletBinding()]
+    param()
+
+    return $script:LoggingEnabled
+}
+
+<#
+.SYNOPSIS
+    Gets a list of existing log files.
+
+.PARAMETER LogPath
+    Path to the Logs folder. Defaults to .\Logs.
+
+.PARAMETER Days
+    Only return logs from the last N days. Default is all logs.
+
+.OUTPUTS
+    Array of FileInfo objects for log files.
+#>
+function Get-LogFiles {
+    [CmdletBinding()]
+    param(
+        [string]$LogPath,
+
+        [int]$Days = 0
+    )
+
+    if (-not $LogPath) {
+        $scriptRoot = if ($PSScriptRoot) {
+            Split-Path $PSScriptRoot -Parent
+        } else {
+            $PWD.Path
+        }
+        $LogPath = Join-Path $scriptRoot "Logs"
+    }
+
+    if (-not (Test-Path $LogPath)) {
+        return @()
+    }
+
+    $logs = Get-ChildItem -Path $LogPath -Filter "*.log" | Sort-Object LastWriteTime -Descending
+
+    if ($Days -gt 0) {
+        $cutoff = (Get-Date).AddDays(-$Days)
+        $logs = $logs | Where-Object { $_.LastWriteTime -ge $cutoff }
+    }
+
+    return $logs
+}
+
+<#
+.SYNOPSIS
+    Cleans up old log files.
+
+.PARAMETER LogPath
+    Path to the Logs folder. Defaults to .\Logs.
+
+.PARAMETER RetentionDays
+    Delete logs older than this many days. Default is 30.
+
+.PARAMETER WhatIf
+    Shows what would be deleted without actually deleting.
+
+.OUTPUTS
+    Count of deleted files.
+#>
+function Clear-OldLogs {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [string]$LogPath,
+
+        [int]$RetentionDays = 30
+    )
+
+    if (-not $LogPath) {
+        $scriptRoot = if ($PSScriptRoot) {
+            Split-Path $PSScriptRoot -Parent
+        } else {
+            $PWD.Path
+        }
+        $LogPath = Join-Path $scriptRoot "Logs"
+    }
+
+    if (-not (Test-Path $LogPath)) {
+        return 0
+    }
+
+    $cutoff = (Get-Date).AddDays(-$RetentionDays)
+    $oldLogs = Get-ChildItem -Path $LogPath -Filter "*.log" |
+        Where-Object { $_.LastWriteTime -lt $cutoff }
+
+    $deletedCount = 0
+    foreach ($log in $oldLogs) {
+        if ($PSCmdlet.ShouldProcess($log.Name, "Delete old log file")) {
+            Remove-Item -Path $log.FullName -Force
+            $deletedCount++
+        }
+    }
+
+    return $deletedCount
+}
+
+#endregion
+
+#region Console Output Functions
 
 <#
 .SYNOPSIS
@@ -1070,13 +1477,25 @@ Export-ModuleMember -Function @(
     'Get-AppLockerConfig',
     'Get-DefaultConfig',
 
-    # Logging
+    # File Logging
+    'Start-Logging',
+    'Write-Log',
+    'Write-LogSection',
+    'Write-LogResults',
+    'Stop-Logging',
+    'Get-CurrentLogFile',
+    'Test-LoggingEnabled',
+    'Get-LogFiles',
+    'Clear-OldLogs',
+
+    # Console Output
     'Write-Status',
     'Write-Banner',
 
     # File Utilities
     'Confirm-Directory',
     'Get-TimestampedFileName',
+    'Get-ComputerList',
 
     # Validation
     'Test-AppLockerPolicy',
