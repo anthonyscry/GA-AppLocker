@@ -136,13 +136,20 @@ The interactive menu provides guided access to all features:
 
 ## Menu Features
 
+### Output Defaults
+
+Several workflows now default to the `.\Outputs` folder:
+- **Validate [4]**: Lists XML files in Outputs for quick selection
+- **Merge [3]**: Defaults to merging policies from Outputs folder
+- **Generate [2]**: Saves policies to Outputs folder
+
 ### Interactive Folder Browser
 
 Many workflows now feature an **interactive folder browser** that eliminates the need to manually type paths:
 
 - **Compare [6]**: Browse scan folders to select baseline and comparison files
 - **Generate [2]**: Browse and select scan data folders
-- **Software Import [S → 4]**: Browse scan folders when importing to software lists
+- **Software Import [S → 3]**: Browse scan folders when importing to software lists
 
 The browser shows:
 - Numbered folder/file selection
@@ -155,23 +162,38 @@ Example flow for Compare:
 ```
 Step 1: Select scan date folder → [1] Scan-20260109-143000
 Step 2: Select computer (baseline) → [1] WORKSTATION01
-Step 3: Select CSV file → [1] Executables.csv
-Step 4: Select comparison computer → [2] WORKSTATION02
-Step 5: Select CSV file → [1] Executables.csv
+       [Auto-selects InstalledSoftware.csv]
+Step 3: Select comparison computer → [2] WORKSTATION02
+       [Auto-selects InstalledSoftware.csv]
 ```
 
 ### Software List Management [S]
 
 ```
   === Software List Management ===
+
+  === Basic Operations ===
     [1] Create     - Create a new software list
     [2] View       - View/search existing software lists
-    [3] Add        - Add software to a list
-    [4] Import     - Import from scan data or executable
-    [5] Export     - Export list to CSV
-    [6] Generate   - Generate policy from software list
+
+  === Import Methods ===
+    [3] Import     - Import from scan data or executable
+    [4] Publishers - Import common trusted publishers
+    [5] Policy     - Import from existing AppLocker policy
+    [6] Folder     - Import from folder (scan executables)
+
+  === Export & Generate ===
+    [7] Export     - Export list to CSV
+    [8] Approve    - Bulk approve/unapprove items
+    [G] Generate   - Generate policy from software list
     [B] Back
 ```
+
+**Import Methods:**
+- **Scan Data** [3]: Import from remote scan results (CSV files)
+- **Publishers** [4]: Add pre-defined trusted publishers (Microsoft, Adobe, Google, etc.) organized by category
+- **Policy** [5]: Extract rules from existing AppLocker XML policies
+- **Folder** [6]: Scan a local folder for executables and import their signatures
 
 ### WinRM Management [W]
 
@@ -262,6 +284,35 @@ Comparison methods:
 - **NameVersion**: Match by name AND version
 - **Hash**: Exact file match by SHA256
 - **Publisher**: Match by publisher/signer
+
+### Software Lists Workflow
+
+Create and manage curated software allowlists:
+
+```powershell
+# Interactive mode
+.\Start-AppLockerWorkflow.ps1
+# Select [S] Software
+
+# Create a list and import trusted publishers
+# Select [1] Create → name your list
+# Select [4] Publishers → choose categories (Microsoft, Adobe, Security, etc.)
+
+# Import from existing scan data
+# Select [3] Import → [1] From scan data → browse folders
+
+# Generate policy from approved items
+# Select [G] Generate
+```
+
+**Pre-defined Publisher Categories:**
+- **Microsoft**: Windows OS components, Office, Visual Studio
+- **Productivity**: Adobe products
+- **Browser/Cloud**: Google Chrome, Google tools
+- **Development**: JetBrains, GitHub, Git, Node.js, Python, VSCode
+- **Security**: CrowdStrike, Carbon Black, Symantec, McAfee, Trend Micro, SentinelOne
+- **Communication**: Zoom, Slack, WebEx, Microsoft Teams
+- **Remote Access**: Citrix, VMware, Palo Alto GlobalProtect
 
 ---
 
