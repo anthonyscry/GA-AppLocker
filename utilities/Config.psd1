@@ -189,5 +189,68 @@
         Merge    = "Combine multiple policy files"
         Full     = "Complete workflow: Scan -> Generate -> Merge"
         Validate = "Validate an existing policy file"
+        Software = "Manage software lists for rule generation"
     }
+
+    # --------------------------------------------------------------------------
+    # Software List Settings
+    # --------------------------------------------------------------------------
+    # Configuration for software list management and rule generation
+
+    SoftwareListSettings = @{
+        DefaultPath       = ".\SoftwareLists"
+        DefaultListName   = "ApprovedSoftware"
+        AutoApproveScans  = $false
+        DeduplicateOnImport = $true
+    }
+
+    # --------------------------------------------------------------------------
+    # Common Software Publishers (for quick adding)
+    # --------------------------------------------------------------------------
+    # Pre-defined publishers that can be quickly added to software lists
+
+    CommonPublishers = @(
+        @{ Name = "Microsoft"; Publisher = "MICROSOFT CORPORATION"; Category = "System" }
+        @{ Name = "Adobe"; Publisher = "ADOBE INC."; Category = "Productivity" }
+        @{ Name = "Google"; Publisher = "GOOGLE LLC"; Category = "Web" }
+        @{ Name = "Mozilla"; Publisher = "MOZILLA CORPORATION"; Category = "Web" }
+        @{ Name = "Oracle"; Publisher = "ORACLE AMERICA, INC."; Category = "Development" }
+        @{ Name = "Citrix"; Publisher = "CITRIX SYSTEMS, INC."; Category = "Virtualization" }
+        @{ Name = "VMware"; Publisher = "VMWARE, INC."; Category = "Virtualization" }
+        @{ Name = "Dell"; Publisher = "DELL INC."; Category = "Hardware" }
+        @{ Name = "HP"; Publisher = "HP INC."; Category = "Hardware" }
+        @{ Name = "Lenovo"; Publisher = "LENOVO"; Category = "Hardware" }
+        @{ Name = "Intel"; Publisher = "INTEL CORPORATION"; Category = "Hardware" }
+        @{ Name = "NVIDIA"; Publisher = "NVIDIA CORPORATION"; Category = "Hardware" }
+        @{ Name = "AMD"; Publisher = "ADVANCED MICRO DEVICES, INC."; Category = "Hardware" }
+        @{ Name = "Zoom"; Publisher = "ZOOM VIDEO COMMUNICATIONS, INC."; Category = "Communication" }
+        @{ Name = "Slack"; Publisher = "SLACK TECHNOLOGIES, LLC"; Category = "Communication" }
+        @{ Name = "Atlassian"; Publisher = "ATLASSIAN PTY LTD"; Category = "Development" }
+        @{ Name = "JetBrains"; Publisher = "JETBRAINS S.R.O."; Category = "Development" }
+        @{ Name = "7-Zip"; Publisher = "IGOR PAVLOV"; Category = "Utilities" }
+        @{ Name = "Notepad++"; Publisher = "NOTEPAD++"; Category = "Utilities" }
+        @{ Name = "WinRAR"; Publisher = "ALEXANDER ROSHAL"; Category = "Utilities" }
+    )
+
+    # --------------------------------------------------------------------------
+    # Software Categories
+    # --------------------------------------------------------------------------
+    # Standard categories for organizing software lists
+
+    SoftwareCategories = @(
+        "System"
+        "Productivity"
+        "Communication"
+        "Development"
+        "Security"
+        "Utilities"
+        "Web"
+        "Virtualization"
+        "Hardware"
+        "Database"
+        "Media"
+        "Internal"
+        "Discovered"
+        "Uncategorized"
+    )
 }

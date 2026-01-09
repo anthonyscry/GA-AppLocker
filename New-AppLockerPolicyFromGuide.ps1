@@ -113,6 +113,15 @@ DLL rule enforcement: NotConfigured (default), AuditOnly, or Enabled.
 .EXAMPLE
 # SIMPLIFIED: With hash rules for unsigned files
 .\New-AppLockerPolicyFromGuide.ps1 -Simplified -ScanPath .\Scans -IncludeHashRules -IncludeDenyRules
+
+.EXAMPLE
+# SIMPLIFIED: Generate from software list (signature/hash based)
+.\New-AppLockerPolicyFromGuide.ps1 -Simplified -SoftwareListPath .\SoftwareLists\ApprovedSoftware.json
+
+.EXAMPLE
+# BUILD GUIDE: Use software list for vendor publishers
+.\New-AppLockerPolicyFromGuide.ps1 -TargetType Workstation -DomainName "CONTOSO" -Phase 1 `
+    -SoftwareListPath .\SoftwareLists\BusinessApps.json
 #>
 
 [CmdletBinding(DefaultParameterSetName='BuildGuide')]
@@ -167,6 +176,8 @@ param(
     # === COMMON PARAMETERS ===
     [string]$ScanPath,
 
+    [string]$SoftwareListPath,
+
     [string]$OutputPath = ".\Outputs",
 
     [ValidateSet("AuditOnly", "Enabled")]
@@ -193,13 +204,22 @@ else {
     $config = $null
 }
 
+# Import software list module
+$softwareListModule = Join-Path $scriptRoot "utilities\Manage-SoftwareLists.ps1"
+if (Test-Path $softwareListModule) {
+    . $softwareListModule
+}
+
 $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
 New-Item -ItemType Directory -Path $OutputPath -Force | Out-Null
 
 #region Simplified Mode Validation
 if ($Simplified) {
-    if (-not $ScanPath -or -not (Test-Path $ScanPath)) {
-        throw "Simplified mode requires -ScanPath with valid scan data from Invoke-RemoteScan.ps1"
+    $hasScanPath = $ScanPath -and (Test-Path $ScanPath)
+    $hasSoftwareList = $SoftwareListPath -and (Test-Path $SoftwareListPath)
+
+    if (-not $hasScanPath -and -not $hasSoftwareList) {
+        throw "Simplified mode requires either -ScanPath with valid scan data or -SoftwareListPath with a software list"
     }
 }
 #endregion
@@ -214,7 +234,7 @@ if ($Simplified) {
 ================================================================================
                     AppLocker Policy Generator (Simplified Mode)
 ================================================================================
-  Creates policies from scan data with auto-deduplicated publisher rules.
+  Creates policies from scan data or software lists with signature/hash rules.
   Use Build Guide mode (-TargetType) for enterprise deployments.
 ================================================================================
 
@@ -222,7 +242,8 @@ if ($Simplified) {
 
     Write-Host "Configuration:" -ForegroundColor Yellow
     Write-Host "  Mode: Simplified" -ForegroundColor Gray
-    Write-Host "  Scan Path: $ScanPath" -ForegroundColor Gray
+    if ($ScanPath) { Write-Host "  Scan Path: $ScanPath" -ForegroundColor Gray }
+    if ($SoftwareListPath) { Write-Host "  Software List: $SoftwareListPath" -ForegroundColor Gray }
     Write-Host "  Target User: $TargetUser" -ForegroundColor Gray
     Write-Host "  Enforcement: $EnforcementMode" -ForegroundColor Gray
     Write-Host ""
@@ -237,82 +258,110 @@ if ($Simplified) {
     Write-Host ""
     #endregion
 
-    #region Load Scan Data
-    Write-Host "Loading scan data..." -ForegroundColor Cyan
-
-    $computerFolders = Get-ChildItem -Path $ScanPath -Directory |
-        Where-Object { Test-Path (Join-Path $_.FullName "*.csv") }
-
-    if ($computerFolders.Count -eq 0) {
-        throw "No scan data found in $ScanPath. Run Invoke-RemoteScan.ps1 first."
-    }
-
-    Write-Host "  Found data from $($computerFolders.Count) computers" -ForegroundColor Gray
+    #region Load Data Sources (Scan Data and/or Software Lists)
 
     $allExecutables = @()
     $allWritableDirs = @()
+    $softwareListItems = @()
+    $softwareListRulesXml = @()
 
-    foreach ($folder in $computerFolders) {
-        $exePath = Join-Path $folder.FullName "Executables.csv"
-        if (Test-Path $exePath) {
-            $allExecutables += Import-Csv -Path $exePath
-        }
-        $writablePath = Join-Path $folder.FullName "WritableDirectories.csv"
-        if (Test-Path $writablePath) {
-            $allWritableDirs += Import-Csv -Path $writablePath
-        }
+    # Load software list if provided
+    if ($SoftwareListPath -and (Test-Path $SoftwareListPath)) {
+        Write-Host "Loading software list..." -ForegroundColor Cyan
+        $softwareList = Get-SoftwareList -ListPath $SoftwareListPath
+        $softwareListItems = @($softwareList.items | Where-Object { $_.approved -eq $true })
+        Write-Host "  List: $($softwareList.metadata.name)" -ForegroundColor Gray
+        Write-Host "  Approved items: $($softwareListItems.Count)" -ForegroundColor Gray
+
+        # Get pre-generated rules from software list
+        $listRules = Get-SoftwareListRules -ListPath $SoftwareListPath -ApprovedOnly -UserOrGroupSid $targetSid
+        $softwareListRulesXml = $listRules | ForEach-Object { $_.Xml }
+
+        Write-Host "  Publisher rules: $(($listRules | Where-Object { $_.Type -eq 'Publisher' }).Count)" -ForegroundColor Gray
+        Write-Host "  Hash rules: $(($listRules | Where-Object { $_.Type -eq 'Hash' }).Count)" -ForegroundColor Gray
+        Write-Host "  Path rules: $(($listRules | Where-Object { $_.Type -eq 'Path' }).Count)" -ForegroundColor Gray
     }
 
-    Write-Host "  Total executables: $($allExecutables.Count)" -ForegroundColor Gray
-    Write-Host "  Writable directories: $($allWritableDirs.Count)" -ForegroundColor Gray
+    # Load scan data if provided
+    if ($ScanPath -and (Test-Path $ScanPath)) {
+        Write-Host "Loading scan data..." -ForegroundColor Cyan
+
+        $computerFolders = Get-ChildItem -Path $ScanPath -Directory |
+            Where-Object { Test-Path (Join-Path $_.FullName "*.csv") }
+
+        if ($computerFolders.Count -eq 0 -and -not $SoftwareListPath) {
+            throw "No scan data found in $ScanPath. Run Invoke-RemoteScan.ps1 first."
+        }
+
+        if ($computerFolders.Count -gt 0) {
+            Write-Host "  Found data from $($computerFolders.Count) computers" -ForegroundColor Gray
+
+            foreach ($folder in $computerFolders) {
+                $exePath = Join-Path $folder.FullName "Executables.csv"
+                if (Test-Path $exePath) {
+                    $allExecutables += Import-Csv -Path $exePath
+                }
+                $writablePath = Join-Path $folder.FullName "WritableDirectories.csv"
+                if (Test-Path $writablePath) {
+                    $allWritableDirs += Import-Csv -Path $writablePath
+                }
+            }
+
+            Write-Host "  Total executables: $($allExecutables.Count)" -ForegroundColor Gray
+            Write-Host "  Writable directories: $($allWritableDirs.Count)" -ForegroundColor Gray
+        }
+    }
     #endregion
 
-    #region Build Publisher Rules (deduplicated)
-    Write-Host "`nBuilding publisher rules..." -ForegroundColor Cyan
-
+    #region Build Publisher Rules (deduplicated from scan data)
     $publisherRules = @{}
-    $signedExes = $allExecutables | Where-Object { $_.IsSigned -eq "True" -and $_.Publisher }
 
-    foreach ($exe in $signedExes) {
-        $publisher = $exe.Publisher
-        $product = if ($exe.Path -match "\\([^\\]+)\\[^\\]+$") { $matches[1] } else { "*" }
-        $binary = $exe.Name
+    if ($allExecutables.Count -gt 0) {
+        Write-Host "`nBuilding publisher rules from scan data..." -ForegroundColor Cyan
 
-        switch ($RuleGranularity) {
-            "Publisher" {
-                $key = $publisher
-                $productName = "*"
-                $binaryName = "*"
+        $signedExes = $allExecutables | Where-Object { $_.IsSigned -eq "True" -and $_.Publisher }
+
+        foreach ($exe in $signedExes) {
+            $publisher = $exe.Publisher
+            $product = if ($exe.Path -match "\\([^\\]+)\\[^\\]+$") { $matches[1] } else { "*" }
+            $binary = $exe.Name
+
+            switch ($RuleGranularity) {
+                "Publisher" {
+                    $key = $publisher
+                    $productName = "*"
+                    $binaryName = "*"
+                }
+                "PublisherProduct" {
+                    $key = "$publisher|$product"
+                    $productName = $product
+                    $binaryName = "*"
+                }
+                "PublisherProductBinary" {
+                    $key = "$publisher|$product|$binary"
+                    $productName = $product
+                    $binaryName = $binary
+                }
             }
-            "PublisherProduct" {
-                $key = "$publisher|$product"
-                $productName = $product
-                $binaryName = "*"
-            }
-            "PublisherProductBinary" {
-                $key = "$publisher|$product|$binary"
-                $productName = $product
-                $binaryName = $binary
+
+            if (-not $publisherRules.ContainsKey($key)) {
+                $publisherRules[$key] = @{
+                    Publisher = $publisher
+                    Product = $productName
+                    Binary = $binaryName
+                }
             }
         }
 
-        if (-not $publisherRules.ContainsKey($key)) {
-            $publisherRules[$key] = @{
-                Publisher = $publisher
-                Product = $productName
-                Binary = $binaryName
-            }
-        }
+        Write-Host "  Unique publisher rules from scans: $($publisherRules.Count)" -ForegroundColor Green
     }
-
-    Write-Host "  Unique publisher rules: $($publisherRules.Count)" -ForegroundColor Green
     #endregion
 
-    #region Build Hash Rules (if requested)
+    #region Build Hash Rules (from scan data if requested)
     $hashRules = @{}
 
-    if ($IncludeHashRules) {
-        Write-Host "`nBuilding hash rules for unsigned files..." -ForegroundColor Cyan
+    if ($IncludeHashRules -and $allExecutables.Count -gt 0) {
+        Write-Host "`nBuilding hash rules for unsigned files from scan data..." -ForegroundColor Cyan
         $writablePaths = $allWritableDirs | Select-Object -ExpandProperty Path -Unique
 
         $unsignedInWritable = $allExecutables | Where-Object {
@@ -335,7 +384,7 @@ if ($Simplified) {
                 }
             }
         }
-        Write-Host "  Unique hash rules: $($hashRules.Count)" -ForegroundColor Green
+        Write-Host "  Unique hash rules from scans: $($hashRules.Count)" -ForegroundColor Green
     }
     #endregion
 
@@ -438,7 +487,7 @@ if ($Simplified) {
 "@
     }
 
-    # Add hash rules
+    # Add hash rules from scan data
     foreach ($rule in $hashRules.Values) {
         $simplifiedXml += @"
     <FileHashRule Id="$(New-Guid)" Name="Hash: $($rule.Name)" Description="From: $($rule.Path)" UserOrGroupSid="$targetSid" Action="Allow">
@@ -450,6 +499,14 @@ if ($Simplified) {
     </FileHashRule>
 
 "@
+    }
+
+    # Add rules from software list (includes publisher, hash, and path rules)
+    if ($softwareListRulesXml.Count -gt 0) {
+        Write-Host "  Adding $($softwareListRulesXml.Count) rules from software list..." -ForegroundColor Cyan
+        foreach ($ruleXml in $softwareListRulesXml) {
+            $simplifiedXml += "$ruleXml`n"
+        }
     }
 
     $simplifiedXml += @"
@@ -518,11 +575,22 @@ if ($Simplified) {
     Write-Host ""
     Write-Host "Summary:" -ForegroundColor Yellow
     Write-Host "  Target: $TargetUser ($targetSid)"
-    Write-Host "  Publisher rules: $($publisherRules.Count)"
-    Write-Host "  Hash rules: $($hashRules.Count)"
+    Write-Host "  Publisher rules (scan): $($publisherRules.Count)"
+    Write-Host "  Hash rules (scan): $($hashRules.Count)"
+    if ($softwareListRulesXml.Count -gt 0) {
+        Write-Host "  Software list rules: $($softwareListRulesXml.Count)" -ForegroundColor Cyan
+    }
     Write-Host "  Deny rules: $($simplifiedDenyRules.Count)"
     Write-Host "  Enforcement: $EnforcementMode"
     Write-Host ""
+
+    if ($SoftwareListPath) {
+        Write-Host "Data Sources:" -ForegroundColor Yellow
+        Write-Host "  Software List: $SoftwareListPath"
+        if ($ScanPath) { Write-Host "  Scan Data: $ScanPath" }
+        Write-Host ""
+    }
+
     Write-Host "To apply:" -ForegroundColor Cyan
     Write-Host "  Set-AppLockerPolicy -XmlPolicy `"$policyPath`"" -ForegroundColor White
     Write-Host ""
@@ -595,9 +663,25 @@ Write-Host "  Admins Group: $($sids.Admins)" -ForegroundColor DarkGray
 Write-Host ""
 #endregion
 
-#region Load vendor publishers from scan data if requested
+#region Load vendor publishers from software list and/or scan data
 $vendorPubs = @()
 
+# Load from software list if provided
+if ($SoftwareListPath -and (Test-Path $SoftwareListPath)) {
+    Write-Host "Loading vendor publishers from software list..." -ForegroundColor Cyan
+
+    $softwareList = Get-SoftwareList -ListPath $SoftwareListPath
+    $approvedItems = $softwareList.items | Where-Object { $_.approved -eq $true -and $_.ruleType -eq "Publisher" }
+
+    foreach ($item in $approvedItems) {
+        if ($item.publisher -and $item.publisher -notmatch "MICROSOFT") {
+            $vendorPubs += $item.publisher
+        }
+    }
+    Write-Host "  Found $($vendorPubs.Count) vendor publishers from software list" -ForegroundColor Gray
+}
+
+# Load from scan data if requested
 if ($IncludeVendorPublishers -and $ScanPath -and (Test-Path $ScanPath)) {
     Write-Host "Loading vendor publishers from scan data..." -ForegroundColor Cyan
 
@@ -611,7 +695,7 @@ if ($IncludeVendorPublishers -and $ScanPath -and (Test-Path $ScanPath)) {
         }
     }
     $vendorPubs = $vendorPubs | Select-Object -Unique
-    Write-Host "  Found $($vendorPubs.Count) unique vendor publishers" -ForegroundColor Gray
+    Write-Host "  Found $($vendorPubs.Count) unique vendor publishers from scans" -ForegroundColor Gray
 }
 
 # Add manually specified vendors
