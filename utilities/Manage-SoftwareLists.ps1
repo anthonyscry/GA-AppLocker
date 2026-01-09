@@ -930,20 +930,23 @@ function Get-SoftwareListSummary {
 
     $list = Get-SoftwareList -ListPath $ListPath
 
+    # Handle null or empty items array safely
+    $items = @($list.items)
+
     $summary = [PSCustomObject]@{
         Name             = $list.metadata.name
         Description      = $list.metadata.description
         Version          = $list.metadata.version
         Created          = $list.metadata.created
         Modified         = $list.metadata.modified
-        TotalItems       = $list.items.Count
-        ApprovedItems    = ($list.items | Where-Object { $_.approved -eq $true }).Count
-        PendingItems     = ($list.items | Where-Object { $_.approved -ne $true }).Count
-        PublisherRules   = ($list.items | Where-Object { $_.ruleType -eq "Publisher" }).Count
-        HashRules        = ($list.items | Where-Object { $_.ruleType -eq "Hash" }).Count
-        PathRules        = ($list.items | Where-Object { $_.ruleType -eq "Path" }).Count
-        Categories       = ($list.items | Select-Object -ExpandProperty category -Unique)
-        UniquePublishers = ($list.items | Where-Object { $_.publisher } | Select-Object -ExpandProperty publisher -Unique).Count
+        TotalItems       = $items.Count
+        ApprovedItems    = @($items | Where-Object { $_.approved -eq $true }).Count
+        PendingItems     = @($items | Where-Object { $_.approved -ne $true }).Count
+        PublisherRules   = @($items | Where-Object { $_.ruleType -eq "Publisher" }).Count
+        HashRules        = @($items | Where-Object { $_.ruleType -eq "Hash" }).Count
+        PathRules        = @($items | Where-Object { $_.ruleType -eq "Path" }).Count
+        Categories       = @($items | Where-Object { $_.category } | Select-Object -ExpandProperty category -Unique)
+        UniquePublishers = @($items | Where-Object { $_.publisher } | Select-Object -ExpandProperty publisher -Unique).Count
     }
 
     return $summary
@@ -1130,31 +1133,35 @@ function Import-SoftwareListFromCsv {
 
 
 # =============================================================================
-# Export Module Members
+# Export Module Members (only effective when loaded as .psm1 module)
+# When dot-sourced as .ps1, all functions are automatically available
 # =============================================================================
 
-Export-ModuleMember -Function @(
-    # List Management
-    'New-SoftwareList',
-    'Get-SoftwareList',
-    'Save-SoftwareList',
-    'Add-SoftwareListItem',
-    'Remove-SoftwareListItem',
-    'Update-SoftwareListItem',
+# Check if running as module or dot-sourced script
+if ($MyInvocation.MyCommand.ScriptBlock.Module) {
+    Export-ModuleMember -Function @(
+        # List Management
+        'New-SoftwareList',
+        'Get-SoftwareList',
+        'Save-SoftwareList',
+        'Add-SoftwareListItem',
+        'Remove-SoftwareListItem',
+        'Update-SoftwareListItem',
 
-    # Import Functions
-    'Import-ScanDataToSoftwareList',
-    'Import-ExecutableToSoftwareList',
+        # Import Functions
+        'Import-ScanDataToSoftwareList',
+        'Import-ExecutableToSoftwareList',
 
-    # Rule Generation
-    'Get-SoftwareListRules',
-    'New-PublisherRuleFromListItem',
-    'New-HashRuleFromListItem',
-    'New-PathRuleFromListItem',
+        # Rule Generation
+        'Get-SoftwareListRules',
+        'New-PublisherRuleFromListItem',
+        'New-HashRuleFromListItem',
+        'New-PathRuleFromListItem',
 
-    # Query and Export
-    'Get-SoftwareListSummary',
-    'Find-SoftwareListItem',
-    'Export-SoftwareListToCsv',
-    'Import-SoftwareListFromCsv'
-)
+        # Query and Export
+        'Get-SoftwareListSummary',
+        'Find-SoftwareListItem',
+        'Export-SoftwareListToCsv',
+        'Import-SoftwareListFromCsv'
+    )
+}

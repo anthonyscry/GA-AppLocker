@@ -982,12 +982,23 @@ function Show-SoftwareListMenu {
     Write-Host ""
     Write-Host "  Software List Management:" -ForegroundColor Yellow
     Write-Host ""
+    Write-Host "  --- List Operations ---" -ForegroundColor DarkGray
     Write-Host "    [1] Create     - Create a new software list" -ForegroundColor White
     Write-Host "    [2] View       - View/search existing software lists" -ForegroundColor White
-    Write-Host "    [3] Add        - Add software to a list" -ForegroundColor White
-    Write-Host "    [4] Import     - Import from scan data or executable" -ForegroundColor White
-    Write-Host "    [5] Export     - Export list to CSV" -ForegroundColor White
-    Write-Host "    [6] Generate   - Generate policy from software list" -ForegroundColor White
+    Write-Host ""
+    Write-Host "  --- Add Software ---" -ForegroundColor DarkGray
+    Write-Host "    [3] Add Manual - Add software manually (publisher/hash)" -ForegroundColor White
+    Write-Host "    [4] Add Common - Quick-add from common publishers" -ForegroundColor White
+    Write-Host "    [5] Import     - Import from scan data or executable" -ForegroundColor White
+    Write-Host ""
+    Write-Host "  --- Manage Items ---" -ForegroundColor DarkGray
+    Write-Host "    [6] Toggle     - Approve/unapprove items" -ForegroundColor White
+    Write-Host "    [7] Delete     - Remove items from a list" -ForegroundColor White
+    Write-Host "    [8] Search     - Search across all lists" -ForegroundColor White
+    Write-Host ""
+    Write-Host "  --- Policy ---" -ForegroundColor DarkGray
+    Write-Host "    [9] Export     - Export list to CSV" -ForegroundColor White
+    Write-Host "    [G] Generate   - Generate policy from software list" -ForegroundColor White
     Write-Host ""
     Write-Host "    [B] Back" -ForegroundColor Gray
     Write-Host ""
@@ -1013,10 +1024,36 @@ function Invoke-SoftwareListWorkflow {
         return
     }
 
+    # Load config for common publishers
+    $configPath = Join-Path $PSScriptRoot "utilities\Config.psd1"
+    $config = if (Test-Path $configPath) { Import-PowerShellDataFile $configPath } else { $null }
+
     # Default path for software lists
     $defaultListPath = ".\SoftwareLists"
     if (-not (Test-Path $defaultListPath)) {
         New-Item -ItemType Directory -Path $defaultListPath -Force | Out-Null
+    }
+
+    # Helper function to select a list
+    function Select-SoftwareList {
+        param([string]$Prompt = "Select list")
+        $lists = Get-ChildItem -Path $defaultListPath -Filter "*.json" -ErrorAction SilentlyContinue
+        if ($lists.Count -eq 0) {
+            Write-Host "  No software lists found. Create one first." -ForegroundColor Yellow
+            return $null
+        }
+        Write-Host "  Available lists:" -ForegroundColor Gray
+        $i = 1
+        foreach ($list in $lists) {
+            Write-Host "    [$i] $($list.BaseName)" -ForegroundColor White
+            $i++
+        }
+        $listChoice = Read-Host "  $Prompt"
+        if (-not ($listChoice -match "^\d+$") -or [int]$listChoice -lt 1 -or [int]$listChoice -gt $lists.Count) {
+            Write-Host "  [-] Invalid selection" -ForegroundColor Red
+            return $null
+        }
+        return $lists[[int]$listChoice - 1].FullName
     }
 
     do {
@@ -1058,76 +1095,129 @@ function Invoke-SoftwareListWorkflow {
                     $idx = [int]$viewChoice - 1
                     if ($idx -ge 0 -and $idx -lt $lists.Count) {
                         $selectedList = $lists[$idx].FullName
-                        $items = (Get-SoftwareList -ListPath $selectedList).items
+                        $listData = Get-SoftwareList -ListPath $selectedList
+                        $items = @($listData.items)
                         Write-Host "`n  Items in $($lists[$idx].BaseName):" -ForegroundColor Yellow
-                        foreach ($item in $items | Select-Object -First 20) {
-                            $status = if ($item.approved) { "[+]" } else { "[-]" }
-                            $typeIcon = switch ($item.ruleType) {
-                                "Publisher" { "PUB" }
-                                "Hash" { "HSH" }
-                                "Path" { "PTH" }
-                                default { "???" }
-                            }
-                            Write-Host "    $status [$typeIcon] $($item.name)" -ForegroundColor $(if ($item.approved) { "Green" } else { "Gray" })
-                            if ($item.publisher) {
-                                Write-Host "            Publisher: $($item.publisher)" -ForegroundColor DarkGray
-                            }
+
+                        if ($items.Count -eq 0) {
+                            Write-Host "    (empty list)" -ForegroundColor DarkGray
                         }
-                        if ($items.Count -gt 20) {
-                            Write-Host "    ... and $($items.Count - 20) more items" -ForegroundColor DarkGray
+                        else {
+                            $itemNum = 1
+                            foreach ($item in $items | Select-Object -First 25) {
+                                $status = if ($item.approved) { "[+]" } else { "[-]" }
+                                $typeIcon = switch ($item.ruleType) {
+                                    "Publisher" { "PUB" }
+                                    "Hash" { "HSH" }
+                                    "Path" { "PTH" }
+                                    default { "???" }
+                                }
+                                Write-Host "    $itemNum. $status [$typeIcon] $($item.name)" -ForegroundColor $(if ($item.approved) { "Green" } else { "Gray" })
+                                if ($item.publisher) {
+                                    Write-Host "            Publisher: $($item.publisher)" -ForegroundColor DarkGray
+                                }
+                                $itemNum++
+                            }
+                            if ($items.Count -gt 25) {
+                                Write-Host "    ... and $($items.Count - 25) more items" -ForegroundColor DarkGray
+                            }
                         }
                     }
                 }
             }
             "3" {
-                # Add software to list
-                Write-Host "`n  --- Add Software to List ---" -ForegroundColor Cyan
-                $lists = Get-ChildItem -Path $defaultListPath -Filter "*.json" -ErrorAction SilentlyContinue
-                if ($lists.Count -eq 0) {
-                    Write-Host "  No software lists found. Create one first." -ForegroundColor Yellow
-                    continue
-                }
-
-                Write-Host "  Available lists:" -ForegroundColor Gray
-                $i = 1
-                foreach ($list in $lists) {
-                    Write-Host "    [$i] $($list.BaseName)" -ForegroundColor White
-                    $i++
-                }
-                $listChoice = Read-Host "  Select list number"
-                if (-not ($listChoice -match "^\d+$") -or [int]$listChoice -lt 1 -or [int]$listChoice -gt $lists.Count) {
-                    Write-Host "  [-] Invalid selection" -ForegroundColor Red
-                    continue
-                }
-                $selectedListPath = $lists[[int]$listChoice - 1].FullName
+                # Add software manually
+                Write-Host "`n  --- Add Software Manually ---" -ForegroundColor Cyan
+                $selectedListPath = Select-SoftwareList -Prompt "Select list to add to"
+                if (-not $selectedListPath) { continue }
 
                 Write-Host ""
                 Write-Host "  Rule type:" -ForegroundColor Gray
-                Write-Host "    [1] Publisher (signature-based)" -ForegroundColor White
-                Write-Host "    [2] Hash (file hash-based)" -ForegroundColor White
+                Write-Host "    [1] Publisher (signature-based) - Best for signed software" -ForegroundColor White
+                Write-Host "    [2] Hash (file hash-based) - For unsigned or specific versions" -ForegroundColor White
                 $ruleTypeChoice = Read-Host "  Select rule type"
 
                 $name = Read-Host "  Software name"
+                if ([string]::IsNullOrWhiteSpace($name)) {
+                    Write-Host "  [-] Name is required" -ForegroundColor Red
+                    continue
+                }
+
                 $category = Read-Host "  Category (default: Uncategorized)"
                 if ([string]::IsNullOrWhiteSpace($category)) { $category = "Uncategorized" }
 
                 if ($ruleTypeChoice -eq "1") {
                     $publisher = Read-Host "  Publisher name (e.g., ADOBE INC.)"
-                    $product = Read-Host "  Product name (default: *)"
+                    if ([string]::IsNullOrWhiteSpace($publisher)) {
+                        Write-Host "  [-] Publisher is required" -ForegroundColor Red
+                        continue
+                    }
+                    $product = Read-Host "  Product name (default: * for all)"
                     if ([string]::IsNullOrWhiteSpace($product)) { $product = "*" }
+                    $binary = Read-Host "  Binary name (default: * for all)"
+                    if ([string]::IsNullOrWhiteSpace($binary)) { $binary = "*" }
 
                     Add-SoftwareListItem -ListPath $selectedListPath -Name $name -Publisher $publisher `
-                        -ProductName $product -Category $category -RuleType "Publisher" -Approved $true
+                        -ProductName $product -BinaryName $binary -Category $category -RuleType "Publisher" -Approved $true
                 }
                 else {
-                    $hash = Read-Host "  SHA256 hash"
+                    $hash = Read-Host "  SHA256 hash (64 characters)"
+                    if ([string]::IsNullOrWhiteSpace($hash) -or $hash.Length -ne 64) {
+                        Write-Host "  [-] Valid SHA256 hash required (64 hex characters)" -ForegroundColor Red
+                        continue
+                    }
                     $fileName = Read-Host "  Original filename"
+                    $fileSize = Read-Host "  File size in bytes (or Enter to skip)"
+                    $fileSizeInt = if ($fileSize -match "^\d+$") { [int64]$fileSize } else { 0 }
 
                     Add-SoftwareListItem -ListPath $selectedListPath -Name $name -Hash $hash `
-                        -HashSourceFile $fileName -Category $category -RuleType "Hash" -Approved $true
+                        -HashSourceFile $fileName -HashSourceSize $fileSizeInt -Category $category -RuleType "Hash" -Approved $true
                 }
             }
             "4" {
+                # Quick-add from common publishers
+                Write-Host "`n  --- Add Common Publisher ---" -ForegroundColor Cyan
+
+                if (-not $config -or -not $config.CommonPublishers) {
+                    Write-Host "  [-] Common publishers not configured in Config.psd1" -ForegroundColor Red
+                    continue
+                }
+
+                $selectedListPath = Select-SoftwareList -Prompt "Select list to add to"
+                if (-not $selectedListPath) { continue }
+
+                Write-Host ""
+                Write-Host "  Common Publishers:" -ForegroundColor Gray
+                $pubs = $config.CommonPublishers
+                $i = 1
+                foreach ($pub in $pubs) {
+                    Write-Host "    [$i] $($pub.Name) - $($pub.Publisher)" -ForegroundColor White
+                    $i++
+                }
+                Write-Host ""
+                Write-Host "  Enter numbers separated by commas (e.g., 1,3,5) or 'all'" -ForegroundColor DarkGray
+                $pubChoice = Read-Host "  Select publishers"
+
+                $selectedPubs = @()
+                if ($pubChoice -eq "all") {
+                    $selectedPubs = $pubs
+                }
+                else {
+                    $indices = $pubChoice -split "," | ForEach-Object { $_.Trim() }
+                    foreach ($idx in $indices) {
+                        if ($idx -match "^\d+$" -and [int]$idx -ge 1 -and [int]$idx -le $pubs.Count) {
+                            $selectedPubs += $pubs[[int]$idx - 1]
+                        }
+                    }
+                }
+
+                foreach ($pub in $selectedPubs) {
+                    Add-SoftwareListItem -ListPath $selectedListPath -Name $pub.Name -Publisher $pub.Publisher `
+                        -ProductName "*" -Category $pub.Category -RuleType "Publisher" -Approved $true -ErrorAction SilentlyContinue
+                }
+                Write-Host "  [+] Added $($selectedPubs.Count) publishers" -ForegroundColor Green
+            }
+            "5" {
                 # Import from scan data or executable
                 Write-Host "`n  --- Import Software ---" -ForegroundColor Cyan
                 Write-Host "    [1] Import from scan data" -ForegroundColor White
@@ -1160,7 +1250,9 @@ function Invoke-SoftwareListWorkflow {
                 }
 
                 if ($importChoice -eq "1") {
-                    $scanPath = Read-Host "  Enter scan data path"
+                    $scanPath = Read-Host "  Enter scan data path (default: .\Scans)"
+                    if ([string]::IsNullOrWhiteSpace($scanPath)) { $scanPath = ".\Scans" }
+
                     if (Test-Path $scanPath) {
                         Write-Host "  Import options:" -ForegroundColor Gray
                         Write-Host "    [1] Signed software only (publisher rules)" -ForegroundColor White
@@ -1203,31 +1295,151 @@ function Invoke-SoftwareListWorkflow {
                     }
                 }
             }
-            "5" {
-                # Export to CSV
-                Write-Host "`n  --- Export to CSV ---" -ForegroundColor Cyan
-                $lists = Get-ChildItem -Path $defaultListPath -Filter "*.json" -ErrorAction SilentlyContinue
-                if ($lists.Count -eq 0) {
-                    Write-Host "  No software lists found." -ForegroundColor Yellow
+            "6" {
+                # Toggle approve/unapprove
+                Write-Host "`n  --- Toggle Item Approval ---" -ForegroundColor Cyan
+                $selectedListPath = Select-SoftwareList -Prompt "Select list"
+                if (-not $selectedListPath) { continue }
+
+                $listData = Get-SoftwareList -ListPath $selectedListPath
+                $items = @($listData.items)
+                if ($items.Count -eq 0) {
+                    Write-Host "  List is empty" -ForegroundColor Yellow
                     continue
                 }
 
-                Write-Host "  Select list to export:" -ForegroundColor Gray
+                Write-Host ""
                 $i = 1
-                foreach ($list in $lists) {
-                    Write-Host "    [$i] $($list.BaseName)" -ForegroundColor White
+                foreach ($item in $items | Select-Object -First 30) {
+                    $status = if ($item.approved) { "[+]" } else { "[-]" }
+                    Write-Host "    $i. $status $($item.name)" -ForegroundColor $(if ($item.approved) { "Green" } else { "Gray" })
                     $i++
                 }
-                $listChoice = Read-Host "  Select list"
-                if (-not ($listChoice -match "^\d+$") -or [int]$listChoice -lt 1 -or [int]$listChoice -gt $lists.Count) {
+                if ($items.Count -gt 30) {
+                    Write-Host "    ... and $($items.Count - 30) more items" -ForegroundColor DarkGray
+                }
+
+                Write-Host ""
+                Write-Host "  Enter item numbers to toggle (e.g., 1,3,5) or 'all'" -ForegroundColor DarkGray
+                $toggleChoice = Read-Host "  Select items"
+
+                $toToggle = @()
+                if ($toggleChoice -eq "all") {
+                    $toToggle = $items
+                }
+                else {
+                    $indices = $toggleChoice -split "," | ForEach-Object { $_.Trim() }
+                    foreach ($idx in $indices) {
+                        if ($idx -match "^\d+$" -and [int]$idx -ge 1 -and [int]$idx -le $items.Count) {
+                            $toToggle += $items[[int]$idx - 1]
+                        }
+                    }
+                }
+
+                foreach ($item in $toToggle) {
+                    $newStatus = -not $item.approved
+                    Update-SoftwareListItem -ListPath $selectedListPath -Id $item.id -Properties @{ approved = $newStatus } | Out-Null
+                }
+                Write-Host "  [+] Toggled $($toToggle.Count) items" -ForegroundColor Green
+            }
+            "7" {
+                # Delete items
+                Write-Host "`n  --- Delete Items ---" -ForegroundColor Cyan
+                $selectedListPath = Select-SoftwareList -Prompt "Select list"
+                if (-not $selectedListPath) { continue }
+
+                $listData = Get-SoftwareList -ListPath $selectedListPath
+                $items = @($listData.items)
+                if ($items.Count -eq 0) {
+                    Write-Host "  List is empty" -ForegroundColor Yellow
                     continue
                 }
 
-                $selectedList = $lists[[int]$listChoice - 1]
-                $csvPath = Join-Path $defaultListPath "$($selectedList.BaseName).csv"
-                Export-SoftwareListToCsv -ListPath $selectedList.FullName -OutputPath $csvPath
+                Write-Host ""
+                $i = 1
+                foreach ($item in $items | Select-Object -First 30) {
+                    Write-Host "    $i. $($item.name) [$($item.ruleType)]" -ForegroundColor White
+                    $i++
+                }
+                if ($items.Count -gt 30) {
+                    Write-Host "    ... and $($items.Count - 30) more items" -ForegroundColor DarkGray
+                }
+
+                Write-Host ""
+                Write-Host "  Enter item numbers to delete (e.g., 1,3,5)" -ForegroundColor DarkGray
+                $deleteChoice = Read-Host "  Select items"
+
+                $toDelete = @()
+                $indices = $deleteChoice -split "," | ForEach-Object { $_.Trim() }
+                foreach ($idx in $indices) {
+                    if ($idx -match "^\d+$" -and [int]$idx -ge 1 -and [int]$idx -le $items.Count) {
+                        $toDelete += $items[[int]$idx - 1]
+                    }
+                }
+
+                if ($toDelete.Count -gt 0) {
+                    $confirm = Read-Host "  Delete $($toDelete.Count) items? (y/N)"
+                    if ($confirm -eq "y" -or $confirm -eq "Y") {
+                        foreach ($item in $toDelete) {
+                            Remove-SoftwareListItem -ListPath $selectedListPath -Id $item.id
+                        }
+                    }
+                }
             }
-            "6" {
+            "8" {
+                # Search across all lists
+                Write-Host "`n  --- Search Software Lists ---" -ForegroundColor Cyan
+                $searchTerm = Read-Host "  Enter search term (name or publisher, wildcards supported)"
+                if ([string]::IsNullOrWhiteSpace($searchTerm)) { continue }
+
+                $lists = Get-ChildItem -Path $defaultListPath -Filter "*.json" -ErrorAction SilentlyContinue
+                $allResults = @()
+
+                foreach ($list in $lists) {
+                    $items = Find-SoftwareListItem -ListPath $list.FullName -Name "*$searchTerm*"
+                    $items += Find-SoftwareListItem -ListPath $list.FullName -Publisher "*$searchTerm*"
+                    foreach ($item in $items) {
+                        $allResults += [PSCustomObject]@{
+                            List      = $list.BaseName
+                            Name      = $item.name
+                            Publisher = $item.publisher
+                            Type      = $item.ruleType
+                            Approved  = $item.approved
+                        }
+                    }
+                }
+
+                $allResults = $allResults | Select-Object -Unique List, Name, Publisher, Type, Approved
+
+                if ($allResults.Count -eq 0) {
+                    Write-Host "  No results found for '$searchTerm'" -ForegroundColor Yellow
+                }
+                else {
+                    Write-Host ""
+                    Write-Host "  Found $($allResults.Count) results:" -ForegroundColor Green
+                    foreach ($result in $allResults | Select-Object -First 20) {
+                        $status = if ($result.Approved) { "[+]" } else { "[-]" }
+                        Write-Host "    $status [$($result.List)] $($result.Name)" -ForegroundColor White
+                        if ($result.Publisher) {
+                            Write-Host "        Publisher: $($result.Publisher)" -ForegroundColor DarkGray
+                        }
+                    }
+                    if ($allResults.Count -gt 20) {
+                        Write-Host "    ... and $($allResults.Count - 20) more results" -ForegroundColor DarkGray
+                    }
+                }
+            }
+            "9" {
+                # Export to CSV
+                Write-Host "`n  --- Export to CSV ---" -ForegroundColor Cyan
+                $selectedListPath = Select-SoftwareList -Prompt "Select list to export"
+                if (-not $selectedListPath) { continue }
+
+                $listName = [System.IO.Path]::GetFileNameWithoutExtension($selectedListPath)
+                $csvPath = Join-Path $defaultListPath "$listName.csv"
+                Export-SoftwareListToCsv -ListPath $selectedListPath -OutputPath $csvPath
+            }
+            { $_ -in @("G", "g") } {
                 # Generate policy from software list
                 Write-Host "`n  --- Generate Policy from Software List ---" -ForegroundColor Cyan
                 $lists = Get-ChildItem -Path $defaultListPath -Filter "*.json" -ErrorAction SilentlyContinue
@@ -1250,10 +1462,30 @@ function Invoke-SoftwareListWorkflow {
                 $selectedList = $lists[[int]$listChoice - 1].FullName
 
                 Write-Host ""
-                Write-Host "  Generating simplified policy from software list..." -ForegroundColor Cyan
+                Write-Host "  Also combine with scan data? (y/N)" -ForegroundColor Gray
+                $combineScan = Read-Host "  Choice"
+                $scanPath = $null
+                if ($combineScan -eq "y" -or $combineScan -eq "Y") {
+                    $scanPath = Read-Host "  Enter scan data path (default: .\Scans)"
+                    if ([string]::IsNullOrWhiteSpace($scanPath)) { $scanPath = ".\Scans" }
+                    if (-not (Test-Path $scanPath)) {
+                        Write-Host "  [-] Scan path not found, continuing without scan data" -ForegroundColor Yellow
+                        $scanPath = $null
+                    }
+                }
+
+                Write-Host ""
+                Write-Host "  Generating policy..." -ForegroundColor Cyan
 
                 $policyScript = Join-Path $PSScriptRoot "New-AppLockerPolicyFromGuide.ps1"
-                & $policyScript -Simplified -SoftwareListPath $selectedList
+                $policyParams = @{
+                    Simplified       = $true
+                    SoftwareListPath = $selectedList
+                }
+                if ($scanPath) {
+                    $policyParams.ScanPath = $scanPath
+                }
+                & $policyScript @policyParams
 
                 Write-Host ""
                 Write-Host "  [+] Policy generation complete!" -ForegroundColor Green
@@ -1261,7 +1493,7 @@ function Invoke-SoftwareListWorkflow {
             "B" { }
             "b" { }
             default {
-                if ($slChoice -ne "B" -and $slChoice -ne "b") {
+                if ($slChoice -notin @("B", "b")) {
                     Write-Host "  [-] Invalid choice" -ForegroundColor Red
                 }
             }
@@ -1272,7 +1504,7 @@ function Invoke-SoftwareListWorkflow {
             Read-Host "  Press Enter to continue"
         }
 
-    } while ($slChoice -ne "B" -and $slChoice -ne "b")
+    } while ($slChoice -notin @("B", "b"))
 }
 
 #endregion
