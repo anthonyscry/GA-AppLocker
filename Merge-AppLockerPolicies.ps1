@@ -56,6 +56,16 @@
     Default: *.xml
     Only files containing valid <AppLockerPolicy> XML are processed.
 
+.PARAMETER TargetGroup
+    AD group name to replace "Everyone" (S-1-1-0) in all rules.
+    Use this to scope merged policies to specific groups like "AppLocker-Workstations".
+    The group name will be resolved to its SID automatically.
+
+.PARAMETER TargetSid
+    SID to replace "Everyone" (S-1-1-0) in all rules.
+    Use this if you already know the SID or the group cannot be resolved.
+    Alternative to -TargetGroup parameter.
+
 .EXAMPLE
     # Merge all policies from scan results
     .\Merge-AppLockerPolicies.ps1 -InputPath \\server\share\Scans -OutputPath .\MergedPolicy.xml
@@ -67,6 +77,10 @@
 .EXAMPLE
     # Keep duplicates for analysis
     .\Merge-AppLockerPolicies.ps1 -InputPath .\Policies -RemoveDuplicates:$false -OutputPath .\AllRules.xml
+
+.EXAMPLE
+    # Merge and replace "Everyone" with an AD group for easier management
+    .\Merge-AppLockerPolicies.ps1 -InputPath .\Policies -TargetGroup "DOMAIN\AppLocker-Workstations"
 
 .NOTES
     Requires: PowerShell 5.1+
@@ -114,7 +128,13 @@ param(
     [string]$EnforcementMode,
 
     [Parameter(ParameterSetName='Standard')]
-    [string]$IncludePattern = "*.xml"
+    [string]$IncludePattern = "*.xml",
+
+    [Parameter(ParameterSetName='Standard')]
+    [string]$TargetGroup,
+
+    [Parameter(ParameterSetName='Standard')]
+    [string]$TargetSid
 )
 
 #Requires -Version 5.1
@@ -131,9 +151,29 @@ if (!(Test-Path -Path $InputPath)) {
     throw "Input path not found: $InputPath"
 }
 
+# Resolve target group to SID if specified
+$replacementSid = $null
+if ($TargetGroup) {
+    try {
+        $ntAccount = New-Object System.Security.Principal.NTAccount($TargetGroup)
+        $replacementSid = $ntAccount.Translate([System.Security.Principal.SecurityIdentifier]).Value
+        Write-Host "Target group '$TargetGroup' resolved to SID: $replacementSid" -ForegroundColor Green
+    }
+    catch {
+        throw "Failed to resolve group '$TargetGroup' to SID: $_"
+    }
+}
+elseif ($TargetSid) {
+    $replacementSid = $TargetSid
+    Write-Host "Using target SID: $replacementSid" -ForegroundColor Green
+}
+
 Write-Host "=== AppLocker Policy Merger ===" -ForegroundColor Cyan
 Write-Host "Input: $InputPath" -ForegroundColor Cyan
 Write-Host "Output: $OutputPath" -ForegroundColor Cyan
+if ($replacementSid) {
+    Write-Host "Replacing 'Everyone' (S-1-1-0) with: $replacementSid" -ForegroundColor Cyan
+}
 
 # Find all policy files
 $policyFiles = Get-ChildItem -Path $InputPath -Filter $IncludePattern -Recurse -File |
@@ -190,11 +230,18 @@ foreach ($policyFile in $policyFiles) {
                     $stats.DuplicatesRemoved++
                 }
                 else {
+                    $ruleXml = $rule.OuterXml
+                    $userSid = $rule.UserOrGroupSid
+                    # Replace Everyone SID with target group if specified
+                    if ($replacementSid -and $userSid -eq "S-1-1-0") {
+                        $ruleXml = $ruleXml -replace 'UserOrGroupSid="S-1-1-0"', "UserOrGroupSid=`"$replacementSid`""
+                        $userSid = $replacementSid
+                    }
                     $publisherRules[$key] = @{
                         Type = $collectionType
-                        Rule = $rule.OuterXml
+                        Rule = $ruleXml
                         Action = $rule.Action
-                        User = $rule.UserOrGroupSid
+                        User = $userSid
                     }
                     $stats.PublisherRules++
                 }
@@ -212,11 +259,18 @@ foreach ($policyFile in $policyFiles) {
                     $stats.DuplicatesRemoved++
                 }
                 else {
+                    $ruleXml = $rule.OuterXml
+                    $userSid = $rule.UserOrGroupSid
+                    # Replace Everyone SID with target group if specified
+                    if ($replacementSid -and $userSid -eq "S-1-1-0") {
+                        $ruleXml = $ruleXml -replace 'UserOrGroupSid="S-1-1-0"', "UserOrGroupSid=`"$replacementSid`""
+                        $userSid = $replacementSid
+                    }
                     $pathRules[$key] = @{
                         Type = $collectionType
-                        Rule = $rule.OuterXml
+                        Rule = $ruleXml
                         Action = $rule.Action
-                        User = $rule.UserOrGroupSid
+                        User = $userSid
                     }
                     $stats.PathRules++
                 }
@@ -234,11 +288,18 @@ foreach ($policyFile in $policyFiles) {
                     $stats.DuplicatesRemoved++
                 }
                 else {
+                    $ruleXml = $rule.OuterXml
+                    $userSid = $rule.UserOrGroupSid
+                    # Replace Everyone SID with target group if specified
+                    if ($replacementSid -and $userSid -eq "S-1-1-0") {
+                        $ruleXml = $ruleXml -replace 'UserOrGroupSid="S-1-1-0"', "UserOrGroupSid=`"$replacementSid`""
+                        $userSid = $replacementSid
+                    }
                     $hashRules[$key] = @{
                         Type = $collectionType
-                        Rule = $rule.OuterXml
+                        Rule = $ruleXml
                         Action = $rule.Action
-                        User = $rule.UserOrGroupSid
+                        User = $userSid
                     }
                     $stats.HashRules++
                 }
@@ -366,9 +427,10 @@ foreach ($rule in $appxPublisherRules) { $mergedXml += "`n    " + $rule.Value.Ru
 foreach ($rule in $appxPathRules) { $mergedXml += "`n    " + $rule.Value.Rule }
 
 if (($appxPublisherRules.Count + $appxPathRules.Count) -eq 0) {
+    $appxSid = if ($replacementSid) { $replacementSid } else { "S-1-1-0" }
     $mergedXml += @"
 
-    <FilePublisherRule Id="$(New-Guid)" Name="Allow Microsoft Appx" Description="Default rule" UserOrGroupSid="S-1-1-0" Action="Allow">
+    <FilePublisherRule Id="$(New-Guid)" Name="Allow Microsoft Appx" Description="Default rule" UserOrGroupSid="$appxSid" Action="Allow">
       <Conditions>
         <FilePublisherCondition PublisherName="O=MICROSOFT CORPORATION, L=REDMOND, S=WASHINGTON, C=US" ProductName="*" BinaryName="*">
           <BinaryVersionRange LowSection="*" HighSection="*"/>
