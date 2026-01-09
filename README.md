@@ -1,5 +1,7 @@
 # GA-AppLocker
 
+**Author:** Tony Tran, ISSO, GA-ASI
+
 Simplified AppLocker deployment toolkit for Windows 11/Server 2019+. No external dependencies required.
 
 ---
@@ -96,21 +98,98 @@ The interactive menu provides guided access to all features:
 
 ```powershell
 .\Start-AppLockerWorkflow.ps1
+```
 
-# Main Menu:
-[1] Scan       - Collect data from remote computers
-[2] Generate   - Create AppLocker policy (Simplified or Build Guide)
-[3] Merge      - Combine multiple policy files
-[4] Validate   - Check policy XML for issues
-[5] Full       - Complete workflow (Scan → Generate)
-[6] Compare    - Compare software inventories
-[S] Software   - Manage software lists for rule generation
-[7] AD Setup   - Create AppLocker OUs and groups
-[8] AD Export  - Export user group memberships
-[9] AD Import  - Apply group membership changes
-[W] WinRM      - Deploy/Remove WinRM GPO
-[D] Diagnostic - Troubleshoot remote scanning
-[Q] Quit
+```
+  GA-AppLocker - AppLocker Policy Generation Toolkit
+  -------------------------------------------------
+  Author: Tony Tran, ISSO, GA-ASI
+
+  Select an option:
+
+  === Core Workflow ===
+    [1] Scan       - Collect data from remote computers
+    [2] Generate   - Create AppLocker policy from scan data
+    [3] Merge      - Combine multiple policy files
+    [4] Validate   - Check a policy file for issues
+    [5] Full       - Complete workflow (Scan + Generate)
+
+  === Analysis ===
+    [6] Compare    - Compare software inventories
+
+  === Software Lists ===
+    [S] Software   - Manage software lists for rule generation
+
+  === AD Management ===
+    [7] AD Setup   - Create AppLocker OUs and groups
+    [8] AD Export  - Export user group memberships
+    [9] AD Import  - Apply group membership changes
+
+  === Infrastructure ===
+    [W] WinRM      - Deploy/Remove WinRM GPO
+    [D] Diagnostic - Troubleshoot remote scanning
+
+    [Q] Quit
+```
+
+---
+
+## Menu Features
+
+### Interactive Folder Browser
+
+Many workflows now feature an **interactive folder browser** that eliminates the need to manually type paths:
+
+- **Compare [6]**: Browse scan folders to select baseline and comparison files
+- **Generate [2]**: Browse and select scan data folders
+- **Software Import [S → 4]**: Browse scan folders when importing to software lists
+
+The browser shows:
+- Numbered folder/file selection
+- Last modified dates
+- `[M]` Manual path entry option
+- `[B]` Back navigation
+- `[C]` Cancel operation
+
+Example flow for Compare:
+```
+Step 1: Select scan date folder → [1] Scan-20260109-143000
+Step 2: Select computer (baseline) → [1] WORKSTATION01
+Step 3: Select CSV file → [1] Executables.csv
+Step 4: Select comparison computer → [2] WORKSTATION02
+Step 5: Select CSV file → [1] Executables.csv
+```
+
+### Software List Management [S]
+
+```
+  === Software List Management ===
+    [1] Create     - Create a new software list
+    [2] View       - View/search existing software lists
+    [3] Add        - Add software to a list
+    [4] Import     - Import from scan data or executable
+    [5] Export     - Export list to CSV
+    [6] Generate   - Generate policy from software list
+    [B] Back
+```
+
+### WinRM Management [W]
+
+```
+  === WinRM GPO Options ===
+    [1] Deploy  - Create WinRM GPO
+    [2] Remove  - Remove WinRM GPO
+    [B] Back
+```
+
+### Diagnostic Tools [D]
+
+```
+  === Diagnostic Types ===
+    [1] Connectivity - Test ping, WinRM, sessions
+    [2] JobSession   - Test PowerShell job execution
+    [3] JobFull      - Full job test with tracing
+    [4] SimpleScan   - Scan without parallel jobs
 ```
 
 ---
@@ -162,22 +241,27 @@ For testing, labs, or standalone machines:
 Set-AppLockerPolicy -XmlPolicy .\Outputs\AppLockerPolicy-Simplified.xml
 ```
 
-### Software List Management
+### Software Inventory Comparison
 
-Create curated software lists for targeted rule generation:
+Compare software between machines to identify drift or unique applications:
 
 ```powershell
-# Via interactive menu
+# Interactive mode with folder browser
 .\Start-AppLockerWorkflow.ps1
-# Select [S] Software
+# Select [6] Compare → [1] Browse scan folders
 
-# Features:
-- Import from scan data or executables
-- Filter by signed/unsigned
-- Auto-approve or manual review
-- Generate policies from approved lists
-- Export to CSV for documentation
+# Direct mode
+.\utilities\Compare-SoftwareInventory.ps1 `
+    -ReferencePath .\Scans\Scan-20260109\BASELINE\Executables.csv `
+    -ComparePath .\Scans\Scan-20260109\TARGET\Executables.csv `
+    -CompareBy Name
 ```
+
+Comparison methods:
+- **Name**: Match by software name only
+- **NameVersion**: Match by name AND version
+- **Hash**: Exact file match by SHA256
+- **Publisher**: Match by publisher/signer
 
 ---
 
@@ -197,6 +281,28 @@ GA-AppLocker/
     ├── Manage-ADResources.ps1          # AD group/OU management
     ├── Compare-SoftwareInventory.ps1   # Software inventory comparison
     └── Test-AppLockerDiagnostic.ps1    # Connectivity diagnostics
+```
+
+---
+
+## Scan Output Structure
+
+```
+Scans/
+├── Scan-20260109-143000/           # Timestamped scan folder
+│   ├── ScanResults.csv             # Summary log
+│   ├── WORKSTATION01/              # Per-computer data
+│   │   ├── AppLockerPolicy.xml     # Current policy (if any)
+│   │   ├── InstalledSoftware.csv
+│   │   ├── Executables.csv         # With signature info
+│   │   ├── Publishers.csv          # Unique publishers found
+│   │   ├── WritableDirectories.csv
+│   │   ├── RunningProcesses.csv
+│   │   └── SystemInfo.csv
+│   └── WORKSTATION02/
+│       └── ...
+└── Scan-20260110-091500/
+    └── ...
 ```
 
 ---
