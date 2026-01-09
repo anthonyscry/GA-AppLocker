@@ -168,6 +168,7 @@ function Show-Menu {
 
 function Show-GenerateMenu {
     Write-Host ""
+    Write-Host "  Main > Generate" -ForegroundColor DarkGray
     Write-Host "  Policy Generation Mode:" -ForegroundColor Yellow
     Write-Host ""
     Write-Host "    [1] Simplified  - Quick policy from scan data" -ForegroundColor White
@@ -196,32 +197,22 @@ function Invoke-ScanWorkflow {
 
     Write-Host "`n=== Remote Scan Workflow ===" -ForegroundColor Cyan
 
-    # Get computer list - validate input with default
+    # Get computer list using helper function
     if ([string]::IsNullOrWhiteSpace($ComputerListPath)) {
-        $ComputerListPath = Read-Host "  Enter path to computer list file (default: .\computers.txt)"
-        if ([string]::IsNullOrWhiteSpace($ComputerListPath)) {
-            $ComputerListPath = ".\computers.txt"
-        }
+        $ComputerListPath = Get-ValidatedPath -Prompt "  Enter path to computer list file" `
+            -DefaultValue ".\computers.txt" `
+            -MustExist -MustBeFile
+        if (-not $ComputerListPath) { return $null }
     }
-
-    if (-not (Test-Path $ComputerListPath)) {
-        Write-Host "  [-] Computer list not found: $ComputerListPath" -ForegroundColor Red
-        return $null
-    }
-
-    # Ensure it's a file, not a directory
-    if ((Get-Item $ComputerListPath).PSIsContainer) {
-        Write-Host "  [-] Path is a directory, not a file: $ComputerListPath" -ForegroundColor Red
-        Write-Host "      Please provide a text file containing computer names (one per line)" -ForegroundColor Yellow
+    elseif (-not (Test-Path $ComputerListPath -PathType Leaf)) {
+        Write-Host "  [-] Computer list not found or is not a file: $ComputerListPath" -ForegroundColor Red
         return $null
     }
 
     # Get output path - validate and set default
     if ([string]::IsNullOrWhiteSpace($OutputPath)) {
-        $OutputPath = Read-Host "  Enter output path (default: .\Scans)"
-        if ([string]::IsNullOrWhiteSpace($OutputPath)) {
-            $OutputPath = ".\Scans"
-        }
+        $OutputPath = Get-ValidatedPath -Prompt "  Enter output path" -DefaultValue ".\Scans"
+        if (-not $OutputPath) { return $null }
     }
 
     # Get credentials if not provided
@@ -241,8 +232,9 @@ function Invoke-ScanWorkflow {
     if (Test-Path $scanScript) {
         Write-Host "`n  Starting remote scan..." -ForegroundColor Cyan
 
-        # Build parameter hashtable with only valid, non-null values
-        $scanParams = @{
+        # Build parameter hashtable using helper
+        $scanParams = @{}
+        Add-NonEmptyParameters -Hashtable $scanParams -Parameters @{
             ComputerListPath = $ComputerListPath
             SharePath        = $OutputPath
             Credential       = $Credential
@@ -393,28 +385,20 @@ function Invoke-MergeWorkflow {
 
     Write-Host "`n=== Policy Merge Workflow ===" -ForegroundColor Cyan
 
-    # Get input path - validate
+    # Get input path using helper
     if ([string]::IsNullOrWhiteSpace($InputPath)) {
-        $InputPath = Read-Host "  Enter path to folder containing policy files"
+        $InputPath = Get-ValidatedPath -Prompt "  Enter path to folder containing policy files" -MustExist
+        if (-not $InputPath) { return $null }
     }
-
-    if ([string]::IsNullOrWhiteSpace($InputPath)) {
-        Write-Host "  [-] Input path is required" -ForegroundColor Red
-        return $null
-    }
-
-    if (-not (Test-Path $InputPath)) {
+    elseif (-not (Test-Path $InputPath)) {
         Write-Host "  [-] Input path not found: $InputPath" -ForegroundColor Red
         return $null
     }
 
-    # Get output path - validate and set default
+    # Get output path with default
     if ([string]::IsNullOrWhiteSpace($OutputPath)) {
-        $defaultOutput = ".\MergedPolicy.xml"
-        $OutputPath = Read-Host "  Enter output file path (default: $defaultOutput)"
-        if ([string]::IsNullOrWhiteSpace($OutputPath)) {
-            $OutputPath = $defaultOutput
-        }
+        $OutputPath = Get-ValidatedPath -Prompt "  Enter output file path" -DefaultValue ".\MergedPolicy.xml"
+        if (-not $OutputPath) { return $null }
     }
 
     # Run merge
@@ -422,11 +406,10 @@ function Invoke-MergeWorkflow {
     if (Test-Path $mergeScript) {
         Write-Host "`n  Merging policies..." -ForegroundColor Cyan
 
-        $mergeParams = @{
-            InputPath = $InputPath
-        }
-        if (-not [string]::IsNullOrWhiteSpace($OutputPath)) {
-            $mergeParams.OutputPath = $OutputPath
+        $mergeParams = @{}
+        Add-NonEmptyParameters -Hashtable $mergeParams -Parameters @{
+            InputPath  = $InputPath
+            OutputPath = $OutputPath
         }
 
         try {
@@ -453,20 +436,15 @@ function Invoke-ValidateWorkflow {
     Write-Host "  Validates an AppLocker policy XML file for correctness." -ForegroundColor Gray
     Write-Host ""
 
-    # Get policy path - validate
+    # Get policy path using helper
     if ([string]::IsNullOrWhiteSpace($PolicyPath)) {
-        Write-Host "  Example: .\Outputs\AppLockerPolicy-Workstation-Phase1-AuditOnly-20260108.xml" -ForegroundColor DarkGray
-        $PolicyPath = Read-Host "  Enter path to policy XML file"
+        $PolicyPath = Get-ValidatedPath -Prompt "  Enter path to policy XML file" `
+            -Example ".\Outputs\AppLockerPolicy-Workstation-Phase1-AuditOnly-20260108.xml" `
+            -MustExist -MustBeFile
+        if (-not $PolicyPath) { return $null }
     }
-
-    if ([string]::IsNullOrWhiteSpace($PolicyPath)) {
-        Write-Host "  [-] Policy path is required" -ForegroundColor Red
-        return $null
-    }
-
-    if (-not (Test-Path $PolicyPath -PathType Leaf)) {
+    elseif (-not (Test-Path $PolicyPath -PathType Leaf)) {
         Write-Host "  [-] Policy XML file not found: $PolicyPath" -ForegroundColor Red
-        Write-Host "      Make sure to specify an XML file, not a directory." -ForegroundColor Yellow
         return $null
     }
 
@@ -669,27 +647,23 @@ function Invoke-CompareWorkflow {
     Write-Host "  Scan folders contain: Executables.csv, Publishers.csv, WritableDirectories.csv" -ForegroundColor Gray
     Write-Host ""
 
-    # Get reference path
+    # Get reference path using helper
     if ([string]::IsNullOrWhiteSpace($RefPath)) {
-        Write-Host "  Example: .\Scans\COMPUTER01\Executables.csv" -ForegroundColor DarkGray
-        $RefPath = Read-Host "  Enter path to reference/baseline CSV file"
+        $RefPath = Get-ValidatedPath -Prompt "  Enter path to reference/baseline CSV file" `
+            -Example ".\Scans\COMPUTER01\Executables.csv" `
+            -MustExist -MustBeFile
+        if (-not $RefPath) { return $null }
     }
-
-    if ([string]::IsNullOrWhiteSpace($RefPath) -or -not (Test-Path $RefPath -PathType Leaf)) {
+    elseif (-not (Test-Path $RefPath -PathType Leaf)) {
         Write-Host "  [-] Reference CSV file not found: $RefPath" -ForegroundColor Red
-        Write-Host "      Make sure to specify a CSV file, not a directory." -ForegroundColor Yellow
         return $null
     }
 
     # Get comparison path
     if ([string]::IsNullOrWhiteSpace($CompPath)) {
-        Write-Host "  Example: .\Scans\COMPUTER02\Executables.csv or .\Scans\*\Executables.csv" -ForegroundColor DarkGray
-        $CompPath = Read-Host "  Enter path to comparison CSV file(s) (supports wildcards)"
-    }
-
-    if ([string]::IsNullOrWhiteSpace($CompPath)) {
-        Write-Host "  [-] Comparison path is required" -ForegroundColor Red
-        return $null
+        $CompPath = Get-ValidatedPath -Prompt "  Enter path to comparison CSV file(s) (supports wildcards)" `
+            -Example ".\Scans\COMPUTER02\Executables.csv or .\Scans\*\Executables.csv"
+        if (-not $CompPath) { return $null }
     }
 
     # Get comparison method
@@ -709,13 +683,12 @@ function Invoke-CompareWorkflow {
     if (Test-Path $compareScript) {
         Write-Host "`n  Comparing inventories..." -ForegroundColor Cyan
 
-        $compareParams = @{
+        $compareParams = @{}
+        Add-NonEmptyParameters -Hashtable $compareParams -Parameters @{
             ReferencePath = $RefPath
             ComparePath   = $CompPath
             CompareBy     = $Method
-        }
-        if (-not [string]::IsNullOrWhiteSpace($OutPath)) {
-            $compareParams.OutputPath = $OutPath
+            OutputPath    = $OutPath
         }
 
         try {
@@ -968,6 +941,7 @@ function Invoke-DiagnosticWorkflow {
 
 function Show-WinRMMenu {
     Write-Host ""
+    Write-Host "  Main > WinRM" -ForegroundColor DarkGray
     Write-Host "  WinRM GPO Options:" -ForegroundColor Yellow
     Write-Host "    [1] Deploy  - Create WinRM GPO" -ForegroundColor White
     Write-Host "    [2] Remove  - Remove WinRM GPO" -ForegroundColor White
@@ -978,8 +952,36 @@ function Show-WinRMMenu {
     return $choice
 }
 
+function Invoke-WinRMMenuWorkflow {
+    <#
+    .SYNOPSIS
+    Interactive workflow for WinRM GPO management.
+    #>
+    do {
+        $winrmChoice = (Show-WinRMMenu).ToUpper()
+
+        switch ($winrmChoice) {
+            "1" { Invoke-WinRMWorkflow }
+            "2" { Invoke-RemoveWinRMWorkflow }
+            "B" { }
+            default {
+                if ($winrmChoice -ne "B") {
+                    Write-Host "  Invalid option" -ForegroundColor Red
+                }
+            }
+        }
+
+        if ($winrmChoice -ne "B") {
+            Write-Host ""
+            Read-Host "  Press Enter to continue"
+        }
+
+    } while ($winrmChoice -ne "B")
+}
+
 function Show-SoftwareListMenu {
     Write-Host ""
+    Write-Host "  Main > Software Lists" -ForegroundColor DarkGray
     Write-Host "  Software List Management:" -ForegroundColor Yellow
     Write-Host ""
     Write-Host "    [1] Create     - Create a new software list" -ForegroundColor White
@@ -1020,7 +1022,7 @@ function Invoke-SoftwareListWorkflow {
     }
 
     do {
-        $slChoice = Show-SoftwareListMenu
+        $slChoice = (Show-SoftwareListMenu).ToUpper()
 
         switch ($slChoice) {
             "1" {
@@ -1259,20 +1261,126 @@ function Invoke-SoftwareListWorkflow {
                 Write-Host "  [+] Policy generation complete!" -ForegroundColor Green
             }
             "B" { }
-            "b" { }
             default {
-                if ($slChoice -ne "B" -and $slChoice -ne "b") {
+                if ($slChoice -ne "B") {
                     Write-Host "  [-] Invalid choice" -ForegroundColor Red
                 }
             }
         }
 
-        if ($slChoice -notin @("B", "b")) {
+        if ($slChoice -ne "B") {
             Write-Host ""
             Read-Host "  Press Enter to continue"
         }
 
-    } while ($slChoice -ne "B" -and $slChoice -ne "b")
+    } while ($slChoice -ne "B")
+}
+
+#endregion
+
+#region Helper Functions
+
+<#
+.SYNOPSIS
+    Builds parameter hashtable for workflow invocation in direct mode.
+#>
+function Get-WorkflowParameters {
+    param(
+        [string]$WorkflowMode,
+        [hashtable]$AllParams
+    )
+
+    $params = @{}
+
+    switch ($WorkflowMode) {
+        "Scan" {
+            Add-NonEmptyParameters -Hashtable $params -Parameters @{
+                ComputerListPath = $AllParams.ComputerList
+                OutputPath       = $AllParams.OutputPath
+                Credential       = $AllParams.Credential
+            }
+        }
+        "Generate" {
+            Add-NonEmptyParameters -Hashtable $params -Parameters @{
+                ScanPath   = $AllParams.ScanPath
+                OutputPath = $AllParams.OutputPath
+                Simplified = $AllParams.Simplified
+            }
+            # Build Guide parameters
+            if (-not $AllParams.Simplified -and $AllParams.TargetType) {
+                Add-NonEmptyParameters -Hashtable $params -Parameters @{
+                    TargetType = $AllParams.TargetType
+                    DomainName = $AllParams.DomainName
+                    Phase      = $AllParams.Phase
+                }
+            }
+        }
+        "Merge" {
+            Add-NonEmptyParameters -Hashtable $params -Parameters @{
+                InputPath  = $AllParams.ScanPath
+                OutputPath = $AllParams.OutputPath
+            }
+        }
+        "Validate" {
+            Add-NonEmptyParameters -Hashtable $params -Parameters @{
+                PolicyPath = $AllParams.PolicyPath
+            }
+        }
+        "Full" {
+            Add-NonEmptyParameters -Hashtable $params -Parameters @{
+                ComputerList = $AllParams.ComputerList
+                OutputPath   = $AllParams.OutputPath
+                Credential   = $AllParams.Credential
+                Simplified   = $AllParams.Simplified
+            }
+            if (-not $AllParams.Simplified -and $AllParams.TargetType) {
+                Add-NonEmptyParameters -Hashtable $params -Parameters @{
+                    TargetType = $AllParams.TargetType
+                    DomainName = $AllParams.DomainName
+                    Phase      = $AllParams.Phase
+                }
+            }
+        }
+        "Compare" {
+            Add-NonEmptyParameters -Hashtable $params -Parameters @{
+                RefPath  = $AllParams.ReferencePath
+                CompPath = $AllParams.ComparePath
+                Method   = $AllParams.CompareBy
+                OutPath  = $AllParams.OutputPath
+            }
+        }
+        "ADSetup" {
+            Add-NonEmptyParameters -Hashtable $params -Parameters @{
+                Domain    = $AllParams.DomainName
+                Parent    = $AllParams.ParentOU
+                Prefix    = $AllParams.GroupPrefix
+                NoConfirm = $AllParams.Force
+            }
+        }
+        "ADExport" {
+            Add-NonEmptyParameters -Hashtable $params -Parameters @{
+                Search   = $AllParams.SearchBase
+                OutPath  = $AllParams.OutputPath
+                Disabled = $AllParams.IncludeDisabled
+            }
+        }
+        "ADImport" {
+            Add-NonEmptyParameters -Hashtable $params -Parameters @{
+                InPath = $AllParams.InputPath
+            }
+        }
+        "Diagnostic" {
+            Add-NonEmptyParameters -Hashtable $params -Parameters @{
+                Type         = $AllParams.DiagnosticType
+                Computer     = $AllParams.ComputerName
+                ComputerList = $AllParams.ComputerList
+                OutPath      = $AllParams.OutputPath
+                Cred         = $AllParams.Credential
+            }
+        }
+    }
+
+    return $params
 }
 
 #endregion
@@ -1284,162 +1392,28 @@ Show-Banner
 
 # Handle direct mode execution
 if ($Mode -ne "Interactive") {
+    # Build parameter hashtable for the specified workflow
+    $workflowParams = Get-WorkflowParameters -WorkflowMode $Mode -AllParams $PSBoundParameters
+
+    # Invoke the appropriate workflow
     switch ($Mode) {
-        "Scan" {
-            $scanParams = @{}
-            if (-not [string]::IsNullOrWhiteSpace($ComputerList)) {
-                $scanParams.ComputerListPath = $ComputerList
-            }
-            if (-not [string]::IsNullOrWhiteSpace($OutputPath)) {
-                $scanParams.OutputPath = $OutputPath
-            }
-            if ($null -ne $Credential) {
-                $scanParams.Credential = $Credential
-            }
-            Invoke-ScanWorkflow @scanParams
-        }
-        "Generate" {
-            $genParams = @{}
-            if (-not [string]::IsNullOrWhiteSpace($ScanPath)) {
-                $genParams.ScanPath = $ScanPath
-            }
-            if (-not [string]::IsNullOrWhiteSpace($OutputPath)) {
-                $genParams.OutputPath = $OutputPath
-            }
-            if ($Simplified.IsPresent) {
-                $genParams.Simplified = $true
-            }
-            elseif (-not [string]::IsNullOrWhiteSpace($TargetType)) {
-                $genParams.TargetType = $TargetType
-                if (-not [string]::IsNullOrWhiteSpace($DomainName)) {
-                    $genParams.DomainName = $DomainName
-                }
-                if ($Phase -ge 1 -and $Phase -le 4) {
-                    $genParams.Phase = $Phase
-                }
-            }
-            Invoke-GenerateWorkflow @genParams
-        }
-        "Merge" {
-            $mergeParams = @{}
-            if (-not [string]::IsNullOrWhiteSpace($ScanPath)) {
-                $mergeParams.InputPath = $ScanPath
-            }
-            if (-not [string]::IsNullOrWhiteSpace($OutputPath)) {
-                $mergeParams.OutputPath = $OutputPath
-            }
-            Invoke-MergeWorkflow @mergeParams
-        }
-        "Validate" {
-            $validateParams = @{}
-            if (-not [string]::IsNullOrWhiteSpace($PolicyPath)) {
-                $validateParams.PolicyPath = $PolicyPath
-            }
-            Invoke-ValidateWorkflow @validateParams
-        }
-        "Full" {
-            $fullParams = @{}
-            if (-not [string]::IsNullOrWhiteSpace($ComputerList)) {
-                $fullParams.ComputerList = $ComputerList
-            }
-            if (-not [string]::IsNullOrWhiteSpace($OutputPath)) {
-                $fullParams.OutputPath = $OutputPath
-            }
-            if ($null -ne $Credential) {
-                $fullParams.Credential = $Credential
-            }
-            if ($Simplified.IsPresent) {
-                $fullParams.Simplified = $true
-            }
-            elseif (-not [string]::IsNullOrWhiteSpace($TargetType)) {
-                $fullParams.TargetType = $TargetType
-                if (-not [string]::IsNullOrWhiteSpace($DomainName)) {
-                    $fullParams.DomainName = $DomainName
-                }
-                if ($Phase -ge 1 -and $Phase -le 4) {
-                    $fullParams.Phase = $Phase
-                }
-            }
-            Invoke-FullWorkflow @fullParams
-        }
-        "Compare" {
-            $compareParams = @{}
-            if (-not [string]::IsNullOrWhiteSpace($ReferencePath)) {
-                $compareParams.RefPath = $ReferencePath
-            }
-            if (-not [string]::IsNullOrWhiteSpace($ComparePath)) {
-                $compareParams.CompPath = $ComparePath
-            }
-            if (-not [string]::IsNullOrWhiteSpace($CompareBy)) {
-                $compareParams.Method = $CompareBy
-            }
-            if (-not [string]::IsNullOrWhiteSpace($OutputPath)) {
-                $compareParams.OutPath = $OutputPath
-            }
-            Invoke-CompareWorkflow @compareParams
-        }
-        "ADSetup" {
-            $adParams = @{}
-            if (-not [string]::IsNullOrWhiteSpace($DomainName)) {
-                $adParams.Domain = $DomainName
-            }
-            if (-not [string]::IsNullOrWhiteSpace($ParentOU)) {
-                $adParams.Parent = $ParentOU
-            }
-            if (-not [string]::IsNullOrWhiteSpace($GroupPrefix)) {
-                $adParams.Prefix = $GroupPrefix
-            }
-            if ($Force) {
-                $adParams.NoConfirm = $true
-            }
-            Invoke-ADSetupWorkflow @adParams
-        }
-        "ADExport" {
-            $adParams = @{}
-            if (-not [string]::IsNullOrWhiteSpace($SearchBase)) {
-                $adParams.Search = $SearchBase
-            }
-            if (-not [string]::IsNullOrWhiteSpace($OutputPath)) {
-                $adParams.OutPath = $OutputPath
-            }
-            if ($IncludeDisabled) {
-                $adParams.Disabled = $true
-            }
-            Invoke-ADExportWorkflow @adParams
-        }
-        "ADImport" {
-            $adParams = @{}
-            if (-not [string]::IsNullOrWhiteSpace($InputPath)) {
-                $adParams.InPath = $InputPath
-            }
-            Invoke-ADImportWorkflow @adParams
-        }
-        "Diagnostic" {
-            $diagParams = @{}
-            if (-not [string]::IsNullOrWhiteSpace($DiagnosticType)) {
-                $diagParams.Type = $DiagnosticType
-            }
-            if (-not [string]::IsNullOrWhiteSpace($ComputerName)) {
-                $diagParams.Computer = $ComputerName
-            }
-            if (-not [string]::IsNullOrWhiteSpace($ComputerList)) {
-                $diagParams.ComputerList = $ComputerList
-            }
-            if (-not [string]::IsNullOrWhiteSpace($OutputPath)) {
-                $diagParams.OutPath = $OutputPath
-            }
-            if ($null -ne $Credential) {
-                $diagParams.Cred = $Credential
-            }
-            Invoke-DiagnosticWorkflow @diagParams
-        }
+        "Scan"       { Invoke-ScanWorkflow @workflowParams }
+        "Generate"   { Invoke-GenerateWorkflow @workflowParams }
+        "Merge"      { Invoke-MergeWorkflow @workflowParams }
+        "Validate"   { Invoke-ValidateWorkflow @workflowParams }
+        "Full"       { Invoke-FullWorkflow @workflowParams }
+        "Compare"    { Invoke-CompareWorkflow @workflowParams }
+        "ADSetup"    { Invoke-ADSetupWorkflow @workflowParams }
+        "ADExport"   { Invoke-ADExportWorkflow @workflowParams }
+        "ADImport"   { Invoke-ADImportWorkflow @workflowParams }
+        "Diagnostic" { Invoke-DiagnosticWorkflow @workflowParams }
     }
     exit
 }
 
 # Interactive mode
 do {
-    $choice = Show-Menu
+    $choice = (Show-Menu).ToUpper()
 
     switch ($choice) {
         "1" { Invoke-ScanWorkflow }
@@ -1451,35 +1425,10 @@ do {
         "7" { Invoke-ADSetupWorkflow }
         "8" { Invoke-ADExportWorkflow }
         "9" { Invoke-ADImportWorkflow }
-        "W" {
-            $winrmChoice = Show-WinRMMenu
-            switch ($winrmChoice) {
-                "1" { Invoke-WinRMWorkflow }
-                "2" { Invoke-RemoveWinRMWorkflow }
-                "B" { }
-                "b" { }
-                default { Write-Host "  Invalid option" -ForegroundColor Red }
-            }
-        }
-        "w" {
-            $winrmChoice = Show-WinRMMenu
-            switch ($winrmChoice) {
-                "1" { Invoke-WinRMWorkflow }
-                "2" { Invoke-RemoveWinRMWorkflow }
-                "B" { }
-                "b" { }
-                default { Write-Host "  Invalid option" -ForegroundColor Red }
-            }
-        }
+        "W" { Invoke-WinRMMenuWorkflow }
         "S" { Invoke-SoftwareListWorkflow }
-        "s" { Invoke-SoftwareListWorkflow }
         "D" { Invoke-DiagnosticWorkflow }
-        "d" { Invoke-DiagnosticWorkflow }
         "Q" {
-            Write-Host "`n  Goodbye!" -ForegroundColor Cyan
-            exit
-        }
-        "q" {
             Write-Host "`n  Goodbye!" -ForegroundColor Cyan
             exit
         }
@@ -1488,7 +1437,7 @@ do {
         }
     }
 
-    if ($choice -in @("1", "2", "3", "4", "5", "6", "7", "8", "9", "W", "w", "S", "s", "D", "d")) {
+    if ($choice -in @("1", "2", "3", "4", "5", "6", "7", "8", "9", "W", "S", "D")) {
         Write-Host ""
         Read-Host "  Press Enter to continue"
         Clear-Host
