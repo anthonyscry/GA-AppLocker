@@ -120,6 +120,12 @@ $Script:CommonPublishers = @{
         Description = "Python Runtime"
         Category    = "Development"
     }
+    "MathWorks" = @{
+        Publisher   = "O=THE MATHWORKS*"
+        ProductName = "*"
+        Description = "MathWorks - MATLAB and Simulink"
+        Category    = "Development"
+    }
     "VSCode" = @{
         Publisher   = "O=MICROSOFT CORPORATION*"
         ProductName = "Microsoft Visual Studio Code"
@@ -162,6 +168,24 @@ $Script:CommonPublishers = @{
         Publisher   = "O=SENTINELONE*"
         ProductName = "*"
         Description = "SentinelOne - EDR"
+        Category    = "Security"
+    }
+    "Trellix" = @{
+        Publisher   = "O=TRELLIX*"
+        ProductName = "*"
+        Description = "Trellix - Enterprise Security (formerly McAfee/FireEye)"
+        Category    = "Security"
+    }
+    "Splunk" = @{
+        Publisher   = "O=SPLUNK*"
+        ProductName = "*"
+        Description = "Splunk - SIEM and Log Analytics"
+        Category    = "Security"
+    }
+    "Forescout" = @{
+        Publisher   = "O=FORESCOUT*"
+        ProductName = "*"
+        Description = "Forescout - Network Access Control"
         Category    = "Security"
     }
 
@@ -216,6 +240,12 @@ $Script:CommonPublishers = @{
         Description = "Cisco AnyConnect VPN"
         Category    = "Remote Access"
     }
+    "Cisco" = @{
+        Publisher   = "O=CISCO*"
+        ProductName = "*"
+        Description = "Cisco Systems - All Products"
+        Category    = "Remote Access"
+    }
 
     # Utilities & System Tools
     "7-Zip" = @{
@@ -228,6 +258,12 @@ $Script:CommonPublishers = @{
         Publisher   = "O=WIN.RAR*"
         ProductName = "*"
         Description = "WinRAR Archiver"
+        Category    = "Utilities"
+    }
+    "WinZip" = @{
+        Publisher   = "O=WINZIP*"
+        ProductName = "*"
+        Description = "WinZip Compression Utility"
         Category    = "Utilities"
     }
     "Notepad++" = @{
