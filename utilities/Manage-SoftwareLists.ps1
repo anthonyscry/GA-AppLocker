@@ -1130,31 +1130,39 @@ function Import-SoftwareListFromCsv {
 
 
 # =============================================================================
-# Export Module Members
+# Export Module Members (only when loaded as a module)
 # =============================================================================
 
-Export-ModuleMember -Function @(
-    # List Management
-    'New-SoftwareList',
-    'Get-SoftwareList',
-    'Save-SoftwareList',
-    'Add-SoftwareListItem',
-    'Remove-SoftwareListItem',
-    'Update-SoftwareListItem',
+# Only export if being loaded as a module (not dot-sourced)
+if ($MyInvocation.Line -notmatch '^\.\s') {
+    try {
+        Export-ModuleMember -Function @(
+            # List Management
+            'New-SoftwareList',
+            'Get-SoftwareList',
+            'Save-SoftwareList',
+            'Add-SoftwareListItem',
+            'Remove-SoftwareListItem',
+            'Update-SoftwareListItem',
 
-    # Import Functions
-    'Import-ScanDataToSoftwareList',
-    'Import-ExecutableToSoftwareList',
+            # Import Functions
+            'Import-ScanDataToSoftwareList',
+            'Import-ExecutableToSoftwareList',
 
-    # Rule Generation
-    'Get-SoftwareListRules',
-    'New-PublisherRuleFromListItem',
-    'New-HashRuleFromListItem',
-    'New-PathRuleFromListItem',
+            # Rule Generation
+            'Get-SoftwareListRules',
+            'New-PublisherRuleFromListItem',
+            'New-HashRuleFromListItem',
+            'New-PathRuleFromListItem',
 
-    # Query and Export
-    'Get-SoftwareListSummary',
-    'Find-SoftwareListItem',
-    'Export-SoftwareListToCsv',
-    'Import-SoftwareListFromCsv'
-)
+            # Query and Export
+            'Get-SoftwareListSummary',
+            'Find-SoftwareListItem',
+            'Export-SoftwareListToCsv',
+            'Import-SoftwareListFromCsv'
+        ) -ErrorAction SilentlyContinue
+    }
+    catch {
+        # Silently ignore - file is being dot-sourced, not loaded as module
+    }
+}

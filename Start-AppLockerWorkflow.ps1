@@ -2,6 +2,9 @@
 .SYNOPSIS
     Unified entry point for GA-AppLocker workflow.
 
+.AUTHOR
+    Tony Tran, ISSO, GA-ASI
+
 .DESCRIPTION
     This script provides a single, simplified interface to the AppLocker policy
     generation workflow. Instead of running multiple scripts separately, use
@@ -267,14 +270,27 @@ function Invoke-GenerateWorkflow {
 
     Write-Host "`n=== Policy Generation Workflow ===" -ForegroundColor Cyan
 
-    # Get scan path - validate input
+    # Get scan path - use folder browser if not provided
     if ([string]::IsNullOrWhiteSpace($ScanPath)) {
-        $ScanPath = Read-Host "  Enter path to scan results"
-    }
+        $ScanPath = Select-ScanDataPath -ScansPath ".\Scans"
 
-    if ([string]::IsNullOrWhiteSpace($ScanPath)) {
-        Write-Host "  [-] Scan path is required" -ForegroundColor Red
-        return $null
+        # Handle special return values
+        if ($ScanPath -eq "RUN_SCAN") {
+            Write-Host "  Redirecting to scan workflow..." -ForegroundColor Cyan
+            $scanResult = Invoke-ScanWorkflow
+            if ($scanResult) {
+                # Find the latest scan folder
+                $latestScan = Get-ChildItem -Path $scanResult -Directory -ErrorAction SilentlyContinue |
+                    Sort-Object LastWriteTime -Descending |
+                    Select-Object -First 1
+                $ScanPath = if ($latestScan) { $latestScan.FullName } else { $scanResult }
+            } else {
+                return $null
+            }
+        }
+        elseif (-not $ScanPath) {
+            return $null
+        }
     }
 
     if (-not (Test-Path $ScanPath)) {
@@ -647,35 +663,62 @@ function Invoke-CompareWorkflow {
     Write-Host "  Scan folders contain: Executables.csv, Publishers.csv, WritableDirectories.csv" -ForegroundColor Gray
     Write-Host ""
 
-    # Get reference path using helper
-    if ([string]::IsNullOrWhiteSpace($RefPath)) {
-        $RefPath = Get-ValidatedPath -Prompt "  Enter path to reference/baseline CSV file" `
-            -Example ".\Scans\COMPUTER01\Executables.csv" `
-            -MustExist -MustBeFile
-        if (-not $RefPath) { return $null }
-    }
-    elseif (-not (Test-Path $RefPath -PathType Leaf)) {
-        Write-Host "  [-] Reference CSV file not found: $RefPath" -ForegroundColor Red
-        return $null
-    }
+    # Determine if we should use interactive folder browser or manual paths
+    if ([string]::IsNullOrWhiteSpace($RefPath) -and [string]::IsNullOrWhiteSpace($CompPath)) {
+        Write-Host "  How would you like to select files?" -ForegroundColor Yellow
+        Write-Host "    [1] Browse scan folders (recommended)" -ForegroundColor White
+        Write-Host "    [2] Enter paths manually" -ForegroundColor White
+        Write-Host "    [C] Cancel" -ForegroundColor Gray
+        Write-Host ""
 
-    # Get comparison path
-    if ([string]::IsNullOrWhiteSpace($CompPath)) {
-        $CompPath = Get-ValidatedPath -Prompt "  Enter path to comparison CSV file(s) (supports wildcards)" `
-            -Example ".\Scans\COMPUTER02\Executables.csv or .\Scans\*\Executables.csv"
-        if (-not $CompPath) { return $null }
+        $browseChoice = Read-Host "  Enter choice"
+
+        switch ($browseChoice.ToUpper()) {
+            "1" {
+                # Use interactive folder browser
+                $paths = Select-ComparePaths -ScansPath ".\Scans"
+                if (-not $paths) {
+                    Write-Host "  Cancelled." -ForegroundColor Yellow
+                    return $null
+                }
+                $RefPath = $paths.ReferencePath
+                $CompPath = $paths.ComparePath
+            }
+            "2" {
+                # Manual path entry
+                $RefPath = Get-ValidatedPath -Prompt "  Enter path to reference/baseline CSV file" `
+                    -Example ".\Scans\Scan-20260108\COMPUTER01\Executables.csv" `
+                    -MustExist -MustBeFile
+                if (-not $RefPath) { return $null }
+
+                $CompPath = Get-ValidatedPath -Prompt "  Enter path to comparison CSV file(s) (supports wildcards)" `
+                    -Example ".\Scans\Scan-20260108\COMPUTER02\Executables.csv"
+                if (-not $CompPath) { return $null }
+            }
+            "C" { return $null }
+            default {
+                Write-Host "  [-] Invalid choice" -ForegroundColor Red
+                return $null
+            }
+        }
+    }
+    else {
+        # Validate provided paths
+        if (-not [string]::IsNullOrWhiteSpace($RefPath) -and -not (Test-Path $RefPath -PathType Leaf)) {
+            Write-Host "  [-] Reference CSV file not found: $RefPath" -ForegroundColor Red
+            return $null
+        }
     }
 
     # Get comparison method
-    if ([string]::IsNullOrWhiteSpace($Method)) {
-        Write-Host "  Compare by: [1] Name  [2] NameVersion  [3] Hash  [4] Publisher" -ForegroundColor Yellow
-        $methodChoice = Read-Host "  Enter choice (default: 1)"
-        $Method = switch ($methodChoice) {
-            "2" { "NameVersion" }
-            "3" { "Hash" }
-            "4" { "Publisher" }
-            default { "Name" }
-        }
+    Write-Host ""
+    Write-Host "  Compare by: [1] Name  [2] NameVersion  [3] Hash  [4] Publisher" -ForegroundColor Yellow
+    $methodChoice = Read-Host "  Enter choice (default: 1)"
+    $Method = switch ($methodChoice) {
+        "2" { "NameVersion" }
+        "3" { "Hash" }
+        "4" { "Publisher" }
+        default { "Name" }
     }
 
     # Run comparison
@@ -1162,8 +1205,22 @@ function Invoke-SoftwareListWorkflow {
                 }
 
                 if ($importChoice -eq "1") {
-                    $scanPath = Read-Host "  Enter scan data path"
-                    if (Test-Path $scanPath) {
+                    # Use folder browser to select scan data
+                    Write-Host ""
+                    Write-Host "  Select scan data to import from:" -ForegroundColor Yellow
+                    Write-Host "    [1] Browse scan folders (recommended)" -ForegroundColor White
+                    Write-Host "    [2] Enter path manually" -ForegroundColor Gray
+                    Write-Host ""
+                    $browseChoice = Read-Host "  Enter choice"
+
+                    $scanPath = $null
+                    if ($browseChoice -eq "1") {
+                        $scanPath = Select-ScanPath -ScansPath ".\Scans" -Prompt "import source"
+                    } else {
+                        $scanPath = Read-Host "  Enter scan data path"
+                    }
+
+                    if ($scanPath -and (Test-Path $scanPath)) {
                         Write-Host "  Import options:" -ForegroundColor Gray
                         Write-Host "    [1] Signed software only (publisher rules)" -ForegroundColor White
                         Write-Host "    [2] Unsigned software only (hash rules)" -ForegroundColor White
@@ -1189,7 +1246,7 @@ function Invoke-SoftwareListWorkflow {
                         Import-ScanDataToSoftwareList @importParams
                     }
                     else {
-                        Write-Host "  [-] Scan path not found: $scanPath" -ForegroundColor Red
+                        Write-Host "  [-] Scan path not found or cancelled" -ForegroundColor Red
                     }
                 }
                 else {
@@ -1274,6 +1331,322 @@ function Invoke-SoftwareListWorkflow {
         }
 
     } while ($slChoice -ne "B")
+}
+
+#endregion
+
+#region Folder Browser Functions
+
+<#
+.SYNOPSIS
+    Displays a list of folders and allows numbered selection.
+
+.DESCRIPTION
+    Interactive folder browser that presents folders as a numbered list
+    with options to navigate back or cancel. Supports filtering.
+
+.PARAMETER Path
+    Base path to list folders from.
+
+.PARAMETER Title
+    Title to display above the list.
+
+.PARAMETER Filter
+    Optional filter pattern for folder names.
+
+.PARAMETER AllowManualEntry
+    If true, allows user to type a custom path.
+
+.RETURNS
+    Selected folder path, $null if cancelled, or "BACK" if user chose to go back.
+#>
+function Show-FolderBrowser {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+
+        [string]$Title = "Select a folder",
+
+        [string]$Filter = "*",
+
+        [switch]$AllowManualEntry,
+
+        [switch]$ShowFiles,
+
+        [string]$FileFilter = "*.csv"
+    )
+
+    if (-not (Test-Path $Path)) {
+        Write-Host "  [-] Path not found: $Path" -ForegroundColor Red
+        return $null
+    }
+
+    # Get folders sorted by date (newest first)
+    $items = if ($ShowFiles) {
+        Get-ChildItem -Path $Path -Filter $FileFilter -File -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTime -Descending
+    } else {
+        Get-ChildItem -Path $Path -Directory -Filter $Filter -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTime -Descending
+    }
+
+    if ($items.Count -eq 0) {
+        $itemType = if ($ShowFiles) { "files" } else { "folders" }
+        Write-Host "  [-] No $itemType found in: $Path" -ForegroundColor Yellow
+        return $null
+    }
+
+    Write-Host ""
+    Write-Host "  $Title" -ForegroundColor Yellow
+    Write-Host "  Location: $Path" -ForegroundColor DarkGray
+    Write-Host ""
+
+    # Display items with numbers
+    $i = 1
+    foreach ($item in $items) {
+        $dateStr = $item.LastWriteTime.ToString("yyyy-MM-dd HH:mm")
+        $name = $item.Name
+        Write-Host "    [$i] $name" -ForegroundColor White -NoNewline
+        Write-Host "  ($dateStr)" -ForegroundColor DarkGray
+        $i++
+    }
+
+    Write-Host ""
+    if ($AllowManualEntry) {
+        Write-Host "    [M] Enter path manually" -ForegroundColor Gray
+    }
+    Write-Host "    [B] Back" -ForegroundColor Gray
+    Write-Host "    [C] Cancel" -ForegroundColor Gray
+    Write-Host ""
+
+    $choice = Read-Host "  Enter choice"
+
+    switch ($choice.ToUpper()) {
+        "B" { return "BACK" }
+        "C" { return $null }
+        "M" {
+            if ($AllowManualEntry) {
+                $manualPath = Read-Host "  Enter path"
+                if (Test-Path $manualPath) {
+                    return $manualPath
+                } else {
+                    Write-Host "  [-] Path not found: $manualPath" -ForegroundColor Red
+                    return $null
+                }
+            }
+        }
+        default {
+            if ($choice -match "^\d+$") {
+                $idx = [int]$choice - 1
+                if ($idx -ge 0 -and $idx -lt $items.Count) {
+                    return $items[$idx].FullName
+                }
+            }
+            Write-Host "  [-] Invalid selection" -ForegroundColor Red
+            return $null
+        }
+    }
+}
+
+
+<#
+.SYNOPSIS
+    Navigates through scan folder hierarchy for Compare workflow.
+
+.DESCRIPTION
+    Multi-step folder browser specifically for scan data:
+    1. Select a scan date folder (e.g., Scan-20260108-143000)
+    2. Select a computer folder within that scan
+    3. Select a CSV file (Executables.csv, Publishers.csv, etc.)
+
+.PARAMETER ScansPath
+    Base path to scans folder. Defaults to .\Scans
+
+.PARAMETER SelectFile
+    If true, navigates all the way to file selection.
+
+.RETURNS
+    Selected path or $null if cancelled.
+#>
+function Select-ScanPath {
+    [CmdletBinding()]
+    param(
+        [string]$ScansPath = ".\Scans",
+
+        [switch]$SelectFile,
+
+        [string]$Prompt = "baseline"
+    )
+
+    # Ensure scans folder exists
+    if (-not (Test-Path $ScansPath)) {
+        Write-Host "  [-] Scans folder not found: $ScansPath" -ForegroundColor Red
+        Write-Host "  [-] Run a scan first to create scan data." -ForegroundColor Yellow
+        return $null
+    }
+
+    # Step 1: Select scan date folder
+    $scanFolder = Show-FolderBrowser -Path $ScansPath `
+        -Title "Select scan date folder for $Prompt" `
+        -Filter "Scan-*" `
+        -AllowManualEntry
+
+    if ($null -eq $scanFolder -or $scanFolder -eq "BACK") {
+        return $null
+    }
+
+    # Step 2: Select computer folder
+    $computerFolder = Show-FolderBrowser -Path $scanFolder `
+        -Title "Select computer folder ($Prompt)" `
+        -AllowManualEntry
+
+    if ($null -eq $computerFolder) {
+        return $null
+    }
+    if ($computerFolder -eq "BACK") {
+        # Go back to scan folder selection
+        return Select-ScanPath -ScansPath $ScansPath -SelectFile:$SelectFile -Prompt $Prompt
+    }
+
+    # Step 3: Select CSV file (if requested)
+    if ($SelectFile) {
+        $csvFile = Show-FolderBrowser -Path $computerFolder `
+            -Title "Select CSV file" `
+            -ShowFiles `
+            -FileFilter "*.csv"
+
+        if ($null -eq $csvFile) {
+            return $null
+        }
+        if ($csvFile -eq "BACK") {
+            # Go back to computer folder selection (re-run from step 1)
+            return Select-ScanPath -ScansPath $ScansPath -SelectFile:$SelectFile -Prompt $Prompt
+        }
+
+        return $csvFile
+    }
+
+    return $computerFolder
+}
+
+
+<#
+.SYNOPSIS
+    Interactive compare path selector for software inventory comparison.
+
+.DESCRIPTION
+    Guides user through selecting:
+    1. Baseline/reference path (workstation/server to compare from)
+    2. Comparison path (computer to compare against)
+
+.PARAMETER ScansPath
+    Base path to scans folder.
+
+.RETURNS
+    Hashtable with ReferencePath and ComparePath, or $null if cancelled.
+#>
+function Select-ComparePaths {
+    [CmdletBinding()]
+    param(
+        [string]$ScansPath = ".\Scans"
+    )
+
+    Write-Host ""
+    Write-Host "  --- Select Paths for Comparison ---" -ForegroundColor Cyan
+    Write-Host "  You will select:" -ForegroundColor Gray
+    Write-Host "    1. A baseline/reference file (e.g., a golden image or standard workstation)" -ForegroundColor Gray
+    Write-Host "    2. A comparison file (the machine to check against baseline)" -ForegroundColor Gray
+    Write-Host ""
+
+    # Select baseline
+    Write-Host "  Step 1: Select BASELINE (reference)" -ForegroundColor Yellow
+    $referencePath = Select-ScanPath -ScansPath $ScansPath -SelectFile -Prompt "BASELINE"
+
+    if (-not $referencePath) {
+        return $null
+    }
+
+    Write-Host ""
+    Write-Host "  [+] Baseline: $referencePath" -ForegroundColor Green
+    Write-Host ""
+
+    # Select comparison target
+    Write-Host "  Step 2: Select COMPARISON target" -ForegroundColor Yellow
+    $comparePath = Select-ScanPath -ScansPath $ScansPath -SelectFile -Prompt "COMPARISON"
+
+    if (-not $comparePath) {
+        return $null
+    }
+
+    Write-Host ""
+    Write-Host "  [+] Comparison: $comparePath" -ForegroundColor Green
+
+    return @{
+        ReferencePath = $referencePath
+        ComparePath   = $comparePath
+    }
+}
+
+
+<#
+.SYNOPSIS
+    Interactive scan folder selector for Generate workflow.
+
+.DESCRIPTION
+    Guides user through selecting scan data for policy generation.
+
+.PARAMETER ScansPath
+    Base path to scans folder.
+
+.RETURNS
+    Selected scan path or $null if cancelled.
+#>
+function Select-ScanDataPath {
+    [CmdletBinding()]
+    param(
+        [string]$ScansPath = ".\Scans"
+    )
+
+    Write-Host ""
+    Write-Host "  --- Select Scan Data ---" -ForegroundColor Cyan
+
+    # Check if scans folder exists
+    if (-not (Test-Path $ScansPath)) {
+        Write-Host "  [-] Scans folder not found: $ScansPath" -ForegroundColor Red
+        Write-Host ""
+        Write-Host "  Options:" -ForegroundColor Yellow
+        Write-Host "    [1] Run a scan first (recommended)" -ForegroundColor White
+        Write-Host "    [M] Enter path manually" -ForegroundColor Gray
+        Write-Host "    [C] Cancel" -ForegroundColor Gray
+        Write-Host ""
+
+        $choice = Read-Host "  Enter choice"
+        switch ($choice.ToUpper()) {
+            "1" { return "RUN_SCAN" }
+            "M" {
+                $manualPath = Read-Host "  Enter scan data path"
+                if (Test-Path $manualPath) {
+                    return $manualPath
+                }
+                Write-Host "  [-] Path not found" -ForegroundColor Red
+                return $null
+            }
+            default { return $null }
+        }
+    }
+
+    # Select scan date folder
+    $scanFolder = Show-FolderBrowser -Path $ScansPath `
+        -Title "Select scan date folder" `
+        -Filter "Scan-*" `
+        -AllowManualEntry
+
+    if ($null -eq $scanFolder -or $scanFolder -eq "BACK") {
+        return $null
+    }
+
+    return $scanFolder
 }
 
 #endregion
