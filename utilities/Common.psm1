@@ -104,7 +104,7 @@ function Get-StandardPrincipalSids {
     if ($DomainName) {
         if (-not $AdminsGroup) { $AdminsGroup = "$DomainName\AppLocker-Admins" }
         if (-not $StandardUsersGroup) { $StandardUsersGroup = "$DomainName\AppLocker-StandardUsers" }
-        if (-not $ServiceAccountsGroup) { $ServiceAccountsGroup = "$DomainName\AppLocker-Service-Accounts" }
+        if (-not $ServiceAccountsGroup) { $ServiceAccountsGroup = "$DomainName\AppLocker-ServiceAccounts" }
         if (-not $InstallersGroup) { $InstallersGroup = "$DomainName\AppLocker-Installers" }
     }
 

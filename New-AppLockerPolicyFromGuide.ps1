@@ -9,7 +9,7 @@ Generates enterprise-ready AppLocker policies with two operational modes:
 
 BUILD GUIDE MODE (default):
 - Proper principal scoping (SYSTEM, LOCAL SERVICE, NETWORK SERVICE, Administrators)
-- Custom AD group support (Admins, StandardUsers, Service-Accounts, Installers)
+- Custom AD group support (Admins, StandardUsers, ServiceAccounts, Installers)
 - Microsoft Publisher rules scoped correctly (NOT Everyone)
 - Explicit deny rules for user-writable paths
 - Phased deployment support (Phase 1-4)
@@ -625,7 +625,7 @@ Write-Host ""
 #region Set default group names if not provided
 if (-not $AdminsGroup) { $AdminsGroup = "$DomainName\AppLocker-Admins" }
 if (-not $StandardUsersGroup) { $StandardUsersGroup = "$DomainName\AppLocker-StandardUsers" }
-if (-not $ServiceAccountsGroup) { $ServiceAccountsGroup = "$DomainName\AppLocker-Service-Accounts" }
+if (-not $ServiceAccountsGroup) { $ServiceAccountsGroup = "$DomainName\AppLocker-ServiceAccounts" }
 if (-not $InstallersGroup) { $InstallersGroup = "$DomainName\AppLocker-Installers" }
 
 Write-Host "Security Groups:" -ForegroundColor Yellow

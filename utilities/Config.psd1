@@ -26,6 +26,35 @@
     }
 
     # --------------------------------------------------------------------------
+    # AppLocker AD Group Configuration
+    # --------------------------------------------------------------------------
+    # Standardized group names for AppLocker deployment.
+    # These names MUST match what Manage-ADResources.ps1 creates.
+    # All policy generation scripts should reference these values.
+
+    AppLockerGroups = @{
+        # Group name prefix (default: "AppLocker")
+        Prefix = "AppLocker"
+
+        # Group suffixes (appended to prefix with hyphen)
+        # Example: With prefix "AppLocker", creates "AppLocker-Admins"
+        Suffixes = @{
+            Admins          = "Admins"           # Full: AppLocker-Admins
+            StandardUsers   = "StandardUsers"   # Full: AppLocker-StandardUsers
+            ServiceAccounts = "ServiceAccounts" # Full: AppLocker-ServiceAccounts (NO hyphen in "ServiceAccounts")
+            Installers      = "Installers"      # Full: AppLocker-Installers
+        }
+
+        # Group descriptions for AD creation
+        Descriptions = @{
+            Admins          = "Administrative users - full system access"
+            StandardUsers   = "Standard users with restricted application access"
+            ServiceAccounts = "Service accounts that need specific application access"
+            Installers      = "Users authorized to install software"
+        }
+    }
+
+    # --------------------------------------------------------------------------
     # LOLBins (Living Off The Land Binaries)
     # --------------------------------------------------------------------------
     # These are legitimate Windows binaries commonly abused by attackers.
