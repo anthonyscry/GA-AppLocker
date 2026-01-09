@@ -37,7 +37,9 @@
     OU to search for ExportUsers action.
 
 .PARAMETER InputPath
-    CSV file path for ImportUsers action.
+    CSV file path for ImportUsers action. Supports two formats:
+    - Simple format: Two columns (Group, Users) - one row per group with list of users
+    - Full format: Export format with SamAccountName, AddToGroups, RemoveFromGroups columns
 
 .PARAMETER OutputPath
     Output file path for ExportUsers action.
@@ -66,6 +68,15 @@
 .EXAMPLE
     # Apply group changes
     .\Manage-ADResources.ps1 -Action ImportUsers -InputPath ".\Users.csv"
+
+.EXAMPLE
+    # Import using simple two-column format (Group,Users)
+    # CSV contents:
+    #   Group,Users
+    #   AppLocker-StandardUsers,jsmith;jdoe;asmith
+    #   AppLocker-Admins,admin1;admin2
+    #   AppLocker-Installers,helpdesk1 helpdesk2
+    .\Manage-ADResources.ps1 -Action ImportUsers -InputPath ".\GroupMembers.csv"
 
 .NOTES
     Part of GA-AppLocker toolkit.
@@ -505,21 +516,99 @@ function Invoke-ImportUsers {
     try {
         $csvData = Import-Csv -Path $InputFile -Encoding UTF8
 
-        $requiredColumns = @('SamAccountName', 'AddToGroups', 'RemoveFromGroups')
+        if ($csvData.Count -eq 0) {
+            Write-Error "CSV file is empty."
+            return
+        }
+
         $csvColumns = $csvData[0].PSObject.Properties.Name
 
-        foreach ($col in $requiredColumns) {
-            if ($col -notin $csvColumns) {
-                Write-Error "Required column '$col' not found in CSV file."
-                return
+        # Detect format: Group-based (Group, Users) or Full (SamAccountName, AddToGroups, RemoveFromGroups)
+        $simpleFormat = $false
+        $groupColumn = $null
+        $usersColumn = $null
+
+        # Check for simple group-based format - look for Group and Users columns
+        foreach ($col in $csvColumns) {
+            if ($col -match '^(Group|GroupName|AppLockerGroup)$') {
+                $groupColumn = $col
+            }
+            if ($col -match '^(Users|User|Usernames|Username|Members)$') {
+                $usersColumn = $col
             }
         }
 
-        Write-Host "  [OK] CSV loaded - $($csvData.Count) rows" -ForegroundColor Green
+        if ($groupColumn -and $usersColumn) {
+            $simpleFormat = $true
+            Write-Host "  [OK] Detected simple format (Group, Users)" -ForegroundColor Green
+            Write-Host "  [OK] CSV loaded - $($csvData.Count) rows" -ForegroundColor Green
+        }
+        else {
+            # Check for full format
+            $requiredColumns = @('SamAccountName', 'AddToGroups', 'RemoveFromGroups')
+            foreach ($col in $requiredColumns) {
+                if ($col -notin $csvColumns) {
+                    Write-Host ""
+                    Write-Host "CSV format not recognized. Supported formats:" -ForegroundColor Red
+                    Write-Host ""
+                    Write-Host "  Simple format (Group, Users):" -ForegroundColor Yellow
+                    Write-Host "    Group,Users" -ForegroundColor Gray
+                    Write-Host "    AppLocker-StandardUsers,jsmith;jdoe;asmith" -ForegroundColor Gray
+                    Write-Host "    AppLocker-Admins,admin1" -ForegroundColor Gray
+                    Write-Host ""
+                    Write-Host "  Full format (from ExportUsers):" -ForegroundColor Yellow
+                    Write-Host "    SamAccountName,AddToGroups,RemoveFromGroups,..." -ForegroundColor Gray
+                    Write-Host ""
+                    Write-Error "Required column '$col' not found in CSV file."
+                    return
+                }
+            }
+            Write-Host "  [OK] Detected full export format" -ForegroundColor Green
+            Write-Host "  [OK] CSV loaded - $($csvData.Count) rows" -ForegroundColor Green
+        }
     }
     catch {
         Write-Error "Failed to load CSV: $_"
         return
+    }
+
+    # Handle simple format - convert to standard processing format
+    if ($simpleFormat) {
+        Write-Host ""
+        Write-Host "Processing simple format import..." -ForegroundColor Yellow
+
+        # Parse group-based format and convert to user-based format
+        $userGroups = @{}
+        foreach ($row in $csvData) {
+            $group = $row.$groupColumn.Trim()
+            $usersRaw = $row.$usersColumn
+
+            if ([string]::IsNullOrWhiteSpace($group) -or [string]::IsNullOrWhiteSpace($usersRaw)) {
+                continue
+            }
+
+            # Split users by semicolon, comma, or space
+            $users = $usersRaw -split '[;,\s]+' | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne "" }
+
+            foreach ($username in $users) {
+                if (-not $userGroups.ContainsKey($username)) {
+                    $userGroups[$username] = @()
+                }
+                $userGroups[$username] += $group
+            }
+        }
+
+        # Convert to standard format for processing
+        $csvData = @()
+        foreach ($username in $userGroups.Keys) {
+            $csvData += [PSCustomObject]@{
+                SamAccountName   = $username
+                AddToGroups      = ($userGroups[$username] -join "; ")
+                RemoveFromGroups = ""
+            }
+        }
+
+        Write-Host "  Found $($userGroups.Count) unique users across $($csvData.Count) group assignments" -ForegroundColor Cyan
     }
 
     # Find rows with changes
