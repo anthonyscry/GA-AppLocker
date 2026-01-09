@@ -308,6 +308,13 @@ function Invoke-GenerateWorkflow {
             "2" {
                 $TargetType = Read-Host "  Enter target type (Workstation/Server/DomainController)"
                 $DomainName = Read-Host "  Enter domain name (e.g., CONTOSO)"
+                Write-Host ""
+                Write-Host "  Deployment Phases:" -ForegroundColor Yellow
+                Write-Host "    [1] EXE only           - Start here, lowest risk" -ForegroundColor White
+                Write-Host "    [2] EXE + Script       - Adds .ps1, .bat, .vbs rules (highest bypass risk)" -ForegroundColor White
+                Write-Host "    [3] EXE + Script + MSI - Adds installer rules (test deployments)" -ForegroundColor White
+                Write-Host "    [4] All + DLL          - Full policy (audit 14+ days before enforcing!)" -ForegroundColor White
+                Write-Host ""
                 $phaseInput = Read-Host "  Enter phase (1-4, default: 1)"
                 $Phase = if ([int]::TryParse($phaseInput, [ref]$null)) { [int]$phaseInput } else { 1 }
                 if ($Phase -lt 1 -or $Phase -gt 4) { $Phase = 1 }
