@@ -660,8 +660,8 @@ function Invoke-CompareWorkflow {
     )
 
     Write-Host "`n=== Software Inventory Comparison ===" -ForegroundColor Cyan
-    Write-Host "  Compares software inventory CSV files (e.g., Executables.csv)" -ForegroundColor Gray
-    Write-Host "  Scan folders contain: Executables.csv, Publishers.csv, WritableDirectories.csv" -ForegroundColor Gray
+    Write-Host "  Compares InstalledSoftware.csv files between machines" -ForegroundColor Gray
+    Write-Host "  Identifies software differences, version drift, and unique applications" -ForegroundColor Gray
     Write-Host ""
 
     # Determine if we should use interactive folder browser or manual paths
@@ -688,12 +688,12 @@ function Invoke-CompareWorkflow {
             "2" {
                 # Manual path entry
                 $RefPath = Get-ValidatedPath -Prompt "  Enter path to reference/baseline CSV file" `
-                    -Example ".\Scans\Scan-20260108\COMPUTER01\Executables.csv" `
+                    -Example ".\Scans\Scan-20260108\COMPUTER01\InstalledSoftware.csv" `
                     -MustExist -MustBeFile
                 if (-not $RefPath) { return $null }
 
                 $CompPath = Get-ValidatedPath -Prompt "  Enter path to comparison CSV file(s) (supports wildcards)" `
-                    -Example ".\Scans\Scan-20260108\COMPUTER02\Executables.csv"
+                    -Example ".\Scans\Scan-20260108\COMPUTER02\InstalledSoftware.csv"
                 if (-not $CompPath) { return $null }
             }
             "C" { return $null }
@@ -713,12 +713,11 @@ function Invoke-CompareWorkflow {
 
     # Get comparison method
     Write-Host ""
-    Write-Host "  Compare by: [1] Name  [2] NameVersion  [3] Hash  [4] Publisher" -ForegroundColor Yellow
+    Write-Host "  Compare by: [1] Name  [2] NameVersion  [3] Publisher" -ForegroundColor Yellow
     $methodChoice = Read-Host "  Enter choice (default: 1)"
     $Method = switch ($methodChoice) {
         "2" { "NameVersion" }
-        "3" { "Hash" }
-        "4" { "Publisher" }
+        "3" { "Publisher" }
         default { "Name" }
     }
 
@@ -1763,22 +1762,19 @@ function Select-ScanPath {
         return Select-ScanPath -ScansPath $ScansPath -SelectFile:$SelectFile -Prompt $Prompt
     }
 
-    # Step 3: Select CSV file (if requested)
+    # Step 3: Auto-select InstalledSoftware.csv (if file selection requested)
     if ($SelectFile) {
-        $csvFile = Show-FolderBrowser -Path $computerFolder `
-            -Title "Select CSV file" `
-            -ShowFiles `
-            -FileFilter "*.csv"
+        $installedSoftwarePath = Join-Path $computerFolder "InstalledSoftware.csv"
 
-        if ($null -eq $csvFile) {
+        if (Test-Path $installedSoftwarePath) {
+            Write-Host "  [+] Auto-selected: InstalledSoftware.csv" -ForegroundColor Green
+            return $installedSoftwarePath
+        }
+        else {
+            Write-Host "  [-] InstalledSoftware.csv not found in: $computerFolder" -ForegroundColor Red
+            Write-Host "  [-] Ensure the scan collected installed software data." -ForegroundColor Yellow
             return $null
         }
-        if ($csvFile -eq "BACK") {
-            # Go back to computer folder selection (re-run from step 1)
-            return Select-ScanPath -ScansPath $ScansPath -SelectFile:$SelectFile -Prompt $Prompt
-        }
-
-        return $csvFile
     }
 
     return $computerFolder
