@@ -128,22 +128,10 @@ else {
 #region Banner and Menu
 
 function Show-Banner {
-    $banner = @"
-
-  ╔═══════════════════════════════════════════════════════════════════════════╗
-  ║                                                                           ║
-  ║     ██████╗  █████╗        █████╗ ██████╗ ██████╗ ██╗      ██████╗  ██████╗██╗  ██╗███████╗██████╗
-  ║    ██╔════╝ ██╔══██╗      ██╔══██╗██╔══██╗██╔══██╗██║     ██╔═══██╗██╔════╝██║ ██╔╝██╔════╝██╔══██╗
-  ║    ██║  ███╗███████║█████╗███████║██████╔╝██████╔╝██║     ██║   ██║██║     █████╔╝ █████╗  ██████╔╝
-  ║    ██║   ██║██╔══██║╚════╝██╔══██║██╔═══╝ ██╔═══╝ ██║     ██║   ██║██║     ██╔═██╗ ██╔══╝  ██╔══██╗
-  ║    ╚██████╔╝██║  ██║      ██║  ██║██║     ██║     ███████╗╚██████╔╝╚██████╗██║  ██╗███████╗██║  ██║
-  ║     ╚═════╝ ╚═╝  ╚═╝      ╚═╝  ╚═╝╚═╝     ╚═╝     ╚══════╝ ╚═════╝  ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝
-  ║                                                                           ║
-  ║                     AppLocker Policy Generation Toolkit                   ║
-  ╚═══════════════════════════════════════════════════════════════════════════╝
-
-"@
-    Write-Host $banner -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "  GA-AppLocker - AppLocker Policy Generation Toolkit" -ForegroundColor Cyan
+    Write-Host "  -------------------------------------------------" -ForegroundColor DarkGray
+    Write-Host ""
 }
 
 function Show-Menu {
@@ -205,18 +193,23 @@ function Invoke-ScanWorkflow {
 
     Write-Host "`n=== Remote Scan Workflow ===" -ForegroundColor Cyan
 
-    # Get computer list - validate input
+    # Get computer list - validate input with default
     if ([string]::IsNullOrWhiteSpace($ComputerListPath)) {
-        $ComputerListPath = Read-Host "  Enter path to computer list file"
-    }
-
-    if ([string]::IsNullOrWhiteSpace($ComputerListPath)) {
-        Write-Host "  [-] Computer list path is required" -ForegroundColor Red
-        return $null
+        $ComputerListPath = Read-Host "  Enter path to computer list file (default: .\computers.txt)"
+        if ([string]::IsNullOrWhiteSpace($ComputerListPath)) {
+            $ComputerListPath = ".\computers.txt"
+        }
     }
 
     if (-not (Test-Path $ComputerListPath)) {
         Write-Host "  [-] Computer list not found: $ComputerListPath" -ForegroundColor Red
+        return $null
+    }
+
+    # Ensure it's a file, not a directory
+    if ((Get-Item $ComputerListPath).PSIsContainer) {
+        Write-Host "  [-] Path is a directory, not a file: $ComputerListPath" -ForegroundColor Red
+        Write-Host "      Please provide a text file containing computer names (one per line)" -ForegroundColor Yellow
         return $null
     }
 
