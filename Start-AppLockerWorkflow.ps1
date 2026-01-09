@@ -142,6 +142,8 @@ function Show-Menu {
     Write-Host "    [4] Validate   - Check a policy file for issues" -ForegroundColor White
     Write-Host "    [5] Full       - Complete workflow (Scan + Generate)" -ForegroundColor White
     Write-Host ""
+    Write-Host "    [6] WinRM      - Deploy WinRM GPO for domain computers" -ForegroundColor White
+    Write-Host ""
     Write-Host "    [Q] Quit" -ForegroundColor Gray
     Write-Host ""
 
@@ -571,6 +573,32 @@ function Invoke-FullWorkflow {
     }
 }
 
+function Invoke-WinRMWorkflow {
+    Write-Host "`n=== WinRM Deployment Workflow ===" -ForegroundColor Cyan
+    Write-Host "  This will create a GPO to enable WinRM across domain computers." -ForegroundColor Gray
+    Write-Host "  Requires: Domain Controller, RSAT tools, Domain Admin privileges." -ForegroundColor Yellow
+    Write-Host ""
+
+    $winrmScript = Join-Path $scriptRoot "utilities\Enable-WinRM-Domain.ps1"
+    if (Test-Path $winrmScript) {
+        $confirm = Read-Host "  Proceed with WinRM GPO deployment? (Y/n)"
+        if ($confirm -eq 'n' -or $confirm -eq 'N') {
+            Write-Host "  Aborted." -ForegroundColor Yellow
+            return
+        }
+
+        try {
+            & $winrmScript
+        }
+        catch {
+            Write-Host "  [-] WinRM deployment failed: $($_.Exception.Message)" -ForegroundColor Red
+        }
+    }
+    else {
+        Write-Host "  [-] WinRM script not found: $winrmScript" -ForegroundColor Red
+    }
+}
+
 #endregion
 
 #region Main Execution
@@ -672,6 +700,7 @@ do {
         "3" { Invoke-MergeWorkflow }
         "4" { Invoke-ValidateWorkflow }
         "5" { Invoke-FullWorkflow }
+        "6" { Invoke-WinRMWorkflow }
         "Q" {
             Write-Host "`n  Goodbye!" -ForegroundColor Cyan
             exit
@@ -685,7 +714,7 @@ do {
         }
     }
 
-    if ($choice -in @("1", "2", "3", "4", "5")) {
+    if ($choice -in @("1", "2", "3", "4", "5", "6")) {
         Write-Host ""
         Read-Host "  Press Enter to continue"
         Clear-Host
