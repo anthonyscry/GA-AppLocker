@@ -536,6 +536,168 @@ Customize `utilities/Config.psd1`:
 
 ---
 
+## Security Workflow & Least Privilege Implementation
+
+This section documents the security methodology and audit trail for compliance reviews and cybersecurity inspectors.
+
+### Security Philosophy
+
+GA-AppLocker implements the principle of **least privilege** for application execution:
+
+> **"Allow only trusted code to run, executed by authorized principals, and deny execution from user-writable locations."**
+
+This approach ensures:
+- Only applications signed by trusted publishers or explicitly approved hashes can execute
+- Rules are scoped to specific user groups rather than broad principals like "Everyone"
+- High-risk locations (user-writable paths) are explicitly denied
+- Known attack vectors (LOLBins) are blocked proactively
+
+### Rule Creation Methodology
+
+**1. Evidence-Based Allowlisting**
+
+Rules are created from empirical data collected from production systems, not assumptions:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  STEP 1: INVENTORY COLLECTION                                       │
+│  ───────────────────────────────────────────────────────────────── │
+│  • Remote scan of target systems via WinRM                          │
+│  • Collect: Installed software, executables, digital signatures     │
+│  • Output: CSV files with publisher certificates, file hashes       │
+│  • Artifact: ./Scans/Scan-YYYYMMDD/[COMPUTER]/Executables.csv      │
+└─────────────────────────────────────────────────────────────────────┘
+                                    ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│  STEP 2: POLICY GENERATION                                          │
+│  ───────────────────────────────────────────────────────────────── │
+│  • Create rules from scan data (publisher-based preferred)          │
+│  • Apply least privilege: scope to specific AD groups               │
+│  • Include deny rules for user-writable paths                       │
+│  • Artifact: ./Outputs/AppLockerPolicy-[Target].xml                │
+└─────────────────────────────────────────────────────────────────────┘
+                                    ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│  STEP 3: AUDIT MODE DEPLOYMENT                                      │
+│  ───────────────────────────────────────────────────────────────── │
+│  • Deploy policy via GPO in AUDIT mode (not enforcing)              │
+│  • Minimum audit period: 14 days (recommended: 30 days)             │
+│  • No user impact during audit phase                                │
+│  • Artifact: GPO with EnforcementMode="AuditOnly"                  │
+└─────────────────────────────────────────────────────────────────────┘
+                                    ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│  STEP 4: EVENT ANALYSIS                                             │
+│  ───────────────────────────────────────────────────────────────── │
+│  • Collect AppLocker audit events (8003/8004/8005/8006)             │
+│  • Identify applications that would have been blocked               │
+│  • Review and approve legitimate software                           │
+│  • Artifact: ./Events/Events-YYYYMMDD/UniqueBlockedApps.csv        │
+└─────────────────────────────────────────────────────────────────────┘
+                                    ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│  STEP 5: POLICY REFINEMENT                                          │
+│  ───────────────────────────────────────────────────────────────── │
+│  • Create allow rules for approved blocked applications             │
+│  • Merge into existing policy with deduplication                    │
+│  • Re-deploy in audit mode, repeat analysis                         │
+│  • Artifact: Updated policy XML with audit trail                   │
+└─────────────────────────────────────────────────────────────────────┘
+                                    ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│  STEP 6: ENFORCEMENT                                                │
+│  ───────────────────────────────────────────────────────────────── │
+│  • Switch policy to ENFORCE mode only after audit validation        │
+│  • Monitor event logs for unexpected blocks                         │
+│  • Maintain exception process for legitimate new software           │
+│  • Artifact: GPO with EnforcementMode="Enabled"                    │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Least Privilege Implementation Details
+
+**Principal Scoping**
+
+Rules are NOT applied to "Everyone" or "Authenticated Users". Instead, rules target specific groups:
+
+| Principal Type | Example Groups | Purpose |
+|---------------|----------------|---------|
+| **Workstation Users** | DOMAIN\AppLocker-Workstations | Standard user endpoints |
+| **Server Operators** | DOMAIN\AppLocker-Servers | Server administrator access |
+| **Domain Controllers** | DOMAIN\AppLocker-DCs | DC-specific applications |
+| **Exceptions** | DOMAIN\AppLocker-Exceptions | Temporary bypass (monitored) |
+| **System Accounts** | NT AUTHORITY\SYSTEM | OS-level operations only |
+
+**Deny-by-Default Locations**
+
+User-writable paths are explicitly denied to prevent malware execution:
+
+| Path | Risk | Rationale |
+|------|------|-----------|
+| `%TEMP%` | Critical | Common malware staging location |
+| `%USERPROFILE%\Downloads` | Critical | Untrusted downloaded content |
+| `%APPDATA%` | High | User-writable, often targeted |
+| `%LOCALAPPDATA%` | High | User-writable application data |
+| `%USERPROFILE%\Desktop` | Medium | User-accessible execution point |
+
+**LOLBins Deny Rules**
+
+Living-off-the-land binaries are blocked to prevent abuse:
+
+- `mshta.exe` - HTML Application Host (script execution)
+- `wscript.exe` / `cscript.exe` - Windows Script Host
+- `regsvr32.exe` - COM registration (script execution)
+- `msbuild.exe` - Build tool (code execution)
+- `installutil.exe` - .NET installer (code execution)
+
+### Audit Trail & Artifacts
+
+For compliance verification, GA-AppLocker generates the following audit artifacts:
+
+| Artifact | Location | Purpose |
+|----------|----------|---------|
+| **Scan Results** | `./Scans/Scan-YYYYMMDD/ScanResults.csv` | Record of systems scanned |
+| **Software Inventory** | `./Scans/.../[PC]/InstalledSoftware.csv` | Applications found per system |
+| **Executable Signatures** | `./Scans/.../[PC]/Executables.csv` | Publisher certificates, hashes |
+| **Policy XML** | `./Outputs/AppLockerPolicy-*.xml` | Generated rules with justification |
+| **Blocked Events** | `./Events/.../UniqueBlockedApps.csv` | Applications flagged for review |
+| **Event Collection Log** | `./Events/.../EventCollectionResults.csv` | Audit event collection record |
+
+### Compliance Verification Checklist
+
+For auditors reviewing the AppLocker implementation:
+
+- [ ] **Evidence of inventory collection**: Scan folders exist with CSV data
+- [ ] **Policy uses specific principals**: Rules target AD groups, not "Everyone"
+- [ ] **Audit period documented**: Event collection shows 14+ days of data
+- [ ] **Blocked apps reviewed**: UniqueBlockedApps.csv shows approval decisions
+- [ ] **Deny rules present**: Policy includes user-writable path denials
+- [ ] **LOLBins blocked**: High-risk binaries have explicit deny rules
+- [ ] **Phased rollout**: Policy progression from Phase 1 to target phase
+- [ ] **Exception process**: Documented workflow for new software requests
+
+### Security Controls Mapping
+
+| Control Framework | Control ID | GA-AppLocker Implementation |
+|-------------------|------------|------------------------------|
+| **NIST 800-53** | CM-7 | Least functionality via application allowlisting |
+| **NIST 800-53** | CM-11 | User-installed software control |
+| **NIST 800-53** | SI-7 | Software integrity verification (signatures) |
+| **CIS Controls** | 2.5 | Allowlist authorized software |
+| **CIS Controls** | 2.6 | Allowlist authorized libraries |
+| **CMMC** | CM.L2-3.4.8 | Application execution control |
+
+### Continuous Monitoring
+
+After enforcement, ongoing monitoring ensures policy effectiveness:
+
+1. **Weekly Event Review**: Collect and analyze AppLocker events for anomalies
+2. **Monthly Policy Review**: Assess if new applications require rules
+3. **Quarterly Compliance Audit**: Verify policy matches documented baseline
+4. **Annual Full Assessment**: Re-scan environment for software drift
+
+---
+
 ## Troubleshooting
 
 ### Common Issues

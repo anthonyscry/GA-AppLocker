@@ -388,7 +388,8 @@ foreach ($computer in $computers) {
                         }
                     }
                     catch {
-                        # Log might not exist or be accessible, continue
+                        # Log might not exist or be accessible - skip to next log
+                        continue
                     }
                 }
 
@@ -506,10 +507,13 @@ if ($null -ne $allJobs -and $allJobs.Count -gt 0) {
         $computerName = $job.Name -replace '^EventCollect-', ''
         try {
             if ($job.State -eq 'Failed') {
+                # Extract detailed error info from failed job
                 $errorMsg = if ($job.ChildJobs -and $job.ChildJobs[0].JobStateInfo.Reason) {
-                    $job.ChildJobs[0].JobStateInfo.Reason.Message
+                    "Remote job failed: $($job.ChildJobs[0].JobStateInfo.Reason.Message)"
+                } elseif ($job.JobStateInfo.Reason) {
+                    "Job execution failed: $($job.JobStateInfo.Reason.Message)"
                 } else {
-                    "Job failed to execute"
+                    "Job failed to execute (no error details available - check WinRM connectivity)"
                 }
                 $results.Add([PSCustomObject]@{
                     Computer = $computerName

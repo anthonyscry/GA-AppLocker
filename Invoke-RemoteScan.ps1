@@ -238,7 +238,10 @@ foreach ($computer in $computers) {
                     $ExtraScanPaths = @($parsed)
                 }
             }
-            catch { }
+            catch {
+                # JSON parsing failed - continue with empty extra paths
+                $ExtraScanPaths = @()
+            }
         }
 
         # Clear any problematic defaults that could cause parameter binding issues
@@ -352,10 +355,16 @@ foreach ($computer in $computers) {
                                         } catch { "" }
                                     }
                                 }
-                                catch { }
+                                catch {
+                                    # Skip files that cannot be processed (locked, permissions, etc.)
+                                    continue
+                                }
                             }
                         }
-                        catch { }
+                        catch {
+                            # Skip extensions that fail to enumerate (access denied, etc.)
+                            continue
+                        }
                     }
                 }
 
@@ -432,10 +441,16 @@ foreach ($computer in $computers) {
                                         }
                                     }
                                 }
-                                catch { }
+                                catch {
+                                    # Skip directories where ACL cannot be read (access denied, etc.)
+                                    continue
+                                }
                             }
                         }
-                        catch { }
+                        catch {
+                            # Skip base paths that fail to enumerate
+                            continue
+                        }
                     }
 
                     return $writable
@@ -572,11 +587,13 @@ if ($null -ne $allJobs -and $allJobs.Count -gt 0) {
         try {
             # Check job state first
             if ($job.State -eq 'Failed') {
-                # Job itself failed (not just the scriptblock)
+                # Job itself failed (not just the scriptblock) - extract detailed error info
                 $errorMsg = if ($job.ChildJobs -and $job.ChildJobs[0].JobStateInfo.Reason) {
-                    $job.ChildJobs[0].JobStateInfo.Reason.Message
+                    "Remote job failed: $($job.ChildJobs[0].JobStateInfo.Reason.Message)"
+                } elseif ($job.JobStateInfo.Reason) {
+                    "Job execution failed: $($job.JobStateInfo.Reason.Message)"
                 } else {
-                    "Job failed to execute"
+                    "Job failed to execute (no error details available - check WinRM connectivity)"
                 }
                 $results.Add([PSCustomObject]@{
                     Computer = $computerName
