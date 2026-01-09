@@ -1309,6 +1309,12 @@ function Show-SoftwareListMenu {
     Write-Host "    [4] Add Common - Quick-add from common publishers" -ForegroundColor White
     Write-Host "    [5] Import     - Import from scan data or executable" -ForegroundColor White
     Write-Host ""
+    Write-Host "  --- Advanced Import ---" -ForegroundColor DarkGray
+    Write-Host "    [E] Event Logs - Import from AppLocker audit events" -ForegroundColor White
+    Write-Host "    [I] Installed  - Import from installed programs (registry)" -ForegroundColor White
+    Write-Host "    [C] Cert/CA    - Certificate chain rules (DOD PKI, etc.)" -ForegroundColor White
+    Write-Host "    [L] Local Scan - Scan local folder for executables" -ForegroundColor White
+    Write-Host ""
     Write-Host "  --- Manage Items ---" -ForegroundColor DarkGray
     Write-Host "    [6] Toggle     - Approve/unapprove items" -ForegroundColor White
     Write-Host "    [7] Delete     - Remove items from a list" -ForegroundColor White
@@ -1853,6 +1859,314 @@ function Invoke-SoftwareListWorkflow {
 
                 Write-Host ""
                 Write-Host "  [+] Policy generation complete!" -ForegroundColor Green
+            }
+            { $_ -in @("E", "e") } {
+                # Import from AppLocker Event Logs
+                Write-Host "`n  --- Import from AppLocker Event Logs ---" -ForegroundColor Cyan
+                Write-Host "  Analyzes audit events to find blocked/allowed executables." -ForegroundColor Gray
+                Write-Host "  Requires: AppLocker in Audit mode, Admin privileges." -ForegroundColor Yellow
+                Write-Host ""
+
+                # Get or create target list
+                $lists = @(Get-ChildItem -Path $defaultListPath -Filter "*.json" -ErrorAction SilentlyContinue)
+                $targetList = $null
+
+                if ($lists.Count -gt 0) {
+                    Write-Host "  Import to existing list or create new?" -ForegroundColor Gray
+                    $i = 1
+                    foreach ($list in $lists) {
+                        Write-Host "    [$i] $($list.BaseName)" -ForegroundColor White
+                        $i++
+                    }
+                    Write-Host "    [N] Create new list" -ForegroundColor White
+                    Write-Host "    [C] Cancel" -ForegroundColor Gray
+                    $listChoice = Read-Host "  Select option"
+
+                    if ($listChoice -in @("C", "c")) { continue }
+
+                    if ($listChoice -match "^\d+$" -and [int]$listChoice -ge 1 -and [int]$listChoice -le $lists.Count) {
+                        $targetList = $lists[[int]$listChoice - 1].FullName
+                    }
+                }
+
+                if (-not $targetList) {
+                    $newName = Read-Host "  Enter new list name (default: EventLog-Discovered)"
+                    if ([string]::IsNullOrWhiteSpace($newName)) { $newName = "EventLog-Discovered" }
+                    $targetList = Join-Path $defaultListPath "$newName.json"
+                    New-SoftwareList -Name $newName -Description "Imported from AppLocker events" -OutputPath $defaultListPath | Out-Null
+                }
+
+                # Event type
+                Write-Host ""
+                Write-Host "  What events to analyze?" -ForegroundColor Gray
+                Write-Host "    [1] Blocked only (recommended)" -ForegroundColor White
+                Write-Host "    [2] Allowed only" -ForegroundColor White
+                Write-Host "    [3] All events" -ForegroundColor White
+                $eventChoice = Read-Host "  Choice (default: 1)"
+                $eventType = switch ($eventChoice) {
+                    "2" { "Allowed" }
+                    "3" { "All" }
+                    default { "Blocked" }
+                }
+
+                # Hours
+                $hoursInput = Read-Host "  Hours of logs to analyze (default: 24)"
+                $hours = if ($hoursInput -match "^\d+$") { [int]$hoursInput } else { 24 }
+
+                # Computer
+                $computer = Read-Host "  Computer name (default: localhost)"
+                if ([string]::IsNullOrWhiteSpace($computer)) { $computer = "localhost" }
+
+                # Auto approve
+                $autoApprove = Read-Host "  Auto-approve imported items? (y/N)"
+                $doAutoApprove = $autoApprove -in @("y", "Y")
+
+                try {
+                    $importParams = @{
+                        ListPath     = $targetList
+                        ComputerName = $computer
+                        Hours        = $hours
+                        EventType    = $eventType
+                    }
+                    if ($doAutoApprove) { $importParams.AutoApprove = $true }
+
+                    Import-AppLockerEventLog @importParams
+                }
+                catch {
+                    Write-Host "  [-] Import failed: $_" -ForegroundColor Red
+                }
+            }
+            { $_ -in @("I", "i") } {
+                # Import from Installed Programs
+                Write-Host "`n  --- Import from Installed Programs ---" -ForegroundColor Cyan
+                Write-Host "  Queries registry for installed software publishers." -ForegroundColor Gray
+                Write-Host ""
+
+                # Get or create target list
+                $lists = @(Get-ChildItem -Path $defaultListPath -Filter "*.json" -ErrorAction SilentlyContinue)
+                $targetList = $null
+
+                if ($lists.Count -gt 0) {
+                    Write-Host "  Import to existing list or create new?" -ForegroundColor Gray
+                    $i = 1
+                    foreach ($list in $lists) {
+                        Write-Host "    [$i] $($list.BaseName)" -ForegroundColor White
+                        $i++
+                    }
+                    Write-Host "    [N] Create new list" -ForegroundColor White
+                    Write-Host "    [C] Cancel" -ForegroundColor Gray
+                    $listChoice = Read-Host "  Select option"
+
+                    if ($listChoice -in @("C", "c")) { continue }
+
+                    if ($listChoice -match "^\d+$" -and [int]$listChoice -ge 1 -and [int]$listChoice -le $lists.Count) {
+                        $targetList = $lists[[int]$listChoice - 1].FullName
+                    }
+                }
+
+                if (-not $targetList) {
+                    $newName = Read-Host "  Enter new list name (default: InstalledPrograms)"
+                    if ([string]::IsNullOrWhiteSpace($newName)) { $newName = "InstalledPrograms" }
+                    $targetList = Join-Path $defaultListPath "$newName.json"
+                    New-SoftwareList -Name $newName -Description "Imported from installed programs" -OutputPath $defaultListPath | Out-Null
+                }
+
+                # Computer
+                $computer = Read-Host "  Computer name (default: localhost)"
+                if ([string]::IsNullOrWhiteSpace($computer)) { $computer = "localhost" }
+
+                # Include system components
+                $includeSys = Read-Host "  Include system components/updates? (y/N)"
+                $doIncludeSys = $includeSys -in @("y", "Y")
+
+                # Auto approve
+                $autoApprove = Read-Host "  Auto-approve imported items? (y/N)"
+                $doAutoApprove = $autoApprove -in @("y", "Y")
+
+                try {
+                    $importParams = @{
+                        ListPath     = $targetList
+                        ComputerName = $computer
+                    }
+                    if ($doIncludeSys) { $importParams.IncludeSystemComponents = $true }
+                    if ($doAutoApprove) { $importParams.AutoApprove = $true }
+
+                    Import-InstalledPrograms @importParams
+                }
+                catch {
+                    Write-Host "  [-] Import failed: $_" -ForegroundColor Red
+                }
+            }
+            { $_ -in @("C", "c") } {
+                # Certificate Chain / CA Trust Rules
+                Write-Host "`n  --- Certificate Authority Trust Rules ---" -ForegroundColor Cyan
+                Write-Host "  Create rules for software signed by specific CAs." -ForegroundColor Gray
+                Write-Host "  Useful for: DOD PKI, Enterprise PKI, Government CAs." -ForegroundColor Gray
+                Write-Host ""
+
+                # Get or create target list
+                $lists = @(Get-ChildItem -Path $defaultListPath -Filter "*.json" -ErrorAction SilentlyContinue)
+                $targetList = $null
+
+                if ($lists.Count -gt 0) {
+                    Write-Host "  Import to existing list or create new?" -ForegroundColor Gray
+                    $i = 1
+                    foreach ($list in $lists) {
+                        Write-Host "    [$i] $($list.BaseName)" -ForegroundColor White
+                        $i++
+                    }
+                    Write-Host "    [N] Create new list" -ForegroundColor White
+                    Write-Host "    [C] Cancel" -ForegroundColor Gray
+                    $listChoice = Read-Host "  Select option"
+
+                    if ($listChoice -in @("C", "c", "")) { continue }
+
+                    if ($listChoice -match "^\d+$" -and [int]$listChoice -ge 1 -and [int]$listChoice -le $lists.Count) {
+                        $targetList = $lists[[int]$listChoice - 1].FullName
+                    }
+                }
+
+                if (-not $targetList) {
+                    $newName = Read-Host "  Enter new list name (default: CA-Trust)"
+                    if ([string]::IsNullOrWhiteSpace($newName)) { $newName = "CA-Trust" }
+                    $targetList = Join-Path $defaultListPath "$newName.json"
+                    New-SoftwareList -Name $newName -Description "Certificate authority trust rules" -OutputPath $defaultListPath | Out-Null
+                }
+
+                # Select preset or custom
+                Write-Host ""
+                Write-Host "  Select CA preset or enter custom:" -ForegroundColor Gray
+                Write-Host "    [1] DOD PKI (Department of Defense)" -ForegroundColor White
+                Write-Host "    [2] Microsoft" -ForegroundColor White
+                Write-Host "    [3] Custom CA pattern" -ForegroundColor White
+                $presetChoice = Read-Host "  Choice"
+
+                $importParams = @{ ListPath = $targetList }
+
+                switch ($presetChoice) {
+                    "1" {
+                        $importParams.Preset = "DOD"
+                        Write-Host "  Using DOD PKI preset" -ForegroundColor Green
+                    }
+                    "2" {
+                        $importParams.Preset = "Microsoft"
+                        Write-Host "  Using Microsoft preset" -ForegroundColor Green
+                    }
+                    "3" {
+                        $caPattern = Read-Host "  Enter CA pattern (e.g., *CONTOSO*, *YOUR-CA-NAME*)"
+                        if ([string]::IsNullOrWhiteSpace($caPattern)) {
+                            Write-Host "  [-] CA pattern required" -ForegroundColor Red
+                            continue
+                        }
+                        $importParams.CertificateAuthority = $caPattern
+                    }
+                    default {
+                        Write-Host "  [-] Invalid choice" -ForegroundColor Red
+                        continue
+                    }
+                }
+
+                # Optional: scan a folder
+                Write-Host ""
+                $scanFolder = Read-Host "  Scan a folder for signed files? (leave blank to skip)"
+                if (-not [string]::IsNullOrWhiteSpace($scanFolder) -and (Test-Path $scanFolder)) {
+                    $importParams.ScanPath = $scanFolder
+                }
+
+                # Auto approve
+                $autoApprove = Read-Host "  Auto-approve imported items? (y/N)"
+                if ($autoApprove -in @("y", "Y")) { $importParams.AutoApprove = $true }
+
+                try {
+                    Import-CertificateChainRules @importParams
+                }
+                catch {
+                    Write-Host "  [-] Import failed: $_" -ForegroundColor Red
+                }
+            }
+            { $_ -in @("L", "l") } {
+                # Local Folder Scan
+                Write-Host "`n  --- Scan Local Folder ---" -ForegroundColor Cyan
+                Write-Host "  Scans a folder for executables (e.g., C:\Program Files)." -ForegroundColor Gray
+                Write-Host ""
+
+                # Get or create target list
+                $lists = @(Get-ChildItem -Path $defaultListPath -Filter "*.json" -ErrorAction SilentlyContinue)
+                $targetList = $null
+
+                if ($lists.Count -gt 0) {
+                    Write-Host "  Import to existing list or create new?" -ForegroundColor Gray
+                    $i = 1
+                    foreach ($list in $lists) {
+                        Write-Host "    [$i] $($list.BaseName)" -ForegroundColor White
+                        $i++
+                    }
+                    Write-Host "    [N] Create new list" -ForegroundColor White
+                    Write-Host "    [C] Cancel" -ForegroundColor Gray
+                    $listChoice = Read-Host "  Select option"
+
+                    if ($listChoice -in @("C", "c")) { continue }
+
+                    if ($listChoice -match "^\d+$" -and [int]$listChoice -ge 1 -and [int]$listChoice -le $lists.Count) {
+                        $targetList = $lists[[int]$listChoice - 1].FullName
+                    }
+                }
+
+                if (-not $targetList) {
+                    $newName = Read-Host "  Enter new list name (default: LocalScan)"
+                    if ([string]::IsNullOrWhiteSpace($newName)) { $newName = "LocalScan" }
+                    $targetList = Join-Path $defaultListPath "$newName.json"
+                    New-SoftwareList -Name $newName -Description "Local folder scan" -OutputPath $defaultListPath | Out-Null
+                }
+
+                # Folder path
+                Write-Host ""
+                Write-Host "  Common folders:" -ForegroundColor Gray
+                Write-Host "    C:\Program Files" -ForegroundColor DarkGray
+                Write-Host "    C:\Program Files (x86)" -ForegroundColor DarkGray
+                Write-Host "    %LOCALAPPDATA%\Programs" -ForegroundColor DarkGray
+                $folderPath = Read-Host "  Enter folder path to scan"
+
+                if ([string]::IsNullOrWhiteSpace($folderPath) -or -not (Test-Path $folderPath)) {
+                    Write-Host "  [-] Invalid folder path" -ForegroundColor Red
+                    continue
+                }
+
+                # Filter
+                Write-Host ""
+                Write-Host "  Import filter:" -ForegroundColor Gray
+                Write-Host "    [1] Signed only (publisher rules)" -ForegroundColor White
+                Write-Host "    [2] Unsigned only (hash rules)" -ForegroundColor White
+                Write-Host "    [3] All executables" -ForegroundColor White
+                $filterChoice = Read-Host "  Choice (default: 1)"
+
+                # Max depth
+                $depthInput = Read-Host "  Max scan depth (default: 5)"
+                $maxDepth = if ($depthInput -match "^\d+$") { [int]$depthInput } else { 5 }
+
+                # Auto approve
+                $autoApprove = Read-Host "  Auto-approve imported items? (y/N)"
+                $doAutoApprove = $autoApprove -in @("y", "Y")
+
+                try {
+                    $importParams = @{
+                        FolderPath = $folderPath
+                        ListPath   = $targetList
+                        MaxDepth   = $maxDepth
+                        Recurse    = $true
+                    }
+
+                    switch ($filterChoice) {
+                        "1" { $importParams.SignedOnly = $true }
+                        "2" { $importParams.UnsignedOnly = $true }
+                    }
+                    if ($doAutoApprove) { $importParams.AutoApprove = $true }
+
+                    Scan-LocalFolder @importParams
+                }
+                catch {
+                    Write-Host "  [-] Scan failed: $_" -ForegroundColor Red
+                }
             }
             "B" { }
             "b" { }

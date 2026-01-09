@@ -738,6 +738,855 @@ function Import-ExecutableToSoftwareList {
 }
 
 
+function Import-AppLockerEventLog {
+    <#
+    .SYNOPSIS
+    Imports blocked/audited executables from AppLocker event logs into a software list.
+
+    .DESCRIPTION
+    Parses AppLocker audit events (8003, 8004, 8006, 8007) to find executables that
+    were blocked or would be blocked. Creates software list entries for legitimate
+    software that needs allow rules.
+
+    Event IDs:
+    - 8003: EXE/DLL was allowed (audit)
+    - 8004: EXE/DLL was blocked or would be blocked (audit)
+    - 8006: Script/MSI was allowed (audit)
+    - 8007: Script/MSI was blocked or would be blocked (audit)
+
+    .PARAMETER ListPath
+    Path to the software list JSON file.
+
+    .PARAMETER ComputerName
+    Computer to query event logs from. Default: localhost
+
+    .PARAMETER Hours
+    Number of hours of logs to analyze. Default: 24
+
+    .PARAMETER EventType
+    Type of events to import: Blocked, Allowed, or All. Default: Blocked
+
+    .PARAMETER Category
+    Category to assign to imported items.
+
+    .PARAMETER AutoApprove
+    Automatically approve imported items.
+
+    .EXAMPLE
+    Import-AppLockerEventLog -ListPath .\SoftwareLists\Discovered.json -Hours 168 -EventType Blocked
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ListPath,
+
+        [string]$ComputerName = "localhost",
+
+        [int]$Hours = 24,
+
+        [ValidateSet("Blocked", "Allowed", "All")]
+        [string]$EventType = "Blocked",
+
+        [string]$Category = "EventLog-Discovered",
+
+        [switch]$AutoApprove,
+
+        [PSCredential]$Credential
+    )
+
+    # Create list if doesn't exist
+    if (-not (Test-Path $ListPath)) {
+        $listDir = Split-Path -Parent $ListPath
+        if (-not $listDir) { $listDir = "." }
+        $listName = [System.IO.Path]::GetFileNameWithoutExtension($ListPath)
+        New-SoftwareList -Name $listName -Description "Imported from AppLocker event logs" -OutputPath $listDir | Out-Null
+    }
+
+    $list = Get-SoftwareList -ListPath $ListPath
+
+    # Determine which event IDs to query
+    $eventIds = switch ($EventType) {
+        "Blocked" { @(8004, 8007) }
+        "Allowed" { @(8003, 8006) }
+        "All"     { @(8003, 8004, 8006, 8007) }
+    }
+
+    $startTime = (Get-Date).AddHours(-$Hours)
+
+    Write-Host "Querying AppLocker event logs..." -ForegroundColor Cyan
+    Write-Host "  Computer: $ComputerName" -ForegroundColor Gray
+    Write-Host "  Time range: Last $Hours hours" -ForegroundColor Gray
+    Write-Host "  Event types: $EventType (IDs: $($eventIds -join ', '))" -ForegroundColor Gray
+
+    try {
+        $getEventParams = @{
+            LogName      = "Microsoft-Windows-AppLocker/EXE and DLL"
+            Id           = $eventIds
+            StartTime    = $startTime
+            ErrorAction  = "SilentlyContinue"
+        }
+
+        if ($ComputerName -ne "localhost" -and $ComputerName -ne $env:COMPUTERNAME) {
+            $getEventParams.ComputerName = $ComputerName
+            if ($Credential) {
+                $getEventParams.Credential = $Credential
+            }
+        }
+
+        $events = @(Get-WinEvent @getEventParams)
+
+        # Also check MSI/Script log
+        $getEventParams.LogName = "Microsoft-Windows-AppLocker/MSI and Script"
+        $events += @(Get-WinEvent @getEventParams)
+    }
+    catch {
+        Write-Warning "Failed to query event logs: $_"
+        Write-Host "  Note: Requires administrative privileges and AppLocker in audit mode." -ForegroundColor Yellow
+        return $list
+    }
+
+    if ($events.Count -eq 0) {
+        Write-Host "  No AppLocker events found in the specified time range" -ForegroundColor Yellow
+        return $list
+    }
+
+    Write-Host "  Found $($events.Count) events" -ForegroundColor Gray
+
+    # Parse events and extract file information
+    $discoveredFiles = @{}
+
+    foreach ($event in $events) {
+        try {
+            $xml = [xml]$event.ToXml()
+            $data = @{}
+
+            foreach ($item in $xml.Event.EventData.Data) {
+                $data[$item.Name] = $item.'#text'
+            }
+
+            $filePath = $data['FilePath']
+            $fileHash = $data['FileHash']
+            $publisher = $data['PublisherName']
+            $userName = $data['UserName']
+
+            if (-not $filePath) { continue }
+
+            $fileName = [System.IO.Path]::GetFileName($filePath)
+            $key = if ($fileHash) { $fileHash } else { $filePath.ToLower() }
+
+            if (-not $discoveredFiles.ContainsKey($key)) {
+                $discoveredFiles[$key] = @{
+                    Name      = $fileName
+                    Path      = $filePath
+                    Hash      = $fileHash
+                    Publisher = $publisher
+                    EventId   = $event.Id
+                    Count     = 1
+                    Users     = @($userName)
+                }
+            }
+            else {
+                $discoveredFiles[$key].Count++
+                if ($userName -and $userName -notin $discoveredFiles[$key].Users) {
+                    $discoveredFiles[$key].Users += $userName
+                }
+            }
+        }
+        catch {
+            # Skip malformed events
+            continue
+        }
+    }
+
+    Write-Host "  Unique files discovered: $($discoveredFiles.Count)" -ForegroundColor Gray
+
+    # Import to software list
+    $importCount = 0
+    $listItems = @($list.items)
+
+    foreach ($file in $discoveredFiles.Values) {
+        # Skip if already in list
+        $exists = $listItems | Where-Object {
+            ($_.hash -and $file.Hash -and $_.hash -eq $file.Hash) -or
+            ($_.path -and $file.Path -and $_.path -eq $file.Path)
+        }
+        if ($exists) { continue }
+
+        # Determine rule type
+        $ruleType = if ($file.Publisher) { "Publisher" } elseif ($file.Hash) { "Hash" } else { "Path" }
+
+        $eventDesc = if ($file.EventId -in @(8004, 8007)) { "Blocked" } else { "Audited" }
+        $notes = "$eventDesc $($file.Count) time(s). Users: $($file.Users -join ', ')"
+
+        $newItem = [PSCustomObject]@{
+            id             = [guid]::NewGuid().ToString()
+            name           = $file.Name
+            publisher      = $file.Publisher
+            productName    = "*"
+            binaryName     = $file.Name
+            minVersion     = "*"
+            maxVersion     = "*"
+            hash           = $file.Hash
+            hashSourceFile = $file.Name
+            hashSourceSize = 0
+            path           = $file.Path
+            category       = $Category
+            notes          = $notes
+            approved       = [bool]$AutoApprove
+            ruleType       = $ruleType
+            added          = (Get-Date).ToString("o")
+            addedBy        = if ($env:USERNAME) { $env:USERNAME } else { "System" }
+        }
+
+        $listItems += $newItem
+        $importCount++
+    }
+
+    $list.items = $listItems
+    Save-SoftwareList -List $list -ListPath $ListPath
+
+    Write-Host "Imported $importCount items from event logs" -ForegroundColor Green
+
+    return $list
+}
+
+
+function Import-InstalledPrograms {
+    <#
+    .SYNOPSIS
+    Imports installed programs from registry into a software list.
+
+    .DESCRIPTION
+    Queries the Windows registry for installed programs and creates software
+    list entries with publisher information for rule generation.
+
+    .PARAMETER ListPath
+    Path to the software list JSON file.
+
+    .PARAMETER ComputerName
+    Computer to query. Default: localhost
+
+    .PARAMETER Category
+    Category to assign to imported items.
+
+    .PARAMETER AutoApprove
+    Automatically approve imported items.
+
+    .PARAMETER IncludeSystemComponents
+    Include system components and updates.
+
+    .EXAMPLE
+    Import-InstalledPrograms -ListPath .\SoftwareLists\Installed.json -AutoApprove
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ListPath,
+
+        [string]$ComputerName = "localhost",
+
+        [string]$Category = "Installed",
+
+        [switch]$AutoApprove,
+
+        [switch]$IncludeSystemComponents,
+
+        [PSCredential]$Credential
+    )
+
+    # Create list if doesn't exist
+    if (-not (Test-Path $ListPath)) {
+        $listDir = Split-Path -Parent $ListPath
+        if (-not $listDir) { $listDir = "." }
+        $listName = [System.IO.Path]::GetFileNameWithoutExtension($ListPath)
+        New-SoftwareList -Name $listName -Description "Imported from installed programs" -OutputPath $listDir | Out-Null
+    }
+
+    $list = Get-SoftwareList -ListPath $ListPath
+
+    Write-Host "Querying installed programs..." -ForegroundColor Cyan
+
+    $regPaths = @(
+        "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*",
+        "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*"
+    )
+
+    $installedApps = @()
+
+    $scriptBlock = {
+        param($regPaths, $IncludeSystemComponents)
+
+        $apps = @()
+        foreach ($path in $regPaths) {
+            $items = Get-ItemProperty -Path $path -ErrorAction SilentlyContinue
+            foreach ($item in $items) {
+                if (-not $item.DisplayName) { continue }
+
+                # Skip system components unless requested
+                if (-not $IncludeSystemComponents) {
+                    if ($item.SystemComponent -eq 1) { continue }
+                    if ($item.DisplayName -match "^(Update for|Security Update|Hotfix)") { continue }
+                    if ($item.ReleaseType -in @("Update", "Hotfix", "Security Update")) { continue }
+                }
+
+                $apps += [PSCustomObject]@{
+                    Name           = $item.DisplayName
+                    Publisher      = $item.Publisher
+                    Version        = $item.DisplayVersion
+                    InstallDate    = $item.InstallDate
+                    InstallLocation = $item.InstallLocation
+                    UninstallString = $item.UninstallString
+                }
+            }
+        }
+        return $apps
+    }
+
+    try {
+        if ($ComputerName -eq "localhost" -or $ComputerName -eq $env:COMPUTERNAME) {
+            $installedApps = & $scriptBlock -regPaths $regPaths -IncludeSystemComponents $IncludeSystemComponents
+        }
+        else {
+            $invokeParams = @{
+                ComputerName = $ComputerName
+                ScriptBlock  = $scriptBlock
+                ArgumentList = @($regPaths, $IncludeSystemComponents)
+            }
+            if ($Credential) {
+                $invokeParams.Credential = $Credential
+            }
+            $installedApps = Invoke-Command @invokeParams
+        }
+    }
+    catch {
+        Write-Warning "Failed to query installed programs: $_"
+        return $list
+    }
+
+    # Deduplicate by name
+    $uniqueApps = $installedApps | Group-Object Name | ForEach-Object { $_.Group | Select-Object -First 1 }
+
+    Write-Host "  Found $($uniqueApps.Count) installed programs" -ForegroundColor Gray
+
+    # Import to software list
+    $importCount = 0
+    $listItems = @($list.items)
+    $addedPublishers = @{}
+
+    foreach ($app in $uniqueApps) {
+        if (-not $app.Publisher) { continue }
+
+        # Normalize publisher name
+        $publisher = $app.Publisher.ToUpper().Trim()
+
+        # Skip if publisher already added (dedupe by publisher)
+        if ($addedPublishers.ContainsKey($publisher)) { continue }
+
+        # Skip if already in list
+        $exists = $listItems | Where-Object { $_.publisher -and $_.publisher.ToUpper() -eq $publisher }
+        if ($exists) { continue }
+
+        $newItem = [PSCustomObject]@{
+            id             = [guid]::NewGuid().ToString()
+            name           = $app.Name
+            publisher      = $publisher
+            productName    = $app.Name
+            binaryName     = "*"
+            minVersion     = "*"
+            maxVersion     = "*"
+            hash           = $null
+            hashSourceFile = $null
+            hashSourceSize = 0
+            path           = $app.InstallLocation
+            category       = $Category
+            notes          = "Installed program. Version: $($app.Version)"
+            approved       = [bool]$AutoApprove
+            ruleType       = "Publisher"
+            added          = (Get-Date).ToString("o")
+            addedBy        = if ($env:USERNAME) { $env:USERNAME } else { "System" }
+        }
+
+        $listItems += $newItem
+        $addedPublishers[$publisher] = $true
+        $importCount++
+    }
+
+    $list.items = $listItems
+    Save-SoftwareList -List $list -ListPath $ListPath
+
+    Write-Host "Imported $importCount publishers from installed programs" -ForegroundColor Green
+
+    return $list
+}
+
+
+function Import-CertificateChainRules {
+    <#
+    .SYNOPSIS
+    Creates publisher rules based on certificate chain (CA) trust.
+
+    .DESCRIPTION
+    Generates rules that allow software signed by certificates issued by specific
+    Certificate Authorities. Useful for enterprise PKI environments including
+    DOD PKI, corporate CAs, and government CAs.
+
+    .PARAMETER ListPath
+    Path to the software list JSON file.
+
+    .PARAMETER CertificateAuthority
+    Name pattern of the CA to trust (supports wildcards).
+
+    .PARAMETER Preset
+    Use a preset CA configuration: DOD, Microsoft, Custom
+
+    .PARAMETER TrustChain
+    Trust level: Immediate (direct signer), Intermediate, or Root
+
+    .PARAMETER Category
+    Category to assign.
+
+    .PARAMETER ScanPath
+    Optional: Scan a folder and import only files signed by matching CAs.
+
+    .EXAMPLE
+    # Trust all DOD-signed software
+    Import-CertificateChainRules -ListPath .\list.json -Preset DOD -Category "Government"
+
+    .EXAMPLE
+    # Trust software signed by specific CA
+    Import-CertificateChainRules -ListPath .\list.json -CertificateAuthority "*CONTOSO*" -Category "Enterprise"
+
+    .EXAMPLE
+    # Scan folder and import only DOD-signed files
+    Import-CertificateChainRules -ListPath .\list.json -Preset DOD -ScanPath "C:\Program Files"
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ListPath,
+
+        [string]$CertificateAuthority,
+
+        [ValidateSet("DOD", "Microsoft", "Custom")]
+        [string]$Preset,
+
+        [ValidateSet("Immediate", "Intermediate", "Root")]
+        [string]$TrustChain = "Immediate",
+
+        [string]$Category = "Certificate-Trust",
+
+        [string]$ScanPath,
+
+        [switch]$AutoApprove
+    )
+
+    # Define CA presets
+    $caPresets = @{
+        DOD = @{
+            Name = "DOD PKI"
+            Patterns = @(
+                "*DOD*CA*",
+                "*DEPARTMENT OF DEFENSE*",
+                "*DOD ID CA*",
+                "*DOD EMAIL CA*",
+                "*DOD SW CA*",
+                "*DOD ROOT CA*",
+                "*US GOVERNMENT*",
+                "*DISA*"
+            )
+            Category = "Government-DOD"
+            Notes = "DOD PKI trusted certificate chain"
+        }
+        Microsoft = @{
+            Name = "Microsoft PKI"
+            Patterns = @(
+                "*MICROSOFT*",
+                "*Microsoft Corporation*",
+                "*Microsoft Code Signing*",
+                "*Microsoft Root*",
+                "*Microsoft Authenticode*"
+            )
+            Category = "Microsoft"
+            Notes = "Microsoft certificate chain"
+        }
+    }
+
+    # Create list if doesn't exist
+    if (-not (Test-Path $ListPath)) {
+        $listDir = Split-Path -Parent $ListPath
+        if (-not $listDir) { $listDir = "." }
+        $listName = [System.IO.Path]::GetFileNameWithoutExtension($ListPath)
+        New-SoftwareList -Name $listName -Description "Certificate chain trust rules" -OutputPath $listDir | Out-Null
+    }
+
+    $list = Get-SoftwareList -ListPath $ListPath
+
+    # Determine CA patterns to match
+    $caPatterns = @()
+    $presetConfig = $null
+
+    if ($Preset -and $caPresets.ContainsKey($Preset)) {
+        $presetConfig = $caPresets[$Preset]
+        $caPatterns = $presetConfig.Patterns
+        if (-not $Category -or $Category -eq "Certificate-Trust") {
+            $Category = $presetConfig.Category
+        }
+        Write-Host "Using preset: $($presetConfig.Name)" -ForegroundColor Cyan
+    }
+    elseif ($CertificateAuthority) {
+        $caPatterns = @($CertificateAuthority)
+    }
+    else {
+        Write-Warning "Either -Preset or -CertificateAuthority must be specified"
+        return $list
+    }
+
+    Write-Host "Certificate Authority patterns:" -ForegroundColor Gray
+    foreach ($pattern in $caPatterns) {
+        Write-Host "  - $pattern" -ForegroundColor Gray
+    }
+
+    $listItems = @($list.items)
+    $importCount = 0
+
+    if ($ScanPath -and (Test-Path $ScanPath)) {
+        # Scan mode: find files matching CA patterns
+        Write-Host "Scanning $ScanPath for signed executables..." -ForegroundColor Cyan
+
+        $extensions = @("*.exe", "*.dll", "*.msi")
+        $files = @()
+
+        foreach ($ext in $extensions) {
+            $files += Get-ChildItem -Path $ScanPath -Filter $ext -Recurse -ErrorAction SilentlyContinue
+        }
+
+        Write-Host "  Found $($files.Count) files to check" -ForegroundColor Gray
+
+        $matchedFiles = @()
+
+        foreach ($file in $files) {
+            try {
+                $sig = Get-AuthenticodeSignature -FilePath $file.FullName -ErrorAction SilentlyContinue
+
+                if ($sig.Status -ne "Valid") { continue }
+
+                $cert = $sig.SignerCertificate
+                if (-not $cert) { continue }
+
+                # Check certificate chain based on trust level
+                $certToCheck = switch ($TrustChain) {
+                    "Immediate" { $cert }
+                    "Intermediate" {
+                        $chain = New-Object System.Security.Cryptography.X509Certificates.X509Chain
+                        $chain.Build($cert) | Out-Null
+                        if ($chain.ChainElements.Count -gt 1) {
+                            $chain.ChainElements[1].Certificate
+                        } else { $cert }
+                    }
+                    "Root" {
+                        $chain = New-Object System.Security.Cryptography.X509Certificates.X509Chain
+                        $chain.Build($cert) | Out-Null
+                        $chain.ChainElements[$chain.ChainElements.Count - 1].Certificate
+                    }
+                }
+
+                $certSubject = $certToCheck.Subject
+                $certIssuer = $certToCheck.Issuer
+
+                # Check if matches any CA pattern
+                $matches = $false
+                foreach ($pattern in $caPatterns) {
+                    if ($certSubject -like $pattern -or $certIssuer -like $pattern) {
+                        $matches = $true
+                        break
+                    }
+                }
+
+                if ($matches) {
+                    # Extract publisher from signer cert
+                    $publisher = $null
+                    if ($cert.Subject -match "O=([^,]+)") {
+                        $publisher = $Matches[1].Trim('"')
+                    }
+
+                    $matchedFiles += @{
+                        Name      = $file.Name
+                        Path      = $file.FullName
+                        Publisher = $publisher
+                        Issuer    = $certIssuer
+                        Hash      = (Get-FileHash -Path $file.FullName -Algorithm SHA256 -ErrorAction SilentlyContinue).Hash
+                        Size      = $file.Length
+                    }
+                }
+            }
+            catch {
+                continue
+            }
+        }
+
+        Write-Host "  Matched $($matchedFiles.Count) files signed by trusted CAs" -ForegroundColor Green
+
+        # Import matched files
+        $addedPublishers = @{}
+
+        foreach ($file in $matchedFiles) {
+            if (-not $file.Publisher) { continue }
+
+            # Dedupe by publisher
+            if ($addedPublishers.ContainsKey($file.Publisher)) { continue }
+
+            # Check if already in list
+            $exists = $listItems | Where-Object { $_.publisher -eq $file.Publisher }
+            if ($exists) { continue }
+
+            $notes = if ($presetConfig) { $presetConfig.Notes } else { "CA: $($file.Issuer)" }
+
+            $newItem = [PSCustomObject]@{
+                id             = [guid]::NewGuid().ToString()
+                name           = $file.Name
+                publisher      = $file.Publisher
+                productName    = "*"
+                binaryName     = "*"
+                minVersion     = "*"
+                maxVersion     = "*"
+                hash           = $null
+                hashSourceFile = $null
+                hashSourceSize = 0
+                path           = $null
+                category       = $Category
+                notes          = $notes
+                approved       = [bool]$AutoApprove
+                ruleType       = "Publisher"
+                added          = (Get-Date).ToString("o")
+                addedBy        = if ($env:USERNAME) { $env:USERNAME } else { "System" }
+            }
+
+            $listItems += $newItem
+            $addedPublishers[$file.Publisher] = $true
+            $importCount++
+        }
+    }
+    else {
+        # No scan path - create generic CA trust entries
+        Write-Host "Creating CA trust entries..." -ForegroundColor Cyan
+
+        foreach ($pattern in $caPatterns) {
+            # Create a publisher pattern entry
+            $cleanPattern = $pattern.Replace("*", "").Trim()
+            if (-not $cleanPattern) { continue }
+
+            # Check if already in list
+            $exists = $listItems | Where-Object { $_.publisher -like $pattern }
+            if ($exists) { continue }
+
+            $notes = if ($presetConfig) { $presetConfig.Notes } else { "Certificate Authority trust pattern" }
+
+            $newItem = [PSCustomObject]@{
+                id             = [guid]::NewGuid().ToString()
+                name           = "CA Trust: $cleanPattern"
+                publisher      = $pattern
+                productName    = "*"
+                binaryName     = "*"
+                minVersion     = "*"
+                maxVersion     = "*"
+                hash           = $null
+                hashSourceFile = $null
+                hashSourceSize = 0
+                path           = $null
+                category       = $Category
+                notes          = $notes
+                approved       = [bool]$AutoApprove
+                ruleType       = "Publisher"
+                added          = (Get-Date).ToString("o")
+                addedBy        = if ($env:USERNAME) { $env:USERNAME } else { "System" }
+            }
+
+            $listItems += $newItem
+            $importCount++
+        }
+    }
+
+    $list.items = $listItems
+    Save-SoftwareList -List $list -ListPath $ListPath
+
+    Write-Host "Added $importCount certificate chain trust entries" -ForegroundColor Green
+
+    return $list
+}
+
+
+function Scan-LocalFolder {
+    <#
+    .SYNOPSIS
+    Scans a local folder for executables and imports them to a software list.
+
+    .DESCRIPTION
+    Recursively scans a folder (like C:\Program Files) for executables,
+    extracts signature and hash information, and adds them to a software list.
+
+    .PARAMETER FolderPath
+    Path to the folder to scan.
+
+    .PARAMETER ListPath
+    Path to the software list JSON file.
+
+    .PARAMETER Category
+    Category to assign.
+
+    .PARAMETER SignedOnly
+    Only import signed executables.
+
+    .PARAMETER Recurse
+    Recursively scan subfolders. Default: $true
+
+    .PARAMETER MaxDepth
+    Maximum folder depth to scan.
+
+    .EXAMPLE
+    Scan-LocalFolder -FolderPath "C:\Program Files" -ListPath .\list.json -SignedOnly
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateScript({ Test-Path $_ -PathType Container })]
+        [string]$FolderPath,
+
+        [Parameter(Mandatory = $true)]
+        [string]$ListPath,
+
+        [string]$Category = "Local-Scan",
+
+        [switch]$SignedOnly,
+
+        [switch]$UnsignedOnly,
+
+        [switch]$Recurse = $true,
+
+        [int]$MaxDepth = 5,
+
+        [switch]$AutoApprove
+    )
+
+    # Create list if doesn't exist
+    if (-not (Test-Path $ListPath)) {
+        $listDir = Split-Path -Parent $ListPath
+        if (-not $listDir) { $listDir = "." }
+        $listName = [System.IO.Path]::GetFileNameWithoutExtension($ListPath)
+        New-SoftwareList -Name $listName -Description "Local folder scan" -OutputPath $listDir | Out-Null
+    }
+
+    $list = Get-SoftwareList -ListPath $ListPath
+
+    Write-Host "Scanning $FolderPath..." -ForegroundColor Cyan
+
+    $extensions = @("*.exe", "*.dll")
+    $files = @()
+
+    foreach ($ext in $extensions) {
+        if ($Recurse) {
+            $files += Get-ChildItem -Path $FolderPath -Filter $ext -Recurse -Depth $MaxDepth -ErrorAction SilentlyContinue
+        }
+        else {
+            $files += Get-ChildItem -Path $FolderPath -Filter $ext -ErrorAction SilentlyContinue
+        }
+    }
+
+    Write-Host "  Found $($files.Count) executable files" -ForegroundColor Gray
+
+    $listItems = @($list.items)
+    $importCount = 0
+    $addedPublishers = @{}
+    $addedHashes = @{}
+    $processed = 0
+
+    foreach ($file in $files) {
+        $processed++
+        if ($processed % 100 -eq 0) {
+            Write-Host "  Processing: $processed / $($files.Count)" -ForegroundColor DarkGray
+        }
+
+        try {
+            $sig = Get-AuthenticodeSignature -FilePath $file.FullName -ErrorAction SilentlyContinue
+            $isSigned = $sig -and $sig.Status -eq "Valid"
+
+            # Apply filters
+            if ($SignedOnly -and -not $isSigned) { continue }
+            if ($UnsignedOnly -and $isSigned) { continue }
+
+            $publisher = $null
+            if ($isSigned -and $sig.SignerCertificate) {
+                if ($sig.SignerCertificate.Subject -match "O=([^,]+)") {
+                    $publisher = $Matches[1].Trim('"')
+                }
+            }
+
+            $ruleType = if ($isSigned -and $publisher) { "Publisher" } else { "Hash" }
+
+            # Deduplicate
+            if ($ruleType -eq "Publisher" -and $publisher) {
+                if ($addedPublishers.ContainsKey($publisher)) { continue }
+            }
+
+            $hash = (Get-FileHash -Path $file.FullName -Algorithm SHA256 -ErrorAction SilentlyContinue).Hash
+            if ($ruleType -eq "Hash") {
+                if (-not $hash) { continue }
+                if ($addedHashes.ContainsKey($hash)) { continue }
+            }
+
+            # Check if already in list
+            $exists = $listItems | Where-Object {
+                ($_.publisher -and $publisher -and $_.publisher -eq $publisher) -or
+                ($_.hash -and $hash -and $_.hash -eq $hash)
+            }
+            if ($exists) { continue }
+
+            $newItem = [PSCustomObject]@{
+                id             = [guid]::NewGuid().ToString()
+                name           = $file.Name
+                publisher      = $publisher
+                productName    = "*"
+                binaryName     = if ($ruleType -eq "Publisher") { "*" } else { $file.Name }
+                minVersion     = "*"
+                maxVersion     = "*"
+                hash           = if ($ruleType -eq "Hash") { $hash } else { $null }
+                hashSourceFile = if ($ruleType -eq "Hash") { $file.Name } else { $null }
+                hashSourceSize = if ($ruleType -eq "Hash") { $file.Length } else { 0 }
+                path           = $file.FullName
+                category       = $Category
+                notes          = "Scanned from: $FolderPath"
+                approved       = [bool]$AutoApprove
+                ruleType       = $ruleType
+                added          = (Get-Date).ToString("o")
+                addedBy        = if ($env:USERNAME) { $env:USERNAME } else { "System" }
+            }
+
+            $listItems += $newItem
+
+            if ($ruleType -eq "Publisher" -and $publisher) {
+                $addedPublishers[$publisher] = $true
+            }
+            elseif ($ruleType -eq "Hash" -and $hash) {
+                $addedHashes[$hash] = $true
+            }
+
+            $importCount++
+        }
+        catch {
+            continue
+        }
+    }
+
+    $list.items = $listItems
+    Save-SoftwareList -List $list -ListPath $ListPath
+
+    Write-Host "Imported $importCount items" -ForegroundColor Green
+    Write-Host "  Publisher rules: $($addedPublishers.Count)" -ForegroundColor Gray
+    Write-Host "  Hash rules: $($addedHashes.Count)" -ForegroundColor Gray
+
+    return $list
+}
+
+
 # =============================================================================
 # Rule Generation Functions
 # =============================================================================
@@ -1231,6 +2080,10 @@ if ($MyInvocation.MyCommand.ScriptBlock.Module) {
         # Import Functions
         'Import-ScanDataToSoftwareList',
         'Import-ExecutableToSoftwareList',
+        'Import-AppLockerEventLog',
+        'Import-InstalledPrograms',
+        'Import-CertificateChainRules',
+        'Scan-LocalFolder',
 
         # Rule Generation
         'Get-SoftwareListRules',
