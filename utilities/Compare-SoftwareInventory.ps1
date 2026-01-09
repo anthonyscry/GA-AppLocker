@@ -368,9 +368,13 @@ foreach ($compareFile in $compareFiles) {
 Write-Host ""
 Write-Host "Exporting comparison results..." -ForegroundColor Yellow
 
-# Generate output path if not specified
+# Generate output path if not specified - default to SoftwareLists/Comparisons
 if (-not $OutputPath) {
-    $OutputPath = ".\SoftwareComparison-$timestamp"
+    $comparisonsPath = ".\SoftwareLists\Comparisons"
+    if (-not (Test-Path $comparisonsPath)) {
+        New-Item -ItemType Directory -Path $comparisonsPath -Force | Out-Null
+    }
+    $OutputPath = "$comparisonsPath\SoftwareComparison-$timestamp"
 }
 
 # Remove extension from output path for multi-format support

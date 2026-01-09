@@ -165,6 +165,7 @@ function Show-Menu {
     Write-Host "    [7] AD Setup   - Create AppLocker OUs and groups" -ForegroundColor White
     Write-Host "    [8] AD Export  - Export user group memberships" -ForegroundColor White
     Write-Host "    [9] AD Import  - Apply group membership changes" -ForegroundColor White
+    Write-Host "    [C] Computers  - Export computer list from AD for scanning" -ForegroundColor White
     Write-Host ""
     Write-Host "  === Infrastructure ===" -ForegroundColor Cyan
     Write-Host "    [W] WinRM      - Deploy/Remove WinRM GPO" -ForegroundColor White
@@ -208,11 +209,27 @@ function Invoke-ScanWorkflow {
 
     Write-Host "`n=== Remote Scan Workflow ===" -ForegroundColor Cyan
 
-    # Get computer list using helper function
+    # Get computer list - check common locations
     if ([string]::IsNullOrWhiteSpace($ComputerListPath)) {
-        $ComputerListPath = Get-ValidatedPath -Prompt "  Enter path to computer list file" `
-            -DefaultValue ".\computers.txt" `
-            -MustExist -MustBeFile
+        # Check for common computer list files
+        $defaultPath = ".\computers.txt"
+        $adComputersPath = ".\ADManagement\AD-computers.txt"
+
+        if (Test-Path $defaultPath -PathType Leaf) {
+            $ComputerListPath = Get-ValidatedPath -Prompt "  Enter path to computer list file" `
+                -DefaultValue $defaultPath `
+                -MustExist -MustBeFile
+        }
+        elseif (Test-Path $adComputersPath -PathType Leaf) {
+            $ComputerListPath = Get-ValidatedPath -Prompt "  Enter path to computer list file" `
+                -DefaultValue $adComputersPath `
+                -MustExist -MustBeFile
+        }
+        else {
+            $ComputerListPath = Get-ValidatedPath -Prompt "  Enter path to computer list file" `
+                -DefaultValue $defaultPath `
+                -MustExist -MustBeFile
+        }
         if (-not $ComputerListPath) { return $null }
     }
     elseif (-not (Test-Path $ComputerListPath -PathType Leaf)) {
@@ -1025,9 +1042,15 @@ function Invoke-ADExportWorkflow {
     Write-Host "  Exports users and their group memberships to CSV for editing." -ForegroundColor Gray
     Write-Host ""
 
-    # Get output path
+    # Ensure ADManagement folder exists
+    $adMgmtPath = ".\ADManagement"
+    if (-not (Test-Path $adMgmtPath)) {
+        New-Item -ItemType Directory -Path $adMgmtPath -Force | Out-Null
+    }
+
+    # Get output path - default to ADManagement folder
     if ([string]::IsNullOrWhiteSpace($OutPath)) {
-        $defaultPath = ".\ADUserGroups-Export.csv"
+        $defaultPath = ".\ADManagement\ADUserGroups-Export.csv"
         $OutPath = Read-Host "  Enter output path (default: $defaultPath)"
         if ([string]::IsNullOrWhiteSpace($OutPath)) {
             $OutPath = $defaultPath
@@ -1072,10 +1095,10 @@ function Invoke-ADImportWorkflow {
     Write-Host "  Applies group membership changes from CSV to Active Directory." -ForegroundColor Gray
     Write-Host ""
 
-    # Get input path - default to groups.csv
+    # Get input path - default to ADManagement/groups.csv
     if ([string]::IsNullOrWhiteSpace($InPath)) {
         $InPath = Get-ValidatedPath -Prompt "  Enter path to CSV file with group changes" `
-            -DefaultValue ".\groups.csv" `
+            -DefaultValue ".\ADManagement\groups.csv" `
             -MustExist -MustBeFile
         if (-not $InPath) { return $null }
     }
@@ -1107,6 +1130,76 @@ function Invoke-ADImportWorkflow {
         }
         catch {
             Write-Host "  [-] AD import failed: $($_.Exception.Message)" -ForegroundColor Red
+        }
+    }
+    else {
+        Write-Host "  [-] AD management script not found: $adScript" -ForegroundColor Red
+    }
+}
+
+function Invoke-ADComputersWorkflow {
+    param(
+        [string]$OutPath,
+        [string]$Type,
+        [string]$Search
+    )
+
+    Write-Host "`n=== Export AD Computers ===" -ForegroundColor Cyan
+    Write-Host "  Exports computer names from Active Directory to a text file for scanning." -ForegroundColor Gray
+    Write-Host ""
+
+    # Ensure ADManagement folder exists
+    $adMgmtPath = ".\ADManagement"
+    if (-not (Test-Path $adMgmtPath)) {
+        New-Item -ItemType Directory -Path $adMgmtPath -Force | Out-Null
+    }
+
+    # Get output path - default to ADManagement folder
+    if ([string]::IsNullOrWhiteSpace($OutPath)) {
+        $defaultPath = ".\ADManagement\AD-computers.txt"
+        $OutPath = Read-Host "  Enter output path (default: $defaultPath)"
+        if ([string]::IsNullOrWhiteSpace($OutPath)) {
+            $OutPath = $defaultPath
+        }
+    }
+
+    # Get computer type
+    if ([string]::IsNullOrWhiteSpace($Type)) {
+        Write-Host ""
+        Write-Host "  Computer Type:" -ForegroundColor Yellow
+        Write-Host "    [1] All computers (default)" -ForegroundColor White
+        Write-Host "    [2] Workstations only" -ForegroundColor White
+        Write-Host "    [3] Servers only" -ForegroundColor White
+        Write-Host "    [4] Domain Controllers only" -ForegroundColor White
+        $typeChoice = Read-Host "  Enter choice (default: 1)"
+        $Type = switch ($typeChoice) {
+            "2" { "Workstations" }
+            "3" { "Servers" }
+            "4" { "DomainControllers" }
+            default { "All" }
+        }
+    }
+
+    $adScript = Join-Path $scriptRoot "utilities\Manage-ADResources.ps1"
+    if (Test-Path $adScript) {
+        $adParams = @{
+            Action       = "ExportComputers"
+            OutputPath   = $OutPath
+            ComputerType = $Type
+            EnabledOnly  = $true
+        }
+        if (-not [string]::IsNullOrWhiteSpace($Search)) {
+            $adParams.SearchBase = $Search
+        }
+
+        try {
+            & $adScript @adParams
+            Write-Host ""
+            Write-Host "  Tip: Use this file with [1] Scan workflow:" -ForegroundColor Cyan
+            Write-Host "       .\Start-AppLockerWorkflow.ps1 -Mode Scan -ComputerList $OutPath" -ForegroundColor DarkGray
+        }
+        catch {
+            Write-Host "  [-] AD export failed: $($_.Exception.Message)" -ForegroundColor Red
         }
     }
     else {
@@ -2223,6 +2316,7 @@ do {
         "7" { Invoke-ADSetupWorkflow }
         "8" { Invoke-ADExportWorkflow }
         "9" { Invoke-ADImportWorkflow }
+        "C" { Invoke-ADComputersWorkflow }
         "E" { Invoke-EventCollectionWorkflow }
         "W" { Invoke-WinRMMenuWorkflow }
         "S" { Invoke-SoftwareListWorkflow }
@@ -2236,7 +2330,7 @@ do {
         }
     }
 
-    if ($choice -in @("1", "2", "3", "4", "5", "6", "7", "8", "9", "E", "W", "S", "D")) {
+    if ($choice -in @("1", "2", "3", "4", "5", "6", "7", "8", "9", "C", "E", "W", "S", "D")) {
         Write-Host ""
         Read-Host "  Press Enter to continue"
         Clear-Host
