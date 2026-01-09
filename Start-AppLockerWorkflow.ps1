@@ -1732,7 +1732,7 @@ function Invoke-SoftwareListWorkflow {
                 Write-Host "  This uses Build Guide mode with proper AppLocker groups:" -ForegroundColor Gray
                 Write-Host "    - AppLocker-Admins: Microsoft + approved vendor publishers" -ForegroundColor DarkGray
                 Write-Host "    - AppLocker-StandardUsers: Path-based allows only (least privilege)" -ForegroundColor DarkGray
-                Write-Host "    - AppLocker-Service-Accounts: Vendor publishers only" -ForegroundColor DarkGray
+                Write-Host "    - AppLocker-ServiceAccounts: Vendor publishers only" -ForegroundColor DarkGray
                 Write-Host "    - AppLocker-Installers: Vendor MSI access" -ForegroundColor DarkGray
                 Write-Host ""
 
@@ -1828,7 +1828,7 @@ function Invoke-SoftwareListWorkflow {
                 Write-Host "  AppLocker Groups (will be created/used):" -ForegroundColor Yellow
                 Write-Host "    $domainName\AppLocker-Admins" -ForegroundColor DarkGray
                 Write-Host "    $domainName\AppLocker-StandardUsers" -ForegroundColor DarkGray
-                Write-Host "    $domainName\AppLocker-Service-Accounts" -ForegroundColor DarkGray
+                Write-Host "    $domainName\AppLocker-ServiceAccounts" -ForegroundColor DarkGray
                 Write-Host "    $domainName\AppLocker-Installers" -ForegroundColor DarkGray
                 Write-Host "  ================================================" -ForegroundColor Cyan
                 Write-Host ""
