@@ -480,9 +480,12 @@ GA-AppLocker/
 ├── Logs/                               # Operation log files (auto-created)
 │   ├── RemoteScan-YYYYMMDD-HHMMSS.log
 │   └── EventCollection-YYYYMMDD-HHMMSS.log
+├── Reports/                            # Compliance reports (auto-created)
+│   └── ComplianceReport-YYYYMMDD.html
 └── utilities/
     ├── Common.psm1                     # Shared functions (SID, XML, validation, logging)
     ├── Config.psd1                     # Configuration (LOLBins, paths, SIDs)
+    ├── New-ComplianceReport.ps1        # Compliance report generator for auditors
     ├── Manage-SoftwareLists.ps1        # Software list management
     ├── Enable-WinRM-Domain.ps1         # WinRM GPO deployment
     ├── Manage-ADResources.ps1          # AD group/OU management
@@ -768,6 +771,243 @@ After enforcement, ongoing monitoring ensures policy effectiveness:
 2. **Monthly Policy Review**: Assess if new applications require rules
 3. **Quarterly Compliance Audit**: Verify policy matches documented baseline
 4. **Annual Full Assessment**: Re-scan environment for software drift
+
+### Compliance Reporting
+
+Generate compliance reports for auditors using the built-in report generator:
+
+```powershell
+# Generate HTML compliance report (recommended for auditors)
+.\utilities\New-ComplianceReport.ps1 -Format HTML
+
+# Generate Markdown report
+.\utilities\New-ComplianceReport.ps1 -Format Markdown
+
+# Generate plain text report
+.\utilities\New-ComplianceReport.ps1 -Format Text
+```
+
+The compliance report includes:
+- **Executive Summary** with compliance score (0-100%)
+- **Checklist Verification** against 9 compliance requirements
+- **Evidence Inventory** of all artifacts (scans, events, policies, logs)
+- **Recommendations** for addressing gaps
+- **Control Framework Mappings** (NIST, CIS, CMMC)
+
+---
+
+## Exception Handling Workflow
+
+A documented exception process ensures accountability while allowing legitimate business needs.
+
+### Exception Request Process
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  STEP 1: REQUEST SUBMISSION                                         │
+│  ───────────────────────────────────────────────────────────────── │
+│  User/Department submits request including:                         │
+│  • Application name, publisher, version                             │
+│  • Business justification                                           │
+│  • Risk acknowledgment                                              │
+│  • Requested duration (temporary vs permanent)                      │
+└─────────────────────────────────────────────────────────────────────┘
+                                    ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│  STEP 2: SECURITY REVIEW                                            │
+│  ───────────────────────────────────────────────────────────────── │
+│  Security team evaluates:                                           │
+│  • Is the application signed by a trusted publisher?                │
+│  • Has the application been scanned for malware?                    │
+│  • Are there alternative approved applications?                     │
+│  • What is the risk level of the exception?                         │
+└─────────────────────────────────────────────────────────────────────┘
+                                    ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│  STEP 3: APPROVAL/DENIAL                                            │
+│  ───────────────────────────────────────────────────────────────── │
+│  • Manager approval for standard requests                           │
+│  • CISO/Security Director approval for high-risk exceptions         │
+│  • Document decision with rationale                                 │
+│  • Set expiration date for temporary exceptions                     │
+└─────────────────────────────────────────────────────────────────────┘
+                                    ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│  STEP 4: IMPLEMENTATION                                             │
+│  ───────────────────────────────────────────────────────────────── │
+│  If approved:                                                       │
+│  • Add to Software List with approval metadata                      │
+│  • Generate publisher or hash rule                                  │
+│  • Deploy via GPO in Audit mode first                               │
+│  • Verify functionality, then enable Enforce mode                   │
+└─────────────────────────────────────────────────────────────────────┘
+                                    ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│  STEP 5: ONGOING MONITORING                                         │
+│  ───────────────────────────────────────────────────────────────── │
+│  • Review temporary exceptions before expiration                    │
+│  • Monitor exception usage via AppLocker events                     │
+│  • Annual review of all permanent exceptions                        │
+│  • Remove exceptions for decommissioned applications                │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Exception Categories
+
+| Category | Approval Level | Duration | Review Cycle |
+|----------|---------------|----------|--------------|
+| **Standard Software** | Security Team | Permanent | Annual |
+| **Temporary Testing** | Manager | 30 days max | At expiration |
+| **High-Risk Application** | CISO | Case-by-case | Quarterly |
+| **Emergency Access** | Security On-Call | 24-72 hours | Immediate post-incident |
+
+### Tracking Exceptions
+
+Use Software Lists to track approved exceptions with metadata:
+
+```powershell
+# Add approved software to list with approval info
+# Via interactive menu: [S] Software -> [3] Import
+
+# Software list entries include:
+# - Application name, publisher, version
+# - Approval status (Approved/Pending/Denied)
+# - Approver name and date
+# - Business justification
+# - Expiration date (if temporary)
+```
+
+---
+
+## Incident Response Integration
+
+AppLocker events provide valuable data for security incident response.
+
+### SIEM Integration
+
+Forward AppLocker events to your SIEM for correlation and alerting:
+
+**Event Log Paths:**
+```
+Microsoft-Windows-AppLocker/EXE and DLL
+Microsoft-Windows-AppLocker/MSI and Script
+Microsoft-Windows-AppLocker/Packaged app-Execution
+```
+
+**Key Events for SIEM Rules:**
+
+| Event ID | Severity | Description | SIEM Action |
+|----------|----------|-------------|-------------|
+| 8004 | High | Executable blocked | Alert + Investigate |
+| 8006 | High | Script blocked | Alert + Investigate |
+| 8007 | Medium | Packaged app blocked | Log + Review |
+| 8003 | Low | Executable allowed (audit) | Log only |
+
+### Incident Response Playbook
+
+**When AppLocker blocks an application:**
+
+1. **Triage** (0-15 minutes)
+   - Identify affected user and system
+   - Determine if block is expected or unexpected
+   - Check if application is known malware
+
+2. **Investigation** (15-60 minutes)
+   - Collect blocked event details from `UniqueBlockedApps.csv`
+   - Verify application legitimacy (publisher, hash, source)
+   - Check VirusTotal or internal sandbox for malware indicators
+
+3. **Response**
+   - **If Malware**: Isolate system, escalate to IR team
+   - **If Legitimate**: Process exception request (see above)
+   - **If Policy Error**: Update policy, test, redeploy
+
+4. **Documentation**
+   - Log incident in ticketing system
+   - Update policy documentation if changed
+   - Share lessons learned with security team
+
+### Forensic Evidence Collection
+
+When investigating blocked applications:
+
+```powershell
+# Collect detailed event data from specific computer
+.\Invoke-RemoteEventCollection.ps1 -ComputerListPath .\target.txt -DaysBack 7
+
+# Review blocked applications with occurrence context
+# Check: ./Events/Events-YYYYMMDD/UniqueBlockedApps.csv
+# Fields: FilePath, Publisher, Hash, Users, ComputerCount, FirstSeen, LastSeen
+```
+
+---
+
+## Metrics and Key Performance Indicators
+
+Track these metrics to demonstrate AppLocker effectiveness to leadership and auditors.
+
+### Operational Metrics
+
+| Metric | Target | Measurement Method |
+|--------|--------|-------------------|
+| **Policy Coverage** | 100% of endpoints | GPO scope verification |
+| **Audit Event Volume** | Trending downward | Weekly event collection |
+| **Blocked Legitimate Apps** | < 5 per week | Exception request tracking |
+| **Mean Time to Exception** | < 4 business hours | Request timestamp to deployment |
+| **Exception Backlog** | 0 overdue reviews | Software list expiration tracking |
+
+### Security Metrics
+
+| Metric | Target | Significance |
+|--------|--------|--------------|
+| **Unsigned Execution Attempts** | 0 in Enforce mode | Indicates policy effectiveness |
+| **LOLBins Block Rate** | 100% blocked | Measures attack surface reduction |
+| **User-Writable Path Blocks** | Trending to 0 | Shows user behavior improvement |
+| **Malware Prevention** | No successful execution | Primary security objective |
+
+### Compliance Metrics
+
+| Metric | Target | Audit Evidence |
+|--------|--------|----------------|
+| **Compliance Score** | ≥ 80% | Compliance report output |
+| **Inventory Currency** | ≤ 90 days old | Scan folder timestamps |
+| **Event Collection Currency** | ≤ 14 days | Event folder timestamps |
+| **Policy Review Cycle** | Monthly | Change log / git history |
+| **Exception Review Completion** | 100% on schedule | Software list review dates |
+
+### Generating Metrics Reports
+
+```powershell
+# Generate compliance report with metrics
+.\utilities\New-ComplianceReport.ps1 -Format HTML
+
+# View recent scan coverage
+Get-ChildItem .\Scans -Directory |
+    Sort-Object LastWriteTime -Descending |
+    Select-Object Name, LastWriteTime, @{N='Computers';E={(Get-ChildItem $_.FullName -Directory).Count}}
+
+# View event collection trends
+Get-ChildItem .\Events -Directory |
+    Sort-Object LastWriteTime -Descending |
+    ForEach-Object {
+        $blocked = Import-Csv (Join-Path $_.FullName "UniqueBlockedApps.csv") -ErrorAction SilentlyContinue
+        [PSCustomObject]@{
+            Collection = $_.Name
+            Date = $_.LastWriteTime
+            UniqueBlockedApps = if ($blocked) { $blocked.Count } else { 0 }
+        }
+    }
+```
+
+### Dashboard Recommendations
+
+For executive reporting, track these KPIs monthly:
+
+1. **AppLocker Deployment Status**: % of endpoints with policy applied
+2. **Block Rate Trend**: Number of blocks over time (should decrease)
+3. **Exception Volume**: New exceptions per month
+4. **Compliance Score**: From automated compliance report
+5. **Incident Prevention**: Malware/unauthorized software blocked
 
 ---
 
