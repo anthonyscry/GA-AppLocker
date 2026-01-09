@@ -377,7 +377,7 @@ function Invoke-ExportUsers {
     Write-Host "Querying Active Directory..." -ForegroundColor Yellow
 
     $adParams = @{
-        Filter     = "*"
+        LDAPFilter = $ldapFilter
         Properties = @("DisplayName", "EmailAddress", "Enabled", "Department", "Title", "MemberOf", "Description")
     }
 
@@ -388,8 +388,6 @@ function Invoke-ExportUsers {
     else {
         Write-Host "  Search scope: Entire domain" -ForegroundColor Gray
     }
-
-    $adParams.LDAPFilter = $ldapFilter
 
     try {
         $users = Get-ADUser @adParams
