@@ -143,10 +143,12 @@ if (!(Test-Path -Path $ComputerListPath)) {
     throw "Computer list not found: $ComputerListPath"
 }
 
-# Create output directory
+# Create output directory (use absolute path so jobs can find it)
 $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
 $outputRoot = Join-Path $SharePath "Scan-$timestamp"
 New-Item -ItemType Directory -Path $outputRoot -Force | Out-Null
+# Convert to absolute path - jobs run in different working directory
+$outputRoot = (Resolve-Path $outputRoot).Path
 
 # Get credentials if not provided
 if ($null -eq $Credential) {
