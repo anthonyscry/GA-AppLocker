@@ -33,7 +33,15 @@ Remote scanning requires WinRM to be enabled on each target machine.
 .\utilities\Enable-WinRM-Domain.ps1
 ```
 
-This creates a GPO that enables WinRM, configures firewall rules, and can force GP refresh across the domain.
+This creates a GPO named "Enable-WinRM" that enables WinRM, configures firewall rules, and can force GP refresh across the domain.
+
+**To remove the WinRM GPO later:**
+
+```powershell
+# Via interactive menu: Select [7] Remove GPO
+# Or run directly:
+.\utilities\Enable-WinRM-Domain.ps1 -Remove
+```
 
 **On individual machines** (run PowerShell as Administrator):
 
@@ -111,7 +119,7 @@ GA-AppLocker/
 ├── utilities/
 │   ├── Common.psm1                 # Shared functions (SID, XML helpers)
 │   ├── Config.psd1                 # Central configuration (LOLBins, paths)
-│   ├── Enable-WinRM-Domain.ps1     # WinRM GPO deployment for domains
+│   ├── Enable-WinRM-Domain.ps1     # WinRM GPO deployment/removal for domains
 │   └── Validators.ps1              # Policy validation functions
 └── README.md
 ```
@@ -140,7 +148,7 @@ GA-AppLocker/
 |------|-------------|
 | `Common.psm1` | Shared functions: SID resolution, XML generation, logging |
 | `Config.psd1` | Central configuration: LOLBins, deny paths, scan paths, SIDs |
-| `Enable-WinRM-Domain.ps1` | Creates GPO to enable WinRM across domain computers |
+| `Enable-WinRM-Domain.ps1` | Creates/removes WinRM GPO (use `-Remove` switch to delete) |
 | `Validators.ps1` | Policy and scan data validation functions |
 
 ---
@@ -160,6 +168,7 @@ GA-AppLocker/
 # [4] Validate   - Check a policy file for issues
 # [5] Full       - Complete workflow (Scan + Generate)
 # [6] WinRM      - Deploy WinRM GPO for domain computers
+# [7] Remove GPO - Remove WinRM GPO from domain
 ```
 
 ### Workflow B: Enterprise Deployment (Build Guide Mode)
