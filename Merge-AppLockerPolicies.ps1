@@ -56,6 +56,33 @@
     Default: *.xml
     Only files containing valid <AppLockerPolicy> XML are processed.
 
+.PARAMETER TargetGroup
+    AD group name to use as the replacement target.
+    Use this to scope merged policies to specific groups like "AppLocker-Workstations".
+    The group name will be resolved to its SID automatically.
+
+.PARAMETER TargetSid
+    SID to use as the replacement target.
+    Use this if you already know the SID or the group cannot be resolved.
+    Alternative to -TargetGroup parameter.
+
+.PARAMETER ReplaceMode
+    Which SIDs to replace with the target group:
+    - 1 (Everyone): Only replace "Everyone" (S-1-1-0) - Default
+    - 2 (Users): Replace "Everyone" and "BUILTIN\Users" (S-1-5-32-545)
+    - 3 (Multiple): Replace specific SIDs listed in -ReplaceSids parameter
+    - 4 (All): Replace all non-admin user SIDs (Everyone, Users, Authenticated Users)
+
+.PARAMETER ReplaceSids
+    Array of specific SIDs to replace when using -ReplaceMode 3 (Multiple).
+    Example: -ReplaceSids "S-1-1-0","S-1-5-32-545"
+
+.PARAMETER RemoveDefaultRules
+    Remove default AppLocker rules during merge. This filters out rules with:
+    - "(Default Rule)" in the name
+    - "All files" path rules for Administrators
+    - Default Windows/Microsoft rules that ship with AppLocker
+
 .EXAMPLE
     # Merge all policies from scan results
     .\Merge-AppLockerPolicies.ps1 -InputPath \\server\share\Scans -OutputPath .\MergedPolicy.xml
@@ -67,6 +94,10 @@
 .EXAMPLE
     # Keep duplicates for analysis
     .\Merge-AppLockerPolicies.ps1 -InputPath .\Policies -RemoveDuplicates:$false -OutputPath .\AllRules.xml
+
+.EXAMPLE
+    # Merge and replace "Everyone" with an AD group for easier management
+    .\Merge-AppLockerPolicies.ps1 -InputPath .\Policies -TargetGroup "DOMAIN\AppLocker-Workstations"
 
 .NOTES
     Requires: PowerShell 5.1+
@@ -114,7 +145,23 @@ param(
     [string]$EnforcementMode,
 
     [Parameter(ParameterSetName='Standard')]
-    [string]$IncludePattern = "*.xml"
+    [string]$IncludePattern = "*.xml",
+
+    [Parameter(ParameterSetName='Standard')]
+    [string]$TargetGroup,
+
+    [Parameter(ParameterSetName='Standard')]
+    [string]$TargetSid,
+
+    [Parameter(ParameterSetName='Standard')]
+    [ValidateSet("1", "2", "3", "4", "Everyone", "Users", "Multiple", "All")]
+    [string]$ReplaceMode = "1",
+
+    [Parameter(ParameterSetName='Standard')]
+    [string[]]$ReplaceSids,
+
+    [Parameter(ParameterSetName='Standard')]
+    [switch]$RemoveDefaultRules
 )
 
 #Requires -Version 5.1
@@ -131,9 +178,87 @@ if (!(Test-Path -Path $InputPath)) {
     throw "Input path not found: $InputPath"
 }
 
+# Resolve target group to SID if specified
+$replacementSid = $null
+if ($TargetGroup) {
+    try {
+        $ntAccount = New-Object System.Security.Principal.NTAccount($TargetGroup)
+        $replacementSid = $ntAccount.Translate([System.Security.Principal.SecurityIdentifier]).Value
+        Write-Host "Target group '$TargetGroup' resolved to SID: $replacementSid" -ForegroundColor Green
+    }
+    catch {
+        throw "Failed to resolve group '$TargetGroup' to SID: $_"
+    }
+}
+elseif ($TargetSid) {
+    $replacementSid = $TargetSid
+    Write-Host "Using target SID: $replacementSid" -ForegroundColor Green
+}
+
+# Build list of SIDs to replace based on ReplaceMode
+$sidsToReplace = @()
+if ($replacementSid) {
+    switch ($ReplaceMode) {
+        { $_ -in "1", "Everyone" } {
+            $sidsToReplace = @("S-1-1-0")  # Everyone
+            Write-Host "Replace mode: Everyone only (S-1-1-0)" -ForegroundColor Gray
+        }
+        { $_ -in "2", "Users" } {
+            $sidsToReplace = @("S-1-1-0", "S-1-5-32-545")  # Everyone + BUILTIN\Users
+            Write-Host "Replace mode: Everyone + BUILTIN\Users" -ForegroundColor Gray
+        }
+        { $_ -in "3", "Multiple" } {
+            if ($ReplaceSids -and $ReplaceSids.Count -gt 0) {
+                $sidsToReplace = $ReplaceSids
+                Write-Host "Replace mode: Custom SIDs ($($ReplaceSids -join ', '))" -ForegroundColor Gray
+            }
+            else {
+                Write-Warning "ReplaceMode 3 (Multiple) requires -ReplaceSids parameter. Defaulting to Everyone only."
+                $sidsToReplace = @("S-1-1-0")
+            }
+        }
+        { $_ -in "4", "All" } {
+            # Everyone, BUILTIN\Users, Authenticated Users
+            $sidsToReplace = @("S-1-1-0", "S-1-5-32-545", "S-1-5-11")
+            Write-Host "Replace mode: All standard user SIDs (Everyone, Users, Authenticated Users)" -ForegroundColor Gray
+        }
+    }
+}
+
+# Helper function to detect default rules
+function Test-IsDefaultRule {
+    param($Rule)
+
+    $name = $Rule.Name
+    $description = $Rule.Description
+
+    # Check for common default rule patterns
+    if ($name -match '\(Default Rule\)') { return $true }
+    if ($name -match '^All files$') { return $true }
+    if ($name -match 'All files located in') { return $true }
+    if ($description -match 'Allows members of .* to run') { return $true }
+    if ($description -match 'Default rule') { return $true }
+
+    # Check for path rules with "*" that are admin-only defaults
+    if ($Rule.Conditions.FilePathCondition.Path -eq "*") {
+        return $true
+    }
+
+    return $false
+}
+
 Write-Host "=== AppLocker Policy Merger ===" -ForegroundColor Cyan
 Write-Host "Input: $InputPath" -ForegroundColor Cyan
 Write-Host "Output: $OutputPath" -ForegroundColor Cyan
+if ($RemoveDefaultRules) {
+    Write-Host "Removing default rules: Yes" -ForegroundColor Cyan
+}
+if ($replacementSid -and $sidsToReplace.Count -gt 0) {
+    Write-Host "Replacing SIDs with: $replacementSid" -ForegroundColor Cyan
+    foreach ($sid in $sidsToReplace) {
+        Write-Host "  - $sid" -ForegroundColor Gray
+    }
+}
 
 # Find all policy files
 $policyFiles = Get-ChildItem -Path $InputPath -Filter $IncludePattern -Recurse -File |
@@ -166,6 +291,7 @@ $stats = @{
     PathRules = 0
     HashRules = 0
     DuplicatesRemoved = 0
+    DefaultRulesSkipped = 0
 }
 
 # Process each policy file
@@ -183,6 +309,12 @@ foreach ($policyFile in $policyFiles) {
                 if ($null -eq $rule) { continue }
                 $stats.TotalRules++
 
+                # Skip default rules if requested
+                if ($RemoveDefaultRules -and (Test-IsDefaultRule $rule)) {
+                    $stats.DefaultRulesSkipped++
+                    continue
+                }
+
                 $pub = $rule.Conditions.FilePublisherCondition
                 $key = "$collectionType|$($pub.PublisherName)|$($pub.ProductName)|$($pub.BinaryName)"
 
@@ -190,11 +322,18 @@ foreach ($policyFile in $policyFiles) {
                     $stats.DuplicatesRemoved++
                 }
                 else {
+                    $ruleXml = $rule.OuterXml
+                    $userSid = $rule.UserOrGroupSid
+                    # Replace SIDs based on ReplaceMode
+                    if ($replacementSid -and $sidsToReplace -contains $userSid) {
+                        $ruleXml = $ruleXml -replace "UserOrGroupSid=`"$userSid`"", "UserOrGroupSid=`"$replacementSid`""
+                        $userSid = $replacementSid
+                    }
                     $publisherRules[$key] = @{
                         Type = $collectionType
-                        Rule = $rule.OuterXml
+                        Rule = $ruleXml
                         Action = $rule.Action
-                        User = $rule.UserOrGroupSid
+                        User = $userSid
                     }
                     $stats.PublisherRules++
                 }
@@ -205,6 +344,12 @@ foreach ($policyFile in $policyFiles) {
                 if ($null -eq $rule) { continue }
                 $stats.TotalRules++
 
+                # Skip default rules if requested
+                if ($RemoveDefaultRules -and (Test-IsDefaultRule $rule)) {
+                    $stats.DefaultRulesSkipped++
+                    continue
+                }
+
                 $path = $rule.Conditions.FilePathCondition.Path
                 $key = "$collectionType|$($rule.Action)|$path"
 
@@ -212,11 +357,18 @@ foreach ($policyFile in $policyFiles) {
                     $stats.DuplicatesRemoved++
                 }
                 else {
+                    $ruleXml = $rule.OuterXml
+                    $userSid = $rule.UserOrGroupSid
+                    # Replace SIDs based on ReplaceMode
+                    if ($replacementSid -and $sidsToReplace -contains $userSid) {
+                        $ruleXml = $ruleXml -replace "UserOrGroupSid=`"$userSid`"", "UserOrGroupSid=`"$replacementSid`""
+                        $userSid = $replacementSid
+                    }
                     $pathRules[$key] = @{
                         Type = $collectionType
-                        Rule = $rule.OuterXml
+                        Rule = $ruleXml
                         Action = $rule.Action
-                        User = $rule.UserOrGroupSid
+                        User = $userSid
                     }
                     $stats.PathRules++
                 }
@@ -227,6 +379,12 @@ foreach ($policyFile in $policyFiles) {
                 if ($null -eq $rule) { continue }
                 $stats.TotalRules++
 
+                # Skip default rules if requested
+                if ($RemoveDefaultRules -and (Test-IsDefaultRule $rule)) {
+                    $stats.DefaultRulesSkipped++
+                    continue
+                }
+
                 $hash = $rule.Conditions.FileHashCondition.FileHash.Data
                 $key = "$collectionType|$hash"
 
@@ -234,11 +392,18 @@ foreach ($policyFile in $policyFiles) {
                     $stats.DuplicatesRemoved++
                 }
                 else {
+                    $ruleXml = $rule.OuterXml
+                    $userSid = $rule.UserOrGroupSid
+                    # Replace SIDs based on ReplaceMode
+                    if ($replacementSid -and $sidsToReplace -contains $userSid) {
+                        $ruleXml = $ruleXml -replace "UserOrGroupSid=`"$userSid`"", "UserOrGroupSid=`"$replacementSid`""
+                        $userSid = $replacementSid
+                    }
                     $hashRules[$key] = @{
                         Type = $collectionType
-                        Rule = $rule.OuterXml
+                        Rule = $ruleXml
                         Action = $rule.Action
-                        User = $rule.UserOrGroupSid
+                        User = $userSid
                     }
                     $stats.HashRules++
                 }
@@ -366,9 +531,10 @@ foreach ($rule in $appxPublisherRules) { $mergedXml += "`n    " + $rule.Value.Ru
 foreach ($rule in $appxPathRules) { $mergedXml += "`n    " + $rule.Value.Rule }
 
 if (($appxPublisherRules.Count + $appxPathRules.Count) -eq 0) {
+    $appxSid = if ($replacementSid) { $replacementSid } else { "S-1-1-0" }
     $mergedXml += @"
 
-    <FilePublisherRule Id="$(New-Guid)" Name="Allow Microsoft Appx" Description="Default rule" UserOrGroupSid="S-1-1-0" Action="Allow">
+    <FilePublisherRule Id="$(New-Guid)" Name="Allow Microsoft Appx" Description="Default rule" UserOrGroupSid="$appxSid" Action="Allow">
       <Conditions>
         <FilePublisherCondition PublisherName="O=MICROSOFT CORPORATION, L=REDMOND, S=WASHINGTON, C=US" ProductName="*" BinaryName="*">
           <BinaryVersionRange LowSection="*" HighSection="*"/>
@@ -395,6 +561,9 @@ Write-Host "  Publisher rules: $($stats.PublisherRules)" -ForegroundColor Gray
 Write-Host "  Path rules: $($stats.PathRules)" -ForegroundColor Gray
 Write-Host "  Hash rules: $($stats.HashRules)" -ForegroundColor Gray
 Write-Host "Duplicates removed: $($stats.DuplicatesRemoved)" -ForegroundColor Yellow
+if ($stats.DefaultRulesSkipped -gt 0) {
+    Write-Host "Default rules skipped: $($stats.DefaultRulesSkipped)" -ForegroundColor Yellow
+}
 Write-Host "Final unique rules: $($stats.PublisherRules + $stats.PathRules + $stats.HashRules)" -ForegroundColor Green
 Write-Host "`nMerged policy saved to: $OutputPath" -ForegroundColor Cyan
 
