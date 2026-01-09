@@ -913,45 +913,45 @@ function Get-ValidatedPath {
 
     # Prompt with default
     if ($DefaultValue) {
-        $input = Read-Host "$Prompt (default: $DefaultValue)"
-        if ([string]::IsNullOrWhiteSpace($input)) {
-            $input = $DefaultValue
+        $userInput = Read-Host "$Prompt (default: $DefaultValue)"
+        if ([string]::IsNullOrWhiteSpace($userInput)) {
+            $userInput = $DefaultValue
         }
     }
     else {
-        $input = Read-Host $Prompt
+        $userInput = Read-Host $Prompt
     }
 
     # Check if empty
-    if ([string]::IsNullOrWhiteSpace($input)) {
+    if ([string]::IsNullOrWhiteSpace($userInput)) {
         Write-Host "  [-] Path is required" -ForegroundColor Red
         return $null
     }
 
     # Check existence if required
-    if ($MustExist -and -not (Test-Path $input)) {
-        Write-Host "  [-] Path not found: $input" -ForegroundColor Red
+    if ($MustExist -and -not (Test-Path $userInput)) {
+        Write-Host "  [-] Path not found: $userInput" -ForegroundColor Red
         return $null
     }
 
     # Validate file type
     if ($MustExist) {
-        $item = Get-Item $input -ErrorAction SilentlyContinue
+        $item = Get-Item $userInput -ErrorAction SilentlyContinue
         if ($item) {
             if ($MustBeFile -and $item.PSIsContainer) {
-                Write-Host "  [-] Path is a directory, not a file: $input" -ForegroundColor Red
+                Write-Host "  [-] Path is a directory, not a file: $userInput" -ForegroundColor Red
                 Write-Host "      Please provide a file path" -ForegroundColor Yellow
                 return $null
             }
             if ($MustBeDirectory -and -not $item.PSIsContainer) {
-                Write-Host "  [-] Path is a file, not a directory: $input" -ForegroundColor Red
+                Write-Host "  [-] Path is a file, not a directory: $userInput" -ForegroundColor Red
                 Write-Host "      Please provide a directory path" -ForegroundColor Yellow
                 return $null
             }
         }
     }
 
-    return $input
+    return $userInput
 }
 
 <#

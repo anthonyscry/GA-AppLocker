@@ -6,16 +6,34 @@ Simplified AppLocker deployment toolkit for Windows 11/Server 2019+. No external
 
 ---
 
-## First-Time Setup
+## Table of Contents
 
-If you downloaded these scripts from the internet, unblock them before use:
+- [Quick Start](#quick-start)
+- [Requirements](#requirements)
+- [Setup](#setup)
+  - [First-Time Setup](#first-time-setup)
+  - [WinRM Setup](#winrm-setup)
+- [Interactive Menu](#interactive-menu)
+- [Common Workflows](#common-workflows)
+  - [Enterprise Deployment](#enterprise-deployment-build-guide-mode)
+  - [Quick Deployment](#quick-deployment-simplified-mode)
+- [Menu Features](#menu-features)
+- [Project Structure](#project-structure)
+- [Configuration](#configuration)
+- [Phased Deployment Strategy](#phased-deployment-strategy)
+
+---
+
+## Quick Start
 
 ```powershell
-# Set execution policy (allows local scripts)
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+# Interactive mode (recommended)
+.\Start-AppLockerWorkflow.ps1
 
-# Unblock all downloaded files
-Get-ChildItem -Path "C:\GA-AppLocker" -Recurse -Include *.ps1,*.psm1 | Unblock-File
+# Direct mode examples
+.\Start-AppLockerWorkflow.ps1 -Mode Scan -ComputerList .\computers.txt
+.\Start-AppLockerWorkflow.ps1 -Mode Generate -ScanPath .\Scans -Simplified
+.\Start-AppLockerWorkflow.ps1 -Mode Validate -PolicyPath .\policy.xml
 ```
 
 ---
@@ -29,25 +47,25 @@ Get-ChildItem -Path "C:\GA-AppLocker" -Recurse -Include *.ps1,*.psm1 | Unblock-F
 
 ---
 
-## Quick Start
+## Setup
+
+### First-Time Setup
+
+If you downloaded these scripts from the internet, unblock them before use:
 
 ```powershell
-# Interactive mode (recommended for first-time users)
-.\Start-AppLockerWorkflow.ps1
+# Set execution policy (allows local scripts)
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
-# Direct mode examples:
-.\Start-AppLockerWorkflow.ps1 -Mode Scan -ComputerList .\computers.txt
-.\Start-AppLockerWorkflow.ps1 -Mode Generate -ScanPath .\Scans -Simplified
-.\Start-AppLockerWorkflow.ps1 -Mode Validate -PolicyPath .\policy.xml
+# Unblock all downloaded files
+Get-ChildItem -Path "C:\GA-AppLocker" -Recurse -Include *.ps1,*.psm1 | Unblock-File
 ```
 
----
+### WinRM Setup
 
-## WinRM Setup (Required for Remote Scans)
+WinRM is required for remote scanning.
 
-### Domain Environments (Recommended)
-
-Use the integrated WinRM GPO deployment:
+**Domain Environments (Recommended):**
 
 ```powershell
 # Via interactive menu
@@ -60,22 +78,20 @@ Use the integrated WinRM GPO deployment:
 
 This creates a GPO named "Enable-WinRM" that configures WinRM and firewall rules domain-wide.
 
-**To remove:**
+**To remove the WinRM GPO:**
+
 ```powershell
 .\utilities\Enable-WinRM-Domain.ps1 -Remove
 ```
 
-### Individual Machines
-
-Run PowerShell as Administrator:
+**Individual Machines:**
 
 ```powershell
+# Run as Administrator
 Enable-PSRemoting -Force
 ```
 
-### Workgroup/Non-Domain Machines
-
-Trust target machines on the scanning computer:
+**Workgroup/Non-Domain Machines:**
 
 ```powershell
 # Trust specific machines
@@ -83,10 +99,8 @@ Set-Item WSMan:\localhost\Client\TrustedHosts -Value "PC01,PC02"
 
 # Or trust all (less secure)
 Set-Item WSMan:\localhost\Client\TrustedHosts -Value "*"
-```
 
-**Test connectivity:**
-```powershell
+# Test connectivity
 Test-WSMan -ComputerName "TARGET-PC"
 ```
 
@@ -94,18 +108,12 @@ Test-WSMan -ComputerName "TARGET-PC"
 
 ## Interactive Menu
 
-The interactive menu provides guided access to all features:
-
-```powershell
-.\Start-AppLockerWorkflow.ps1
-```
+Run `.\Start-AppLockerWorkflow.ps1` for the guided interface:
 
 ```
   GA-AppLocker - AppLocker Policy Generation Toolkit
   -------------------------------------------------
   Author: Tony Tran, ISSO, GA-ASI
-
-  Select an option:
 
   === Core Workflow ===
     [1] Scan       - Collect data from remote computers
@@ -134,76 +142,18 @@ The interactive menu provides guided access to all features:
 
 ---
 
-## Menu Features
-
-### Interactive Folder Browser
-
-Many workflows now feature an **interactive folder browser** that eliminates the need to manually type paths:
-
-- **Compare [6]**: Browse scan folders to select baseline and comparison files
-- **Generate [2]**: Browse and select scan data folders
-- **Software Import [S → 4]**: Browse scan folders when importing to software lists
-
-The browser shows:
-- Numbered folder/file selection
-- Last modified dates
-- `[M]` Manual path entry option
-- `[B]` Back navigation
-- `[C]` Cancel operation
-
-Example flow for Compare:
-```
-Step 1: Select scan date folder → [1] Scan-20260109-143000
-Step 2: Select computer (baseline) → [1] WORKSTATION01
-Step 3: Select CSV file → [1] Executables.csv
-Step 4: Select comparison computer → [2] WORKSTATION02
-Step 5: Select CSV file → [1] Executables.csv
-```
-
-### Software List Management [S]
-
-```
-  === Software List Management ===
-    [1] Create     - Create a new software list
-    [2] View       - View/search existing software lists
-    [3] Add        - Add software to a list
-    [4] Import     - Import from scan data or executable
-    [5] Export     - Export list to CSV
-    [6] Generate   - Generate policy from software list
-    [B] Back
-```
-
-### WinRM Management [W]
-
-```
-  === WinRM GPO Options ===
-    [1] Deploy  - Create WinRM GPO
-    [2] Remove  - Remove WinRM GPO
-    [B] Back
-```
-
-### Diagnostic Tools [D]
-
-```
-  === Diagnostic Types ===
-    [1] Connectivity - Test ping, WinRM, sessions
-    [2] JobSession   - Test PowerShell job execution
-    [3] JobFull      - Full job test with tracing
-    [4] SimpleScan   - Scan without parallel jobs
-```
-
----
-
 ## Common Workflows
 
 ### Enterprise Deployment (Build Guide Mode)
 
-**Step 1: Scan**
+**Step 1: Scan remote computers**
+
 ```powershell
 .\Start-AppLockerWorkflow.ps1 -Mode Scan -ComputerList .\computers.txt
 ```
 
-**Step 2: Generate Phase 1**
+**Step 2: Generate Phase 1 policy**
+
 ```powershell
 .\Start-AppLockerWorkflow.ps1 -Mode Generate `
     -ScanPath .\Scans\Scan-20260109 `
@@ -211,19 +161,24 @@ Step 5: Select CSV file → [1] Executables.csv
 ```
 
 **Step 3: Deploy via GPO**
+
 1. Open Group Policy Management
 2. Create/link GPO to target OUs
 3. Import generated XML: Computer Config → Policies → Windows Settings → Security Settings → Application Control Policies
 4. Keep in **Audit mode** initially
 
-**Step 4: Monitor Events (14+ days)**
-- Event ID 8003: Allowed
-- Event ID 8004: Would have been blocked
-- Location: Applications and Services Logs → Microsoft → Windows → AppLocker
+**Step 4: Monitor events (14+ days recommended)**
 
-**Step 5: Advance Through Phases**
+| Event ID | Meaning |
+|----------|---------|
+| 8003 | Execution allowed |
+| 8004 | Would have been blocked |
+
+Location: `Applications and Services Logs → Microsoft → Windows → AppLocker`
+
+**Step 5: Advance through phases**
+
 ```powershell
-# Progressively add more rule collections
 -Phase 2  # EXE + Script
 -Phase 3  # EXE + Script + MSI
 -Phase 4  # All including DLL (audit 14+ days before enforcing!)
@@ -239,6 +194,40 @@ For testing, labs, or standalone machines:
 
 # Apply locally for testing
 Set-AppLockerPolicy -XmlPolicy .\Outputs\AppLockerPolicy-Simplified.xml
+```
+
+---
+
+## Menu Features
+
+### Interactive Folder Browser
+
+Many workflows feature an interactive folder browser that eliminates manual path typing:
+
+- **Compare [6]**: Browse scan folders to select baseline and comparison files
+- **Generate [2]**: Browse and select scan data folders
+- **Software Import [S → 4]**: Browse scan folders when importing
+
+The browser shows numbered selections with dates, manual entry `[M]`, back `[B]`, and cancel `[C]` options.
+
+### Software List Management `[S]`
+
+```
+  === Basic Operations ===
+    [1] Create     - Create a new software list
+    [2] View       - View/search existing software lists
+    [3] Add        - Add software to a list manually
+
+  === Import Methods ===
+    [4] Import     - Import from scan data or executable
+    [5] Publishers - Import common trusted publishers
+    [6] Policy     - Import from existing AppLocker policy
+    [7] Folder     - Import from folder (scan executables)
+
+  === Export & Generate ===
+    [8] Export     - Export list to CSV
+    [9] Approve    - Bulk approve/unapprove items
+    [G] Generate   - Generate policy from software list
 ```
 
 ### Software Inventory Comparison
@@ -257,11 +246,23 @@ Compare software between machines to identify drift or unique applications:
     -CompareBy Name
 ```
 
-Comparison methods:
-- **Name**: Match by software name only
-- **NameVersion**: Match by name AND version
-- **Hash**: Exact file match by SHA256
-- **Publisher**: Match by publisher/signer
+**Comparison methods:** Name, NameVersion, Hash, Publisher
+
+### WinRM Management `[W]`
+
+```
+  [1] Deploy  - Create WinRM GPO
+  [2] Remove  - Remove WinRM GPO
+```
+
+### Diagnostic Tools `[D]`
+
+```
+  [1] Connectivity - Test ping, WinRM, sessions
+  [2] JobSession   - Test PowerShell job execution
+  [3] JobFull      - Full job test with tracing
+  [4] SimpleScan   - Scan without parallel jobs
+```
 
 ---
 
@@ -273,6 +274,7 @@ GA-AppLocker/
 ├── Invoke-RemoteScan.ps1               # Remote data collection via WinRM
 ├── New-AppLockerPolicyFromGuide.ps1    # Policy generation engine
 ├── Merge-AppLockerPolicies.ps1         # Policy consolidation
+├── computers.txt                       # Template computer list
 └── utilities/
     ├── Common.psm1                     # Shared functions (SID, XML, validation)
     ├── Config.psd1                     # Configuration (LOLBins, paths, SIDs)
@@ -283,19 +285,17 @@ GA-AppLocker/
     └── Test-AppLockerDiagnostic.ps1    # Connectivity diagnostics
 ```
 
----
-
-## Scan Output Structure
+### Scan Output Structure
 
 ```
 Scans/
-├── Scan-20260109-143000/           # Timestamped scan folder
-│   ├── ScanResults.csv             # Summary log
-│   ├── WORKSTATION01/              # Per-computer data
-│   │   ├── AppLockerPolicy.xml     # Current policy (if any)
+├── Scan-20260109-143000/               # Timestamped scan folder
+│   ├── ScanResults.csv                 # Summary log
+│   ├── WORKSTATION01/                  # Per-computer data
+│   │   ├── AppLockerPolicy.xml         # Current policy (if any)
 │   │   ├── InstalledSoftware.csv
-│   │   ├── Executables.csv         # With signature info
-│   │   ├── Publishers.csv          # Unique publishers found
+│   │   ├── Executables.csv             # With signature info
+│   │   ├── Publishers.csv              # Unique publishers found
 │   │   ├── WritableDirectories.csv
 │   │   ├── RunningProcesses.csv
 │   │   └── SystemInfo.csv
@@ -311,13 +311,13 @@ Scans/
 
 Customize `utilities/Config.psd1`:
 
-```powershell
-# LOLBins - Binaries to deny (mshta.exe, wscript.exe, etc.)
-# DefaultDenyPaths - Block user-writable paths (%TEMP%, Downloads)
-# WellKnownSids - Windows security identifiers
-# DefaultScanPaths - Paths to scan for executables
-# Phases - Build Guide phase definitions
-```
+| Section | Purpose |
+|---------|---------|
+| `LOLBins` | Binaries to deny (mshta.exe, wscript.exe, etc.) |
+| `DefaultDenyPaths` | Block user-writable paths (%TEMP%, Downloads) |
+| `WellKnownSids` | Windows security identifiers |
+| `DefaultScanPaths` | Paths to scan for executables |
+| `Phases` | Build Guide phase definitions |
 
 ---
 

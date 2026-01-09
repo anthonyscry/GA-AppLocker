@@ -250,125 +250,81 @@ foreach ($policyFile in $policyFiles) {
     }
 }
 
+# Helper function to get rules for a collection type
+function Get-RulesForCollection {
+    param(
+        [string]$CollectionType,
+        [hashtable]$PublisherRules,
+        [hashtable]$PathRules,
+        [hashtable]$HashRules
+    )
+
+    $pubRules = @($PublisherRules.GetEnumerator() | Where-Object { $_.Value.Type -eq $CollectionType })
+    $pathRules = @($PathRules.GetEnumerator() | Where-Object { $_.Value.Type -eq $CollectionType })
+    $hashRules = @($HashRules.GetEnumerator() | Where-Object { $_.Value.Type -eq $CollectionType })
+
+    $xml = ""
+    foreach ($rule in $pubRules) { $xml += "`n    " + $rule.Value.Rule }
+    foreach ($rule in $pathRules) { $xml += "`n    " + $rule.Value.Rule }
+    foreach ($rule in $hashRules) { $xml += "`n    " + $rule.Value.Rule }
+
+    return @{
+        Xml = $xml
+        Count = $pubRules.Count + $pathRules.Count + $hashRules.Count
+    }
+}
+
 # Determine enforcement mode
-$exeMode = if ($EnforcementMode) { $EnforcementMode } else { "AuditOnly" }
-$msiMode = if ($EnforcementMode) { $EnforcementMode } else { "AuditOnly" }
-$scriptMode = if ($EnforcementMode) { $EnforcementMode } else { "AuditOnly" }
-$dllMode = "NotConfigured"  # DLL rules are typically not enforced
-$appxMode = if ($EnforcementMode) { $EnforcementMode } else { "AuditOnly" }
+$defaultMode = if ($EnforcementMode) { $EnforcementMode } else { "AuditOnly" }
+$dllMode = "NotConfigured"  # DLL rules have performance impact - keep disabled
+
+# Define collections and their default rules
+$collections = @(
+    @{ Type = "Exe";    Mode = $defaultMode; DefaultRule = "Allow Administrators"; UsePathDefault = $true }
+    @{ Type = "Msi";    Mode = $defaultMode; DefaultRule = "Allow Administrators MSI"; UsePathDefault = $true }
+    @{ Type = "Script"; Mode = $defaultMode; DefaultRule = "Allow Administrators Scripts"; UsePathDefault = $true }
+    @{ Type = "Dll";    Mode = $dllMode;     DefaultRule = $null; UsePathDefault = $false }
+    @{ Type = "Appx";   Mode = $defaultMode; DefaultRule = "Allow Microsoft Appx"; UsePathDefault = $false }
+)
 
 # Build merged policy XML
 $mergedXml = @"
 <?xml version="1.0" encoding="utf-8"?>
 <AppLockerPolicy Version="1">
-  <RuleCollection Type="Exe" EnforcementMode="$exeMode">
 "@
 
-# Add EXE rules - wrap in arrays to ensure .Count works correctly
-$exePublisherRules = @($publisherRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Exe" })
-$exePathRules = @($pathRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Exe" })
-$exeHashRules = @($hashRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Exe" })
+foreach ($collection in $collections) {
+    $collectionType = $collection.Type
+    $mode = $collection.Mode
 
-foreach ($rule in $exePublisherRules) { $mergedXml += "`n    " + $rule.Value.Rule }
-foreach ($rule in $exePathRules) { $mergedXml += "`n    " + $rule.Value.Rule }
-foreach ($rule in $exeHashRules) { $mergedXml += "`n    " + $rule.Value.Rule }
-
-# Add default admin rule if no EXE rules exist
-if (($exePublisherRules.Count + $exePathRules.Count + $exeHashRules.Count) -eq 0) {
     $mergedXml += @"
 
-    <FilePathRule Id="$(New-Guid)" Name="Allow Administrators" Description="Default rule" UserOrGroupSid="S-1-5-32-544" Action="Allow">
+  <RuleCollection Type="$collectionType" EnforcementMode="$mode">
+"@
+
+    # Get rules for this collection
+    $rulesResult = Get-RulesForCollection -CollectionType $collectionType `
+        -PublisherRules $publisherRules -PathRules $pathRules -HashRules $hashRules
+
+    $mergedXml += $rulesResult.Xml
+
+    # Add default rule if collection is empty and has a default rule defined
+    if ($rulesResult.Count -eq 0 -and $collection.DefaultRule) {
+        if ($collection.UsePathDefault) {
+            $mergedXml += @"
+
+    <FilePathRule Id="$(New-Guid)" Name="$($collection.DefaultRule)" Description="Default rule" UserOrGroupSid="S-1-5-32-544" Action="Allow">
       <Conditions>
         <FilePathCondition Path="*"/>
       </Conditions>
     </FilePathRule>
 "@
-}
+        }
+        else {
+            # Appx uses publisher rule
+            $mergedXml += @"
 
-$mergedXml += @"
-
-  </RuleCollection>
-  <RuleCollection Type="Msi" EnforcementMode="$msiMode">
-"@
-
-# Add MSI rules - wrap in arrays to ensure .Count works correctly
-$msiPublisherRules = @($publisherRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Msi" })
-$msiPathRules = @($pathRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Msi" })
-$msiHashRules = @($hashRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Msi" })
-
-foreach ($rule in $msiPublisherRules) { $mergedXml += "`n    " + $rule.Value.Rule }
-foreach ($rule in $msiPathRules) { $mergedXml += "`n    " + $rule.Value.Rule }
-foreach ($rule in $msiHashRules) { $mergedXml += "`n    " + $rule.Value.Rule }
-
-if (($msiPublisherRules.Count + $msiPathRules.Count + $msiHashRules.Count) -eq 0) {
-    $mergedXml += @"
-
-    <FilePathRule Id="$(New-Guid)" Name="Allow Administrators MSI" Description="Default rule" UserOrGroupSid="S-1-5-32-544" Action="Allow">
-      <Conditions>
-        <FilePathCondition Path="*"/>
-      </Conditions>
-    </FilePathRule>
-"@
-}
-
-$mergedXml += @"
-
-  </RuleCollection>
-  <RuleCollection Type="Script" EnforcementMode="$scriptMode">
-"@
-
-# Add Script rules - wrap in arrays to ensure .Count works correctly
-$scriptPublisherRules = @($publisherRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Script" })
-$scriptPathRules = @($pathRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Script" })
-$scriptHashRules = @($hashRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Script" })
-
-foreach ($rule in $scriptPublisherRules) { $mergedXml += "`n    " + $rule.Value.Rule }
-foreach ($rule in $scriptPathRules) { $mergedXml += "`n    " + $rule.Value.Rule }
-foreach ($rule in $scriptHashRules) { $mergedXml += "`n    " + $rule.Value.Rule }
-
-if (($scriptPublisherRules.Count + $scriptPathRules.Count + $scriptHashRules.Count) -eq 0) {
-    $mergedXml += @"
-
-    <FilePathRule Id="$(New-Guid)" Name="Allow Administrators Scripts" Description="Default rule" UserOrGroupSid="S-1-5-32-544" Action="Allow">
-      <Conditions>
-        <FilePathCondition Path="*"/>
-      </Conditions>
-    </FilePathRule>
-"@
-}
-
-$mergedXml += @"
-
-  </RuleCollection>
-  <RuleCollection Type="Dll" EnforcementMode="$dllMode">
-"@
-
-# Add DLL rules - wrap in arrays to ensure .Count works correctly
-$dllPublisherRules = @($publisherRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Dll" })
-$dllPathRules = @($pathRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Dll" })
-$dllHashRules = @($hashRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Dll" })
-
-foreach ($rule in $dllPublisherRules) { $mergedXml += "`n    " + $rule.Value.Rule }
-foreach ($rule in $dllPathRules) { $mergedXml += "`n    " + $rule.Value.Rule }
-foreach ($rule in $dllHashRules) { $mergedXml += "`n    " + $rule.Value.Rule }
-
-$mergedXml += @"
-
-  </RuleCollection>
-  <RuleCollection Type="Appx" EnforcementMode="$appxMode">
-"@
-
-# Add Appx rules - wrap in arrays to ensure .Count works correctly
-$appxPublisherRules = @($publisherRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Appx" })
-$appxPathRules = @($pathRules.GetEnumerator() | Where-Object { $_.Value.Type -eq "Appx" })
-
-foreach ($rule in $appxPublisherRules) { $mergedXml += "`n    " + $rule.Value.Rule }
-foreach ($rule in $appxPathRules) { $mergedXml += "`n    " + $rule.Value.Rule }
-
-if (($appxPublisherRules.Count + $appxPathRules.Count) -eq 0) {
-    $mergedXml += @"
-
-    <FilePublisherRule Id="$(New-Guid)" Name="Allow Microsoft Appx" Description="Default rule" UserOrGroupSid="S-1-1-0" Action="Allow">
+    <FilePublisherRule Id="$(New-Guid)" Name="$($collection.DefaultRule)" Description="Default rule" UserOrGroupSid="S-1-1-0" Action="Allow">
       <Conditions>
         <FilePublisherCondition PublisherName="O=MICROSOFT CORPORATION, L=REDMOND, S=WASHINGTON, C=US" ProductName="*" BinaryName="*">
           <BinaryVersionRange LowSection="*" HighSection="*"/>
@@ -376,13 +332,16 @@ if (($appxPublisherRules.Count + $appxPathRules.Count) -eq 0) {
       </Conditions>
     </FilePublisherRule>
 "@
-}
+        }
+    }
 
-$mergedXml += @"
+    $mergedXml += @"
 
   </RuleCollection>
-</AppLockerPolicy>
 "@
+}
+
+$mergedXml += "</AppLockerPolicy>"
 
 # Save merged policy
 $mergedXml | Out-File -FilePath $OutputPath -Encoding UTF8
