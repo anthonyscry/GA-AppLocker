@@ -1474,7 +1474,7 @@ function Invoke-SoftwareListWorkflow {
 
                     $scanPath = $null
                     if ($browseChoice -eq "1") {
-                        $scanPath = Select-ScanPath -ScansPath ".\Scans" -Prompt "import source"
+                        $scanPath = Select-ScanPath -ScansPath ".\Scans" -Prompt "import source" -AllowRecursive
                     } else {
                         $scanPath = Read-Host "  Enter scan data path"
                     }
@@ -1903,8 +1903,14 @@ function Invoke-SoftwareListWorkflow {
 .PARAMETER AllowManualEntry
     If true, allows user to type a custom path.
 
+.PARAMETER AllowSelectAll
+    If true, shows option to select all folders for recursive import.
+
+.PARAMETER SelectAllLabel
+    Label text for the select all option. Defaults to "Import all folders recursively".
+
 .RETURNS
-    Selected folder path, $null if cancelled, or "BACK" if user chose to go back.
+    Selected folder path, $null if cancelled, "BACK" if user chose to go back, or "ALL" if select all chosen.
 #>
 function Show-FolderBrowser {
     [CmdletBinding()]
@@ -1920,7 +1926,11 @@ function Show-FolderBrowser {
 
         [switch]$ShowFiles,
 
-        [string]$FileFilter = "*.csv"
+        [string]$FileFilter = "*.csv",
+
+        [switch]$AllowSelectAll,
+
+        [string]$SelectAllLabel = "Import all folders recursively"
     )
 
     if (-not (Test-Path $Path)) {
@@ -1959,6 +1969,9 @@ function Show-FolderBrowser {
     }
 
     Write-Host ""
+    if ($AllowSelectAll -and $items.Count -gt 1) {
+        Write-Host "    [A] $SelectAllLabel" -ForegroundColor Cyan
+    }
     if ($AllowManualEntry) {
         Write-Host "    [M] Enter path manually" -ForegroundColor Gray
     }
@@ -1969,6 +1982,11 @@ function Show-FolderBrowser {
     $choice = Read-Host "  Enter choice"
 
     switch ($choice.ToUpper()) {
+        "A" {
+            if ($AllowSelectAll -and $items.Count -gt 1) {
+                return "ALL"
+            }
+        }
         "B" { return "BACK" }
         "C" { return $null }
         "M" {
@@ -2003,7 +2021,7 @@ function Show-FolderBrowser {
 .DESCRIPTION
     Multi-step folder browser specifically for scan data:
     1. Select a scan date folder (e.g., Scan-20260108-143000)
-    2. Select a computer folder within that scan
+    2. Select a computer folder within that scan (or all computers if AllowRecursive)
     3. Select a CSV file (Executables.csv, Publishers.csv, etc.)
 
 .PARAMETER ScansPath
@@ -2011,6 +2029,9 @@ function Show-FolderBrowser {
 
 .PARAMETER SelectFile
     If true, navigates all the way to file selection.
+
+.PARAMETER AllowRecursive
+    If true, shows option to import all computer folders recursively.
 
 .RETURNS
     Selected path or $null if cancelled.
@@ -2022,7 +2043,9 @@ function Select-ScanPath {
 
         [switch]$SelectFile,
 
-        [string]$Prompt = "baseline"
+        [string]$Prompt = "baseline",
+
+        [switch]$AllowRecursive
     )
 
     # Ensure scans folder exists
@@ -2042,17 +2065,31 @@ function Select-ScanPath {
         return $null
     }
 
-    # Step 2: Select computer folder
-    $computerFolder = Show-FolderBrowser -Path $scanFolder `
-        -Title "Select computer folder ($Prompt)" `
-        -AllowManualEntry
+    # Step 2: Select computer folder (with optional recursive import)
+    $browserParams = @{
+        Path             = $scanFolder
+        Title            = "Select computer folder ($Prompt)"
+        AllowManualEntry = $true
+    }
+
+    if ($AllowRecursive) {
+        $browserParams.AllowSelectAll = $true
+        $browserParams.SelectAllLabel = "Import all computers recursively"
+    }
+
+    $computerFolder = Show-FolderBrowser @browserParams
 
     if ($null -eq $computerFolder) {
         return $null
     }
     if ($computerFolder -eq "BACK") {
         # Go back to scan folder selection
-        return Select-ScanPath -ScansPath $ScansPath -SelectFile:$SelectFile -Prompt $Prompt
+        return Select-ScanPath -ScansPath $ScansPath -SelectFile:$SelectFile -Prompt $Prompt -AllowRecursive:$AllowRecursive
+    }
+    if ($computerFolder -eq "ALL") {
+        # Return the scan folder to process all computer subfolders
+        Write-Host "  [+] Selected: All computers in $(Split-Path $scanFolder -Leaf)" -ForegroundColor Green
+        return $scanFolder
     }
 
     # Step 3: Auto-select InstalledSoftware.csv (if file selection requested)
