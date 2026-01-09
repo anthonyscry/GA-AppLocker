@@ -253,6 +253,31 @@ if ($Simplified) {
     $targetSid = Resolve-AccountToSid -Name $TargetUser
     $adminSid = Resolve-AccountToSid -Name $AdminGroup
 
+    # Validate SIDs were resolved - fail early with clear error
+    $sidErrors = @()
+    if ([string]::IsNullOrEmpty($targetSid)) {
+        $sidErrors += "Target user/group '$TargetUser' could not be resolved to a SID"
+    }
+    if ([string]::IsNullOrEmpty($adminSid)) {
+        $sidErrors += "Admin group '$AdminGroup' could not be resolved to a SID"
+    }
+
+    if ($sidErrors.Count -gt 0) {
+        Write-Host ""
+        Write-Host "  [!] SID Resolution Failed" -ForegroundColor Red
+        foreach ($err in $sidErrors) {
+            Write-Host "      - $err" -ForegroundColor Red
+        }
+        Write-Host ""
+        Write-Host "  Policy generation cannot continue without valid SIDs." -ForegroundColor Yellow
+        Write-Host "  Suggestions:" -ForegroundColor Yellow
+        Write-Host "    - Verify the account/group names are correct" -ForegroundColor Gray
+        Write-Host "    - For domain groups, run from a domain-joined machine" -ForegroundColor Gray
+        Write-Host "    - Use well-known groups like 'Everyone' or 'BUILTIN\Users'" -ForegroundColor Gray
+        Write-Host ""
+        return
+    }
+
     Write-Host "Target SID: $targetSid" -ForegroundColor Gray
     Write-Host "Admin SID: $adminSid" -ForegroundColor Gray
     Write-Host ""
@@ -658,6 +683,52 @@ $sids = @{
     Installers = Resolve-AccountToSid $InstallersGroup
 }
 
+# Validate critical SIDs were resolved - fail early with clear error
+$sidErrors = @()
+$criticalSids = @{
+    "NT AUTHORITY\SYSTEM" = $sids.SYSTEM
+    "BUILTIN\Administrators" = $sids.BuiltinAdmins
+    "Everyone" = $sids.Everyone
+    $AdminsGroup = $sids.Admins
+    $StandardUsersGroup = $sids.StandardUsers
+}
+
+foreach ($entry in $criticalSids.GetEnumerator()) {
+    if ([string]::IsNullOrEmpty($entry.Value)) {
+        $sidErrors += $entry.Key
+    }
+}
+
+if ($sidErrors.Count -gt 0) {
+    Write-Host ""
+    Write-Host "  [!] SID Resolution Failed" -ForegroundColor Red
+    Write-Host "      The following accounts could not be resolved:" -ForegroundColor Red
+    foreach ($err in $sidErrors) {
+        Write-Host "      - $err" -ForegroundColor Red
+    }
+    Write-Host ""
+    Write-Host "  Policy generation cannot continue without valid SIDs." -ForegroundColor Yellow
+    Write-Host "  Suggestions:" -ForegroundColor Yellow
+    Write-Host "    - Create the AppLocker AD groups using [A] AD Management in the main menu" -ForegroundColor Gray
+    Write-Host "    - Verify you're running on a domain-joined machine" -ForegroundColor Gray
+    Write-Host "    - Ensure connectivity to a Domain Controller" -ForegroundColor Gray
+    Write-Host "    - Use -AdminsGroup, -StandardUsersGroup parameters to specify existing groups" -ForegroundColor Gray
+    Write-Host ""
+    return
+}
+
+# Warn about optional SIDs that couldn't be resolved (non-fatal)
+$optionalSids = @{
+    $ServiceAccountsGroup = $sids.ServiceAccounts
+    $InstallersGroup = $sids.Installers
+}
+
+foreach ($entry in $optionalSids.GetEnumerator()) {
+    if ([string]::IsNullOrEmpty($entry.Value)) {
+        Write-Host "  [!] Warning: Optional group '$($entry.Key)' could not be resolved - rules for this group will be skipped" -ForegroundColor Yellow
+    }
+}
+
 Write-Host "  SYSTEM: $($sids.SYSTEM)" -ForegroundColor DarkGray
 Write-Host "  Admins Group: $($sids.Admins)" -ForegroundColor DarkGray
 Write-Host ""
@@ -784,14 +855,16 @@ foreach ($vendor in $vendorPubs) {
 # === APPLOCKER-SERVICE-ACCOUNTS ===
 # Build Guide: Service Accounts → Vendor Publisher only (no path allows)
 
-foreach ($vendor in $vendorPubs) {
-    $exeRules += New-AppLockerRuleXml -Type "FilePublisherRule" `
-        -Name "(Service) Vendor: $vendor" `
-        -Description "Allow vendor-signed for Service Accounts" `
-        -Sid $sids.ServiceAccounts `
-        -Action "Allow" `
-        -Condition (New-PublisherConditionXml -Publisher "O=$vendor*")
-    $exeRules += "`n"
+if (-not [string]::IsNullOrEmpty($sids.ServiceAccounts)) {
+    foreach ($vendor in $vendorPubs) {
+        $exeRules += New-AppLockerRuleXml -Type "FilePublisherRule" `
+            -Name "(Service) Vendor: $vendor" `
+            -Description "Allow vendor-signed for Service Accounts" `
+            -Sid $sids.ServiceAccounts `
+            -Action "Allow" `
+            -Condition (New-PublisherConditionXml -Publisher "O=$vendor*")
+        $exeRules += "`n"
+    }
 }
 
 # === APPLOCKER-STANDARDUSERS ===
@@ -867,14 +940,16 @@ if ($Phase -ge 2) {
     $scriptRules += "`n"
 
     # Service Accounts - Vendor scripts if required
-    foreach ($vendor in $vendorPubs) {
-        $scriptRules += New-AppLockerRuleXml -Type "FilePublisherRule" `
-            -Name "(Service) Vendor Scripts: $vendor" `
-            -Description "Allow vendor-signed scripts for Service Accounts" `
-            -Sid $sids.ServiceAccounts `
-            -Action "Allow" `
-            -Condition (New-PublisherConditionXml -Publisher "O=$vendor*")
-        $scriptRules += "`n"
+    if (-not [string]::IsNullOrEmpty($sids.ServiceAccounts)) {
+        foreach ($vendor in $vendorPubs) {
+            $scriptRules += New-AppLockerRuleXml -Type "FilePublisherRule" `
+                -Name "(Service) Vendor Scripts: $vendor" `
+                -Description "Allow vendor-signed scripts for Service Accounts" `
+                -Sid $sids.ServiceAccounts `
+                -Action "Allow" `
+                -Condition (New-PublisherConditionXml -Publisher "O=$vendor*")
+            $scriptRules += "`n"
+        }
     }
 
     # Explicit deny for scripts in user-writable paths
@@ -915,23 +990,25 @@ if ($Phase -ge 3) {
         $msiRules += "`n"
     }
 
-    # Installers group - vendor installers
-    $msiRules += New-AppLockerRuleXml -Type "FilePublisherRule" `
-        -Name "(Installers) Microsoft MSI" `
-        -Description "Allow Microsoft installers for Installers group" `
-        -Sid $sids.Installers `
-        -Action "Allow" `
-        -Condition (New-PublisherConditionXml -Publisher "O=MICROSOFT CORPORATION*")
-    $msiRules += "`n"
-
-    foreach ($vendor in $vendorPubs) {
+    # Installers group - vendor installers (skip if group not resolved)
+    if (-not [string]::IsNullOrEmpty($sids.Installers)) {
         $msiRules += New-AppLockerRuleXml -Type "FilePublisherRule" `
-            -Name "(Installers) Vendor MSI: $vendor" `
-            -Description "Allow vendor installers for Installers group" `
+            -Name "(Installers) Microsoft MSI" `
+            -Description "Allow Microsoft installers for Installers group" `
             -Sid $sids.Installers `
             -Action "Allow" `
-            -Condition (New-PublisherConditionXml -Publisher "O=$vendor*")
+            -Condition (New-PublisherConditionXml -Publisher "O=MICROSOFT CORPORATION*")
         $msiRules += "`n"
+
+        foreach ($vendor in $vendorPubs) {
+            $msiRules += New-AppLockerRuleXml -Type "FilePublisherRule" `
+                -Name "(Installers) Vendor MSI: $vendor" `
+                -Description "Allow vendor installers for Installers group" `
+                -Sid $sids.Installers `
+                -Action "Allow" `
+                -Condition (New-PublisherConditionXml -Publisher "O=$vendor*")
+            $msiRules += "`n"
+        }
     }
 
     # Admins - vendor installers
@@ -998,15 +1075,17 @@ if ($Phase -ge 4) {
         -Condition (New-PublisherConditionXml -Publisher "O=MICROSOFT CORPORATION*")
     $dllRules += "`n"
 
-    # Service Accounts - Vendor DLLs
-    foreach ($vendor in $vendorPubs) {
-        $dllRules += New-AppLockerRuleXml -Type "FilePublisherRule" `
-            -Name "(Service) Vendor DLL: $vendor" `
-            -Description "Allow vendor-signed DLLs for Service Accounts" `
-            -Sid $sids.ServiceAccounts `
-            -Action "Allow" `
-            -Condition (New-PublisherConditionXml -Publisher "O=$vendor*")
-        $dllRules += "`n"
+    # Service Accounts - Vendor DLLs (skip if group not resolved)
+    if (-not [string]::IsNullOrEmpty($sids.ServiceAccounts)) {
+        foreach ($vendor in $vendorPubs) {
+            $dllRules += New-AppLockerRuleXml -Type "FilePublisherRule" `
+                -Name "(Service) Vendor DLL: $vendor" `
+                -Description "Allow vendor-signed DLLs for Service Accounts" `
+                -Sid $sids.ServiceAccounts `
+                -Action "Allow" `
+                -Condition (New-PublisherConditionXml -Publisher "O=$vendor*")
+            $dllRules += "`n"
+        }
     }
 
     Write-Host "  DLL rules created (remember: audit 7-14 days before enforcing)" -ForegroundColor Green

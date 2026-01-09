@@ -147,29 +147,22 @@ function Show-Banner {
 function Show-Menu {
     Write-Host "  Select an option:" -ForegroundColor Yellow
     Write-Host ""
-    Write-Host "  === Core Workflow ===" -ForegroundColor Cyan
-    Write-Host "    [1] Scan       - Collect data from remote computers" -ForegroundColor White
-    Write-Host "    [2] Generate   - Create AppLocker policy from scan data" -ForegroundColor White
-    Write-Host "    [3] Merge      - Combine multiple policy files" -ForegroundColor White
-    Write-Host "    [4] Validate   - Check a policy file for issues" -ForegroundColor White
-    Write-Host "    [5] Full       - Complete workflow (Scan + Generate)" -ForegroundColor White
+    Write-Host "  --- Scan & Generate ---" -ForegroundColor Cyan
+    Write-Host "    [1] Scan         Collect software inventory from computers" -ForegroundColor White
+    Write-Host "    [2] Generate     Create AppLocker policy from scan data" -ForegroundColor White
+    Write-Host "    [3] Merge        Combine multiple policies into one" -ForegroundColor White
+    Write-Host "    [4] Validate     Check policy XML for errors" -ForegroundColor White
     Write-Host ""
-    Write-Host "  === Analysis ===" -ForegroundColor Cyan
-    Write-Host "    [6] Compare    - Compare software inventories" -ForegroundColor White
-    Write-Host "    [E] Events     - Collect AppLocker audit events (8003/8004)" -ForegroundColor White
+    Write-Host "  --- Monitor & Refine ---" -ForegroundColor Cyan
+    Write-Host "    [E] Events       Collect blocked app events (deploy feedback)" -ForegroundColor White
+    Write-Host "    [S] Software     Manage approved software lists" -ForegroundColor White
+    Write-Host "    [6] Compare      Diff software between computers" -ForegroundColor White
     Write-Host ""
-    Write-Host "  === Software Lists ===" -ForegroundColor Cyan
-    Write-Host "    [S] Software   - Manage software lists for rule generation" -ForegroundColor White
-    Write-Host ""
-    Write-Host "  === AD Management ===" -ForegroundColor Cyan
-    Write-Host "    [7] AD Setup   - Create AppLocker OUs and groups" -ForegroundColor White
-    Write-Host "    [8] AD Export  - Export user group memberships" -ForegroundColor White
-    Write-Host "    [9] AD Import  - Apply group membership changes" -ForegroundColor White
-    Write-Host "    [C] Computers  - Export computer list from AD for scanning" -ForegroundColor White
-    Write-Host ""
-    Write-Host "  === Infrastructure ===" -ForegroundColor Cyan
-    Write-Host "    [W] WinRM      - Deploy/Remove WinRM GPO" -ForegroundColor White
-    Write-Host "    [D] Diagnostic - Troubleshoot remote scanning" -ForegroundColor White
+    Write-Host "  --- Setup ---" -ForegroundColor Cyan
+    Write-Host "    [A] AD Groups    Create/manage AppLocker security groups" -ForegroundColor White
+    Write-Host "    [C] Computers    Export AD computers for scanning" -ForegroundColor White
+    Write-Host "    [W] WinRM        Deploy WinRM via GPO" -ForegroundColor White
+    Write-Host "    [D] Diagnostic   Troubleshoot connectivity issues" -ForegroundColor White
     Write-Host ""
     Write-Host "    [Q] Quit" -ForegroundColor Gray
     Write-Host ""
@@ -188,6 +181,22 @@ function Show-GenerateMenu {
     Write-Host ""
     Write-Host "    [2] Build Guide - Enterprise policy with proper scoping" -ForegroundColor White
     Write-Host "        Best for: Production, large enterprises, phased rollout"
+    Write-Host ""
+    Write-Host "    [B] Back" -ForegroundColor Gray
+    Write-Host ""
+
+    $choice = Read-Host "  Enter choice"
+    return $choice
+}
+
+function Show-ADMenu {
+    Write-Host ""
+    Write-Host "  Main > AD Groups" -ForegroundColor DarkGray
+    Write-Host "  AD Management:" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "    [1] Setup    - Create AppLocker OUs and security groups" -ForegroundColor White
+    Write-Host "    [2] Export   - Export user group memberships to CSV" -ForegroundColor White
+    Write-Host "    [3] Import   - Apply group membership changes from CSV" -ForegroundColor White
     Write-Host ""
     Write-Host "    [B] Back" -ForegroundColor Gray
     Write-Host ""
@@ -1201,6 +1210,35 @@ function Invoke-ADComputersWorkflow {
     }
 }
 
+function Invoke-ADManagementWorkflow {
+    <#
+    .SYNOPSIS
+    Unified AD management workflow with sub-menu.
+    #>
+    Write-Host "`n=== AD Group Management ===" -ForegroundColor Cyan
+
+    do {
+        $choice = Show-ADMenu
+
+        switch ($choice.ToUpper()) {
+            "1" { Invoke-ADSetupWorkflow }
+            "2" { Invoke-ADExportWorkflow }
+            "3" { Invoke-ADImportWorkflow }
+            "B" { return }
+            default {
+                if ($choice -ne "") {
+                    Write-Host "  Invalid option" -ForegroundColor Red
+                }
+            }
+        }
+
+        if ($choice -in @("1", "2", "3")) {
+            Write-Host ""
+            Read-Host "  Press Enter to continue"
+        }
+    } while ($true)
+}
+
 function Invoke-DiagnosticWorkflow {
     param(
         [string]$Type,
@@ -1325,21 +1363,13 @@ function Invoke-WinRMMenuWorkflow {
 function Show-SoftwareListMenu {
     Write-Host ""
     Write-Host "  Main > Software Lists" -ForegroundColor DarkGray
-    Write-Host "  Software List Management:" -ForegroundColor Yellow
+    Write-Host "  Manage approved software for policy generation:" -ForegroundColor Yellow
     Write-Host ""
-    Write-Host "  === Basic Operations ===" -ForegroundColor Cyan
-    Write-Host "    [1] Create     - Create a new software list" -ForegroundColor White
-    Write-Host "    [2] View       - View/search existing software lists" -ForegroundColor White
-    Write-Host ""
-    Write-Host "  === Import Methods ===" -ForegroundColor Cyan
-    Write-Host "    [3] Import     - Import from scan data or executable" -ForegroundColor White
-    Write-Host "    [4] Publishers - Import common trusted publishers" -ForegroundColor White
-    Write-Host "    [5] Policy     - Import from existing AppLocker policy" -ForegroundColor White
-    Write-Host ""
-    Write-Host "  === Export & Generate ===" -ForegroundColor Cyan
-    Write-Host "    [6] Export     - Export list to CSV" -ForegroundColor White
-    Write-Host "    [7] Approve    - Bulk approve/unapprove items" -ForegroundColor White
-    Write-Host "    [G] Generate   - Generate policy from software list (Build Guide)" -ForegroundColor White
+    Write-Host "    [1] Create       New software list" -ForegroundColor White
+    Write-Host "    [2] View         Browse/search existing lists" -ForegroundColor White
+    Write-Host "    [3] Import       Add from scan data, publishers, or policy" -ForegroundColor White
+    Write-Host "    [4] Approve      Bulk approve/unapprove items" -ForegroundColor White
+    Write-Host "    [5] Generate     Create policy from approved software" -ForegroundColor White
     Write-Host ""
     Write-Host "    [B] Back" -ForegroundColor Gray
     Write-Host ""
@@ -1432,10 +1462,13 @@ function Invoke-SoftwareListWorkflow {
                 }
             }
             "3" {
-                # Import from scan data or executable
+                # Consolidated import menu
                 Write-Host "`n  --- Import Software ---" -ForegroundColor Cyan
-                Write-Host "    [1] Import from scan data" -ForegroundColor White
-                Write-Host "    [2] Import from executable file" -ForegroundColor White
+                Write-Host "    [1] From scan data (recommended)" -ForegroundColor White
+                Write-Host "    [2] From trusted publishers (Microsoft, Adobe, etc.)" -ForegroundColor White
+                Write-Host "    [3] From existing AppLocker policy" -ForegroundColor White
+                Write-Host "    [4] From single executable file" -ForegroundColor White
+                Write-Host ""
                 $importChoice = Read-Host "  Select import source"
 
                 # Get target list
@@ -1463,204 +1496,123 @@ function Invoke-SoftwareListWorkflow {
                     New-SoftwareList -Name $newName -Description "Imported software" -OutputPath $defaultListPath | Out-Null
                 }
 
-                if ($importChoice -eq "1") {
-                    # Use folder browser to select scan data
-                    Write-Host ""
-                    Write-Host "  Select scan data to import from:" -ForegroundColor Yellow
-                    Write-Host "    [1] Browse scan folders (recommended)" -ForegroundColor White
-                    Write-Host "    [2] Enter path manually" -ForegroundColor Gray
-                    Write-Host ""
-                    $browseChoice = Read-Host "  Enter choice"
+                switch ($importChoice) {
+                    "1" {
+                        # Import from scan data
+                        Write-Host ""
+                        Write-Host "  Select scan data to import from:" -ForegroundColor Yellow
+                        Write-Host "    [1] Browse scan folders (recommended)" -ForegroundColor White
+                        Write-Host "    [2] Enter path manually" -ForegroundColor Gray
+                        Write-Host ""
+                        $browseChoice = Read-Host "  Enter choice"
 
-                    $scanPath = $null
-                    if ($browseChoice -eq "1") {
-                        $scanPath = Select-ScanPath -ScansPath ".\Scans" -Prompt "import source" -AllowRecursive
-                    } else {
-                        $scanPath = Read-Host "  Enter scan data path"
+                        $scanPath = $null
+                        if ($browseChoice -eq "1") {
+                            $scanPath = Select-ScanPath -ScansPath ".\Scans" -Prompt "import source" -AllowRecursive
+                        } else {
+                            $scanPath = Read-Host "  Enter scan data path"
+                        }
+
+                        if ($scanPath -and (Test-Path $scanPath)) {
+                            Write-Host "  Import options:" -ForegroundColor Gray
+                            Write-Host "    [1] Signed software only (publisher rules)" -ForegroundColor White
+                            Write-Host "    [2] Unsigned software only (hash rules)" -ForegroundColor White
+                            Write-Host "    [3] All software" -ForegroundColor White
+                            $filterChoice = Read-Host "  Select filter"
+
+                            $importParams = @{
+                                ScanPath    = $scanPath
+                                ListPath    = $targetList
+                                Deduplicate = $true
+                            }
+
+                            switch ($filterChoice) {
+                                "1" { $importParams.SignedOnly = $true }
+                                "2" { $importParams.UnsignedOnly = $true }
+                            }
+
+                            $autoApprove = Read-Host "  Auto-approve imported items? (y/N)"
+                            if ($autoApprove -eq "y" -or $autoApprove -eq "Y") {
+                                $importParams.AutoApprove = $true
+                            }
+
+                            Import-ScanDataToSoftwareList @importParams
+                        }
+                        else {
+                            Write-Host "  [-] Scan path not found or cancelled" -ForegroundColor Red
+                        }
                     }
+                    "2" {
+                        # Import trusted publishers
+                        Write-Host ""
+                        Write-Host "  Filter by category (optional):" -ForegroundColor Gray
+                        $categories = Get-CommonPublisherCategories
+                        Write-Host "    Available: $($categories -join ', ')" -ForegroundColor DarkGray
+                        Write-Host "    [A] All categories (Select All)" -ForegroundColor Cyan
+                        $catChoice = Read-Host "  Enter category name or [A] for all"
 
-                    if ($scanPath -and (Test-Path $scanPath)) {
-                        Write-Host "  Import options:" -ForegroundColor Gray
-                        Write-Host "    [1] Signed software only (publisher rules)" -ForegroundColor White
-                        Write-Host "    [2] Unsigned software only (hash rules)" -ForegroundColor White
-                        Write-Host "    [3] All software" -ForegroundColor White
-                        $filterChoice = Read-Host "  Select filter"
+                        $importParams = @{ ListPath = $targetList }
 
-                        $importParams = @{
-                            ScanPath    = $scanPath
-                            ListPath    = $targetList
-                            Deduplicate = $true
+                        if ($catChoice -ne "A" -and $catChoice -ne "a" -and -not [string]::IsNullOrWhiteSpace($catChoice)) {
+                            $importParams.Category = $catChoice
                         }
 
-                        switch ($filterChoice) {
-                            "1" { $importParams.SignedOnly = $true }
-                            "2" { $importParams.UnsignedOnly = $true }
-                        }
-
-                        $autoApprove = Read-Host "  Auto-approve imported items? (y/N)"
-                        if ($autoApprove -eq "y" -or $autoApprove -eq "Y") {
+                        $autoApprove = Read-Host "  Auto-approve imported items? (Y/n)"
+                        if ($autoApprove -ne "n" -and $autoApprove -ne "N") {
                             $importParams.AutoApprove = $true
                         }
 
-                        Import-ScanDataToSoftwareList @importParams
+                        Import-CommonPublishersToSoftwareList @importParams
                     }
-                    else {
-                        Write-Host "  [-] Scan path not found or cancelled" -ForegroundColor Red
-                    }
-                }
-                else {
-                    $exePath = Read-Host "  Enter executable file path"
-                    if (Test-Path $exePath) {
-                        $category = Read-Host "  Category (default: Imported)"
-                        if ([string]::IsNullOrWhiteSpace($category)) { $category = "Imported" }
+                    "3" {
+                        # Import from AppLocker policy
+                        $policyPath = Read-Host "  Enter path to AppLocker policy XML file"
+                        if (-not (Test-Path $policyPath)) {
+                            Write-Host "  [-] Policy file not found: $policyPath" -ForegroundColor Red
+                            continue
+                        }
 
-                        Import-ExecutableToSoftwareList -FilePath $exePath -ListPath $targetList -Category $category
+                        Write-Host "  Rule type filter:" -ForegroundColor Gray
+                        Write-Host "    [1] All rule types" -ForegroundColor White
+                        Write-Host "    [2] Publisher rules only" -ForegroundColor White
+                        Write-Host "    [3] Hash rules only" -ForegroundColor White
+                        $ruleTypeChoice = Read-Host "  Select filter"
+
+                        $importParams = @{
+                            PolicyPath = $policyPath
+                            ListPath   = $targetList
+                        }
+
+                        switch ($ruleTypeChoice) {
+                            "2" { $importParams.PublisherOnly = $true }
+                            "3" { $importParams.HashOnly = $true }
+                        }
+
+                        $autoApprove = Read-Host "  Auto-approve imported items? (Y/n)"
+                        if ($autoApprove -ne "n" -and $autoApprove -ne "N") {
+                            $importParams.AutoApprove = $true
+                        }
+
+                        Import-AppLockerPolicyToSoftwareList @importParams
                     }
-                    else {
-                        Write-Host "  [-] File not found: $exePath" -ForegroundColor Red
+                    "4" {
+                        # Import from executable file
+                        $exePath = Read-Host "  Enter executable file path"
+                        if (Test-Path $exePath) {
+                            $category = Read-Host "  Category (default: Imported)"
+                            if ([string]::IsNullOrWhiteSpace($category)) { $category = "Imported" }
+                            Import-ExecutableToSoftwareList -FilePath $exePath -ListPath $targetList -Category $category
+                        }
+                        else {
+                            Write-Host "  [-] File not found: $exePath" -ForegroundColor Red
+                        }
+                    }
+                    default {
+                        Write-Host "  [-] Invalid import choice" -ForegroundColor Red
                     }
                 }
             }
             "4" {
-                # Import common trusted publishers
-                Write-Host "`n  --- Import Common Publishers ---" -ForegroundColor Cyan
-
-                # Get target list
-                $lists = Get-ChildItem -Path $defaultListPath -Filter "*.json" -ErrorAction SilentlyContinue
-                $targetList = $null
-
-                if ($lists.Count -gt 0) {
-                    Write-Host "  Import to existing list or create new?" -ForegroundColor Gray
-                    $i = 1
-                    foreach ($list in $lists) {
-                        Write-Host "    [$i] $($list.BaseName)" -ForegroundColor White
-                        $i++
-                    }
-                    Write-Host "    [N] Create new list" -ForegroundColor White
-                    $listChoice = Read-Host "  Select option"
-
-                    if ($listChoice -match "^\d+$" -and [int]$listChoice -le $lists.Count) {
-                        $targetList = $lists[[int]$listChoice - 1].FullName
-                    }
-                }
-
-                if (-not $targetList) {
-                    $newName = Read-Host "  Enter new list name (default: TrustedPublishers)"
-                    if ([string]::IsNullOrWhiteSpace($newName)) { $newName = "TrustedPublishers" }
-                    $targetList = Join-Path $defaultListPath "$newName.json"
-                    New-SoftwareList -Name $newName -Description "Common trusted publishers" -OutputPath $defaultListPath | Out-Null
-                }
-
-                # Show category filter option
-                Write-Host ""
-                Write-Host "  Filter by category (optional):" -ForegroundColor Gray
-                $categories = Get-CommonPublisherCategories
-                Write-Host "    Available: $($categories -join ', ')" -ForegroundColor DarkGray
-                Write-Host "    [A] All categories" -ForegroundColor White
-                $catChoice = Read-Host "  Enter category name or [A] for all"
-
-                $importParams = @{
-                    ListPath = $targetList
-                }
-
-                if ($catChoice -ne "A" -and $catChoice -ne "a" -and -not [string]::IsNullOrWhiteSpace($catChoice)) {
-                    $importParams.Category = $catChoice
-                }
-
-                $autoApprove = Read-Host "  Auto-approve imported items? (Y/n)"
-                if ($autoApprove -ne "n" -and $autoApprove -ne "N") {
-                    $importParams.AutoApprove = $true
-                }
-
-                Import-CommonPublishersToSoftwareList @importParams
-            }
-            "5" {
-                # Import from existing AppLocker policy
-                Write-Host "`n  --- Import from AppLocker Policy ---" -ForegroundColor Cyan
-
-                # Get target list
-                $lists = Get-ChildItem -Path $defaultListPath -Filter "*.json" -ErrorAction SilentlyContinue
-                $targetList = $null
-
-                if ($lists.Count -gt 0) {
-                    Write-Host "  Import to existing list or create new?" -ForegroundColor Gray
-                    $i = 1
-                    foreach ($list in $lists) {
-                        Write-Host "    [$i] $($list.BaseName)" -ForegroundColor White
-                        $i++
-                    }
-                    Write-Host "    [N] Create new list" -ForegroundColor White
-                    $listChoice = Read-Host "  Select option"
-
-                    if ($listChoice -match "^\d+$" -and [int]$listChoice -le $lists.Count) {
-                        $targetList = $lists[[int]$listChoice - 1].FullName
-                    }
-                }
-
-                if (-not $targetList) {
-                    $newName = Read-Host "  Enter new list name (default: PolicyImport)"
-                    if ([string]::IsNullOrWhiteSpace($newName)) { $newName = "PolicyImport" }
-                    $targetList = Join-Path $defaultListPath "$newName.json"
-                    New-SoftwareList -Name $newName -Description "Imported from policy" -OutputPath $defaultListPath | Out-Null
-                }
-
-                $policyPath = Read-Host "  Enter path to AppLocker policy XML file"
-                if (-not (Test-Path $policyPath)) {
-                    Write-Host "  [-] Policy file not found: $policyPath" -ForegroundColor Red
-                    continue
-                }
-
-                Write-Host ""
-                Write-Host "  Import options:" -ForegroundColor Gray
-                Write-Host "    [1] All rule types" -ForegroundColor White
-                Write-Host "    [2] Publisher rules only" -ForegroundColor White
-                Write-Host "    [3] Hash rules only" -ForegroundColor White
-                $ruleTypeChoice = Read-Host "  Select rule type filter"
-
-                $importParams = @{
-                    PolicyPath = $policyPath
-                    ListPath   = $targetList
-                    AllowOnly  = $true
-                }
-
-                switch ($ruleTypeChoice) {
-                    "2" { $importParams.RuleTypes = "Publisher" }
-                    "3" { $importParams.RuleTypes = "Hash" }
-                    default { $importParams.RuleTypes = "All" }
-                }
-
-                $autoApprove = Read-Host "  Auto-approve imported items? (Y/n)"
-                if ($autoApprove -ne "n" -and $autoApprove -ne "N") {
-                    $importParams.AutoApprove = $true
-                }
-
-                Import-AppLockerPolicyToSoftwareList @importParams
-            }
-            "6" {
-                # Export to CSV
-                Write-Host "`n  --- Export to CSV ---" -ForegroundColor Cyan
-                $lists = Get-ChildItem -Path $defaultListPath -Filter "*.json" -ErrorAction SilentlyContinue
-                if ($lists.Count -eq 0) {
-                    Write-Host "  No software lists found." -ForegroundColor Yellow
-                    continue
-                }
-
-                Write-Host "  Select list to export:" -ForegroundColor Gray
-                $i = 1
-                foreach ($list in $lists) {
-                    Write-Host "    [$i] $($list.BaseName)" -ForegroundColor White
-                    $i++
-                }
-                $listChoice = Read-Host "  Select list"
-                if (-not ($listChoice -match "^\d+$") -or [int]$listChoice -lt 1 -or [int]$listChoice -gt $lists.Count) {
-                    continue
-                }
-
-                $selectedList = $lists[[int]$listChoice - 1]
-                $csvPath = Join-Path $defaultListPath "$($selectedList.BaseName).csv"
-                Export-SoftwareListToCsv -ListPath $selectedList.FullName -OutputPath $csvPath
-            }
-            "7" {
                 # Bulk approve/unapprove items
                 Write-Host "`n  --- Bulk Approval Management ---" -ForegroundColor Cyan
                 $lists = Get-ChildItem -Path $defaultListPath -Filter "*.json" -ErrorAction SilentlyContinue
@@ -1725,9 +1677,9 @@ function Invoke-SoftwareListWorkflow {
 
                 Set-SoftwareListItemApproval @approvalParams
             }
-            "G" {
+            "5" {
                 # Generate policy from software list using Build Guide mode (with AppLocker groups)
-                Write-Host "`n  --- Generate Policy from Software List (Build Guide) ---" -ForegroundColor Cyan
+                Write-Host "`n  --- Generate Policy from Software List ---" -ForegroundColor Cyan
                 Write-Host ""
                 Write-Host "  This uses Build Guide mode with proper AppLocker groups:" -ForegroundColor Gray
                 Write-Host "    - AppLocker-Admins: Microsoft + approved vendor publishers" -ForegroundColor DarkGray
@@ -2431,16 +2383,13 @@ if ($Mode -ne "Interactive") {
 do {
     $choice = (Show-Menu).ToUpper()
 
-    switch ($choice) {
+    switch ($choice.ToUpper()) {
         "1" { Invoke-ScanWorkflow }
         "2" { Invoke-GenerateWorkflow }
         "3" { Invoke-MergeWorkflow }
         "4" { Invoke-ValidateWorkflow }
-        "5" { Invoke-FullWorkflow }
         "6" { Invoke-CompareWorkflow }
-        "7" { Invoke-ADSetupWorkflow }
-        "8" { Invoke-ADExportWorkflow }
-        "9" { Invoke-ADImportWorkflow }
+        "A" { Invoke-ADManagementWorkflow }
         "C" { Invoke-ADComputersWorkflow }
         "E" { Invoke-EventCollectionWorkflow }
         "W" { Invoke-WinRMMenuWorkflow }
@@ -2455,9 +2404,14 @@ do {
         }
     }
 
-    if ($choice -in @("1", "2", "3", "4", "5", "6", "7", "8", "9", "C", "E", "W", "S", "D")) {
+    if ($choice.ToUpper() -in @("1", "2", "3", "4", "6", "C", "E", "W", "S", "D")) {
         Write-Host ""
         Read-Host "  Press Enter to continue"
+        Clear-Host
+        Show-Banner
+    }
+    elseif ($choice.ToUpper() -eq "A") {
+        # AD Management has its own sub-menu loop, just refresh
         Clear-Host
         Show-Banner
     }

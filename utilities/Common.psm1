@@ -51,8 +51,10 @@ function Resolve-AccountToSid {
         return $sid.Value
     }
     catch {
-        Write-Warning "Could not resolve '$Name' to SID - using placeholder. Verify group exists in AD."
-        return "S-1-5-21-YOURDOMAINSID-YOURGROUP"
+        Write-Warning "Could not resolve '$Name' to SID. Verify the account/group exists and is accessible."
+        Write-Warning "  - For domain groups, ensure the machine is domain-joined and can contact a DC"
+        Write-Warning "  - For local accounts, ensure the account exists on this machine"
+        return $null
     }
 }
 
@@ -162,11 +164,13 @@ function New-AppLockerRuleXml {
         [string]$Type,
 
         [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
         [string]$Name,
 
         [string]$Description = "",
 
         [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
         [string]$Sid,
 
         [Parameter(Mandatory = $true)]
@@ -176,6 +180,11 @@ function New-AppLockerRuleXml {
         [Parameter(Mandatory = $true)]
         [string]$Condition
     )
+
+    # Validate SID format (must start with S-1-)
+    if ($Sid -notmatch "^S-1-\d+-") {
+        throw "Invalid SID format: '$Sid'. SIDs must start with 'S-1-' followed by authority and sub-authorities."
+    }
 
     $id = [guid]::NewGuid().ToString()
     $escapedName = [System.Security.SecurityElement]::Escape($Name)
