@@ -128,22 +128,10 @@ else {
 #region Banner and Menu
 
 function Show-Banner {
-    $banner = @"
-
-  ╔═══════════════════════════════════════════════════════════════════════════╗
-  ║                                                                           ║
-  ║     ██████╗  █████╗        █████╗ ██████╗ ██████╗ ██╗      ██████╗  ██████╗██╗  ██╗███████╗██████╗
-  ║    ██╔════╝ ██╔══██╗      ██╔══██╗██╔══██╗██╔══██╗██║     ██╔═══██╗██╔════╝██║ ██╔╝██╔════╝██╔══██╗
-  ║    ██║  ███╗███████║█████╗███████║██████╔╝██████╔╝██║     ██║   ██║██║     █████╔╝ █████╗  ██████╔╝
-  ║    ██║   ██║██╔══██║╚════╝██╔══██║██╔═══╝ ██╔═══╝ ██║     ██║   ██║██║     ██╔═██╗ ██╔══╝  ██╔══██╗
-  ║    ╚██████╔╝██║  ██║      ██║  ██║██║     ██║     ███████╗╚██████╔╝╚██████╗██║  ██╗███████╗██║  ██║
-  ║     ╚═════╝ ╚═╝  ╚═╝      ╚═╝  ╚═╝╚═╝     ╚═╝     ╚══════╝ ╚═════╝  ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝
-  ║                                                                           ║
-  ║                     AppLocker Policy Generation Toolkit                   ║
-  ╚═══════════════════════════════════════════════════════════════════════════╝
-
-"@
-    Write-Host $banner -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "  GA-AppLocker - AppLocker Policy Generation Toolkit" -ForegroundColor Cyan
+    Write-Host "  -------------------------------------------------" -ForegroundColor DarkGray
+    Write-Host ""
 }
 
 function Show-Menu {
@@ -217,6 +205,13 @@ function Invoke-ScanWorkflow {
 
     if (-not (Test-Path $ComputerListPath)) {
         Write-Host "  [-] Computer list not found: $ComputerListPath" -ForegroundColor Red
+        return $null
+    }
+
+    # Ensure it's a file, not a directory
+    if ((Get-Item $ComputerListPath).PSIsContainer) {
+        Write-Host "  [-] Path is a directory, not a file: $ComputerListPath" -ForegroundColor Red
+        Write-Host "      Please provide a text file containing computer names (one per line)" -ForegroundColor Yellow
         return $null
     }
 
