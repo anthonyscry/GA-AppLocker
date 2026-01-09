@@ -639,15 +639,19 @@ function Invoke-ImportUsers {
         # Parse group-based format and convert to user-based format
         $userGroups = @{}
         foreach ($row in $csvData) {
-            $group = $row.$groupColumn.Trim()
+            # Sanitize group name - remove quotes and trim
+            $group = $row.$groupColumn.Trim().Trim('"').Trim("'").Trim()
             $usersRaw = $row.$usersColumn
 
             if ([string]::IsNullOrWhiteSpace($group) -or [string]::IsNullOrWhiteSpace($usersRaw)) {
                 continue
             }
 
-            # Split users by semicolon, comma, or space
-            $users = $usersRaw -split '[;,\s]+' | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne "" }
+            # Split users by semicolon, comma, or space and sanitize
+            $users = $usersRaw -split '[;,\s]+' | ForEach-Object {
+                # Remove any surrounding quotes and trim whitespace
+                $_.Trim().Trim('"').Trim("'").Trim()
+            } | Where-Object { $_ -ne "" }
 
             foreach ($username in $users) {
                 if (-not $userGroups.ContainsKey($username)) {
@@ -668,6 +672,21 @@ function Invoke-ImportUsers {
         }
 
         Write-Host "  Found $($userGroups.Count) unique users across $($csvData.Count) group assignments" -ForegroundColor Cyan
+
+        # Check for potential group names in user list (common data entry error)
+        $suspiciousUsernames = $userGroups.Keys | Where-Object {
+            $_ -match '^(AppLocker-|AD-|Domain |Security-|GRP-|GRP_|Group-)' -or
+            $_ -match '(Admins|Users|ServiceAccounts|Installers|Operators)$'
+        }
+        if ($suspiciousUsernames.Count -gt 0) {
+            Write-Host ""
+            Write-Host "  [WARNING] The following entries in the Users column look like group names:" -ForegroundColor Yellow
+            foreach ($suspect in $suspiciousUsernames) {
+                Write-Host "    - $suspect" -ForegroundColor Yellow
+            }
+            Write-Host "  If these are AD groups, move them to the Group column instead." -ForegroundColor Yellow
+            Write-Host ""
+        }
     }
 
     # Find rows with changes
@@ -686,15 +705,15 @@ function Invoke-ImportUsers {
 
     Write-Host "  Found $($rowsWithChanges.Count) users with pending changes" -ForegroundColor Cyan
 
-    # Collect unique groups
+    # Collect unique groups (with sanitization to remove quotes)
     $allGroupNames = @()
     foreach ($row in $rowsWithChanges) {
         if ($row.AddToGroups -and $row.AddToGroups.Trim() -ne "") {
-            $groups = $row.AddToGroups -split ';' | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne "" }
+            $groups = $row.AddToGroups -split ';' | ForEach-Object { $_.Trim().Trim('"').Trim("'").Trim() } | Where-Object { $_ -ne "" }
             $allGroupNames += $groups
         }
         if ($row.RemoveFromGroups -and $row.RemoveFromGroups.Trim() -ne "") {
-            $groups = $row.RemoveFromGroups -split ';' | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne "" }
+            $groups = $row.RemoveFromGroups -split ';' | ForEach-Object { $_.Trim().Trim('"').Trim("'").Trim() } | Where-Object { $_ -ne "" }
             $allGroupNames += $groups
         }
     }
@@ -748,7 +767,8 @@ function Invoke-ImportUsers {
     $removeFailed = 0
 
     foreach ($row in $rowsWithChanges) {
-        $username = $row.SamAccountName
+        # Sanitize username - remove any quotes that may have been in the CSV
+        $username = $row.SamAccountName.Trim().Trim('"').Trim("'").Trim()
         Write-Host "Processing: $username" -ForegroundColor Cyan
 
         try {
@@ -768,7 +788,7 @@ function Invoke-ImportUsers {
 
         # Process additions
         if ($row.AddToGroups -and $row.AddToGroups.Trim() -ne "") {
-            $groupsToAdd = $row.AddToGroups -split ';' | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne "" }
+            $groupsToAdd = $row.AddToGroups -split ';' | ForEach-Object { $_.Trim().Trim('"').Trim("'").Trim() } | Where-Object { $_ -ne "" }
 
             foreach ($groupName in $groupsToAdd) {
                 $logEntry = [PSCustomObject]@{
@@ -808,7 +828,7 @@ function Invoke-ImportUsers {
 
         # Process removals
         if ($row.RemoveFromGroups -and $row.RemoveFromGroups.Trim() -ne "") {
-            $groupsToRemove = $row.RemoveFromGroups -split ';' | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne "" }
+            $groupsToRemove = $row.RemoveFromGroups -split ';' | ForEach-Object { $_.Trim().Trim('"').Trim("'").Trim() } | Where-Object { $_ -ne "" }
 
             foreach ($groupName in $groupsToRemove) {
                 $logEntry = [PSCustomObject]@{
