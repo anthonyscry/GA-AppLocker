@@ -520,22 +520,36 @@ if ($null -ne $savedDefaults) {
 
 # Wait for all jobs to complete
 Write-Host "`nWaiting for scans to complete..." -ForegroundColor Yellow
+Write-Host "  (This can take 10-30+ minutes per computer)" -ForegroundColor Gray
 
 $allJobs = Get-Job -Name "Scan-*" -ErrorAction SilentlyContinue
 $completedCount = 0
+$spinChars = @('|', '/', '-', '\')
+$spinIndex = 0
+$startWait = Get-Date
 
 # Note: Get-Job doesn't allow -Name and -State together in some PS versions
 # So we get by name and filter with Where-Object
 while (($allJobs | Where-Object { $_.State -eq 'Running' }).Count -gt 0) {
+    $runningCount = ($allJobs | Where-Object { $_.State -eq 'Running' }).Count
     $newCompleted = ($allJobs | Where-Object { $_.State -eq 'Completed' }).Count
+    $elapsed = [math]::Round(((Get-Date) - $startWait).TotalMinutes, 1)
+
+    # Show spinner and status
+    $spin = $spinChars[$spinIndex % 4]
+    Write-Host "`r  [$spin] Running: $runningCount | Completed: $newCompleted / $($computers.Count) | Elapsed: $elapsed min   " -NoNewline -ForegroundColor Cyan
+    $spinIndex++
+
     if ($newCompleted -gt $completedCount) {
         $completedCount = $newCompleted
-        Write-Host "  Completed: $completedCount / $($computers.Count)" -ForegroundColor Gray
+        Write-Host ""  # New line when something completes
+        Write-Host "  Completed: $completedCount / $($computers.Count)" -ForegroundColor Green
     }
     Start-Sleep -Seconds 3
     # Refresh job list to get updated states
     $allJobs = Get-Job -Name "Scan-*" -ErrorAction SilentlyContinue
 }
+Write-Host ""  # Final newline after spinner
 
 # Collect results - use SilentlyContinue to prevent job errors from propagating
 if ($null -ne $allJobs -and $allJobs.Count -gt 0) {
