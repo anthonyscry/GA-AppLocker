@@ -58,10 +58,8 @@ param(
     [ValidateSet("Connectivity", "JobSession", "JobFull", "SimpleScan")]
     [string]$TestType,
 
-    [Parameter(ParameterSetName = "SingleComputer")]
     [string]$ComputerName,
 
-    [Parameter(ParameterSetName = "MultiComputer")]
     [string]$ComputerListPath,
 
     [string]$OutputPath = ".\DiagnosticOutput",
