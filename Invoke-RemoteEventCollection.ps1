@@ -101,13 +101,13 @@
 
 [CmdletBinding(DefaultParameterSetName='Standard')]
 param(
-    [Parameter(Mandatory=$true, Position=0)]
+    [Parameter(Position=0)]
     [ValidateNotNullOrEmpty()]
-    [string]$ComputerListPath,
+    [string]$ComputerListPath = ".\computers.txt",
 
-    [Parameter(Mandatory=$true, Position=1)]
+    [Parameter(Position=1)]
     [ValidateNotNullOrEmpty()]
-    [string]$OutputPath,
+    [string]$OutputPath = ".\Events",
 
     [Parameter()]
     [PSCredential]$Credential,
