@@ -651,20 +651,26 @@ function Invoke-CompareWorkflow {
     )
 
     Write-Host "`n=== Software Inventory Comparison ===" -ForegroundColor Cyan
+    Write-Host "  Compares software inventory CSV files (e.g., Executables.csv)" -ForegroundColor Gray
+    Write-Host "  Scan folders contain: Executables.csv, Publishers.csv, WritableDirectories.csv" -ForegroundColor Gray
+    Write-Host ""
 
     # Get reference path
     if ([string]::IsNullOrWhiteSpace($RefPath)) {
-        $RefPath = Read-Host "  Enter path to reference/baseline CSV"
+        Write-Host "  Example: .\Scans\COMPUTER01\Executables.csv" -ForegroundColor DarkGray
+        $RefPath = Read-Host "  Enter path to reference/baseline CSV file"
     }
 
-    if ([string]::IsNullOrWhiteSpace($RefPath) -or -not (Test-Path $RefPath)) {
-        Write-Host "  [-] Reference file not found: $RefPath" -ForegroundColor Red
+    if ([string]::IsNullOrWhiteSpace($RefPath) -or -not (Test-Path $RefPath -PathType Leaf)) {
+        Write-Host "  [-] Reference CSV file not found: $RefPath" -ForegroundColor Red
+        Write-Host "      Make sure to specify a CSV file, not a directory." -ForegroundColor Yellow
         return $null
     }
 
     # Get comparison path
     if ([string]::IsNullOrWhiteSpace($CompPath)) {
-        $CompPath = Read-Host "  Enter path to comparison CSV (or wildcard pattern)"
+        Write-Host "  Example: .\Scans\COMPUTER02\Executables.csv or .\Scans\*\Executables.csv" -ForegroundColor DarkGray
+        $CompPath = Read-Host "  Enter path to comparison CSV file(s) (supports wildcards)"
     }
 
     if ([string]::IsNullOrWhiteSpace($CompPath)) {

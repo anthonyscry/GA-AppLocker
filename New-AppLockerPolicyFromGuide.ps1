@@ -650,7 +650,7 @@ if ($TargetType -in @("Server", "DomainController")) {
 #endregion
 
 #region Helper function aliases for module functions
-# Using New-AppLockerRuleXml, New-PathConditionXmlXml, New-PublisherConditionXmlXml from Common.psm1
+# Using New-AppLockerRuleXml, New-PathConditionXml, New-PublisherConditionXml from Common.psm1
 #endregion
 
 #region Build EXE Rules
@@ -672,7 +672,7 @@ foreach ($principal in @(
         -Description "Allow Microsoft-signed executables for $($principal.Name)" `
         -Sid $principal.Sid `
         -Action "Allow" `
-        -Condition (New-PublisherConditionXmlXml -Publisher "O=MICROSOFT CORPORATION*")
+        -Condition (New-PublisherConditionXml -Publisher "O=MICROSOFT CORPORATION*")
     $exeRules += "`n"
 }
 
