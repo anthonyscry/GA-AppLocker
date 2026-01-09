@@ -1335,12 +1335,11 @@ function Show-SoftwareListMenu {
     Write-Host "    [3] Import     - Import from scan data or executable" -ForegroundColor White
     Write-Host "    [4] Publishers - Import common trusted publishers" -ForegroundColor White
     Write-Host "    [5] Policy     - Import from existing AppLocker policy" -ForegroundColor White
-    Write-Host "    [6] Folder     - Import from folder (scan executables)" -ForegroundColor White
     Write-Host ""
     Write-Host "  === Export & Generate ===" -ForegroundColor Cyan
-    Write-Host "    [7] Export     - Export list to CSV" -ForegroundColor White
-    Write-Host "    [8] Approve    - Bulk approve/unapprove items" -ForegroundColor White
-    Write-Host "    [G] Generate   - Generate policy from software list" -ForegroundColor White
+    Write-Host "    [6] Export     - Export list to CSV" -ForegroundColor White
+    Write-Host "    [7] Approve    - Bulk approve/unapprove items" -ForegroundColor White
+    Write-Host "    [G] Generate   - Generate policy from software list (Build Guide)" -ForegroundColor White
     Write-Host ""
     Write-Host "    [B] Back" -ForegroundColor Gray
     Write-Host ""
@@ -1638,70 +1637,6 @@ function Invoke-SoftwareListWorkflow {
                 Import-AppLockerPolicyToSoftwareList @importParams
             }
             "6" {
-                # Import from folder
-                Write-Host "`n  --- Import from Folder ---" -ForegroundColor Cyan
-
-                # Get target list
-                $lists = Get-ChildItem -Path $defaultListPath -Filter "*.json" -ErrorAction SilentlyContinue
-                $targetList = $null
-
-                if ($lists.Count -gt 0) {
-                    Write-Host "  Import to existing list or create new?" -ForegroundColor Gray
-                    $i = 1
-                    foreach ($list in $lists) {
-                        Write-Host "    [$i] $($list.BaseName)" -ForegroundColor White
-                        $i++
-                    }
-                    Write-Host "    [N] Create new list" -ForegroundColor White
-                    $listChoice = Read-Host "  Select option"
-
-                    if ($listChoice -match "^\d+$" -and [int]$listChoice -le $lists.Count) {
-                        $targetList = $lists[[int]$listChoice - 1].FullName
-                    }
-                }
-
-                if (-not $targetList) {
-                    $newName = Read-Host "  Enter new list name (default: FolderScan)"
-                    if ([string]::IsNullOrWhiteSpace($newName)) { $newName = "FolderScan" }
-                    $targetList = Join-Path $defaultListPath "$newName.json"
-                    New-SoftwareList -Name $newName -Description "Imported from folder scan" -OutputPath $defaultListPath | Out-Null
-                }
-
-                $folderPath = Read-Host "  Enter folder path to scan"
-                if (-not (Test-Path $folderPath)) {
-                    Write-Host "  [-] Folder not found: $folderPath" -ForegroundColor Red
-                    continue
-                }
-
-                $recurseChoice = Read-Host "  Scan subfolders recursively? (Y/n)"
-                $signedOnlyChoice = Read-Host "  Only import signed files? (y/N)"
-
-                $importParams = @{
-                    FolderPath = $folderPath
-                    ListPath   = $targetList
-                }
-
-                if ($recurseChoice -ne "n" -and $recurseChoice -ne "N") {
-                    $importParams.Recurse = $true
-                }
-
-                if ($signedOnlyChoice -eq "y" -or $signedOnlyChoice -eq "Y") {
-                    $importParams.SignedOnly = $true
-                }
-
-                $category = Read-Host "  Category (default: Folder Import)"
-                if (-not [string]::IsNullOrWhiteSpace($category)) {
-                    $importParams.Category = $category
-                }
-
-                $autoApprove = Read-Host "  Auto-approve imported items? (y/N)"
-                if ($autoApprove -eq "y" -or $autoApprove -eq "Y") {
-                    $importParams.AutoApprove = $true
-                }
-
-                Import-FolderToSoftwareList @importParams
-            }
-            "7" {
                 # Export to CSV
                 Write-Host "`n  --- Export to CSV ---" -ForegroundColor Cyan
                 $lists = Get-ChildItem -Path $defaultListPath -Filter "*.json" -ErrorAction SilentlyContinue
@@ -1725,7 +1660,7 @@ function Invoke-SoftwareListWorkflow {
                 $csvPath = Join-Path $defaultListPath "$($selectedList.BaseName).csv"
                 Export-SoftwareListToCsv -ListPath $selectedList.FullName -OutputPath $csvPath
             }
-            "8" {
+            "7" {
                 # Bulk approve/unapprove items
                 Write-Host "`n  --- Bulk Approval Management ---" -ForegroundColor Cyan
                 $lists = Get-ChildItem -Path $defaultListPath -Filter "*.json" -ErrorAction SilentlyContinue
@@ -1791,35 +1726,142 @@ function Invoke-SoftwareListWorkflow {
                 Set-SoftwareListItemApproval @approvalParams
             }
             "G" {
-                # Generate policy from software list
-                Write-Host "`n  --- Generate Policy from Software List ---" -ForegroundColor Cyan
+                # Generate policy from software list using Build Guide mode (with AppLocker groups)
+                Write-Host "`n  --- Generate Policy from Software List (Build Guide) ---" -ForegroundColor Cyan
+                Write-Host ""
+                Write-Host "  This uses Build Guide mode with proper AppLocker groups:" -ForegroundColor Gray
+                Write-Host "    - AppLocker-Admins: Microsoft + approved vendor publishers" -ForegroundColor DarkGray
+                Write-Host "    - AppLocker-StandardUsers: Path-based allows only (least privilege)" -ForegroundColor DarkGray
+                Write-Host "    - AppLocker-Service-Accounts: Vendor publishers only" -ForegroundColor DarkGray
+                Write-Host "    - AppLocker-Installers: Vendor MSI access" -ForegroundColor DarkGray
+                Write-Host ""
+
+                # Select software list
                 $lists = Get-ChildItem -Path $defaultListPath -Filter "*.json" -ErrorAction SilentlyContinue
                 if ($lists.Count -eq 0) {
-                    Write-Host "  No software lists found. Create one first." -ForegroundColor Yellow
+                    Write-Host "  [-] No software lists found. Create one first." -ForegroundColor Red
                     continue
                 }
 
-                Write-Host "  Select software list:" -ForegroundColor Gray
+                Write-Host "  Select software list:" -ForegroundColor Yellow
                 $i = 1
                 foreach ($list in $lists) {
                     $summary = Get-SoftwareListSummary -ListPath $list.FullName
                     Write-Host "    [$i] $($list.BaseName) ($($summary.ApprovedItems) approved items)" -ForegroundColor White
                     $i++
                 }
-                $listChoice = Read-Host "  Select list"
+                Write-Host ""
+                $listChoice = Read-Host "  Enter number (1-$($lists.Count))"
                 if (-not ($listChoice -match "^\d+$") -or [int]$listChoice -lt 1 -or [int]$listChoice -gt $lists.Count) {
+                    Write-Host "  [-] Invalid selection. Please enter a number between 1 and $($lists.Count)." -ForegroundColor Red
                     continue
                 }
                 $selectedList = $lists[[int]$listChoice - 1].FullName
 
+                # Get domain name (required for group SID resolution)
                 Write-Host ""
-                Write-Host "  Generating simplified policy from software list..." -ForegroundColor Cyan
+                Write-Host "  Domain Configuration:" -ForegroundColor Yellow
+                Write-Host "    Enter the NetBIOS domain name (e.g., CONTOSO, CORP, MYDOMAIN)" -ForegroundColor Gray
+                Write-Host "    This is used to resolve AppLocker group SIDs." -ForegroundColor Gray
+                Write-Host ""
+                $domainName = Read-Host "  Domain name"
+                if ([string]::IsNullOrWhiteSpace($domainName)) {
+                    Write-Host "  [-] Domain name is required for Build Guide mode." -ForegroundColor Red
+                    continue
+                }
+                # Validate domain name format (alphanumeric, max 15 chars for NetBIOS)
+                if ($domainName -notmatch "^[A-Za-z0-9\-]+$") {
+                    Write-Host "  [-] Invalid domain name. Use alphanumeric characters only." -ForegroundColor Red
+                    continue
+                }
+                $domainName = $domainName.ToUpper()
 
+                # Get target type
+                Write-Host ""
+                Write-Host "  Target System Type:" -ForegroundColor Yellow
+                Write-Host "    [1] Workstation   - End-user workstations (recommended for most deployments)" -ForegroundColor White
+                Write-Host "    [2] Server        - Member servers" -ForegroundColor White
+                Write-Host "    [3] DC            - Domain Controllers" -ForegroundColor White
+                Write-Host ""
+                $targetChoice = Read-Host "  Enter choice (1-3)"
+                $targetType = switch ($targetChoice) {
+                    "1" { "Workstation" }
+                    "2" { "Server" }
+                    "3" { "DomainController" }
+                    default { $null }
+                }
+                if (-not $targetType) {
+                    Write-Host "  [-] Invalid target type. Please enter 1, 2, or 3." -ForegroundColor Red
+                    continue
+                }
+
+                # Get deployment phase
+                Write-Host ""
+                Write-Host "  Deployment Phase:" -ForegroundColor Yellow
+                Write-Host "    [1] Phase 1 - EXE rules only (lowest risk, start here)" -ForegroundColor White
+                Write-Host "    [2] Phase 2 - EXE + Script rules" -ForegroundColor White
+                Write-Host "    [3] Phase 3 - EXE + Script + MSI/Installer rules" -ForegroundColor White
+                Write-Host "    [4] Phase 4 - Full enforcement (EXE + Script + MSI + DLL)" -ForegroundColor White
+                Write-Host ""
+                $phaseChoice = Read-Host "  Enter phase (1-4)"
+                if ($phaseChoice -notmatch "^[1-4]$") {
+                    Write-Host "  [-] Invalid phase. Please enter a number between 1 and 4." -ForegroundColor Red
+                    continue
+                }
+                $phase = [int]$phaseChoice
+
+                # Optional: Include deny rules
+                Write-Host ""
+                $includeDeny = Read-Host "  Include explicit deny rules for user-writable paths? (Y/n)"
+                $skipDenyRules = ($includeDeny -eq "n" -or $includeDeny -eq "N")
+
+                # Show summary and confirm
+                Write-Host ""
+                Write-Host "  ================================================" -ForegroundColor Cyan
+                Write-Host "  Policy Generation Summary:" -ForegroundColor Yellow
+                Write-Host "    Software List: $(Split-Path -Leaf $selectedList)" -ForegroundColor White
+                Write-Host "    Domain: $domainName" -ForegroundColor White
+                Write-Host "    Target Type: $targetType" -ForegroundColor White
+                Write-Host "    Phase: $phase" -ForegroundColor White
+                Write-Host "    Deny Rules: $(if ($skipDenyRules) { 'Disabled' } else { 'Enabled' })" -ForegroundColor White
+                Write-Host ""
+                Write-Host "  AppLocker Groups (will be created/used):" -ForegroundColor Yellow
+                Write-Host "    $domainName\AppLocker-Admins" -ForegroundColor DarkGray
+                Write-Host "    $domainName\AppLocker-StandardUsers" -ForegroundColor DarkGray
+                Write-Host "    $domainName\AppLocker-Service-Accounts" -ForegroundColor DarkGray
+                Write-Host "    $domainName\AppLocker-Installers" -ForegroundColor DarkGray
+                Write-Host "  ================================================" -ForegroundColor Cyan
+                Write-Host ""
+
+                $confirm = Read-Host "  Proceed with policy generation? (Y/n)"
+                if ($confirm -eq "n" -or $confirm -eq "N") {
+                    Write-Host "  [-] Policy generation cancelled." -ForegroundColor Yellow
+                    continue
+                }
+
+                Write-Host ""
+                Write-Host "  Generating Build Guide policy with AppLocker groups..." -ForegroundColor Cyan
+                Write-Host ""
+
+                # Build parameters for New-AppLockerPolicyFromGuide.ps1
                 $policyScript = Join-Path $PSScriptRoot "New-AppLockerPolicyFromGuide.ps1"
-                & $policyScript -Simplified -SoftwareListPath $selectedList
+                $policyParams = @{
+                    TargetType       = $targetType
+                    DomainName       = $domainName
+                    Phase            = $phase
+                    SoftwareListPath = $selectedList
+                    EnforcementMode  = "AuditOnly"
+                }
+
+                if ($skipDenyRules) {
+                    $policyParams.SkipDenyRules = $true
+                }
+
+                & $policyScript @policyParams
 
                 Write-Host ""
                 Write-Host "  [+] Policy generation complete!" -ForegroundColor Green
+                Write-Host "  [+] Policy uses least privilege with AppLocker groups." -ForegroundColor Green
             }
             "B" { }
             default {
