@@ -869,6 +869,143 @@ function Show-ValidationResult {
 
 #endregion
 
+#region Parameter and Input Helpers
+
+<#
+.SYNOPSIS
+    Prompts for and validates a path with proper error handling.
+
+.PARAMETER Prompt
+    The prompt message to display.
+
+.PARAMETER DefaultValue
+    Optional default value if user provides no input.
+
+.PARAMETER MustExist
+    If true, validates that the path exists.
+
+.PARAMETER MustBeFile
+    If true, validates that the path is a file (not directory).
+
+.PARAMETER MustBeDirectory
+    If true, validates that the path is a directory (not file).
+
+.OUTPUTS
+    String path, or $null if validation fails.
+#>
+function Get-ValidatedPath {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Prompt,
+
+        [string]$DefaultValue = "",
+        [string]$Example = "",
+        [switch]$MustExist,
+        [switch]$MustBeFile,
+        [switch]$MustBeDirectory
+    )
+
+    # Show example if provided
+    if ($Example) {
+        Write-Host "  Example: $Example" -ForegroundColor DarkGray
+    }
+
+    # Prompt with default
+    if ($DefaultValue) {
+        $input = Read-Host "$Prompt (default: $DefaultValue)"
+        if ([string]::IsNullOrWhiteSpace($input)) {
+            $input = $DefaultValue
+        }
+    }
+    else {
+        $input = Read-Host $Prompt
+    }
+
+    # Check if empty
+    if ([string]::IsNullOrWhiteSpace($input)) {
+        Write-Host "  [-] Path is required" -ForegroundColor Red
+        return $null
+    }
+
+    # Check existence if required
+    if ($MustExist -and -not (Test-Path $input)) {
+        Write-Host "  [-] Path not found: $input" -ForegroundColor Red
+        return $null
+    }
+
+    # Validate file type
+    if ($MustExist) {
+        $item = Get-Item $input -ErrorAction SilentlyContinue
+        if ($item) {
+            if ($MustBeFile -and $item.PSIsContainer) {
+                Write-Host "  [-] Path is a directory, not a file: $input" -ForegroundColor Red
+                Write-Host "      Please provide a file path" -ForegroundColor Yellow
+                return $null
+            }
+            if ($MustBeDirectory -and -not $item.PSIsContainer) {
+                Write-Host "  [-] Path is a file, not a directory: $input" -ForegroundColor Red
+                Write-Host "      Please provide a directory path" -ForegroundColor Yellow
+                return $null
+            }
+        }
+    }
+
+    return $input
+}
+
+<#
+.SYNOPSIS
+    Adds parameters to a hashtable only if they have non-empty values.
+
+.PARAMETER Hashtable
+    The hashtable to add parameters to.
+
+.PARAMETER Parameters
+    Hashtable of parameter names and values to conditionally add.
+
+.EXAMPLE
+    $params = @{}
+    Add-NonEmptyParameters -Hashtable $params -Parameters @{
+        Path = $Path
+        Name = $Name
+        Force = $Force
+    }
+#>
+function Add-NonEmptyParameters {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [hashtable]$Hashtable,
+
+        [Parameter(Mandatory = $true)]
+        [hashtable]$Parameters
+    )
+
+    foreach ($key in $Parameters.Keys) {
+        $value = $Parameters[$key]
+
+        # Add if: not null, not empty string, or is a switch/bool
+        if ($null -ne $value) {
+            if ($value -is [string]) {
+                if (-not [string]::IsNullOrWhiteSpace($value)) {
+                    $Hashtable[$key] = $value
+                }
+            }
+            elseif ($value -is [bool] -or $value -is [switch]) {
+                if ($value) {
+                    $Hashtable[$key] = $value
+                }
+            }
+            else {
+                $Hashtable[$key] = $value
+            }
+        }
+    }
+}
+
+#endregion
+
 # Export module members
 Export-ModuleMember -Function @(
     # SID Resolution
@@ -902,5 +1039,9 @@ Export-ModuleMember -Function @(
     'Compare-AppLockerPolicies',
     'Get-PolicyRuleIdentifiers',
     'Test-ScanData',
-    'Show-ValidationResult'
+    'Show-ValidationResult',
+
+    # Parameter and Input Helpers
+    'Get-ValidatedPath',
+    'Add-NonEmptyParameters'
 )
