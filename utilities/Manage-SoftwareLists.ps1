@@ -512,33 +512,67 @@ function Import-ScanDataToSoftwareList {
 
     $list = Get-SoftwareList -ListPath $ListPath
 
-    # Find all scan data
-    $computerFolders = Get-ChildItem -Path $ScanPath -Directory |
-    Where-Object { Test-Path (Join-Path $_.FullName "*.csv") }
+    # Find scan data - check if ScanPath is a folder with CSVs directly or contains subfolders
+    $scanSource = [System.IO.Path]::GetFileName($ScanPath)
+    $computerFolders = @()
 
-    if ($computerFolders.Count -eq 0) {
-        throw "No scan data found in $ScanPath"
+    # Check if CSVs exist directly in ScanPath (single computer folder selected)
+    $directCsvs = Get-ChildItem -Path $ScanPath -Filter "*.csv" -ErrorAction SilentlyContinue
+    if ($directCsvs.Count -gt 0) {
+        # ScanPath itself contains CSV files - treat as single folder
+        $computerFolders = @([PSCustomObject]@{ FullName = $ScanPath; Name = $scanSource })
+    }
+    else {
+        # Look for subfolders containing CSVs
+        $computerFolders = @(Get-ChildItem -Path $ScanPath -Directory -ErrorAction SilentlyContinue |
+            Where-Object {
+                $csvFiles = Get-ChildItem -Path $_.FullName -Filter "*.csv" -ErrorAction SilentlyContinue
+                $csvFiles.Count -gt 0
+            })
     }
 
-    Write-Host "Loading scan data from $($computerFolders.Count) computers..." -ForegroundColor Cyan
+    if ($computerFolders.Count -eq 0) {
+        Write-Warning "No scan data found in $ScanPath"
+        return $list
+    }
+
+    Write-Host "Loading scan data from $($computerFolders.Count) source(s)..." -ForegroundColor Cyan
 
     $allExecutables = @()
+    $sourceNames = @()
     foreach ($folder in $computerFolders) {
         $exePath = Join-Path $folder.FullName "Executables.csv"
         if (Test-Path $exePath) {
-            $allExecutables += Import-Csv -Path $exePath
+            try {
+                $csvData = Import-Csv -Path $exePath -ErrorAction Stop
+                $allExecutables += $csvData
+                $sourceNames += $folder.Name
+            }
+            catch {
+                Write-Warning "Failed to read $exePath : $_"
+            }
         }
+    }
+
+    if ($allExecutables.Count -eq 0) {
+        Write-Warning "No executables found in scan data"
+        return $list
     }
 
     Write-Host "  Found $($allExecutables.Count) total executables" -ForegroundColor Gray
 
     # Filter based on switches
-    $toImport = $allExecutables
+    $toImport = @($allExecutables)
     if ($SignedOnly) {
-        $toImport = $toImport | Where-Object { $_.IsSigned -eq "True" -and $_.Publisher }
+        $toImport = @($toImport | Where-Object { $_.IsSigned -eq "True" -and $_.Publisher })
     }
     if ($UnsignedOnly) {
-        $toImport = $toImport | Where-Object { $_.IsSigned -ne "True" -and $_.Hash }
+        $toImport = @($toImport | Where-Object { $_.IsSigned -ne "True" -and $_.Hash })
+    }
+
+    if ($toImport.Count -eq 0) {
+        Write-Host "  No executables match the filter criteria" -ForegroundColor Yellow
+        return $list
     }
 
     # Track what we've added for deduplication
@@ -546,28 +580,47 @@ function Import-ScanDataToSoftwareList {
     $addedHashes = @{}
     $importCount = 0
 
+    # Build source description for notes
+    $sourceDescription = if ($sourceNames.Count -eq 1) { $sourceNames[0] } else { "$($sourceNames.Count) sources" }
+
     foreach ($exe in $toImport) {
+        # Defensive: skip if name is empty
+        if ([string]::IsNullOrWhiteSpace($exe.Name)) { continue }
+
         $ruleType = if ($exe.IsSigned -eq "True" -and $exe.Publisher) { "Publisher" } else { "Hash" }
 
+        # Defensive: For hash rules, ensure we have a hash
+        if ($ruleType -eq "Hash" -and [string]::IsNullOrWhiteSpace($exe.Hash)) { continue }
+
         # Deduplicate if requested
-        if ($Deduplicate -and $ruleType -eq "Publisher") {
+        if ($Deduplicate -and $ruleType -eq "Publisher" -and $exe.Publisher) {
             if ($addedPublishers.ContainsKey($exe.Publisher)) { continue }
             $addedPublishers[$exe.Publisher] = $true
         }
-        if ($Deduplicate -and $ruleType -eq "Hash") {
+        if ($Deduplicate -and $ruleType -eq "Hash" -and $exe.Hash) {
             if ($addedHashes.ContainsKey($exe.Hash)) { continue }
             $addedHashes[$exe.Hash] = $true
         }
 
-        # Check if already in list
-        $exists = $list.items | Where-Object {
-            ($_.publisher -eq $exe.Publisher -and $exe.Publisher) -or
-            ($_.hash -eq $exe.Hash -and $exe.Hash)
+        # Check if already in list (defensive null checks)
+        $listItems = @($list.items)
+        $exists = $listItems | Where-Object {
+            ($_.publisher -and $exe.Publisher -and $_.publisher -eq $exe.Publisher) -or
+            ($_.hash -and $exe.Hash -and $_.hash -eq $exe.Hash)
         }
         if ($exists) { continue }
 
-        # Extract product name from path
-        $productName = if ($exe.Path -match "\\([^\\]+)\\[^\\]+$") { $matches[1] } else { "*" }
+        # Extract product name from path (with null check)
+        $productName = "*"
+        if ($exe.Path -and $exe.Path -match "\\([^\\]+)\\[^\\]+$") {
+            $productName = $matches[1]
+        }
+
+        # Parse file size safely
+        $fileSize = 0
+        if ($exe.Size -and $exe.Size -match "^\d+$") {
+            $fileSize = [int64]$exe.Size
+        }
 
         $newItem = [PSCustomObject]@{
             id             = [guid]::NewGuid().ToString()
@@ -579,14 +632,14 @@ function Import-ScanDataToSoftwareList {
             maxVersion     = "*"
             hash           = $exe.Hash
             hashSourceFile = $exe.Name
-            hashSourceSize = [int64]$exe.Size
+            hashSourceSize = $fileSize
             path           = $exe.Path
             category       = $Category
-            notes          = "Imported from scan: $($folder.Name)"
+            notes          = "Imported from scan: $sourceDescription"
             approved       = [bool]$AutoApprove
             ruleType       = $ruleType
             added          = (Get-Date).ToString("o")
-            addedBy        = $env:USERNAME
+            addedBy        = if ($env:USERNAME) { $env:USERNAME } else { "System" }
         }
 
         $items = @($list.items)
@@ -740,29 +793,46 @@ function Get-SoftwareListRules {
 
     $list = Get-SoftwareList -ListPath $ListPath
 
-    $items = $list.items
+    # Defensive: ensure items is an array
+    $items = @($list.items)
+
+    if ($items.Count -eq 0) {
+        Write-Verbose "No items in software list"
+        return @()
+    }
 
     # Filter by approval status
     if ($ApprovedOnly) {
-        $items = $items | Where-Object { $_.approved -eq $true }
+        $items = @($items | Where-Object { $_.approved -eq $true })
     }
 
     # Filter by category
     if ($Category) {
-        $items = $items | Where-Object { $_.category -eq $Category }
+        $items = @($items | Where-Object { $_.category -eq $Category })
     }
 
     # Filter by rule type
     if ($RuleType -ne "All") {
-        $items = $items | Where-Object { $_.ruleType -eq $RuleType }
+        $items = @($items | Where-Object { $_.ruleType -eq $RuleType })
+    }
+
+    if ($items.Count -eq 0) {
+        Write-Verbose "No items match the specified filters"
+        return @()
     }
 
     $rules = @()
 
     foreach ($item in $items) {
+        # Skip items with missing required data
+        if (-not $item.name) { continue }
+
+        $rule = $null
         switch ($item.ruleType) {
             "Publisher" {
-                $rule = New-PublisherRuleFromListItem -Item $item -Sid $UserOrGroupSid -Action $Action
+                if ($item.publisher) {
+                    $rule = New-PublisherRuleFromListItem -Item $item -Sid $UserOrGroupSid -Action $Action
+                }
             }
             "Hash" {
                 $rule = New-HashRuleFromListItem -Item $item -Sid $UserOrGroupSid -Action $Action
@@ -991,10 +1061,12 @@ function Find-SoftwareListItem {
     )
 
     $list = Get-SoftwareList -ListPath $ListPath
-    $items = $list.items
+
+    # Defensive: ensure items is an array
+    $items = @($list.items)
 
     if ($Name) {
-        $items = $items | Where-Object { $_.name -like $Name }
+        $items = @($items | Where-Object { $_.name -like $Name })
     }
     if ($Publisher) {
         $items = $items | Where-Object { $_.publisher -like $Publisher }
@@ -1036,10 +1108,18 @@ function Export-SoftwareListToCsv {
 
     $list = Get-SoftwareList -ListPath $ListPath
 
-    $list.items | Select-Object name, publisher, productName, binaryName, hash, path, category, approved, ruleType, notes |
+    # Defensive: ensure items is an array
+    $items = @($list.items)
+
+    if ($items.Count -eq 0) {
+        Write-Warning "No items in software list to export"
+        return
+    }
+
+    $items | Select-Object name, publisher, productName, binaryName, hash, path, category, approved, ruleType, notes |
     Export-Csv -Path $OutputPath -NoTypeInformation
 
-    Write-Host "Exported $($list.items.Count) items to: $OutputPath" -ForegroundColor Green
+    Write-Host "Exported $($items.Count) items to: $OutputPath" -ForegroundColor Green
 }
 
 

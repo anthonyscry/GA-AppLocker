@@ -187,6 +187,220 @@ function Show-GenerateMenu {
 
 #region Workflow Functions
 
+# =============================================================================
+# Helper Functions for Folder/File Selection
+# =============================================================================
+
+function Select-ScanFolder {
+    <#
+    .SYNOPSIS
+    Interactive menu to select a scan folder from the Scans directory.
+
+    .PARAMETER BasePath
+    Base path to look for scan folders. Default: .\Scans
+
+    .PARAMETER Prompt
+    Custom prompt text.
+
+    .PARAMETER AllowMultiple
+    Allow selecting multiple folders.
+
+    .PARAMETER AllowCancel
+    Show cancel option.
+
+    .RETURNS
+    Selected folder path(s) or $null if cancelled.
+    #>
+    param(
+        [string]$BasePath = ".\Scans",
+        [string]$Prompt = "Select scan folder",
+        [switch]$AllowMultiple,
+        [switch]$AllowCancel
+    )
+
+    # Check if base path exists
+    if (-not (Test-Path $BasePath)) {
+        Write-Host "  [-] Scan directory not found: $BasePath" -ForegroundColor Red
+        Write-Host "      Run a scan first using the Scan workflow." -ForegroundColor Yellow
+        return $null
+    }
+
+    # Get all scan folders (folders containing CSV files)
+    $scanFolders = @(Get-ChildItem -Path $BasePath -Directory -ErrorAction SilentlyContinue |
+        Where-Object {
+            $csvFiles = Get-ChildItem -Path $_.FullName -Filter "*.csv" -ErrorAction SilentlyContinue
+            $csvFiles.Count -gt 0
+        } |
+        Sort-Object LastWriteTime -Descending)
+
+    if ($scanFolders.Count -eq 0) {
+        Write-Host "  [-] No scan data found in: $BasePath" -ForegroundColor Red
+        Write-Host "      Scan folders should contain CSV files (Executables.csv, etc.)" -ForegroundColor Yellow
+        return $null
+    }
+
+    # Display available folders
+    Write-Host ""
+    Write-Host "  Available scan folders:" -ForegroundColor Yellow
+    Write-Host ""
+
+    $i = 1
+    foreach ($folder in $scanFolders) {
+        # Get scan info
+        $csvCount = @(Get-ChildItem -Path $folder.FullName -Filter "*.csv" -ErrorAction SilentlyContinue).Count
+        $exeFile = Join-Path $folder.FullName "Executables.csv"
+        $exeCount = 0
+        if (Test-Path $exeFile) {
+            $exeCount = @(Import-Csv $exeFile -ErrorAction SilentlyContinue).Count
+        }
+        $scanDate = $folder.LastWriteTime.ToString("yyyy-MM-dd HH:mm")
+
+        Write-Host "    [$i] $($folder.Name)" -ForegroundColor White
+        Write-Host "        Scanned: $scanDate | Files: $csvCount CSVs | Executables: $exeCount" -ForegroundColor DarkGray
+        $i++
+    }
+
+    Write-Host ""
+    if ($AllowMultiple) {
+        Write-Host "    [A] All folders" -ForegroundColor Cyan
+    }
+    if ($AllowCancel) {
+        Write-Host "    [C] Cancel" -ForegroundColor Gray
+    }
+    Write-Host ""
+
+    # Get selection
+    if ($AllowMultiple) {
+        Write-Host "  Enter numbers separated by commas (e.g., 1,3,5) or 'A' for all" -ForegroundColor DarkGray
+    }
+    $selection = Read-Host "  $Prompt"
+
+    # Handle cancel
+    if ($AllowCancel -and $selection -in @("C", "c")) {
+        return $null
+    }
+
+    # Handle all
+    if ($AllowMultiple -and $selection -in @("A", "a", "all")) {
+        return $scanFolders.FullName
+    }
+
+    # Parse selection
+    $selectedPaths = @()
+    $indices = $selection -split "," | ForEach-Object { $_.Trim() }
+
+    foreach ($idx in $indices) {
+        if ($idx -match "^\d+$") {
+            $num = [int]$idx
+            if ($num -ge 1 -and $num -le $scanFolders.Count) {
+                $selectedPaths += $scanFolders[$num - 1].FullName
+            }
+            else {
+                Write-Host "  [-] Invalid selection: $idx (out of range)" -ForegroundColor Red
+            }
+        }
+        elseif (-not [string]::IsNullOrWhiteSpace($idx)) {
+            Write-Host "  [-] Invalid selection: $idx" -ForegroundColor Red
+        }
+    }
+
+    if ($selectedPaths.Count -eq 0) {
+        Write-Host "  [-] No valid selection made" -ForegroundColor Red
+        return $null
+    }
+
+    if ($AllowMultiple) {
+        return $selectedPaths
+    }
+    else {
+        return $selectedPaths[0]
+    }
+}
+
+
+function Select-CsvFile {
+    <#
+    .SYNOPSIS
+    Interactive menu to select a specific CSV file from scan folders.
+
+    .PARAMETER BasePath
+    Base path to look for scan folders. Default: .\Scans
+
+    .PARAMETER FileType
+    Type of CSV to look for: Executables, Publishers, WritableDirectories, InstalledSoftware, All
+
+    .PARAMETER Prompt
+    Custom prompt text.
+
+    .RETURNS
+    Selected file path or $null if cancelled.
+    #>
+    param(
+        [string]$BasePath = ".\Scans",
+        [ValidateSet("Executables", "Publishers", "WritableDirectories", "InstalledSoftware", "All")]
+        [string]$FileType = "Executables",
+        [string]$Prompt = "Select CSV file"
+    )
+
+    # First select the folder
+    $folder = Select-ScanFolder -BasePath $BasePath -Prompt "Select scan folder" -AllowCancel
+
+    if (-not $folder) {
+        return $null
+    }
+
+    # If specific file type, return it directly
+    if ($FileType -ne "All") {
+        $csvPath = Join-Path $folder "$FileType.csv"
+        if (Test-Path $csvPath) {
+            return $csvPath
+        }
+        else {
+            Write-Host "  [-] $FileType.csv not found in selected folder" -ForegroundColor Red
+            return $null
+        }
+    }
+
+    # Show available CSV files in folder
+    $csvFiles = @(Get-ChildItem -Path $folder -Filter "*.csv" -ErrorAction SilentlyContinue)
+
+    if ($csvFiles.Count -eq 0) {
+        Write-Host "  [-] No CSV files found in: $folder" -ForegroundColor Red
+        return $null
+    }
+
+    Write-Host ""
+    Write-Host "  Available files in $([System.IO.Path]::GetFileName($folder)):" -ForegroundColor Yellow
+    $i = 1
+    foreach ($file in $csvFiles) {
+        $rowCount = @(Import-Csv $file.FullName -ErrorAction SilentlyContinue).Count
+        Write-Host "    [$i] $($file.Name) ($rowCount rows)" -ForegroundColor White
+        $i++
+    }
+    Write-Host "    [C] Cancel" -ForegroundColor Gray
+    Write-Host ""
+
+    $selection = Read-Host "  $Prompt"
+
+    if ($selection -in @("C", "c")) {
+        return $null
+    }
+
+    if ($selection -match "^\d+$") {
+        $num = [int]$selection
+        if ($num -ge 1 -and $num -le $csvFiles.Count) {
+            return $csvFiles[$num - 1].FullName
+        }
+    }
+
+    Write-Host "  [-] Invalid selection" -ForegroundColor Red
+    return $null
+}
+
+# =============================================================================
+# Core Workflow Functions
+# =============================================================================
+
 function Invoke-ScanWorkflow {
     param(
         [string]$ComputerListPath,
@@ -665,53 +879,150 @@ function Invoke-CompareWorkflow {
     )
 
     Write-Host "`n=== Software Inventory Comparison ===" -ForegroundColor Cyan
-    Write-Host "  Compares software inventory CSV files (e.g., Executables.csv)" -ForegroundColor Gray
-    Write-Host "  Scan folders contain: Executables.csv, Publishers.csv, WritableDirectories.csv" -ForegroundColor Gray
+    Write-Host "  Compares software inventory between scan folders." -ForegroundColor Gray
+    Write-Host "  Useful for: baseline comparison, drift detection, identifying changes." -ForegroundColor Gray
     Write-Host ""
 
-    # Get reference path
-    if ([string]::IsNullOrWhiteSpace($RefPath)) {
-        Write-Host "  Example: .\Scans\COMPUTER01\Executables.csv" -ForegroundColor DarkGray
-        $RefPath = Read-Host "  Enter path to reference/baseline CSV file"
-    }
+    # Selection method menu
+    Write-Host "  How would you like to select files?" -ForegroundColor Yellow
+    Write-Host "    [1] Browse scan folders (recommended)" -ForegroundColor White
+    Write-Host "    [2] Enter paths manually" -ForegroundColor White
+    Write-Host "    [C] Cancel" -ForegroundColor Gray
+    Write-Host ""
+    $selectionMethod = Read-Host "  Choice"
 
-    if ([string]::IsNullOrWhiteSpace($RefPath) -or -not (Test-Path $RefPath -PathType Leaf)) {
-        Write-Host "  [-] Reference CSV file not found: $RefPath" -ForegroundColor Red
-        Write-Host "      Make sure to specify a CSV file, not a directory." -ForegroundColor Yellow
+    if ($selectionMethod -in @("C", "c")) {
         return $null
     }
 
-    # Get comparison path
-    if ([string]::IsNullOrWhiteSpace($CompPath)) {
-        Write-Host "  Example: .\Scans\COMPUTER02\Executables.csv or .\Scans\*\Executables.csv" -ForegroundColor DarkGray
-        $CompPath = Read-Host "  Enter path to comparison CSV file(s) (supports wildcards)"
-    }
+    if ($selectionMethod -eq "1") {
+        # Browse mode - use folder selectors
+        Write-Host ""
+        Write-Host "  Step 1: Select REFERENCE (baseline) scan folder" -ForegroundColor Yellow
+        $refFolder = Select-ScanFolder -Prompt "Select reference folder" -AllowCancel
+        if (-not $refFolder) { return $null }
 
-    if ([string]::IsNullOrWhiteSpace($CompPath)) {
-        Write-Host "  [-] Comparison path is required" -ForegroundColor Red
-        return $null
+        # Select file type
+        Write-Host ""
+        Write-Host "  What would you like to compare?" -ForegroundColor Yellow
+        Write-Host "    [1] Executables (recommended)" -ForegroundColor White
+        Write-Host "    [2] Publishers" -ForegroundColor White
+        Write-Host "    [3] Installed Software" -ForegroundColor White
+        Write-Host "    [C] Cancel" -ForegroundColor Gray
+        $fileTypeChoice = Read-Host "  Choice"
+
+        if ($fileTypeChoice -in @("C", "c")) { return $null }
+
+        $fileType = switch ($fileTypeChoice) {
+            "2" { "Publishers" }
+            "3" { "InstalledSoftware" }
+            default { "Executables" }
+        }
+
+        $RefPath = Join-Path $refFolder "$fileType.csv"
+        if (-not (Test-Path $RefPath)) {
+            Write-Host "  [-] $fileType.csv not found in reference folder" -ForegroundColor Red
+            return $null
+        }
+        Write-Host "  Selected: $RefPath" -ForegroundColor Green
+
+        Write-Host ""
+        Write-Host "  Step 2: Select COMPARISON scan folder(s)" -ForegroundColor Yellow
+        Write-Host "  You can select multiple folders to compare against the baseline." -ForegroundColor Gray
+        $compFolders = Select-ScanFolder -Prompt "Select comparison folder(s)" -AllowMultiple -AllowCancel
+
+        if (-not $compFolders) { return $null }
+
+        # Build comparison paths
+        $compPaths = @()
+        foreach ($folder in @($compFolders)) {
+            $compFile = Join-Path $folder "$fileType.csv"
+            if (Test-Path $compFile) {
+                $compPaths += $compFile
+            }
+            else {
+                Write-Host "  [!] Skipping $([System.IO.Path]::GetFileName($folder)) - no $fileType.csv" -ForegroundColor Yellow
+            }
+        }
+
+        if ($compPaths.Count -eq 0) {
+            Write-Host "  [-] No valid comparison files found" -ForegroundColor Red
+            return $null
+        }
+
+        # If single path, use directly; if multiple, join for pattern
+        if ($compPaths.Count -eq 1) {
+            $CompPath = $compPaths[0]
+        }
+        else {
+            # Create a pattern that matches all selected files
+            $CompPath = $compPaths -join ","
+        }
+        Write-Host "  Selected: $($compPaths.Count) file(s) for comparison" -ForegroundColor Green
+    }
+    else {
+        # Manual entry mode
+        if ([string]::IsNullOrWhiteSpace($RefPath)) {
+            Write-Host "  Example: .\Scans\COMPUTER01\Executables.csv" -ForegroundColor DarkGray
+            $RefPath = Read-Host "  Enter path to reference/baseline CSV file"
+        }
+
+        if ([string]::IsNullOrWhiteSpace($RefPath) -or -not (Test-Path $RefPath -PathType Leaf)) {
+            Write-Host "  [-] Reference CSV file not found: $RefPath" -ForegroundColor Red
+            Write-Host "      Make sure to specify a CSV file, not a directory." -ForegroundColor Yellow
+            return $null
+        }
+
+        if ([string]::IsNullOrWhiteSpace($CompPath)) {
+            Write-Host "  Example: .\Scans\COMPUTER02\Executables.csv" -ForegroundColor DarkGray
+            $CompPath = Read-Host "  Enter path to comparison CSV file"
+        }
+
+        if ([string]::IsNullOrWhiteSpace($CompPath)) {
+            Write-Host "  [-] Comparison path is required" -ForegroundColor Red
+            return $null
+        }
     }
 
     # Get comparison method
-    if ([string]::IsNullOrWhiteSpace($Method)) {
-        Write-Host "  Compare by: [1] Name  [2] NameVersion  [3] Hash  [4] Publisher" -ForegroundColor Yellow
-        $methodChoice = Read-Host "  Enter choice (default: 1)"
-        $Method = switch ($methodChoice) {
-            "2" { "NameVersion" }
-            "3" { "Hash" }
-            "4" { "Publisher" }
-            default { "Name" }
-        }
+    Write-Host ""
+    Write-Host "  Step 3: Select comparison method" -ForegroundColor Yellow
+    Write-Host "    [1] Name - Compare by filename only" -ForegroundColor White
+    Write-Host "    [2] NameVersion - Compare by name and version" -ForegroundColor White
+    Write-Host "    [3] Hash - Compare by file hash (exact match)" -ForegroundColor White
+    Write-Host "    [4] Publisher - Compare by publisher/signer" -ForegroundColor White
+    $methodChoice = Read-Host "  Choice (default: 1)"
+    $Method = switch ($methodChoice) {
+        "2" { "NameVersion" }
+        "3" { "Hash" }
+        "4" { "Publisher" }
+        default { "Name" }
     }
 
     # Run comparison
     $compareScript = Join-Path $scriptRoot "utilities\Compare-SoftwareInventory.ps1"
-    if (Test-Path $compareScript) {
-        Write-Host "`n  Comparing inventories..." -ForegroundColor Cyan
+    if (-not (Test-Path $compareScript)) {
+        Write-Host "  [-] Compare script not found: $compareScript" -ForegroundColor Red
+        return $null
+    }
+
+    Write-Host ""
+    Write-Host "  Comparing inventories by $Method..." -ForegroundColor Cyan
+
+    # Handle multiple comparison paths
+    $allResults = @()
+    $compPathList = if ($CompPath -match ",") { $CompPath -split "," } else { @($CompPath) }
+
+    foreach ($singleCompPath in $compPathList) {
+        $singleCompPath = $singleCompPath.Trim()
+        if (-not (Test-Path $singleCompPath)) {
+            Write-Host "  [!] Skipping - file not found: $singleCompPath" -ForegroundColor Yellow
+            continue
+        }
 
         $compareParams = @{
             ReferencePath = $RefPath
-            ComparePath   = $CompPath
+            ComparePath   = $singleCompPath
             CompareBy     = $Method
         }
         if (-not [string]::IsNullOrWhiteSpace($OutPath)) {
@@ -720,15 +1031,22 @@ function Invoke-CompareWorkflow {
 
         try {
             $result = & $compareScript @compareParams
-            return $result
+            if ($result) {
+                $allResults += $result
+            }
         }
         catch {
-            Write-Host "  [-] Comparison failed: $($_.Exception.Message)" -ForegroundColor Red
-            return $null
+            Write-Host "  [-] Comparison failed for $singleCompPath : $($_.Exception.Message)" -ForegroundColor Red
         }
     }
+
+    if ($allResults.Count -gt 0) {
+        Write-Host ""
+        Write-Host "  [+] Comparison complete!" -ForegroundColor Green
+        return $allResults
+    }
     else {
-        Write-Host "  [-] Compare script not found: $compareScript" -ForegroundColor Red
+        Write-Host "  [-] No comparison results" -ForegroundColor Yellow
         return $null
     }
 }
@@ -1220,14 +1538,18 @@ function Invoke-SoftwareListWorkflow {
             "5" {
                 # Import from scan data or executable
                 Write-Host "`n  --- Import Software ---" -ForegroundColor Cyan
-                Write-Host "    [1] Import from scan data" -ForegroundColor White
+                Write-Host "    [1] Import from scan data (browse folders)" -ForegroundColor White
                 Write-Host "    [2] Import from executable file" -ForegroundColor White
+                Write-Host "    [C] Cancel" -ForegroundColor Gray
                 $importChoice = Read-Host "  Select import source"
 
+                if ($importChoice -in @("C", "c")) { continue }
+
                 # Get target list
-                $lists = Get-ChildItem -Path $defaultListPath -Filter "*.json" -ErrorAction SilentlyContinue
+                $lists = @(Get-ChildItem -Path $defaultListPath -Filter "*.json" -ErrorAction SilentlyContinue)
                 $targetList = $null
 
+                Write-Host ""
                 if ($lists.Count -gt 0) {
                     Write-Host "  Import to existing list or create new?" -ForegroundColor Gray
                     $i = 1
@@ -1236,32 +1558,51 @@ function Invoke-SoftwareListWorkflow {
                         $i++
                     }
                     Write-Host "    [N] Create new list" -ForegroundColor White
+                    Write-Host "    [C] Cancel" -ForegroundColor Gray
                     $listChoice = Read-Host "  Select option"
 
-                    if ($listChoice -match "^\d+$" -and [int]$listChoice -le $lists.Count) {
+                    if ($listChoice -in @("C", "c")) { continue }
+
+                    if ($listChoice -match "^\d+$" -and [int]$listChoice -ge 1 -and [int]$listChoice -le $lists.Count) {
                         $targetList = $lists[[int]$listChoice - 1].FullName
                     }
                 }
 
                 if (-not $targetList) {
                     $newName = Read-Host "  Enter new list name"
+                    if ([string]::IsNullOrWhiteSpace($newName)) {
+                        Write-Host "  [-] List name is required" -ForegroundColor Red
+                        continue
+                    }
                     $targetList = Join-Path $defaultListPath "$newName.json"
                     New-SoftwareList -Name $newName -Description "Imported software" -OutputPath $defaultListPath | Out-Null
                 }
 
                 if ($importChoice -eq "1") {
-                    $scanPath = Read-Host "  Enter scan data path (default: .\Scans)"
-                    if ([string]::IsNullOrWhiteSpace($scanPath)) { $scanPath = ".\Scans" }
+                    # Browse scan folders
+                    Write-Host ""
+                    Write-Host "  Select scan folder(s) to import from:" -ForegroundColor Yellow
+                    $scanFolders = Select-ScanFolder -Prompt "Select folder(s)" -AllowMultiple -AllowCancel
 
-                    if (Test-Path $scanPath) {
-                        Write-Host "  Import options:" -ForegroundColor Gray
-                        Write-Host "    [1] Signed software only (publisher rules)" -ForegroundColor White
-                        Write-Host "    [2] Unsigned software only (hash rules)" -ForegroundColor White
-                        Write-Host "    [3] All software" -ForegroundColor White
-                        $filterChoice = Read-Host "  Select filter"
+                    if (-not $scanFolders) { continue }
+
+                    Write-Host ""
+                    Write-Host "  Import options:" -ForegroundColor Gray
+                    Write-Host "    [1] Signed software only (publisher rules)" -ForegroundColor White
+                    Write-Host "    [2] Unsigned software only (hash rules)" -ForegroundColor White
+                    Write-Host "    [3] All software" -ForegroundColor White
+                    $filterChoice = Read-Host "  Select filter (default: 1)"
+
+                    $autoApprove = Read-Host "  Auto-approve imported items? (y/N)"
+                    $doAutoApprove = $autoApprove -in @("y", "Y")
+
+                    # Import from each selected folder
+                    $totalImported = 0
+                    foreach ($folder in @($scanFolders)) {
+                        Write-Host "  Importing from $([System.IO.Path]::GetFileName($folder))..." -ForegroundColor Cyan
 
                         $importParams = @{
-                            ScanPath    = $scanPath
+                            ScanPath    = $folder
                             ListPath    = $targetList
                             Deduplicate = $true
                         }
@@ -1271,24 +1612,47 @@ function Invoke-SoftwareListWorkflow {
                             "2" { $importParams.UnsignedOnly = $true }
                         }
 
-                        $autoApprove = Read-Host "  Auto-approve imported items? (y/N)"
-                        if ($autoApprove -eq "y" -or $autoApprove -eq "Y") {
+                        if ($doAutoApprove) {
                             $importParams.AutoApprove = $true
                         }
 
-                        Import-ScanDataToSoftwareList @importParams
+                        try {
+                            Import-ScanDataToSoftwareList @importParams -ErrorAction Stop
+                            $totalImported++
+                        }
+                        catch {
+                            Write-Host "  [-] Failed to import from $folder : $_" -ForegroundColor Red
+                        }
                     }
-                    else {
-                        Write-Host "  [-] Scan path not found: $scanPath" -ForegroundColor Red
+
+                    if ($totalImported -gt 0) {
+                        Write-Host "  [+] Import complete from $totalImported folder(s)" -ForegroundColor Green
                     }
                 }
                 else {
+                    # Import from executable file
                     $exePath = Read-Host "  Enter executable file path"
+                    if ([string]::IsNullOrWhiteSpace($exePath)) {
+                        Write-Host "  [-] File path is required" -ForegroundColor Red
+                        continue
+                    }
+
                     if (Test-Path $exePath) {
+                        # Validate it's a file not directory
+                        if ((Get-Item $exePath).PSIsContainer) {
+                            Write-Host "  [-] Please specify a file, not a directory" -ForegroundColor Red
+                            continue
+                        }
+
                         $category = Read-Host "  Category (default: Imported)"
                         if ([string]::IsNullOrWhiteSpace($category)) { $category = "Imported" }
 
-                        Import-ExecutableToSoftwareList -FilePath $exePath -ListPath $targetList -Category $category
+                        try {
+                            Import-ExecutableToSoftwareList -FilePath $exePath -ListPath $targetList -Category $category -ErrorAction Stop
+                        }
+                        catch {
+                            Write-Host "  [-] Failed to import executable: $_" -ForegroundColor Red
+                        }
                     }
                     else {
                         Write-Host "  [-] File not found: $exePath" -ForegroundColor Red
