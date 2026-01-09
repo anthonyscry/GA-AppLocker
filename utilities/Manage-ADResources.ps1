@@ -530,6 +530,7 @@ function Invoke-ExportUsers {
         Write-Host ""
         Write-Host "To import group changes:" -ForegroundColor Yellow
         Write-Host "  .\Manage-ADResources.ps1 -Action ImportUsers -InputPath `"$fullGroupsPath`"" -ForegroundColor Cyan
+        Write-Host "  Or use the default: .\ADManagement\groups.csv" -ForegroundColor DarkGray
 
         return $fullPath
     }
