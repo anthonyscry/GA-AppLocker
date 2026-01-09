@@ -440,10 +440,13 @@ function Invoke-ValidateWorkflow {
     )
 
     Write-Host "`n=== Policy Validation Workflow ===" -ForegroundColor Cyan
+    Write-Host "  Validates an AppLocker policy XML file for correctness." -ForegroundColor Gray
+    Write-Host ""
 
     # Get policy path - validate
     if ([string]::IsNullOrWhiteSpace($PolicyPath)) {
-        $PolicyPath = Read-Host "  Enter path to policy file"
+        Write-Host "  Example: .\Outputs\AppLockerPolicy-Workstation-Phase1-AuditOnly-20260108.xml" -ForegroundColor DarkGray
+        $PolicyPath = Read-Host "  Enter path to policy XML file"
     }
 
     if ([string]::IsNullOrWhiteSpace($PolicyPath)) {
@@ -451,8 +454,9 @@ function Invoke-ValidateWorkflow {
         return $null
     }
 
-    if (-not (Test-Path $PolicyPath)) {
-        Write-Host "  [-] Policy file not found: $PolicyPath" -ForegroundColor Red
+    if (-not (Test-Path $PolicyPath -PathType Leaf)) {
+        Write-Host "  [-] Policy XML file not found: $PolicyPath" -ForegroundColor Red
+        Write-Host "      Make sure to specify an XML file, not a directory." -ForegroundColor Yellow
         return $null
     }
 
