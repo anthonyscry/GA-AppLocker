@@ -914,14 +914,26 @@ function Invoke-DiagnosticWorkflow {
         }
 
         if ($Type -eq "SimpleScan") {
+            # SimpleScan needs a computer list
+            if ([string]::IsNullOrWhiteSpace($ComputerList)) {
+                Write-Host "  Example: .\computers.txt" -ForegroundColor DarkGray
+                $ComputerList = Read-Host "  Enter path to computer list file"
+            }
             if (-not [string]::IsNullOrWhiteSpace($ComputerList)) {
                 $diagParams.ComputerListPath = $ComputerList
             }
         }
         else {
-            if (-not [string]::IsNullOrWhiteSpace($Computer)) {
-                $diagParams.ComputerName = $Computer
+            # Connectivity, JobSession, JobFull need a single computer name
+            if ([string]::IsNullOrWhiteSpace($Computer)) {
+                Write-Host "  Example: WORKSTATION01 or 192.168.1.100" -ForegroundColor DarkGray
+                $Computer = Read-Host "  Enter target computer name"
             }
+            if ([string]::IsNullOrWhiteSpace($Computer)) {
+                Write-Host "  [-] Computer name is required for $Type test" -ForegroundColor Red
+                return
+            }
+            $diagParams.ComputerName = $Computer
         }
 
         if (-not [string]::IsNullOrWhiteSpace($OutPath)) {
