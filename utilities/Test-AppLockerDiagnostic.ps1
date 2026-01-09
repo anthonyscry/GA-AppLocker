@@ -37,15 +37,15 @@
 
 .EXAMPLE
     # Test connectivity to a single computer
-    .\Test-AppLockerDiagnostic.ps1 -TestType Connectivity -ComputerName "WORKSTATION01"
+    .\utilities\Test-AppLockerDiagnostic.ps1 -TestType Connectivity -ComputerName "WORKSTATION01"
 
 .EXAMPLE
     # Test job execution with full tracing
-    .\Test-AppLockerDiagnostic.ps1 -TestType JobFull -ComputerName "WORKSTATION01"
+    .\utilities\Test-AppLockerDiagnostic.ps1 -TestType JobFull -ComputerName "WORKSTATION01"
 
 .EXAMPLE
     # Run simplified scan for debugging
-    .\Test-AppLockerDiagnostic.ps1 -TestType SimpleScan -ComputerListPath .\computers.txt -OutputPath .\Scans
+    .\utilities\Test-AppLockerDiagnostic.ps1 -TestType SimpleScan -ComputerListPath .\computers.txt -OutputPath .\Scans
 
 .NOTES
     Part of GA-AppLocker toolkit.
@@ -247,7 +247,7 @@ function Invoke-ConnectivityTest {
     Write-Host "  - PSDefaultParameterValues interference" -ForegroundColor Gray
     Write-Host ""
     Write-Host "Try running:" -ForegroundColor Cyan
-    Write-Host '  .\Test-AppLockerDiagnostic.ps1 -TestType JobSession -ComputerName "COMPUTER"' -ForegroundColor White
+    Write-Host '  .\utilities\Test-AppLockerDiagnostic.ps1 -TestType JobSession -ComputerName "COMPUTER"' -ForegroundColor White
 
     return $true
 }
