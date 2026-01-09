@@ -193,14 +193,12 @@ function Invoke-ScanWorkflow {
 
     Write-Host "`n=== Remote Scan Workflow ===" -ForegroundColor Cyan
 
-    # Get computer list - validate input
+    # Get computer list - validate input with default
     if ([string]::IsNullOrWhiteSpace($ComputerListPath)) {
-        $ComputerListPath = Read-Host "  Enter path to computer list file"
-    }
-
-    if ([string]::IsNullOrWhiteSpace($ComputerListPath)) {
-        Write-Host "  [-] Computer list path is required" -ForegroundColor Red
-        return $null
+        $ComputerListPath = Read-Host "  Enter path to computer list file (default: .\computers.txt)"
+        if ([string]::IsNullOrWhiteSpace($ComputerListPath)) {
+            $ComputerListPath = ".\computers.txt"
+        }
     }
 
     if (-not (Test-Path $ComputerListPath)) {
