@@ -377,7 +377,7 @@ function Invoke-ExportUsers {
     Write-Host "Querying Active Directory..." -ForegroundColor Yellow
 
     $adParams = @{
-        Filter     = "*"
+        LDAPFilter = $ldapFilter
         Properties = @("DisplayName", "EmailAddress", "Enabled", "Department", "Title", "MemberOf", "Description")
     }
 
@@ -388,8 +388,6 @@ function Invoke-ExportUsers {
     else {
         Write-Host "  Search scope: Entire domain" -ForegroundColor Gray
     }
-
-    $adParams.LDAPFilter = $ldapFilter
 
     try {
         $users = Get-ADUser @adParams
@@ -476,7 +474,7 @@ function Invoke-ExportUsers {
 #region ImportUsers Function
 function Invoke-ImportUsers {
     param(
-        [string]$Input,
+        [string]$InputFile,
         [string]$Log,
         [switch]$NoValidation
     )
@@ -502,10 +500,10 @@ function Invoke-ImportUsers {
     # Load CSV
     Write-Host ""
     Write-Host "Loading CSV file..." -ForegroundColor Yellow
-    Write-Host "  Input: $Input" -ForegroundColor Gray
+    Write-Host "  Input: $InputFile" -ForegroundColor Gray
 
     try {
-        $csvData = Import-Csv -Path $Input -Encoding UTF8
+        $csvData = Import-Csv -Path $InputFile -Encoding UTF8
 
         $requiredColumns = @('SamAccountName', 'AddToGroups', 'RemoveFromGroups')
         $csvColumns = $csvData[0].PSObject.Properties.Name
@@ -758,7 +756,7 @@ switch ($Action) {
         if ([string]::IsNullOrWhiteSpace($LogPath)) {
             $LogPath = ".\ADUserGroups-ChangeLog.csv"
         }
-        Invoke-ImportUsers -Input $InputPath -Log $LogPath -NoValidation:$SkipValidation
+        Invoke-ImportUsers -InputFile $InputPath -Log $LogPath -NoValidation:$SkipValidation
     }
 }
 
