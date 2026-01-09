@@ -101,32 +101,54 @@
 
 [CmdletBinding(DefaultParameterSetName='Standard')]
 param(
-    [Parameter(Position=0)]
+    [Parameter(Position=0,
+        HelpMessage="Path to file containing computer names (TXT or CSV with ComputerName column)")]
     [ValidateNotNullOrEmpty()]
+    [ValidateScript({
+        if (-not (Test-Path $_ -PathType Leaf)) {
+            throw "Computer list file not found: $_"
+        }
+        $ext = [System.IO.Path]::GetExtension($_).ToLower()
+        if ($ext -notin '.txt', '.csv') {
+            throw "Computer list must be a .txt or .csv file"
+        }
+        $true
+    })]
     [string]$ComputerListPath = ".\ADManagement\computers.csv",
 
-    [Parameter(Position=1)]
+    [Parameter(Position=1,
+        HelpMessage="Path to save event collection results")]
     [ValidateNotNullOrEmpty()]
+    [ValidateScript({
+        # Allow path to be created if parent exists
+        $parent = Split-Path $_ -Parent
+        if ($parent -and -not (Test-Path $parent)) {
+            throw "Parent directory does not exist: $parent"
+        }
+        $true
+    })]
     [string]$OutputPath = ".\Events",
 
-    [Parameter()]
-    [PSCredential]$Credential,
+    [Parameter(HelpMessage="Credentials for remote connections (DOMAIN\username)")]
+    [System.Management.Automation.PSCredential]
+    [System.Management.Automation.Credential()]
+    $Credential,
 
-    [Parameter()]
+    [Parameter(HelpMessage="Maximum concurrent remote connections (1-100)")]
     [ValidateRange(1, 100)]
     [int]$ThrottleLimit = 10,
 
-    [Parameter()]
+    [Parameter(HelpMessage="Days of events to collect (0 for all available)")]
     [ValidateRange(0, 365)]
     [int]$DaysBack = 14,
 
-    [Parameter()]
+    [Parameter(HelpMessage="Only collect blocked events (8004, 8006, 8008)")]
     [switch]$BlockedOnly,
 
-    [Parameter()]
+    [Parameter(HelpMessage="Also collect allowed events (8003, 8005, 8007)")]
     [switch]$IncludeAllowedEvents,
 
-    [Parameter()]
+    [Parameter(HelpMessage="Maximum events to collect per computer")]
     [ValidateRange(100, 50000)]
     [int]$MaxEventsPerComputer = 5000
 )
@@ -139,11 +161,20 @@ $modulePath = Join-Path $scriptRoot "utilities\Common.psm1"
 if (Test-Path $modulePath) {
     Import-Module $modulePath -Force
 }
-
-# Validate inputs
-if (!(Test-Path -Path $ComputerListPath)) {
-    throw "Computer list not found: $ComputerListPath"
+else {
+    Write-Warning "Common.psm1 not found - some features may be limited"
 }
+
+# Initialize logging
+if (Get-Command Start-Logging -ErrorAction SilentlyContinue) {
+    Start-Logging -LogName "EventCollection"
+    Write-Log "Event collection operation started" -Level Info
+    Write-Log "Computer list: $ComputerListPath" -Level Info
+    Write-Log "Days back: $(if ($DaysBack -eq 0) { 'All' } else { $DaysBack })" -Level Info
+    Write-Log "Event types: $(if ($BlockedOnly) { 'Blocked only' } elseif ($IncludeAllowedEvents) { 'All audit' } else { 'Blocked only' })" -Level Info
+}
+
+# Note: Path validation is now handled by ValidateScript in parameter declaration
 
 # Create output directory
 $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
@@ -153,33 +184,59 @@ $outputRoot = (Resolve-Path $outputRoot).Path
 
 # Get credentials if not provided
 if ($null -eq $Credential) {
-    $Credential = Get-Credential -Message "Enter credentials for remote connections (DOMAIN\username)"
+    try {
+        $Credential = Get-Credential -Message "Enter credentials for remote connections (DOMAIN\username)"
+    }
+    catch {
+        $errorMsg = "Failed to prompt for credentials: $_"
+        if (Test-LoggingEnabled) { Write-Log $errorMsg -Level Error }
+        throw $errorMsg
+    }
 }
 
 if ($null -eq $Credential) {
-    throw "Credentials are required. Operation cancelled."
+    $errorMsg = "Credentials are required. Operation cancelled."
+    if (Test-LoggingEnabled) { Write-Log $errorMsg -Level Error }
+    throw $errorMsg
 }
 
-# Load computer list - supports both TXT and CSV formats
-if (Get-Command Get-ComputerList -ErrorAction SilentlyContinue) {
-    $computers = @(Get-ComputerList -Path $ComputerListPath)
+if (Test-LoggingEnabled) {
+    Write-Log "Credentials provided for user: $($Credential.UserName)" -Level Info
 }
-else {
-    # Fallback for standalone usage
-    $extension = [System.IO.Path]::GetExtension($ComputerListPath).ToLower()
-    if ($extension -eq ".csv") {
-        $csv = Import-Csv -Path $ComputerListPath
-        $computers = @($csv | Where-Object { $_.ComputerName } | ForEach-Object { $_.ComputerName.Trim() })
+
+# Load computer list - uses Get-ComputerList from Common.psm1 (supports TXT and CSV)
+try {
+    if (Get-Command Get-ComputerList -ErrorAction SilentlyContinue) {
+        $computers = @(Get-ComputerList -Path $ComputerListPath)
     }
     else {
-        $computers = @(Get-Content -Path $ComputerListPath |
-            Where-Object { -not [string]::IsNullOrWhiteSpace($_) -and -not $_.TrimStart().StartsWith('#') } |
-            ForEach-Object { $_.Trim() })
+        # Fallback for standalone usage
+        $extension = [System.IO.Path]::GetExtension($ComputerListPath).ToLower()
+        if ($extension -eq ".csv") {
+            $csv = Import-Csv -Path $ComputerListPath
+            $computers = @($csv | Where-Object { $_.ComputerName } | ForEach-Object { $_.ComputerName.Trim() })
+        }
+        else {
+            $computers = @(Get-Content -Path $ComputerListPath |
+                Where-Object { -not [string]::IsNullOrWhiteSpace($_) -and -not $_.TrimStart().StartsWith('#') } |
+                ForEach-Object { $_.Trim() })
+        }
     }
+}
+catch {
+    $errorMsg = "Failed to load computer list: $_"
+    if (Test-LoggingEnabled) { Write-Log $errorMsg -Level Error }
+    throw $errorMsg
 }
 
 if ($computers.Count -eq 0) {
-    throw "No computers found in $ComputerListPath"
+    $errorMsg = "No computers found in $ComputerListPath"
+    if (Test-LoggingEnabled) { Write-Log $errorMsg -Level Error }
+    throw $errorMsg
+}
+
+if (Test-LoggingEnabled) {
+    Write-Log "Loaded $($computers.Count) computers from list" -Level Info
 }
 
 Write-Host "=== AppLocker Event Collection ===" -ForegroundColor Cyan
@@ -662,6 +719,24 @@ Write-Host "`nNext steps:" -ForegroundColor Yellow
 Write-Host "  1. Review UniqueBlockedApps.csv to identify apps needing rules" -ForegroundColor White
 Write-Host "  2. Import blocked apps to a software list for rule generation" -ForegroundColor White
 Write-Host "  3. Generate policy rules: .\Start-AppLockerWorkflow.ps1 -> [S] Software" -ForegroundColor White
+
+# Finalize logging
+if (Test-LoggingEnabled) {
+    Write-LogSection "Event Collection Summary"
+    Write-Log "Computers processed: $($results.Count)" -Level Info
+    Write-Log "Success: $successCount" -Level Success
+    Write-Log "Failed: $failCount" -Level $(if ($failCount -gt 0) { "Warning" } else { "Info" })
+    Write-Log "Blocked events: $totalBlocked" -Level Info
+    Write-Log "Allowed events: $totalAllowed" -Level Info
+    Write-Log "Unique blocked apps: $totalUniqueApps" -Level Info
+    Write-Log "Output path: $outputRoot" -Level Info
+
+    # Log results with per-computer details
+    Write-LogResults -Results $results
+
+    $logFile = Stop-Logging -Summary "Collected events from $($results.Count) computers, $totalBlocked blocked events, $totalUniqueApps unique apps"
+    Write-Host "Log file: $logFile" -ForegroundColor Gray
+}
 
 # Return output path for workflow chaining
 return $outputRoot

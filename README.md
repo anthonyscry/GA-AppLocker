@@ -477,14 +477,87 @@ GA-AppLocker/
 ├── Invoke-RemoteEventCollection.ps1    # AppLocker audit event collection
 ├── New-AppLockerPolicyFromGuide.ps1    # Policy generation engine
 ├── Merge-AppLockerPolicies.ps1         # Policy consolidation
+├── Logs/                               # Operation log files (auto-created)
+│   ├── RemoteScan-YYYYMMDD-HHMMSS.log
+│   └── EventCollection-YYYYMMDD-HHMMSS.log
 └── utilities/
-    ├── Common.psm1                     # Shared functions (SID, XML, validation)
+    ├── Common.psm1                     # Shared functions (SID, XML, validation, logging)
     ├── Config.psd1                     # Configuration (LOLBins, paths, SIDs)
     ├── Manage-SoftwareLists.ps1        # Software list management
     ├── Enable-WinRM-Domain.ps1         # WinRM GPO deployment
     ├── Manage-ADResources.ps1          # AD group/OU management
     ├── Compare-SoftwareInventory.ps1   # Software inventory comparison
     └── Test-AppLockerDiagnostic.ps1    # Connectivity diagnostics
+```
+
+---
+
+## Logging
+
+GA-AppLocker automatically creates detailed log files for all major operations. Logs are stored in the `./Logs` folder and provide an audit trail of all actions.
+
+### Log Files
+
+| Operation | Log File Pattern | Contents |
+|-----------|-----------------|----------|
+| Remote Scan | `RemoteScan-YYYYMMDD-HHMMSS.log` | Computer list, scan progress, results, errors |
+| Event Collection | `EventCollection-YYYYMMDD-HHMMSS.log` | Computers scanned, events found, failures |
+| Policy Generation | `PolicyGeneration-YYYYMMDD-HHMMSS.log` | Rules created, publishers, settings |
+
+### Log Format
+
+```
+================================================================================
+  GA-AppLocker Log File
+  Operation: RemoteScan
+  Started: 2026-01-09 14:30:00
+  Computer: ADMINPC01
+  User: DOMAIN\admin
+================================================================================
+
+[2026-01-09 14:30:01] [INFO   ] Remote scan operation started
+[2026-01-09 14:30:01] [INFO   ] Computer list: .\ADManagement\computers.csv
+[2026-01-09 14:30:01] [INFO   ] Loaded 15 computers from list
+[2026-01-09 14:30:05] [SUCCESS] WORKSTATION01: Scan completed
+[2026-01-09 14:30:08] [ERROR  ] WORKSTATION02: WinRM connection failed
+...
+```
+
+### Managing Logs
+
+```powershell
+# View recent logs (via PowerShell)
+Import-Module .\utilities\Common.psm1
+Get-LogFiles -Days 7
+
+# Clean up old logs (keeps last 30 days by default)
+Clear-OldLogs -RetentionDays 30
+
+# Preview what would be deleted
+Clear-OldLogs -RetentionDays 30 -WhatIf
+```
+
+### Using Logging in Scripts
+
+For custom scripts or extensions, use the logging functions from Common.psm1:
+
+```powershell
+Import-Module .\utilities\Common.psm1
+
+# Start logging session
+Start-Logging -LogName "CustomOperation"
+
+# Write log entries
+Write-Log "Starting operation" -Level Info
+Write-Log "Processing complete" -Level Success
+Write-Log "Minor issue detected" -Level Warning
+Write-Log "Critical failure" -Level Error
+
+# Add section headers
+Write-LogSection "Phase 2: Processing"
+
+# Stop logging and get log file path
+$logFile = Stop-Logging -Summary "Processed 100 items"
 ```
 
 ---

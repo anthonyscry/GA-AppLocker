@@ -101,28 +101,55 @@
 
 [CmdletBinding(DefaultParameterSetName='Standard')]
 param(
-    [Parameter(Mandatory=$true, Position=0, ParameterSetName='Standard')]
+    [Parameter(Mandatory=$true, Position=0, ParameterSetName='Standard',
+        HelpMessage="Path to file containing computer names (TXT or CSV with ComputerName column)")]
     [ValidateNotNullOrEmpty()]
+    [ValidateScript({
+        if (-not (Test-Path $_ -PathType Leaf)) {
+            throw "Computer list file not found: $_"
+        }
+        $ext = [System.IO.Path]::GetExtension($_).ToLower()
+        if ($ext -notin '.txt', '.csv') {
+            throw "Computer list must be a .txt or .csv file"
+        }
+        $true
+    })]
     [string]$ComputerListPath,
 
-    [Parameter(Mandatory=$true, Position=1, ParameterSetName='Standard')]
+    [Parameter(Mandatory=$true, Position=1, ParameterSetName='Standard',
+        HelpMessage="Path to save scan results (local or UNC path)")]
     [ValidateNotNullOrEmpty()]
+    [ValidateScript({
+        # Allow path to be created if parent exists
+        $parent = Split-Path $_ -Parent
+        if ($parent -and -not (Test-Path $parent)) {
+            throw "Parent directory does not exist: $parent"
+        }
+        $true
+    })]
     [string]$SharePath,
 
-    [Parameter(ParameterSetName='Standard')]
-    [PSCredential]$Credential,
+    [Parameter(ParameterSetName='Standard',
+        HelpMessage="Credentials for remote connections (DOMAIN\username)")]
+    [System.Management.Automation.PSCredential]
+    [System.Management.Automation.Credential()]
+    $Credential,
 
-    [Parameter(ParameterSetName='Standard')]
+    [Parameter(ParameterSetName='Standard',
+        HelpMessage="Maximum concurrent remote connections (1-100)")]
     [ValidateRange(1, 100)]
     [int]$ThrottleLimit = 10,
 
-    [Parameter(ParameterSetName='Standard')]
+    [Parameter(ParameterSetName='Standard',
+        HelpMessage="Additional paths to scan for executables")]
     [string[]]$ScanPaths = @(),
 
-    [Parameter(ParameterSetName='Standard')]
+    [Parameter(ParameterSetName='Standard',
+        HelpMessage="Include user profile directories in scan")]
     [switch]$ScanUserProfiles,
 
-    [Parameter(ParameterSetName='Standard')]
+    [Parameter(ParameterSetName='Standard',
+        HelpMessage="Skip user-writable directory detection")]
     [switch]$SkipWritableDirectoryScan
 )
 
@@ -137,12 +164,18 @@ if (Test-Path $modulePath) {
 }
 else {
     $config = $null
+    Write-Warning "Common.psm1 not found - some features may be limited"
 }
 
-# Validate inputs
-if (!(Test-Path -Path $ComputerListPath)) {
-    throw "Computer list not found: $ComputerListPath"
+# Initialize logging
+if (Get-Command Start-Logging -ErrorAction SilentlyContinue) {
+    Start-Logging -LogName "RemoteScan"
+    Write-Log "Remote scan operation started" -Level Info
+    Write-Log "Computer list: $ComputerListPath" -Level Info
+    Write-Log "Output path: $SharePath" -Level Info
 }
+
+# Note: Path validation is now handled by ValidateScript in parameter declaration
 
 # Create output directory (use absolute path so jobs can find it)
 $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
@@ -153,34 +186,64 @@ $outputRoot = (Resolve-Path $outputRoot).Path
 
 # Get credentials if not provided
 if ($null -eq $Credential) {
-    $Credential = Get-Credential -Message "Enter credentials for remote connections (DOMAIN\username)"
+    try {
+        $Credential = Get-Credential -Message "Enter credentials for remote connections (DOMAIN\username)"
+    }
+    catch {
+        $errorMsg = "Failed to prompt for credentials: $_"
+        if (Test-LoggingEnabled) { Write-Log $errorMsg -Level Error }
+        throw $errorMsg
+    }
 }
 
 # Validate credentials were provided (user may have cancelled the dialog)
 if ($null -eq $Credential) {
-    throw "Credentials are required for remote scanning. Operation cancelled."
+    $errorMsg = "Credentials are required for remote scanning. Operation cancelled."
+    if (Test-LoggingEnabled) { Write-Log $errorMsg -Level Error }
+    throw $errorMsg
 }
 
-# Load computer list - supports both TXT and CSV formats
-if (Get-Command Get-ComputerList -ErrorAction SilentlyContinue) {
-    $computers = @(Get-ComputerList -Path $ComputerListPath)
+if (Test-LoggingEnabled) {
+    Write-Log "Credentials provided for user: $($Credential.UserName)" -Level Info
 }
-else {
-    # Fallback for standalone usage
-    $extension = [System.IO.Path]::GetExtension($ComputerListPath).ToLower()
-    if ($extension -eq ".csv") {
-        $csv = Import-Csv -Path $ComputerListPath
-        $computers = @($csv | Where-Object { $_.ComputerName } | ForEach-Object { $_.ComputerName.Trim() })
+
+# Load computer list - uses Get-ComputerList from Common.psm1 (supports TXT and CSV)
+try {
+    if (Get-Command Get-ComputerList -ErrorAction SilentlyContinue) {
+        $computers = @(Get-ComputerList -Path $ComputerListPath)
     }
     else {
-        $computers = @(Get-Content -Path $ComputerListPath |
-            Where-Object { -not [string]::IsNullOrWhiteSpace($_) -and -not $_.TrimStart().StartsWith("#") } |
-            ForEach-Object { $_.Trim() })
+        # Fallback for standalone usage
+        $extension = [System.IO.Path]::GetExtension($ComputerListPath).ToLower()
+        if ($extension -eq ".csv") {
+            $csv = Import-Csv -Path $ComputerListPath
+            $computers = @($csv | Where-Object { $_.ComputerName } | ForEach-Object { $_.ComputerName.Trim() })
+        }
+        else {
+            $computers = @(Get-Content -Path $ComputerListPath |
+                Where-Object { -not [string]::IsNullOrWhiteSpace($_) -and -not $_.TrimStart().StartsWith("#") } |
+                ForEach-Object { $_.Trim() })
+        }
     }
+}
+catch {
+    $errorMsg = "Failed to load computer list: $_"
+    if (Test-LoggingEnabled) { Write-Log $errorMsg -Level Error }
+    throw $errorMsg
 }
 
 if ($computers.Count -eq 0) {
-    throw "No computers found in $ComputerListPath"
+    $errorMsg = "No computers found in $ComputerListPath"
+    if (Test-LoggingEnabled) { Write-Log $errorMsg -Level Error }
+    throw $errorMsg
+}
+
+if (Test-LoggingEnabled) {
+    Write-Log "Loaded $($computers.Count) computers from list" -Level Info
+    Write-LogSection "Target Computers"
+    foreach ($comp in $computers) {
+        Write-Log "  - $comp" -Level Debug
+    }
 }
 
 Write-Host "=== AaronLocker Remote Scanner ===" -ForegroundColor Cyan
@@ -684,3 +747,21 @@ Write-Host "`nNext steps:" -ForegroundColor Yellow
 Write-Host "  1. Review Publishers.csv files to see what software is signed" -ForegroundColor White
 Write-Host "  2. Review WritableDirectories.csv for security concerns" -ForegroundColor White
 Write-Host "  3. Run: .\Merge-AppLockerPolicies.ps1 -InputPath '$outputRoot'" -ForegroundColor White
+
+# Finalize logging
+if (Test-LoggingEnabled) {
+    Write-LogSection "Scan Summary"
+    Write-Log "Computers scanned: $($results.Count)" -Level Info
+    Write-Log "Success: $successCount" -Level Success
+    Write-Log "Failed: $failCount" -Level $(if ($failCount -gt 0) { "Warning" } else { "Info" })
+    Write-Log "Executables found: $totalExes" -Level Info
+    Write-Log "Signed executables: $totalSigned" -Level Info
+    Write-Log "Writable directories: $totalWritable" -Level Info
+    Write-Log "Output path: $outputRoot" -Level Info
+
+    # Log results with per-computer details
+    Write-LogResults -Results $results
+
+    $logFile = Stop-Logging -Summary "Scanned $($results.Count) computers, $successCount successful, $failCount failed"
+    Write-Host "Log file: $logFile" -ForegroundColor Gray
+}
