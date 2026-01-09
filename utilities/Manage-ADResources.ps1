@@ -512,6 +512,14 @@ function Invoke-ExportUsers {
 
         Write-Host "  Groups export: $fullGroupsPath" -ForegroundColor Cyan
         Write-Host "  Groups found: $($groupExport.Count)" -ForegroundColor Cyan
+
+        # Create users.csv with all usernames separated by semicolons
+        $allUsernames = ($users | ForEach-Object { $_.SamAccountName } | Sort-Object -Unique) -join ";"
+        $usersPath = Join-Path (Split-Path $Output -Parent) "users.csv"
+        [PSCustomObject]@{ Username = $allUsernames } | Export-Csv -Path $usersPath -NoTypeInformation -Encoding UTF8
+        $fullUsersPath = (Resolve-Path $usersPath).Path
+        Write-Host "  Users export: $fullUsersPath" -ForegroundColor Cyan
+
         Write-Host ""
         Write-Host "To import group changes:" -ForegroundColor Yellow
         Write-Host "  .\Manage-ADResources.ps1 -Action ImportUsers -InputPath `"$fullGroupsPath`"" -ForegroundColor Cyan
