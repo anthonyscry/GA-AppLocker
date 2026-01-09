@@ -308,6 +308,13 @@ function Invoke-GenerateWorkflow {
             "2" {
                 $TargetType = Read-Host "  Enter target type (Workstation/Server/DomainController)"
                 $DomainName = Read-Host "  Enter domain name (e.g., CONTOSO)"
+                Write-Host ""
+                Write-Host "  Deployment Phases:" -ForegroundColor Yellow
+                Write-Host "    [1] EXE only           - Start here, lowest risk" -ForegroundColor White
+                Write-Host "    [2] EXE + Script       - Adds .ps1, .bat, .vbs rules (highest bypass risk)" -ForegroundColor White
+                Write-Host "    [3] EXE + Script + MSI - Adds installer rules (test deployments)" -ForegroundColor White
+                Write-Host "    [4] All + DLL          - Full policy (audit 14+ days before enforcing!)" -ForegroundColor White
+                Write-Host ""
                 $phaseInput = Read-Host "  Enter phase (1-4, default: 1)"
                 $Phase = if ([int]::TryParse($phaseInput, [ref]$null)) { [int]$phaseInput } else { 1 }
                 if ($Phase -lt 1 -or $Phase -gt 4) { $Phase = 1 }
@@ -440,10 +447,13 @@ function Invoke-ValidateWorkflow {
     )
 
     Write-Host "`n=== Policy Validation Workflow ===" -ForegroundColor Cyan
+    Write-Host "  Validates an AppLocker policy XML file for correctness." -ForegroundColor Gray
+    Write-Host ""
 
     # Get policy path - validate
     if ([string]::IsNullOrWhiteSpace($PolicyPath)) {
-        $PolicyPath = Read-Host "  Enter path to policy file"
+        Write-Host "  Example: .\Outputs\AppLockerPolicy-Workstation-Phase1-AuditOnly-20260108.xml" -ForegroundColor DarkGray
+        $PolicyPath = Read-Host "  Enter path to policy XML file"
     }
 
     if ([string]::IsNullOrWhiteSpace($PolicyPath)) {
@@ -451,8 +461,9 @@ function Invoke-ValidateWorkflow {
         return $null
     }
 
-    if (-not (Test-Path $PolicyPath)) {
-        Write-Host "  [-] Policy file not found: $PolicyPath" -ForegroundColor Red
+    if (-not (Test-Path $PolicyPath -PathType Leaf)) {
+        Write-Host "  [-] Policy XML file not found: $PolicyPath" -ForegroundColor Red
+        Write-Host "      Make sure to specify an XML file, not a directory." -ForegroundColor Yellow
         return $null
     }
 
@@ -651,20 +662,26 @@ function Invoke-CompareWorkflow {
     )
 
     Write-Host "`n=== Software Inventory Comparison ===" -ForegroundColor Cyan
+    Write-Host "  Compares software inventory CSV files (e.g., Executables.csv)" -ForegroundColor Gray
+    Write-Host "  Scan folders contain: Executables.csv, Publishers.csv, WritableDirectories.csv" -ForegroundColor Gray
+    Write-Host ""
 
     # Get reference path
     if ([string]::IsNullOrWhiteSpace($RefPath)) {
-        $RefPath = Read-Host "  Enter path to reference/baseline CSV"
+        Write-Host "  Example: .\Scans\COMPUTER01\Executables.csv" -ForegroundColor DarkGray
+        $RefPath = Read-Host "  Enter path to reference/baseline CSV file"
     }
 
-    if ([string]::IsNullOrWhiteSpace($RefPath) -or -not (Test-Path $RefPath)) {
-        Write-Host "  [-] Reference file not found: $RefPath" -ForegroundColor Red
+    if ([string]::IsNullOrWhiteSpace($RefPath) -or -not (Test-Path $RefPath -PathType Leaf)) {
+        Write-Host "  [-] Reference CSV file not found: $RefPath" -ForegroundColor Red
+        Write-Host "      Make sure to specify a CSV file, not a directory." -ForegroundColor Yellow
         return $null
     }
 
     # Get comparison path
     if ([string]::IsNullOrWhiteSpace($CompPath)) {
-        $CompPath = Read-Host "  Enter path to comparison CSV (or wildcard pattern)"
+        Write-Host "  Example: .\Scans\COMPUTER02\Executables.csv or .\Scans\*\Executables.csv" -ForegroundColor DarkGray
+        $CompPath = Read-Host "  Enter path to comparison CSV file(s) (supports wildcards)"
     }
 
     if ([string]::IsNullOrWhiteSpace($CompPath)) {
@@ -904,14 +921,26 @@ function Invoke-DiagnosticWorkflow {
         }
 
         if ($Type -eq "SimpleScan") {
+            # SimpleScan needs a computer list
+            if ([string]::IsNullOrWhiteSpace($ComputerList)) {
+                Write-Host "  Example: .\computers.txt" -ForegroundColor DarkGray
+                $ComputerList = Read-Host "  Enter path to computer list file"
+            }
             if (-not [string]::IsNullOrWhiteSpace($ComputerList)) {
                 $diagParams.ComputerListPath = $ComputerList
             }
         }
         else {
-            if (-not [string]::IsNullOrWhiteSpace($Computer)) {
-                $diagParams.ComputerName = $Computer
+            # Connectivity, JobSession, JobFull need a single computer name
+            if ([string]::IsNullOrWhiteSpace($Computer)) {
+                Write-Host "  Example: WORKSTATION01 or 192.168.1.100" -ForegroundColor DarkGray
+                $Computer = Read-Host "  Enter target computer name"
             }
+            if ([string]::IsNullOrWhiteSpace($Computer)) {
+                Write-Host "  [-] Computer name is required for $Type test" -ForegroundColor Red
+                return
+            }
+            $diagParams.ComputerName = $Computer
         }
 
         if (-not [string]::IsNullOrWhiteSpace($OutPath)) {
