@@ -1072,12 +1072,14 @@ function Invoke-ADImportWorkflow {
     Write-Host "  Applies group membership changes from CSV to Active Directory." -ForegroundColor Gray
     Write-Host ""
 
-    # Get input path
+    # Get input path - default to groups.csv
     if ([string]::IsNullOrWhiteSpace($InPath)) {
-        $InPath = Read-Host "  Enter path to CSV file with group changes"
+        $InPath = Get-ValidatedPath -Prompt "  Enter path to CSV file with group changes" `
+            -DefaultValue ".\groups.csv" `
+            -MustExist -MustBeFile
+        if (-not $InPath) { return $null }
     }
-
-    if ([string]::IsNullOrWhiteSpace($InPath) -or -not (Test-Path $InPath)) {
+    elseif (-not (Test-Path $InPath -PathType Leaf)) {
         Write-Host "  [-] Input file not found: $InPath" -ForegroundColor Red
         return $null
     }
