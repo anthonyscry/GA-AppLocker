@@ -31,8 +31,9 @@
     - Jobs explicitly remove this default at start of script block
 
 .PARAMETER ComputerListPath
-    Path to a text file containing one computer name per line.
-    Empty lines and whitespace are ignored.
+    Path to a file containing computer names. Supports two formats:
+    - CSV: Must have a 'ComputerName' column header
+    - TXT: One computer name per line (lines starting with # are comments)
 
 .PARAMETER SharePath
     UNC path (or local path) to save collected results.
@@ -59,16 +60,16 @@
     Faster but misses critical security information.
 
 .EXAMPLE
-    # Basic scan of computers listed in text file
-    .\Invoke-RemoteScan.ps1 -ComputerListPath .\computers.txt -SharePath \\server\share\Scans
+    # Basic scan using CSV computer list
+    .\Invoke-RemoteScan.ps1 -ComputerListPath .\ADManagement\computers.csv -SharePath \\server\share\Scans
 
 .EXAMPLE
     # Include user profile scanning for more thorough results
-    .\Invoke-RemoteScan.ps1 -ComputerListPath .\computers.txt -SharePath \\server\share\Scans -ScanUserProfiles
+    .\Invoke-RemoteScan.ps1 -ComputerListPath .\ADManagement\computers.csv -SharePath \\server\share\Scans -ScanUserProfiles
 
 .EXAMPLE
     # Fast scan skipping writable directory detection
-    .\Invoke-RemoteScan.ps1 -ComputerListPath .\computers.txt -SharePath .\LocalScans -SkipWritableDirectoryScan
+    .\Invoke-RemoteScan.ps1 -ComputerListPath .\ADManagement\computers.csv -SharePath .\LocalScans -SkipWritableDirectoryScan
 
 .NOTES
     Requires: PowerShell 5.1+
@@ -160,10 +161,23 @@ if ($null -eq $Credential) {
     throw "Credentials are required for remote scanning. Operation cancelled."
 }
 
-# Load computer list - ensure it's always an array
-$computers = @(Get-Content -Path $ComputerListPath |
-    Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
-    ForEach-Object { $_.Trim() })
+# Load computer list - supports both TXT and CSV formats
+if (Get-Command Get-ComputerList -ErrorAction SilentlyContinue) {
+    $computers = @(Get-ComputerList -Path $ComputerListPath)
+}
+else {
+    # Fallback for standalone usage
+    $extension = [System.IO.Path]::GetExtension($ComputerListPath).ToLower()
+    if ($extension -eq ".csv") {
+        $csv = Import-Csv -Path $ComputerListPath
+        $computers = @($csv | Where-Object { $_.ComputerName } | ForEach-Object { $_.ComputerName.Trim() })
+    }
+    else {
+        $computers = @(Get-Content -Path $ComputerListPath |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) -and -not $_.TrimStart().StartsWith("#") } |
+            ForEach-Object { $_.Trim() })
+    }
+}
 
 if ($computers.Count -eq 0) {
     throw "No computers found in $ComputerListPath"

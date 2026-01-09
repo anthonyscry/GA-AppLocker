@@ -63,15 +63,15 @@
 
 .EXAMPLE
     # Collect blocked events from last 14 days
-    .\Invoke-RemoteEventCollection.ps1 -ComputerListPath .\computers.txt -OutputPath .\Events
+    .\Invoke-RemoteEventCollection.ps1 -ComputerListPath .\ADManagement\computers.csv -OutputPath .\Events
 
 .EXAMPLE
     # Collect all audit events from last 30 days
-    .\Invoke-RemoteEventCollection.ps1 -ComputerListPath .\computers.txt -OutputPath .\Events -DaysBack 30 -IncludeAllowedEvents
+    .\Invoke-RemoteEventCollection.ps1 -ComputerListPath .\ADManagement\computers.csv -OutputPath .\Events -DaysBack 30 -IncludeAllowedEvents
 
 .EXAMPLE
     # Collect only blocked events (for rule creation)
-    .\Invoke-RemoteEventCollection.ps1 -ComputerListPath .\computers.txt -OutputPath .\Events -BlockedOnly
+    .\Invoke-RemoteEventCollection.ps1 -ComputerListPath .\ADManagement\computers.csv -OutputPath .\Events -BlockedOnly
 
 .NOTES
     Requires: PowerShell 5.1+
@@ -103,7 +103,7 @@
 param(
     [Parameter(Position=0)]
     [ValidateNotNullOrEmpty()]
-    [string]$ComputerListPath = ".\computers.txt",
+    [string]$ComputerListPath = ".\ADManagement\computers.csv",
 
     [Parameter(Position=1)]
     [ValidateNotNullOrEmpty()]
@@ -160,10 +160,23 @@ if ($null -eq $Credential) {
     throw "Credentials are required. Operation cancelled."
 }
 
-# Load computer list
-$computers = @(Get-Content -Path $ComputerListPath |
-    Where-Object { -not [string]::IsNullOrWhiteSpace($_) -and -not $_.TrimStart().StartsWith('#') } |
-    ForEach-Object { $_.Trim() })
+# Load computer list - supports both TXT and CSV formats
+if (Get-Command Get-ComputerList -ErrorAction SilentlyContinue) {
+    $computers = @(Get-ComputerList -Path $ComputerListPath)
+}
+else {
+    # Fallback for standalone usage
+    $extension = [System.IO.Path]::GetExtension($ComputerListPath).ToLower()
+    if ($extension -eq ".csv") {
+        $csv = Import-Csv -Path $ComputerListPath
+        $computers = @($csv | Where-Object { $_.ComputerName } | ForEach-Object { $_.ComputerName.Trim() })
+    }
+    else {
+        $computers = @(Get-Content -Path $ComputerListPath |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) -and -not $_.TrimStart().StartsWith('#') } |
+            ForEach-Object { $_.Trim() })
+    }
+}
 
 if ($computers.Count -eq 0) {
     throw "No computers found in $ComputerListPath"

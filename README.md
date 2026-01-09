@@ -36,7 +36,7 @@ Get-ChildItem -Path "C:\GA-AppLocker" -Recurse -Include *.ps1,*.psm1 | Unblock-F
 .\Start-AppLockerWorkflow.ps1
 
 # Direct mode examples:
-.\Start-AppLockerWorkflow.ps1 -Mode Scan -ComputerList .\computers.txt
+.\Start-AppLockerWorkflow.ps1 -Mode Scan -ComputerList .\ADManagement\computers.csv
 .\Start-AppLockerWorkflow.ps1 -Mode Generate -ScanPath .\Scans -Simplified
 .\Start-AppLockerWorkflow.ps1 -Mode Validate -PolicyPath .\policy.xml
 ```
@@ -223,7 +223,7 @@ Step 3: Select comparison computer → [2] WORKSTATION02
 
 **Step 1: Scan**
 ```powershell
-.\Start-AppLockerWorkflow.ps1 -Mode Scan -ComputerList .\computers.txt
+.\Start-AppLockerWorkflow.ps1 -Mode Scan -ComputerList .\ADManagement\computers.csv
 ```
 
 **Step 2: Generate Phase 1**
@@ -300,16 +300,16 @@ Collect audit events from computers running AppLocker in Audit mode. This is ess
 # Select [E] Events
 
 # Direct mode - collect blocked events from last 14 days
-.\Start-AppLockerWorkflow.ps1 -Mode Events -ComputerList .\computers.txt
+.\Start-AppLockerWorkflow.ps1 -Mode Events -ComputerList .\ADManagement\computers.csv
 
 # Collect from last 30 days
-.\Start-AppLockerWorkflow.ps1 -Mode Events -ComputerList .\computers.txt -DaysBack 30
+.\Start-AppLockerWorkflow.ps1 -Mode Events -ComputerList .\ADManagement\computers.csv -DaysBack 30
 
 # Collect all audit events (blocked + allowed)
-.\Start-AppLockerWorkflow.ps1 -Mode Events -ComputerList .\computers.txt -IncludeAllowedEvents
+.\Start-AppLockerWorkflow.ps1 -Mode Events -ComputerList .\ADManagement\computers.csv -IncludeAllowedEvents
 
 # Direct script usage
-.\Invoke-RemoteEventCollection.ps1 -ComputerListPath .\computers.txt -OutputPath .\Events -DaysBack 14 -BlockedOnly
+.\Invoke-RemoteEventCollection.ps1 -ComputerListPath .\ADManagement\computers.csv -OutputPath .\Events -DaysBack 14 -BlockedOnly
 ```
 
 ### Policy Merging with SID Replacement

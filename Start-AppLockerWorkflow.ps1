@@ -57,7 +57,7 @@
 
 .EXAMPLE
     # Quick scan
-    .\Start-AppLockerWorkflow.ps1 -Mode Scan -ComputerList .\computers.txt -OutputPath .\Scans
+    .\Start-AppLockerWorkflow.ps1 -Mode Scan -ComputerList .\ADManagement\computers.csv -OutputPath .\Scans
 
 .EXAMPLE
     # Generate simplified policy
@@ -211,18 +211,12 @@ function Invoke-ScanWorkflow {
 
     # Get computer list - check common locations
     if ([string]::IsNullOrWhiteSpace($ComputerListPath)) {
-        # Check for common computer list files
-        $defaultPath = ".\computers.txt"
-        $adComputersPath = ".\ADManagement\AD-computers.txt"
+        # Check for common computer list files (CSV preferred)
+        $defaultPath = ".\ADManagement\computers.csv"
 
         if (Test-Path $defaultPath -PathType Leaf) {
             $ComputerListPath = Get-ValidatedPath -Prompt "  Enter path to computer list file" `
                 -DefaultValue $defaultPath `
-                -MustExist -MustBeFile
-        }
-        elseif (Test-Path $adComputersPath -PathType Leaf) {
-            $ComputerListPath = Get-ValidatedPath -Prompt "  Enter path to computer list file" `
-                -DefaultValue $adComputersPath `
                 -MustExist -MustBeFile
         }
         else {
@@ -881,7 +875,7 @@ function Invoke-EventCollectionWorkflow {
     # Get computer list
     if ([string]::IsNullOrWhiteSpace($ComputerListPath)) {
         $ComputerListPath = Get-ValidatedPath -Prompt "  Enter path to computer list file" `
-            -DefaultValue ".\computers.txt" `
+            -DefaultValue ".\ADManagement\computers.csv" `
             -MustExist -MustBeFile
         if (-not $ComputerListPath) { return $null }
     }
@@ -1145,7 +1139,7 @@ function Invoke-ADComputersWorkflow {
     )
 
     Write-Host "`n=== Export AD Computers ===" -ForegroundColor Cyan
-    Write-Host "  Exports computer names from Active Directory to a text file for scanning." -ForegroundColor Gray
+    Write-Host "  Exports computer names from Active Directory to a CSV file for scanning." -ForegroundColor Gray
     Write-Host ""
 
     # Ensure ADManagement folder exists
@@ -1156,7 +1150,7 @@ function Invoke-ADComputersWorkflow {
 
     # Get output path - default to ADManagement folder
     if ([string]::IsNullOrWhiteSpace($OutPath)) {
-        $defaultPath = ".\ADManagement\AD-computers.txt"
+        $defaultPath = ".\ADManagement\computers.csv"
         $OutPath = Read-Host "  Enter output path (default: $defaultPath)"
         if ([string]::IsNullOrWhiteSpace($OutPath)) {
             $OutPath = $defaultPath
@@ -1248,7 +1242,7 @@ function Invoke-DiagnosticWorkflow {
         if ($Type -eq "SimpleScan") {
             # SimpleScan needs a computer list
             if ([string]::IsNullOrWhiteSpace($ComputerList)) {
-                Write-Host "  Example: .\computers.txt" -ForegroundColor DarkGray
+                Write-Host "  Example: .\ADManagement\computers.csv" -ForegroundColor DarkGray
                 $ComputerList = Read-Host "  Enter path to computer list file"
             }
             if (-not [string]::IsNullOrWhiteSpace($ComputerList)) {

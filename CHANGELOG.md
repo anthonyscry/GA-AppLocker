@@ -7,16 +7,22 @@ All notable changes to GA-AppLocker are documented in this file.
 ### Added
 - **AD Computer Export**: New `[C] Computers` menu option to export computer names from Active Directory for scanning
   - Filter by computer type: All, Workstations, Servers, or Domain Controllers
-  - Exports to `.\ADManagement\AD-computers.txt` by default
+  - Exports to `.\ADManagement\computers.csv` by default with ComputerName, OperatingSystem, Enabled, LastLogonDate columns
+- **CSV Computer List Support**: All scripts now support CSV format with `ComputerName` column header
+  - TXT format still supported for backwards compatibility (one computer per line, # for comments)
+  - `Get-ComputerList` helper function in Common.psm1 for consistent parsing
 - **ADManagement folder**: Centralized location for AD-related files
-  - AD exports now default to `.\ADManagement\`
-  - AD imports now default to `.\ADManagement\groups.csv`
+  - Computer lists: `.\ADManagement\computers.csv`
+  - User exports: `.\ADManagement\ADUserGroups-Export.csv`
+  - Group imports: `.\ADManagement\groups.csv`
+  - User list: `.\ADManagement\users.csv`
 - **Comparison results folder**: Compare workflow now saves results to `.\SoftwareLists\Comparisons\`
 - **Troubleshooting section** in README with common issues and solutions
 - **Policy Merge SID Replacement** documentation with examples
 
 ### Changed
-- Scan workflow now auto-detects `.\ADManagement\AD-computers.txt` if `.\computers.txt` doesn't exist
+- **BREAKING**: Default computer list path changed from `.\computers.txt` to `.\ADManagement\computers.csv`
+- All scan/event workflows now default to `.\ADManagement\computers.csv`
 - Improved default paths throughout the menu to reduce manual typing
 
 ## [2025-01-09]
@@ -32,7 +38,7 @@ All notable changes to GA-AppLocker are documented in this file.
 ### Changed
 - Improved user import workflow with better log file handling
 - Changed simple import format to group-centric (Group, Users columns)
-- Default event collection to computers.txt and Events folder
+- Default event collection to ADManagement\computers.csv and Events folder
 
 ## [2025-01-08]
 

@@ -944,8 +944,9 @@ function Invoke-ExportComputers {
 
         Write-Host "  [+] Found $($computers.Count) computers" -ForegroundColor Green
 
-        # Export to text file (one computer per line)
-        $computers.Name | Out-File -FilePath $Output -Encoding UTF8
+        # Export to CSV with ComputerName column
+        $computers | Select-Object @{N='ComputerName';E={$_.Name}}, OperatingSystem, Enabled, LastLogonDate |
+            Export-Csv -Path $Output -NoTypeInformation -Encoding UTF8
 
         Write-Host "  [+] Exported to: $Output" -ForegroundColor Green
         Write-Host ""
@@ -1005,7 +1006,7 @@ switch ($Action) {
     }
     "ExportComputers" {
         if ([string]::IsNullOrWhiteSpace($OutputPath)) {
-            $OutputPath = ".\ADManagement\AD-computers.txt"
+            $OutputPath = ".\ADManagement\computers.csv"
         }
         # Ensure output directory exists
         $outputDir = Split-Path -Parent $OutputPath
