@@ -228,30 +228,9 @@ if ($Simplified) {
     Write-Host ""
 
     #region SID Resolution (Simplified)
-    function Get-SidFromNameSimple {
-        param([string]$Name)
-        if ($Name -match "^S-1-") { return $Name }
-        $wellKnown = @{
-            "Everyone" = "S-1-1-0"
-            "BUILTIN\Administrators" = "S-1-5-32-544"
-            "BUILTIN\Users" = "S-1-5-32-545"
-            "NT AUTHORITY\Authenticated Users" = "S-1-5-11"
-            "NT AUTHORITY\SYSTEM" = "S-1-5-18"
-        }
-        if ($wellKnown.ContainsKey($Name)) { return $wellKnown[$Name] }
-        try {
-            $account = New-Object System.Security.Principal.NTAccount($Name)
-            $sid = $account.Translate([System.Security.Principal.SecurityIdentifier])
-            return $sid.Value
-        }
-        catch {
-            Write-Warning "Could not resolve '$Name' to SID."
-            return $Name
-        }
-    }
-
-    $targetSid = Get-SidFromNameSimple -Name $TargetUser
-    $adminSid = Get-SidFromNameSimple -Name $AdminGroup
+    # Use Resolve-AccountToSid from Common.psm1
+    $targetSid = Resolve-AccountToSid -Name $TargetUser
+    $adminSid = Resolve-AccountToSid -Name $AdminGroup
 
     Write-Host "Target SID: $targetSid" -ForegroundColor Gray
     Write-Host "Admin SID: $adminSid" -ForegroundColor Gray
@@ -590,33 +569,7 @@ Write-Host ""
 #endregion
 
 #region SID Resolution Function
-function Get-SidFromName {
-    param([string]$Name)
-
-    if ($Name -match "^S-1-") { return $Name }
-
-    $wellKnown = @{
-        "NT AUTHORITY\SYSTEM" = "S-1-5-18"
-        "NT AUTHORITY\LOCAL SERVICE" = "S-1-5-19"
-        "NT AUTHORITY\NETWORK SERVICE" = "S-1-5-20"
-        "BUILTIN\Administrators" = "S-1-5-32-544"
-        "BUILTIN\Users" = "S-1-5-32-545"
-        "Everyone" = "S-1-1-0"
-        "NT AUTHORITY\Authenticated Users" = "S-1-5-11"
-    }
-
-    if ($wellKnown.ContainsKey($Name)) { return $wellKnown[$Name] }
-
-    try {
-        $account = New-Object System.Security.Principal.NTAccount($Name)
-        $sid = $account.Translate([System.Security.Principal.SecurityIdentifier])
-        return $sid.Value
-    }
-    catch {
-        Write-Warning "Could not resolve '$Name' to SID - using placeholder. Verify group exists in AD."
-        return "S-1-5-21-YOURDOMAINSID-YOURGROUP"
-    }
-}
+# Use Resolve-AccountToSid from Common.psm1 instead of local function
 #endregion
 
 #region Resolve all SIDs
@@ -624,17 +577,17 @@ Write-Host "Resolving Security Identifiers..." -ForegroundColor Cyan
 
 $sids = @{
     # Mandatory Allow Principals (Build Guide requirement)
-    SYSTEM = Get-SidFromName "NT AUTHORITY\SYSTEM"
-    LocalService = Get-SidFromName "NT AUTHORITY\LOCAL SERVICE"
-    NetworkService = Get-SidFromName "NT AUTHORITY\NETWORK SERVICE"
-    BuiltinAdmins = Get-SidFromName "BUILTIN\Administrators"
-    Everyone = Get-SidFromName "Everyone"
+    SYSTEM = Resolve-AccountToSid "NT AUTHORITY\SYSTEM"
+    LocalService = Resolve-AccountToSid "NT AUTHORITY\LOCAL SERVICE"
+    NetworkService = Resolve-AccountToSid "NT AUTHORITY\NETWORK SERVICE"
+    BuiltinAdmins = Resolve-AccountToSid "BUILTIN\Administrators"
+    Everyone = Resolve-AccountToSid "Everyone"
 
     # Custom AppLocker Groups
-    Admins = Get-SidFromName $AdminsGroup
-    StandardUsers = Get-SidFromName $StandardUsersGroup
-    ServiceAccounts = Get-SidFromName $ServiceAccountsGroup
-    Installers = Get-SidFromName $InstallersGroup
+    Admins = Resolve-AccountToSid $AdminsGroup
+    StandardUsers = Resolve-AccountToSid $StandardUsersGroup
+    ServiceAccounts = Resolve-AccountToSid $ServiceAccountsGroup
+    Installers = Resolve-AccountToSid $InstallersGroup
 }
 
 Write-Host "  SYSTEM: $($sids.SYSTEM)" -ForegroundColor DarkGray
@@ -696,47 +649,8 @@ if ($TargetType -in @("Server", "DomainController")) {
 }
 #endregion
 
-#region Helper function to generate rules
-function New-RuleXml {
-    param(
-        [string]$Type,        # FilePathRule, FilePublisherRule, FileHashRule
-        [string]$Name,
-        [string]$Description,
-        [string]$Sid,
-        [string]$Action,      # Allow, Deny
-        [string]$Condition    # Inner XML for condition
-    )
-
-    $id = [guid]::NewGuid().ToString()
-
-    return @"
-    <$Type Id="$id" Name="$([System.Security.SecurityElement]::Escape($Name))" Description="$([System.Security.SecurityElement]::Escape($Description))" UserOrGroupSid="$Sid" Action="$Action">
-      <Conditions>
-        $Condition
-      </Conditions>
-    </$Type>
-"@
-}
-
-function New-PathCondition {
-    param([string]$Path)
-    return "<FilePathCondition Path=`"$Path`"/>"
-}
-
-function New-PublisherCondition {
-    param(
-        [string]$Publisher,
-        [string]$Product = "*",
-        [string]$Binary = "*",
-        [string]$LowVersion = "*",
-        [string]$HighVersion = "*"
-    )
-    return @"
-<FilePublisherCondition PublisherName="$([System.Security.SecurityElement]::Escape($Publisher))" ProductName="$Product" BinaryName="$Binary">
-          <BinaryVersionRange LowSection="$LowVersion" HighSection="$HighVersion"/>
-        </FilePublisherCondition>
-"@
-}
+#region Helper function aliases for module functions
+# Using New-AppLockerRuleXml, New-PathConditionXmlXml, New-PublisherConditionXmlXml from Common.psm1
 #endregion
 
 #region Build EXE Rules
@@ -753,33 +667,33 @@ foreach ($principal in @(
     @{ Name = "NETWORK SERVICE"; Sid = $sids.NetworkService },
     @{ Name = "BUILTIN\Administrators"; Sid = $sids.BuiltinAdmins }
 )) {
-    $exeRules += New-RuleXml -Type "FilePublisherRule" `
+    $exeRules += New-AppLockerRuleXml -Type "FilePublisherRule" `
         -Name "(Microsoft) All Microsoft-signed - $($principal.Name)" `
         -Description "Allow Microsoft-signed executables for $($principal.Name)" `
         -Sid $principal.Sid `
         -Action "Allow" `
-        -Condition (New-PublisherCondition -Publisher "O=MICROSOFT CORPORATION*")
+        -Condition (New-PublisherConditionXmlXml -Publisher "O=MICROSOFT CORPORATION*")
     $exeRules += "`n"
 }
 
 # === APPLOCKER-ADMINS ===
 # Build Guide: Admins → Microsoft + approved vendor publishers (still blocked by Deny paths)
 
-$exeRules += New-RuleXml -Type "FilePublisherRule" `
+$exeRules += New-AppLockerRuleXml -Type "FilePublisherRule" `
     -Name "(Admins) Microsoft Publisher" `
     -Description "Allow Microsoft-signed for AppLocker Admins" `
     -Sid $sids.Admins `
     -Action "Allow" `
-    -Condition (New-PublisherCondition -Publisher "O=MICROSOFT CORPORATION*")
+    -Condition (New-PublisherConditionXml -Publisher "O=MICROSOFT CORPORATION*")
 $exeRules += "`n"
 
 foreach ($vendor in $vendorPubs) {
-    $exeRules += New-RuleXml -Type "FilePublisherRule" `
+    $exeRules += New-AppLockerRuleXml -Type "FilePublisherRule" `
         -Name "(Admins) Vendor: $vendor" `
         -Description "Allow vendor-signed for AppLocker Admins" `
         -Sid $sids.Admins `
         -Action "Allow" `
-        -Condition (New-PublisherCondition -Publisher "O=$vendor*")
+        -Condition (New-PublisherConditionXml -Publisher "O=$vendor*")
     $exeRules += "`n"
 }
 
@@ -787,12 +701,12 @@ foreach ($vendor in $vendorPubs) {
 # Build Guide: Service Accounts → Vendor Publisher only (no path allows)
 
 foreach ($vendor in $vendorPubs) {
-    $exeRules += New-RuleXml -Type "FilePublisherRule" `
+    $exeRules += New-AppLockerRuleXml -Type "FilePublisherRule" `
         -Name "(Service) Vendor: $vendor" `
         -Description "Allow vendor-signed for Service Accounts" `
         -Sid $sids.ServiceAccounts `
         -Action "Allow" `
-        -Condition (New-PublisherCondition -Publisher "O=$vendor*")
+        -Condition (New-PublisherConditionXml -Publisher "O=$vendor*")
     $exeRules += "`n"
 }
 
@@ -800,20 +714,20 @@ foreach ($vendor in $vendorPubs) {
 # Build Guide: Users → Explicitly approved vendor apps only
 # For Standard Users, we allow from safe paths but vendors must be explicit
 
-$exeRules += New-RuleXml -Type "FilePathRule" `
+$exeRules += New-AppLockerRuleXml -Type "FilePathRule" `
     -Name "(Users) Windows Directory" `
     -Description "Allow execution from Windows for Standard Users" `
     -Sid $sids.StandardUsers `
     -Action "Allow" `
-    -Condition (New-PathCondition -Path "%WINDIR%\*")
+    -Condition (New-PathConditionXml -Path "%WINDIR%\*")
 $exeRules += "`n"
 
-$exeRules += New-RuleXml -Type "FilePathRule" `
+$exeRules += New-AppLockerRuleXml -Type "FilePathRule" `
     -Name "(Users) Program Files" `
     -Description "Allow execution from Program Files for Standard Users" `
     -Sid $sids.StandardUsers `
     -Action "Allow" `
-    -Condition (New-PathCondition -Path "%PROGRAMFILES%\*")
+    -Condition (New-PathConditionXml -Path "%PROGRAMFILES%\*")
 $exeRules += "`n"
 
 # === EXPLICIT DENY RULES (Everyone) ===
@@ -821,12 +735,12 @@ $exeRules += "`n"
 
 if (-not $SkipDenyRules) {
     foreach ($deny in $denyPaths) {
-        $exeRules += New-RuleXml -Type "FilePathRule" `
+        $exeRules += New-AppLockerRuleXml -Type "FilePathRule" `
             -Name "(DENY) $($deny.Desc)" `
             -Description "Block execution from $($deny.Path)" `
             -Sid $sids.Everyone `
             -Action "Deny" `
-            -Condition (New-PathCondition -Path $deny.Path)
+            -Condition (New-PathConditionXml -Path $deny.Path)
         $exeRules += "`n"
     }
 }
@@ -850,44 +764,44 @@ if ($Phase -ge 2) {
         @{ Name = "NETWORK SERVICE"; Sid = $sids.NetworkService },
         @{ Name = "BUILTIN\Administrators"; Sid = $sids.BuiltinAdmins }
     )) {
-        $scriptRules += New-RuleXml -Type "FilePublisherRule" `
+        $scriptRules += New-AppLockerRuleXml -Type "FilePublisherRule" `
             -Name "(Microsoft) Scripts - $($principal.Name)" `
             -Description "Allow Microsoft-signed scripts for $($principal.Name)" `
             -Sid $principal.Sid `
             -Action "Allow" `
-            -Condition (New-PublisherCondition -Publisher "O=MICROSOFT CORPORATION*")
+            -Condition (New-PublisherConditionXml -Publisher "O=MICROSOFT CORPORATION*")
         $scriptRules += "`n"
     }
 
     # Admins - Microsoft scripts only
-    $scriptRules += New-RuleXml -Type "FilePublisherRule" `
+    $scriptRules += New-AppLockerRuleXml -Type "FilePublisherRule" `
         -Name "(Admins) Microsoft Scripts" `
         -Description "Allow Microsoft-signed scripts for AppLocker Admins" `
         -Sid $sids.Admins `
         -Action "Allow" `
-        -Condition (New-PublisherCondition -Publisher "O=MICROSOFT CORPORATION*")
+        -Condition (New-PublisherConditionXml -Publisher "O=MICROSOFT CORPORATION*")
     $scriptRules += "`n"
 
     # Service Accounts - Vendor scripts if required
     foreach ($vendor in $vendorPubs) {
-        $scriptRules += New-RuleXml -Type "FilePublisherRule" `
+        $scriptRules += New-AppLockerRuleXml -Type "FilePublisherRule" `
             -Name "(Service) Vendor Scripts: $vendor" `
             -Description "Allow vendor-signed scripts for Service Accounts" `
             -Sid $sids.ServiceAccounts `
             -Action "Allow" `
-            -Condition (New-PublisherCondition -Publisher "O=$vendor*")
+            -Condition (New-PublisherConditionXml -Publisher "O=$vendor*")
         $scriptRules += "`n"
     }
 
     # Explicit deny for scripts in user-writable paths
     if (-not $SkipDenyRules) {
         foreach ($deny in $denyPaths) {
-            $scriptRules += New-RuleXml -Type "FilePathRule" `
+            $scriptRules += New-AppLockerRuleXml -Type "FilePathRule" `
                 -Name "(DENY) Scripts - $($deny.Desc)" `
                 -Description "Block scripts from $($deny.Path)" `
                 -Sid $sids.Everyone `
                 -Action "Deny" `
-                -Condition (New-PathCondition -Path $deny.Path)
+                -Condition (New-PathConditionXml -Path $deny.Path)
             $scriptRules += "`n"
         }
     }
@@ -908,60 +822,60 @@ if ($Phase -ge 3) {
         @{ Name = "SYSTEM"; Sid = $sids.SYSTEM },
         @{ Name = "BUILTIN\Administrators"; Sid = $sids.BuiltinAdmins }
     )) {
-        $msiRules += New-RuleXml -Type "FilePublisherRule" `
+        $msiRules += New-AppLockerRuleXml -Type "FilePublisherRule" `
             -Name "(Microsoft) MSI - $($principal.Name)" `
             -Description "Allow Microsoft installers for $($principal.Name)" `
             -Sid $principal.Sid `
             -Action "Allow" `
-            -Condition (New-PublisherCondition -Publisher "O=MICROSOFT CORPORATION*")
+            -Condition (New-PublisherConditionXml -Publisher "O=MICROSOFT CORPORATION*")
         $msiRules += "`n"
     }
 
     # Installers group - vendor installers
-    $msiRules += New-RuleXml -Type "FilePublisherRule" `
+    $msiRules += New-AppLockerRuleXml -Type "FilePublisherRule" `
         -Name "(Installers) Microsoft MSI" `
         -Description "Allow Microsoft installers for Installers group" `
         -Sid $sids.Installers `
         -Action "Allow" `
-        -Condition (New-PublisherCondition -Publisher "O=MICROSOFT CORPORATION*")
+        -Condition (New-PublisherConditionXml -Publisher "O=MICROSOFT CORPORATION*")
     $msiRules += "`n"
 
     foreach ($vendor in $vendorPubs) {
-        $msiRules += New-RuleXml -Type "FilePublisherRule" `
+        $msiRules += New-AppLockerRuleXml -Type "FilePublisherRule" `
             -Name "(Installers) Vendor MSI: $vendor" `
             -Description "Allow vendor installers for Installers group" `
             -Sid $sids.Installers `
             -Action "Allow" `
-            -Condition (New-PublisherCondition -Publisher "O=$vendor*")
+            -Condition (New-PublisherConditionXml -Publisher "O=$vendor*")
         $msiRules += "`n"
     }
 
     # Admins - vendor installers
-    $msiRules += New-RuleXml -Type "FilePublisherRule" `
+    $msiRules += New-AppLockerRuleXml -Type "FilePublisherRule" `
         -Name "(Admins) Microsoft MSI" `
         -Description "Allow Microsoft installers for AppLocker Admins" `
         -Sid $sids.Admins `
         -Action "Allow" `
-        -Condition (New-PublisherCondition -Publisher "O=MICROSOFT CORPORATION*")
+        -Condition (New-PublisherConditionXml -Publisher "O=MICROSOFT CORPORATION*")
     $msiRules += "`n"
 
     foreach ($vendor in $vendorPubs) {
-        $msiRules += New-RuleXml -Type "FilePublisherRule" `
+        $msiRules += New-AppLockerRuleXml -Type "FilePublisherRule" `
             -Name "(Admins) Vendor MSI: $vendor" `
             -Description "Allow vendor installers for AppLocker Admins" `
             -Sid $sids.Admins `
             -Action "Allow" `
-            -Condition (New-PublisherCondition -Publisher "O=$vendor*")
+            -Condition (New-PublisherConditionXml -Publisher "O=$vendor*")
         $msiRules += "`n"
     }
 
     # Windows Installer cache
-    $msiRules += New-RuleXml -Type "FilePathRule" `
+    $msiRules += New-AppLockerRuleXml -Type "FilePathRule" `
         -Name "(SYSTEM) Windows Installer Cache" `
         -Description "Allow MSI from Windows Installer cache" `
         -Sid $sids.SYSTEM `
         -Action "Allow" `
-        -Condition (New-PathCondition -Path "%WINDIR%\Installer\*")
+        -Condition (New-PathConditionXml -Path "%WINDIR%\Installer\*")
     $msiRules += "`n"
 
     Write-Host "  MSI rules created" -ForegroundColor Green
@@ -982,32 +896,32 @@ if ($Phase -ge 4) {
         @{ Name = "NETWORK SERVICE"; Sid = $sids.NetworkService },
         @{ Name = "BUILTIN\Administrators"; Sid = $sids.BuiltinAdmins }
     )) {
-        $dllRules += New-RuleXml -Type "FilePublisherRule" `
+        $dllRules += New-AppLockerRuleXml -Type "FilePublisherRule" `
             -Name "(Microsoft) DLL - $($principal.Name)" `
             -Description "Allow Microsoft-signed DLLs for $($principal.Name)" `
             -Sid $principal.Sid `
             -Action "Allow" `
-            -Condition (New-PublisherCondition -Publisher "O=MICROSOFT CORPORATION*")
+            -Condition (New-PublisherConditionXml -Publisher "O=MICROSOFT CORPORATION*")
         $dllRules += "`n"
     }
 
     # Admins - Microsoft DLLs
-    $dllRules += New-RuleXml -Type "FilePublisherRule" `
+    $dllRules += New-AppLockerRuleXml -Type "FilePublisherRule" `
         -Name "(Admins) Microsoft DLL" `
         -Description "Allow Microsoft-signed DLLs for AppLocker Admins" `
         -Sid $sids.Admins `
         -Action "Allow" `
-        -Condition (New-PublisherCondition -Publisher "O=MICROSOFT CORPORATION*")
+        -Condition (New-PublisherConditionXml -Publisher "O=MICROSOFT CORPORATION*")
     $dllRules += "`n"
 
     # Service Accounts - Vendor DLLs
     foreach ($vendor in $vendorPubs) {
-        $dllRules += New-RuleXml -Type "FilePublisherRule" `
+        $dllRules += New-AppLockerRuleXml -Type "FilePublisherRule" `
             -Name "(Service) Vendor DLL: $vendor" `
             -Description "Allow vendor-signed DLLs for Service Accounts" `
             -Sid $sids.ServiceAccounts `
             -Action "Allow" `
-            -Condition (New-PublisherCondition -Publisher "O=$vendor*")
+            -Condition (New-PublisherConditionXml -Publisher "O=$vendor*")
         $dllRules += "`n"
     }
 

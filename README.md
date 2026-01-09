@@ -117,10 +117,12 @@ GA-AppLocker/
 ├── New-AppLockerPolicyFromGuide.ps1 # Policy generation
 ├── Merge-AppLockerPolicies.ps1     # Policy merging
 ├── utilities/
-│   ├── Common.psm1                 # Shared functions (SID, XML helpers)
+│   ├── Common.psm1                 # Shared functions (SID, XML, validation)
 │   ├── Config.psd1                 # Central configuration (LOLBins, paths)
 │   ├── Enable-WinRM-Domain.ps1     # WinRM GPO deployment/removal for domains
-│   └── Validators.ps1              # Policy validation functions
+│   ├── Compare-SoftwareInventory.ps1 # Software inventory comparison
+│   ├── Manage-ADResources.ps1      # AD group/OU management utilities
+│   └── Test-AppLockerDiagnostic.ps1 # Connectivity and job diagnostics
 └── README.md
 ```
 
@@ -146,10 +148,12 @@ GA-AppLocker/
 
 | File | Description |
 |------|-------------|
-| `Common.psm1` | Shared functions: SID resolution, XML generation, logging |
+| `Common.psm1` | Shared functions: SID resolution, XML generation, validation, logging |
 | `Config.psd1` | Central configuration: LOLBins, deny paths, scan paths, SIDs |
 | `Enable-WinRM-Domain.ps1` | Creates/removes WinRM GPO (use `-Remove` switch to delete) |
-| `Validators.ps1` | Policy and scan data validation functions |
+| `Compare-SoftwareInventory.ps1` | Compare software inventory across scan results |
+| `Manage-ADResources.ps1` | AD group and OU management for AppLocker deployment |
+| `Test-AppLockerDiagnostic.ps1` | Connectivity testing and job diagnostics |
 
 ---
 

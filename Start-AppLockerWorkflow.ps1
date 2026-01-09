@@ -897,7 +897,7 @@ function Invoke-DiagnosticWorkflow {
         }
     }
 
-    $diagScript = Join-Path $scriptRoot "Test-AppLockerDiagnostic.ps1"
+    $diagScript = Join-Path $scriptRoot "utilities\Test-AppLockerDiagnostic.ps1"
     if (Test-Path $diagScript) {
         $diagParams = @{
             TestType = $Type
