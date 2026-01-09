@@ -1502,6 +1502,11 @@ function Invoke-SoftwareListWorkflow {
                             $importParams.AutoApprove = $true
                         }
 
+                        $recursive = Read-Host "  Search recursively for all scan data? (y/N)"
+                        if ($recursive -eq "y" -or $recursive -eq "Y") {
+                            $importParams.Recursive = $true
+                        }
+
                         Import-ScanDataToSoftwareList @importParams
                     }
                     else {

@@ -906,8 +906,16 @@ function Import-ScanDataToSoftwareList {
     .PARAMETER Deduplicate
     Deduplicate by publisher (imports unique publishers only).
 
+    .PARAMETER Recursive
+    Search all subdirectories recursively for scan data (Executables.csv files).
+    Useful when you have a nested folder structure like Scans/Date/Computer/Executables.csv.
+
     .EXAMPLE
     Import-ScanDataToSoftwareList -ScanPath .\Scans -ListPath .\SoftwareLists\Discovered.json -SignedOnly
+
+    .EXAMPLE
+    Import-ScanDataToSoftwareList -ScanPath .\Scans -ListPath .\SoftwareLists\AllDiscovered.json -Recursive -Deduplicate
+    Recursively imports from all scan folders, deduplicating by publisher.
     #>
     [CmdletBinding()]
     param(
@@ -923,7 +931,8 @@ function Import-ScanDataToSoftwareList {
         [switch]$SignedOnly,
         [switch]$UnsignedOnly,
         [switch]$AutoApprove,
-        [switch]$Deduplicate
+        [switch]$Deduplicate,
+        [switch]$Recursive
     )
 
     # Create list if doesn't exist
@@ -944,13 +953,32 @@ function Import-ScanDataToSoftwareList {
         $computerFolders = @([PSCustomObject]@{ FullName = $ScanPath; Name = (Split-Path $ScanPath -Leaf) })
         Write-Host "Loading scan data from: $(Split-Path $ScanPath -Leaf)..." -ForegroundColor Cyan
     }
+    elseif ($Recursive) {
+        # Recursive mode: search all subdirectories for Executables.csv files
+        Write-Host "Searching recursively for scan data..." -ForegroundColor Yellow
+        $csvFiles = Get-ChildItem -Path $ScanPath -Filter "Executables.csv" -Recurse -File -ErrorAction SilentlyContinue
+
+        if ($csvFiles.Count -eq 0) {
+            throw "No scan data found recursively in $ScanPath. Ensure the folder structure contains Executables.csv files."
+        }
+
+        # Convert to folder objects (the directory containing each Executables.csv)
+        $computerFolders = $csvFiles | ForEach-Object {
+            [PSCustomObject]@{
+                FullName = $_.DirectoryName
+                Name = (Split-Path $_.DirectoryName -Leaf)
+            }
+        }
+
+        Write-Host "Found scan data in $($computerFolders.Count) locations (recursive search)..." -ForegroundColor Cyan
+    }
     else {
         # Look for subfolders containing CSVs (user selected a scan date folder)
         $computerFolders = Get-ChildItem -Path $ScanPath -Directory |
             Where-Object { Test-Path (Join-Path $_.FullName "*.csv") }
 
         if ($computerFolders.Count -eq 0) {
-            throw "No scan data found in $ScanPath. Ensure the folder contains Executables.csv or subfolders with CSV files."
+            throw "No scan data found in $ScanPath. Ensure the folder contains Executables.csv or subfolders with CSV files. Use -Recursive to search all subdirectories."
         }
         Write-Host "Loading scan data from $($computerFolders.Count) computers..." -ForegroundColor Cyan
     }
