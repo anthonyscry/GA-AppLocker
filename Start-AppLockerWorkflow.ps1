@@ -1028,12 +1028,21 @@ function Show-SoftwareListMenu {
     Write-Host "  Main > Software Lists" -ForegroundColor DarkGray
     Write-Host "  Software List Management:" -ForegroundColor Yellow
     Write-Host ""
+    Write-Host "  === Basic Operations ===" -ForegroundColor Cyan
     Write-Host "    [1] Create     - Create a new software list" -ForegroundColor White
     Write-Host "    [2] View       - View/search existing software lists" -ForegroundColor White
-    Write-Host "    [3] Add        - Add software to a list" -ForegroundColor White
+    Write-Host "    [3] Add        - Add software to a list manually" -ForegroundColor White
+    Write-Host ""
+    Write-Host "  === Import Methods ===" -ForegroundColor Cyan
     Write-Host "    [4] Import     - Import from scan data or executable" -ForegroundColor White
-    Write-Host "    [5] Export     - Export list to CSV" -ForegroundColor White
-    Write-Host "    [6] Generate   - Generate policy from software list" -ForegroundColor White
+    Write-Host "    [5] Publishers - Import common trusted publishers" -ForegroundColor White
+    Write-Host "    [6] Policy     - Import from existing AppLocker policy" -ForegroundColor White
+    Write-Host "    [7] Folder     - Import from folder (scan executables)" -ForegroundColor White
+    Write-Host ""
+    Write-Host "  === Export & Generate ===" -ForegroundColor Cyan
+    Write-Host "    [8] Export     - Export list to CSV" -ForegroundColor White
+    Write-Host "    [9] Approve    - Bulk approve/unapprove items" -ForegroundColor White
+    Write-Host "    [G] Generate   - Generate policy from software list" -ForegroundColor White
     Write-Host ""
     Write-Host "    [B] Back" -ForegroundColor Gray
     Write-Host ""
@@ -1264,6 +1273,185 @@ function Invoke-SoftwareListWorkflow {
                 }
             }
             "5" {
+                # Import common trusted publishers
+                Write-Host "`n  --- Import Common Publishers ---" -ForegroundColor Cyan
+
+                # Get target list
+                $lists = Get-ChildItem -Path $defaultListPath -Filter "*.json" -ErrorAction SilentlyContinue
+                $targetList = $null
+
+                if ($lists.Count -gt 0) {
+                    Write-Host "  Import to existing list or create new?" -ForegroundColor Gray
+                    $i = 1
+                    foreach ($list in $lists) {
+                        Write-Host "    [$i] $($list.BaseName)" -ForegroundColor White
+                        $i++
+                    }
+                    Write-Host "    [N] Create new list" -ForegroundColor White
+                    $listChoice = Read-Host "  Select option"
+
+                    if ($listChoice -match "^\d+$" -and [int]$listChoice -le $lists.Count) {
+                        $targetList = $lists[[int]$listChoice - 1].FullName
+                    }
+                }
+
+                if (-not $targetList) {
+                    $newName = Read-Host "  Enter new list name (default: TrustedPublishers)"
+                    if ([string]::IsNullOrWhiteSpace($newName)) { $newName = "TrustedPublishers" }
+                    $targetList = Join-Path $defaultListPath "$newName.json"
+                    New-SoftwareList -Name $newName -Description "Common trusted publishers" -OutputPath $defaultListPath | Out-Null
+                }
+
+                # Show category filter option
+                Write-Host ""
+                Write-Host "  Filter by category (optional):" -ForegroundColor Gray
+                $categories = Get-CommonPublisherCategories
+                Write-Host "    Available: $($categories -join ', ')" -ForegroundColor DarkGray
+                Write-Host "    [A] All categories" -ForegroundColor White
+                $catChoice = Read-Host "  Enter category name or [A] for all"
+
+                $importParams = @{
+                    ListPath = $targetList
+                }
+
+                if ($catChoice -ne "A" -and $catChoice -ne "a" -and -not [string]::IsNullOrWhiteSpace($catChoice)) {
+                    $importParams.Category = $catChoice
+                }
+
+                $autoApprove = Read-Host "  Auto-approve imported items? (Y/n)"
+                if ($autoApprove -ne "n" -and $autoApprove -ne "N") {
+                    $importParams.AutoApprove = $true
+                }
+
+                Import-CommonPublishersToSoftwareList @importParams
+            }
+            "6" {
+                # Import from existing AppLocker policy
+                Write-Host "`n  --- Import from AppLocker Policy ---" -ForegroundColor Cyan
+
+                # Get target list
+                $lists = Get-ChildItem -Path $defaultListPath -Filter "*.json" -ErrorAction SilentlyContinue
+                $targetList = $null
+
+                if ($lists.Count -gt 0) {
+                    Write-Host "  Import to existing list or create new?" -ForegroundColor Gray
+                    $i = 1
+                    foreach ($list in $lists) {
+                        Write-Host "    [$i] $($list.BaseName)" -ForegroundColor White
+                        $i++
+                    }
+                    Write-Host "    [N] Create new list" -ForegroundColor White
+                    $listChoice = Read-Host "  Select option"
+
+                    if ($listChoice -match "^\d+$" -and [int]$listChoice -le $lists.Count) {
+                        $targetList = $lists[[int]$listChoice - 1].FullName
+                    }
+                }
+
+                if (-not $targetList) {
+                    $newName = Read-Host "  Enter new list name (default: PolicyImport)"
+                    if ([string]::IsNullOrWhiteSpace($newName)) { $newName = "PolicyImport" }
+                    $targetList = Join-Path $defaultListPath "$newName.json"
+                    New-SoftwareList -Name $newName -Description "Imported from policy" -OutputPath $defaultListPath | Out-Null
+                }
+
+                $policyPath = Read-Host "  Enter path to AppLocker policy XML file"
+                if (-not (Test-Path $policyPath)) {
+                    Write-Host "  [-] Policy file not found: $policyPath" -ForegroundColor Red
+                    continue
+                }
+
+                Write-Host ""
+                Write-Host "  Import options:" -ForegroundColor Gray
+                Write-Host "    [1] All rule types" -ForegroundColor White
+                Write-Host "    [2] Publisher rules only" -ForegroundColor White
+                Write-Host "    [3] Hash rules only" -ForegroundColor White
+                $ruleTypeChoice = Read-Host "  Select rule type filter"
+
+                $importParams = @{
+                    PolicyPath = $policyPath
+                    ListPath   = $targetList
+                    AllowOnly  = $true
+                }
+
+                switch ($ruleTypeChoice) {
+                    "2" { $importParams.RuleTypes = "Publisher" }
+                    "3" { $importParams.RuleTypes = "Hash" }
+                    default { $importParams.RuleTypes = "All" }
+                }
+
+                $autoApprove = Read-Host "  Auto-approve imported items? (Y/n)"
+                if ($autoApprove -ne "n" -and $autoApprove -ne "N") {
+                    $importParams.AutoApprove = $true
+                }
+
+                Import-AppLockerPolicyToSoftwareList @importParams
+            }
+            "7" {
+                # Import from folder
+                Write-Host "`n  --- Import from Folder ---" -ForegroundColor Cyan
+
+                # Get target list
+                $lists = Get-ChildItem -Path $defaultListPath -Filter "*.json" -ErrorAction SilentlyContinue
+                $targetList = $null
+
+                if ($lists.Count -gt 0) {
+                    Write-Host "  Import to existing list or create new?" -ForegroundColor Gray
+                    $i = 1
+                    foreach ($list in $lists) {
+                        Write-Host "    [$i] $($list.BaseName)" -ForegroundColor White
+                        $i++
+                    }
+                    Write-Host "    [N] Create new list" -ForegroundColor White
+                    $listChoice = Read-Host "  Select option"
+
+                    if ($listChoice -match "^\d+$" -and [int]$listChoice -le $lists.Count) {
+                        $targetList = $lists[[int]$listChoice - 1].FullName
+                    }
+                }
+
+                if (-not $targetList) {
+                    $newName = Read-Host "  Enter new list name (default: FolderScan)"
+                    if ([string]::IsNullOrWhiteSpace($newName)) { $newName = "FolderScan" }
+                    $targetList = Join-Path $defaultListPath "$newName.json"
+                    New-SoftwareList -Name $newName -Description "Imported from folder scan" -OutputPath $defaultListPath | Out-Null
+                }
+
+                $folderPath = Read-Host "  Enter folder path to scan"
+                if (-not (Test-Path $folderPath)) {
+                    Write-Host "  [-] Folder not found: $folderPath" -ForegroundColor Red
+                    continue
+                }
+
+                $recurseChoice = Read-Host "  Scan subfolders recursively? (Y/n)"
+                $signedOnlyChoice = Read-Host "  Only import signed files? (y/N)"
+
+                $importParams = @{
+                    FolderPath = $folderPath
+                    ListPath   = $targetList
+                }
+
+                if ($recurseChoice -ne "n" -and $recurseChoice -ne "N") {
+                    $importParams.Recurse = $true
+                }
+
+                if ($signedOnlyChoice -eq "y" -or $signedOnlyChoice -eq "Y") {
+                    $importParams.SignedOnly = $true
+                }
+
+                $category = Read-Host "  Category (default: Folder Import)"
+                if (-not [string]::IsNullOrWhiteSpace($category)) {
+                    $importParams.Category = $category
+                }
+
+                $autoApprove = Read-Host "  Auto-approve imported items? (y/N)"
+                if ($autoApprove -eq "y" -or $autoApprove -eq "Y") {
+                    $importParams.AutoApprove = $true
+                }
+
+                Import-FolderToSoftwareList @importParams
+            }
+            "8" {
                 # Export to CSV
                 Write-Host "`n  --- Export to CSV ---" -ForegroundColor Cyan
                 $lists = Get-ChildItem -Path $defaultListPath -Filter "*.json" -ErrorAction SilentlyContinue
@@ -1287,7 +1475,72 @@ function Invoke-SoftwareListWorkflow {
                 $csvPath = Join-Path $defaultListPath "$($selectedList.BaseName).csv"
                 Export-SoftwareListToCsv -ListPath $selectedList.FullName -OutputPath $csvPath
             }
-            "6" {
+            "9" {
+                # Bulk approve/unapprove items
+                Write-Host "`n  --- Bulk Approval Management ---" -ForegroundColor Cyan
+                $lists = Get-ChildItem -Path $defaultListPath -Filter "*.json" -ErrorAction SilentlyContinue
+                if ($lists.Count -eq 0) {
+                    Write-Host "  No software lists found." -ForegroundColor Yellow
+                    continue
+                }
+
+                Write-Host "  Select software list:" -ForegroundColor Gray
+                $i = 1
+                foreach ($list in $lists) {
+                    $summary = Get-SoftwareListSummary -ListPath $list.FullName
+                    Write-Host "    [$i] $($list.BaseName) (Approved: $($summary.ApprovedItems)/$($summary.TotalItems))" -ForegroundColor White
+                    $i++
+                }
+                $listChoice = Read-Host "  Select list"
+                if (-not ($listChoice -match "^\d+$") -or [int]$listChoice -lt 1 -or [int]$listChoice -gt $lists.Count) {
+                    continue
+                }
+                $selectedListPath = $lists[[int]$listChoice - 1].FullName
+
+                Write-Host ""
+                Write-Host "  Action:" -ForegroundColor Gray
+                Write-Host "    [1] Approve all items" -ForegroundColor White
+                Write-Host "    [2] Unapprove all items" -ForegroundColor White
+                Write-Host "    [3] Approve by category" -ForegroundColor White
+                Write-Host "    [4] Approve by publisher pattern" -ForegroundColor White
+                $actionChoice = Read-Host "  Select action"
+
+                $approvalParams = @{
+                    ListPath = $selectedListPath
+                }
+
+                switch ($actionChoice) {
+                    "1" {
+                        $approvalParams.Approved = $true
+                        $approvalParams.All = $true
+                    }
+                    "2" {
+                        $approvalParams.Approved = $false
+                        $approvalParams.All = $true
+                    }
+                    "3" {
+                        $summary = Get-SoftwareListSummary -ListPath $selectedListPath
+                        Write-Host "  Available categories: $($summary.Categories -join ', ')" -ForegroundColor DarkGray
+                        $category = Read-Host "  Enter category"
+                        $approveChoice = Read-Host "  Approve (Y) or Unapprove (N)?"
+                        $approvalParams.Category = $category
+                        $approvalParams.Approved = ($approveChoice -eq "Y" -or $approveChoice -eq "y")
+                    }
+                    "4" {
+                        $publisher = Read-Host "  Enter publisher pattern (supports wildcards, e.g., *MICROSOFT*)"
+                        $approveChoice = Read-Host "  Approve (Y) or Unapprove (N)?"
+                        $approvalParams.Publisher = $publisher
+                        $approvalParams.Approved = ($approveChoice -eq "Y" -or $approveChoice -eq "y")
+                    }
+                    default {
+                        Write-Host "  [-] Invalid choice" -ForegroundColor Red
+                        continue
+                    }
+                }
+
+                Set-SoftwareListItemApproval @approvalParams
+            }
+            "G" {
                 # Generate policy from software list
                 Write-Host "`n  --- Generate Policy from Software List ---" -ForegroundColor Cyan
                 $lists = Get-ChildItem -Path $defaultListPath -Filter "*.json" -ErrorAction SilentlyContinue
