@@ -952,6 +952,33 @@ function Show-WinRMMenu {
     return $choice
 }
 
+function Invoke-WinRMMenuWorkflow {
+    <#
+    .SYNOPSIS
+    Interactive workflow for WinRM GPO management.
+    #>
+    do {
+        $winrmChoice = (Show-WinRMMenu).ToUpper()
+
+        switch ($winrmChoice) {
+            "1" { Invoke-WinRMWorkflow }
+            "2" { Invoke-RemoveWinRMWorkflow }
+            "B" { }
+            default {
+                if ($winrmChoice -ne "B") {
+                    Write-Host "  Invalid option" -ForegroundColor Red
+                }
+            }
+        }
+
+        if ($winrmChoice -ne "B") {
+            Write-Host ""
+            Read-Host "  Press Enter to continue"
+        }
+
+    } while ($winrmChoice -ne "B")
+}
+
 function Show-SoftwareListMenu {
     Write-Host ""
     Write-Host "  Main > Software Lists" -ForegroundColor DarkGray
@@ -1251,6 +1278,113 @@ function Invoke-SoftwareListWorkflow {
 
 #endregion
 
+#region Helper Functions
+
+<#
+.SYNOPSIS
+    Builds parameter hashtable for workflow invocation in direct mode.
+#>
+function Get-WorkflowParameters {
+    param(
+        [string]$WorkflowMode,
+        [hashtable]$AllParams
+    )
+
+    $params = @{}
+
+    switch ($WorkflowMode) {
+        "Scan" {
+            Add-NonEmptyParameters -Hashtable $params -Parameters @{
+                ComputerListPath = $AllParams.ComputerList
+                OutputPath       = $AllParams.OutputPath
+                Credential       = $AllParams.Credential
+            }
+        }
+        "Generate" {
+            Add-NonEmptyParameters -Hashtable $params -Parameters @{
+                ScanPath   = $AllParams.ScanPath
+                OutputPath = $AllParams.OutputPath
+                Simplified = $AllParams.Simplified
+            }
+            # Build Guide parameters
+            if (-not $AllParams.Simplified -and $AllParams.TargetType) {
+                Add-NonEmptyParameters -Hashtable $params -Parameters @{
+                    TargetType = $AllParams.TargetType
+                    DomainName = $AllParams.DomainName
+                    Phase      = $AllParams.Phase
+                }
+            }
+        }
+        "Merge" {
+            Add-NonEmptyParameters -Hashtable $params -Parameters @{
+                InputPath  = $AllParams.ScanPath
+                OutputPath = $AllParams.OutputPath
+            }
+        }
+        "Validate" {
+            Add-NonEmptyParameters -Hashtable $params -Parameters @{
+                PolicyPath = $AllParams.PolicyPath
+            }
+        }
+        "Full" {
+            Add-NonEmptyParameters -Hashtable $params -Parameters @{
+                ComputerList = $AllParams.ComputerList
+                OutputPath   = $AllParams.OutputPath
+                Credential   = $AllParams.Credential
+                Simplified   = $AllParams.Simplified
+            }
+            if (-not $AllParams.Simplified -and $AllParams.TargetType) {
+                Add-NonEmptyParameters -Hashtable $params -Parameters @{
+                    TargetType = $AllParams.TargetType
+                    DomainName = $AllParams.DomainName
+                    Phase      = $AllParams.Phase
+                }
+            }
+        }
+        "Compare" {
+            Add-NonEmptyParameters -Hashtable $params -Parameters @{
+                RefPath  = $AllParams.ReferencePath
+                CompPath = $AllParams.ComparePath
+                Method   = $AllParams.CompareBy
+                OutPath  = $AllParams.OutputPath
+            }
+        }
+        "ADSetup" {
+            Add-NonEmptyParameters -Hashtable $params -Parameters @{
+                Domain    = $AllParams.DomainName
+                Parent    = $AllParams.ParentOU
+                Prefix    = $AllParams.GroupPrefix
+                NoConfirm = $AllParams.Force
+            }
+        }
+        "ADExport" {
+            Add-NonEmptyParameters -Hashtable $params -Parameters @{
+                Search   = $AllParams.SearchBase
+                OutPath  = $AllParams.OutputPath
+                Disabled = $AllParams.IncludeDisabled
+            }
+        }
+        "ADImport" {
+            Add-NonEmptyParameters -Hashtable $params -Parameters @{
+                InPath = $AllParams.InputPath
+            }
+        }
+        "Diagnostic" {
+            Add-NonEmptyParameters -Hashtable $params -Parameters @{
+                Type         = $AllParams.DiagnosticType
+                Computer     = $AllParams.ComputerName
+                ComputerList = $AllParams.ComputerList
+                OutPath      = $AllParams.OutputPath
+                Cred         = $AllParams.Credential
+            }
+        }
+    }
+
+    return $params
+}
+
+#endregion
+
 #region Main Execution
 
 # Show banner
@@ -1258,155 +1392,21 @@ Show-Banner
 
 # Handle direct mode execution
 if ($Mode -ne "Interactive") {
+    # Build parameter hashtable for the specified workflow
+    $workflowParams = Get-WorkflowParameters -WorkflowMode $Mode -AllParams $PSBoundParameters
+
+    # Invoke the appropriate workflow
     switch ($Mode) {
-        "Scan" {
-            $scanParams = @{}
-            if (-not [string]::IsNullOrWhiteSpace($ComputerList)) {
-                $scanParams.ComputerListPath = $ComputerList
-            }
-            if (-not [string]::IsNullOrWhiteSpace($OutputPath)) {
-                $scanParams.OutputPath = $OutputPath
-            }
-            if ($null -ne $Credential) {
-                $scanParams.Credential = $Credential
-            }
-            Invoke-ScanWorkflow @scanParams
-        }
-        "Generate" {
-            $genParams = @{}
-            if (-not [string]::IsNullOrWhiteSpace($ScanPath)) {
-                $genParams.ScanPath = $ScanPath
-            }
-            if (-not [string]::IsNullOrWhiteSpace($OutputPath)) {
-                $genParams.OutputPath = $OutputPath
-            }
-            if ($Simplified.IsPresent) {
-                $genParams.Simplified = $true
-            }
-            elseif (-not [string]::IsNullOrWhiteSpace($TargetType)) {
-                $genParams.TargetType = $TargetType
-                if (-not [string]::IsNullOrWhiteSpace($DomainName)) {
-                    $genParams.DomainName = $DomainName
-                }
-                if ($Phase -ge 1 -and $Phase -le 4) {
-                    $genParams.Phase = $Phase
-                }
-            }
-            Invoke-GenerateWorkflow @genParams
-        }
-        "Merge" {
-            $mergeParams = @{}
-            if (-not [string]::IsNullOrWhiteSpace($ScanPath)) {
-                $mergeParams.InputPath = $ScanPath
-            }
-            if (-not [string]::IsNullOrWhiteSpace($OutputPath)) {
-                $mergeParams.OutputPath = $OutputPath
-            }
-            Invoke-MergeWorkflow @mergeParams
-        }
-        "Validate" {
-            $validateParams = @{}
-            if (-not [string]::IsNullOrWhiteSpace($PolicyPath)) {
-                $validateParams.PolicyPath = $PolicyPath
-            }
-            Invoke-ValidateWorkflow @validateParams
-        }
-        "Full" {
-            $fullParams = @{}
-            if (-not [string]::IsNullOrWhiteSpace($ComputerList)) {
-                $fullParams.ComputerList = $ComputerList
-            }
-            if (-not [string]::IsNullOrWhiteSpace($OutputPath)) {
-                $fullParams.OutputPath = $OutputPath
-            }
-            if ($null -ne $Credential) {
-                $fullParams.Credential = $Credential
-            }
-            if ($Simplified.IsPresent) {
-                $fullParams.Simplified = $true
-            }
-            elseif (-not [string]::IsNullOrWhiteSpace($TargetType)) {
-                $fullParams.TargetType = $TargetType
-                if (-not [string]::IsNullOrWhiteSpace($DomainName)) {
-                    $fullParams.DomainName = $DomainName
-                }
-                if ($Phase -ge 1 -and $Phase -le 4) {
-                    $fullParams.Phase = $Phase
-                }
-            }
-            Invoke-FullWorkflow @fullParams
-        }
-        "Compare" {
-            $compareParams = @{}
-            if (-not [string]::IsNullOrWhiteSpace($ReferencePath)) {
-                $compareParams.RefPath = $ReferencePath
-            }
-            if (-not [string]::IsNullOrWhiteSpace($ComparePath)) {
-                $compareParams.CompPath = $ComparePath
-            }
-            if (-not [string]::IsNullOrWhiteSpace($CompareBy)) {
-                $compareParams.Method = $CompareBy
-            }
-            if (-not [string]::IsNullOrWhiteSpace($OutputPath)) {
-                $compareParams.OutPath = $OutputPath
-            }
-            Invoke-CompareWorkflow @compareParams
-        }
-        "ADSetup" {
-            $adParams = @{}
-            if (-not [string]::IsNullOrWhiteSpace($DomainName)) {
-                $adParams.Domain = $DomainName
-            }
-            if (-not [string]::IsNullOrWhiteSpace($ParentOU)) {
-                $adParams.Parent = $ParentOU
-            }
-            if (-not [string]::IsNullOrWhiteSpace($GroupPrefix)) {
-                $adParams.Prefix = $GroupPrefix
-            }
-            if ($Force) {
-                $adParams.NoConfirm = $true
-            }
-            Invoke-ADSetupWorkflow @adParams
-        }
-        "ADExport" {
-            $adParams = @{}
-            if (-not [string]::IsNullOrWhiteSpace($SearchBase)) {
-                $adParams.Search = $SearchBase
-            }
-            if (-not [string]::IsNullOrWhiteSpace($OutputPath)) {
-                $adParams.OutPath = $OutputPath
-            }
-            if ($IncludeDisabled) {
-                $adParams.Disabled = $true
-            }
-            Invoke-ADExportWorkflow @adParams
-        }
-        "ADImport" {
-            $adParams = @{}
-            if (-not [string]::IsNullOrWhiteSpace($InputPath)) {
-                $adParams.InPath = $InputPath
-            }
-            Invoke-ADImportWorkflow @adParams
-        }
-        "Diagnostic" {
-            $diagParams = @{}
-            if (-not [string]::IsNullOrWhiteSpace($DiagnosticType)) {
-                $diagParams.Type = $DiagnosticType
-            }
-            if (-not [string]::IsNullOrWhiteSpace($ComputerName)) {
-                $diagParams.Computer = $ComputerName
-            }
-            if (-not [string]::IsNullOrWhiteSpace($ComputerList)) {
-                $diagParams.ComputerList = $ComputerList
-            }
-            if (-not [string]::IsNullOrWhiteSpace($OutputPath)) {
-                $diagParams.OutPath = $OutputPath
-            }
-            if ($null -ne $Credential) {
-                $diagParams.Cred = $Credential
-            }
-            Invoke-DiagnosticWorkflow @diagParams
-        }
+        "Scan"       { Invoke-ScanWorkflow @workflowParams }
+        "Generate"   { Invoke-GenerateWorkflow @workflowParams }
+        "Merge"      { Invoke-MergeWorkflow @workflowParams }
+        "Validate"   { Invoke-ValidateWorkflow @workflowParams }
+        "Full"       { Invoke-FullWorkflow @workflowParams }
+        "Compare"    { Invoke-CompareWorkflow @workflowParams }
+        "ADSetup"    { Invoke-ADSetupWorkflow @workflowParams }
+        "ADExport"   { Invoke-ADExportWorkflow @workflowParams }
+        "ADImport"   { Invoke-ADImportWorkflow @workflowParams }
+        "Diagnostic" { Invoke-DiagnosticWorkflow @workflowParams }
     }
     exit
 }
@@ -1425,19 +1425,7 @@ do {
         "7" { Invoke-ADSetupWorkflow }
         "8" { Invoke-ADExportWorkflow }
         "9" { Invoke-ADImportWorkflow }
-        "W" {
-            $winrmChoice = (Show-WinRMMenu).ToUpper()
-            switch ($winrmChoice) {
-                "1" { Invoke-WinRMWorkflow }
-                "2" { Invoke-RemoveWinRMWorkflow }
-                "B" { }
-                default {
-                    if ($winrmChoice -ne "B") {
-                        Write-Host "  Invalid option" -ForegroundColor Red
-                    }
-                }
-            }
-        }
+        "W" { Invoke-WinRMMenuWorkflow }
         "S" { Invoke-SoftwareListWorkflow }
         "D" { Invoke-DiagnosticWorkflow }
         "Q" {
