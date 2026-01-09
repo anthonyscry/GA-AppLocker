@@ -1253,7 +1253,13 @@ function Import-CommonPublishersToSoftwareList {
         else {
             # Interactive selection
             Write-Host "`n  Available Common Publishers:" -ForegroundColor Cyan
-            Write-Host "  (Select by number, comma-separated for multiple, or 'all')" -ForegroundColor Gray
+            Write-Host "  (Select by number, comma-separated for multiple)" -ForegroundColor Gray
+            Write-Host ""
+
+            # Show "All" option first
+            Write-Host "    [A] " -ForegroundColor Green -NoNewline
+            Write-Host "ALL PUBLISHERS" -ForegroundColor White -NoNewline
+            Write-Host " - Import all $($availablePublishers.Count) publishers at once" -ForegroundColor Gray
             Write-Host ""
 
             $i = 1
@@ -1269,12 +1275,12 @@ function Import-CommonPublishersToSoftwareList {
             }
 
             Write-Host ""
-            $selection = Read-Host "  Enter selection (e.g., 1,2,3 or 'all')"
+            $selection = Read-Host "  Enter selection (e.g., 1,2,3 or A for all)"
 
-            if ($selection -eq "all") {
+            if ($selection -eq "all" -or $selection -eq "a" -or $selection -eq "A") {
                 $toImport = $availablePublishers.Keys
             }
-            elseif ($selection -match "^\d+(,\d+)*$") {
+            elseif ($selection -match "^\d+(,\s*\d+)*$") {
                 $indices = $selection -split "," | ForEach-Object { [int]$_.Trim() }
                 $toImport = $indices | ForEach-Object {
                     if ($indexMap.ContainsKey($_)) { $indexMap[$_] }
