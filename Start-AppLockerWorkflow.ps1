@@ -402,19 +402,50 @@ function Invoke-MergeWorkflow {
 
     Write-Host "`n=== Policy Merge Workflow ===" -ForegroundColor Cyan
 
-    # Get input path using helper
+    # Get input path - default to Outputs folder with option for manual entry
     if ([string]::IsNullOrWhiteSpace($InputPath)) {
-        $InputPath = Get-ValidatedPath -Prompt "  Enter path to folder containing policy files" -MustExist
-        if (-not $InputPath) { return $null }
+        $outputsPath = ".\Outputs"
+
+        # Check if Outputs folder exists
+        if (Test-Path $outputsPath) {
+            Write-Host ""
+            Write-Host "  Select source folder for policy files to merge:" -ForegroundColor Yellow
+            Write-Host ""
+            Write-Host "    [1] Outputs folder (default)" -ForegroundColor White
+            Write-Host "        $outputsPath" -ForegroundColor DarkGray
+            Write-Host "    [M] Enter path manually" -ForegroundColor Gray
+            Write-Host "    [C] Cancel" -ForegroundColor Gray
+            Write-Host ""
+
+            $choice = Read-Host "  Enter choice (default: 1)"
+
+            switch ($choice.ToUpper()) {
+                "C" { return $null }
+                "M" {
+                    $InputPath = Get-ValidatedPath -Prompt "  Enter path to folder containing policy files" -MustExist
+                    if (-not $InputPath) { return $null }
+                }
+                default {
+                    # Default to Outputs folder (including empty input or "1")
+                    $InputPath = $outputsPath
+                }
+            }
+        }
+        else {
+            # Outputs folder doesn't exist, prompt for manual entry
+            Write-Host "  Outputs folder not found. Please specify a path." -ForegroundColor Yellow
+            $InputPath = Get-ValidatedPath -Prompt "  Enter path to folder containing policy files" -MustExist
+            if (-not $InputPath) { return $null }
+        }
     }
     elseif (-not (Test-Path $InputPath)) {
         Write-Host "  [-] Input path not found: $InputPath" -ForegroundColor Red
         return $null
     }
 
-    # Get output path with default
+    # Get output path with default to Outputs folder
     if ([string]::IsNullOrWhiteSpace($OutputPath)) {
-        $OutputPath = Get-ValidatedPath -Prompt "  Enter output file path" -DefaultValue ".\MergedPolicy.xml"
+        $OutputPath = Get-ValidatedPath -Prompt "  Enter output file path" -DefaultValue ".\Outputs\MergedPolicy.xml"
         if (-not $OutputPath) { return $null }
     }
 
@@ -453,12 +484,71 @@ function Invoke-ValidateWorkflow {
     Write-Host "  Validates an AppLocker policy XML file for correctness." -ForegroundColor Gray
     Write-Host ""
 
-    # Get policy path using helper
+    # Get policy path - use GUI selection from Outputs folder by default
     if ([string]::IsNullOrWhiteSpace($PolicyPath)) {
-        $PolicyPath = Get-ValidatedPath -Prompt "  Enter path to policy XML file" `
-            -Example ".\Outputs\AppLockerPolicy-Workstation-Phase1-AuditOnly-20260108.xml" `
-            -MustExist -MustBeFile
-        if (-not $PolicyPath) { return $null }
+        $outputsPath = ".\Outputs"
+
+        # Check if Outputs folder exists and has XML files
+        $xmlFiles = @()
+        if (Test-Path $outputsPath) {
+            $xmlFiles = @(Get-ChildItem -Path $outputsPath -Filter "*.xml" -File -ErrorAction SilentlyContinue |
+                Sort-Object LastWriteTime -Descending)
+        }
+
+        if ($xmlFiles.Count -gt 0) {
+            Write-Host "  Select a policy file to validate:" -ForegroundColor Yellow
+            Write-Host "  Location: $outputsPath" -ForegroundColor DarkGray
+            Write-Host ""
+
+            # Display numbered list of XML files
+            $i = 1
+            foreach ($file in $xmlFiles) {
+                $dateStr = $file.LastWriteTime.ToString("yyyy-MM-dd HH:mm")
+                Write-Host "    [$i] $($file.Name)" -ForegroundColor White -NoNewline
+                Write-Host "  ($dateStr)" -ForegroundColor DarkGray
+                $i++
+            }
+            Write-Host ""
+            Write-Host "    [M] Enter path manually" -ForegroundColor Gray
+            Write-Host "    [C] Cancel" -ForegroundColor Gray
+            Write-Host ""
+
+            $choice = Read-Host "  Enter choice"
+
+            switch ($choice.ToUpper()) {
+                "C" { return $null }
+                "M" {
+                    $PolicyPath = Get-ValidatedPath -Prompt "  Enter path to policy XML file" `
+                        -Example ".\Outputs\AppLockerPolicy-Workstation-Phase1-AuditOnly-20260108.xml" `
+                        -MustExist -MustBeFile
+                    if (-not $PolicyPath) { return $null }
+                }
+                default {
+                    if ($choice -match "^\d+$") {
+                        $idx = [int]$choice - 1
+                        if ($idx -ge 0 -and $idx -lt $xmlFiles.Count) {
+                            $PolicyPath = $xmlFiles[$idx].FullName
+                        }
+                        else {
+                            Write-Host "  [-] Invalid selection" -ForegroundColor Red
+                            return $null
+                        }
+                    }
+                    else {
+                        Write-Host "  [-] Invalid selection" -ForegroundColor Red
+                        return $null
+                    }
+                }
+            }
+        }
+        else {
+            # No XML files in Outputs, prompt for manual entry
+            Write-Host "  No policy files found in $outputsPath" -ForegroundColor Yellow
+            $PolicyPath = Get-ValidatedPath -Prompt "  Enter path to policy XML file" `
+                -Example ".\Outputs\AppLockerPolicy-Workstation-Phase1-AuditOnly-20260108.xml" `
+                -MustExist -MustBeFile
+            if (-not $PolicyPath) { return $null }
+        }
     }
     elseif (-not (Test-Path $PolicyPath -PathType Leaf)) {
         Write-Host "  [-] Policy XML file not found: $PolicyPath" -ForegroundColor Red

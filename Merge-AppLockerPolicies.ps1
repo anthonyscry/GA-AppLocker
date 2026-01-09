@@ -104,7 +104,7 @@ param(
     [string]$InputPath,
 
     [Parameter(Position=1, ParameterSetName='Standard')]
-    [string]$OutputPath = ".\MergedPolicy.xml",
+    [string]$OutputPath = ".\Outputs\MergedPolicy.xml",
 
     [Parameter(ParameterSetName='Standard')]
     [switch]$RemoveDuplicates = $true,
