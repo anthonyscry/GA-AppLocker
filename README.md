@@ -704,6 +704,34 @@ Rules are NOT applied to "Everyone" or "Authenticated Users". Instead, rules tar
 | **Exceptions** | DOMAIN\AppLocker-Exceptions | Temporary bypass (monitored) |
 | **System Accounts** | NT AUTHORITY\SYSTEM | OS-level operations only |
 
+**Path-Based vs Publisher-Based Rules (Inspector FAQ)**
+
+A key design decision is using **path-based rules for Standard Users** instead of publisher-based rules:
+
+| Rule Type | Applied To | Rationale |
+|-----------|------------|-----------|
+| **Publisher-based** | SYSTEM, Administrators, Service Accounts | Admins need flexibility to run signed tools from any location for management tasks |
+| **Path-based** | Standard Users | Users can ONLY execute from admin-protected directories (`%PROGRAMFILES%`, `%WINDIR%`) |
+
+**Why this approach is more secure than publisher-based for users:**
+
+1. **Defense in Depth**: Code signing certificates can be stolen or compromised (ref: SolarWinds 2020, CCleaner 2017, ASUS ShadowHammer 2019). Path-based rules ensure that even legitimately-signed malware dropped in user-writable locations cannot execute.
+
+2. **Least Privilege**: Users execute only what administrators have explicitly installed to protected directories. This prevents:
+   - Portable applications downloaded by users
+   - Malware masquerading as legitimate signed software
+   - Unauthorized software installations
+
+3. **Audit Trail**: All executable software must pass through admin-controlled installation, creating a clear chain of custody.
+
+4. **Attack Surface Reduction**: Eliminates entire classes of attacks that rely on dropping payloads in user-writable locations.
+
+**Example**: If a user downloads a validly-signed Microsoft utility to their Downloads folder:
+- With **publisher-based rules**: It would execute (signature is valid)
+- With **path-based rules**: It is BLOCKED (Downloads is not a protected path)
+
+This is the intended behavior - users should request software installation through proper IT channels.
+
 **Deny-by-Default Locations**
 
 User-writable paths are explicitly denied to prevent malware execution:
