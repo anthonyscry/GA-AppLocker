@@ -72,7 +72,8 @@ Describe 'New-SoftwareList' {
             $content.metadata | Should -Not -BeNullOrEmpty
             $content.metadata.name | Should -Be $listName
             $content.metadata.description | Should -Be "Test description"
-            $content.items | Should -Not -BeNullOrEmpty
+            # Items should be an array (can be empty for a new list)
+            $null -ne $content.items | Should -Be $true
         }
 
         It 'Sets created and modified timestamps' {
@@ -101,8 +102,11 @@ Describe 'New-SoftwareList' {
 
             # Should create file with sanitized name
             $result | Should -Not -BeNullOrEmpty
-            $result | Should -Not -Match ':'
-            $result | Should -Not -Match '/'
+            # Check the filename (not full path) doesn't contain invalid chars
+            $fileName = [System.IO.Path]::GetFileName($result)
+            $fileName | Should -Not -Match ':'
+            $fileName | Should -Not -Match '/'
+            $fileName | Should -Match 'Test_Invalid_Name'
         }
     }
 
@@ -247,8 +251,10 @@ Describe 'Save-SoftwareList' {
 
         It 'Returns false when saving null list' {
             $savePath = Join-Path $script:tempListsPath "NullTest.json"
-            $result = Save-SoftwareList -List $null -ListPath $savePath
+            # Suppress console output and capture result
+            $result = Save-SoftwareList -List $null -ListPath $savePath 2>$null 3>$null
 
+            # Should return $false to indicate failure
             $result | Should -Be $false
         }
     }
