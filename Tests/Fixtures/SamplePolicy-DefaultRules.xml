@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AppLockerPolicy Version="1">
+  <RuleCollection Type="Exe" EnforcementMode="AuditOnly">
+    <FilePathRule Id="921cc481-6e17-4653-8f75-050b80acca20" Name="(Default Rule) All files located in the Windows folder" Description="Allows members of the local Administrators group to run all applications." UserOrGroupSid="S-1-5-32-544" Action="Allow">
+      <Conditions>
+        <FilePathCondition Path="%WINDIR%\*"/>
+      </Conditions>
+    </FilePathRule>
+    <FilePathRule Id="a61c8b2c-a319-4cd0-9690-d2177cad7b51" Name="(Default Rule) All files" Description="Default rule" UserOrGroupSid="S-1-5-32-544" Action="Allow">
+      <Conditions>
+        <FilePathCondition Path="*"/>
+      </Conditions>
+    </FilePathRule>
+    <FilePublisherRule Id="b61c8b2c-a319-4cd0-9690-d2177cad7b52" Name="Custom Publisher Rule" Description="Non-default rule" UserOrGroupSid="S-1-1-0" Action="Allow">
+      <Conditions>
+        <FilePublisherCondition PublisherName="O=CUSTOM CORP" ProductName="*" BinaryName="*">
+          <BinaryVersionRange LowSection="*" HighSection="*"/>
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>
+  </RuleCollection>
+  <RuleCollection Type="Msi" EnforcementMode="NotConfigured">
+  </RuleCollection>
+  <RuleCollection Type="Script" EnforcementMode="NotConfigured">
+  </RuleCollection>
+  <RuleCollection Type="Dll" EnforcementMode="NotConfigured">
+  </RuleCollection>
+  <RuleCollection Type="Appx" EnforcementMode="NotConfigured">
+  </RuleCollection>
+</AppLockerPolicy>
