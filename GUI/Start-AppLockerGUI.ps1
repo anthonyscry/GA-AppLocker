@@ -1,9 +1,9 @@
 <#
 .SYNOPSIS
-    GA-AppLocker WPF GUI Application
+    GA-AppLocker WPF GUI Application - Modern UI
 .DESCRIPTION
-    A graphical user interface for the GA-AppLocker toolkit.
-    Provides access to all workflows: Scan, Generate, Merge, Validate, Events, Compare, and more.
+    A modern graphical user interface for the GA-AppLocker toolkit.
+    Features sidebar navigation, card-based layouts, and clean visual design.
 .NOTES
     Author: GA-AppLocker Project
     Requires: PowerShell 5.1+, Windows Presentation Foundation
@@ -48,46 +48,64 @@ if (Test-Path $configPath) {
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="GA-AppLocker Toolkit"
-    Height="750"
-    Width="1100"
+    Height="800"
+    Width="1200"
+    MinHeight="600"
+    MinWidth="900"
     WindowStartupLocation="CenterScreen"
-    Background="#1E1E1E">
+    Background="#0D1117">
 
     <Window.Resources>
-        <!-- Color Scheme -->
-        <SolidColorBrush x:Key="PrimaryBrush" Color="#0078D4"/>
-        <SolidColorBrush x:Key="SecondaryBrush" Color="#106EBE"/>
-        <SolidColorBrush x:Key="BackgroundBrush" Color="#1E1E1E"/>
-        <SolidColorBrush x:Key="PanelBrush" Color="#252526"/>
-        <SolidColorBrush x:Key="BorderBrush" Color="#3F3F46"/>
-        <SolidColorBrush x:Key="TextBrush" Color="#CCCCCC"/>
-        <SolidColorBrush x:Key="SuccessBrush" Color="#4EC9B0"/>
-        <SolidColorBrush x:Key="WarningBrush" Color="#DCDCAA"/>
-        <SolidColorBrush x:Key="ErrorBrush" Color="#F14C4C"/>
+        <!-- Modern Color Palette -->
+        <Color x:Key="BgDark">#0D1117</Color>
+        <Color x:Key="BgSidebar">#161B22</Color>
+        <Color x:Key="BgCard">#21262D</Color>
+        <Color x:Key="BgInput">#0D1117</Color>
+        <Color x:Key="BorderColor">#30363D</Color>
+        <Color x:Key="AccentBlue">#58A6FF</Color>
+        <Color x:Key="AccentGreen">#3FB950</Color>
+        <Color x:Key="AccentOrange">#D29922</Color>
+        <Color x:Key="AccentRed">#F85149</Color>
+        <Color x:Key="TextPrimary">#E6EDF3</Color>
+        <Color x:Key="TextSecondary">#8B949E</Color>
+        <Color x:Key="TextMuted">#484F58</Color>
 
-        <!-- Button Style -->
-        <Style TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource PrimaryBrush}"/>
+        <SolidColorBrush x:Key="BgDarkBrush" Color="{StaticResource BgDark}"/>
+        <SolidColorBrush x:Key="BgSidebarBrush" Color="{StaticResource BgSidebar}"/>
+        <SolidColorBrush x:Key="BgCardBrush" Color="{StaticResource BgCard}"/>
+        <SolidColorBrush x:Key="BgInputBrush" Color="{StaticResource BgInput}"/>
+        <SolidColorBrush x:Key="BorderBrush" Color="{StaticResource BorderColor}"/>
+        <SolidColorBrush x:Key="AccentBlueBrush" Color="{StaticResource AccentBlue}"/>
+        <SolidColorBrush x:Key="AccentGreenBrush" Color="{StaticResource AccentGreen}"/>
+        <SolidColorBrush x:Key="AccentOrangeBrush" Color="{StaticResource AccentOrange}"/>
+        <SolidColorBrush x:Key="AccentRedBrush" Color="{StaticResource AccentRed}"/>
+        <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimary}"/>
+        <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondary}"/>
+        <SolidColorBrush x:Key="TextMutedBrush" Color="{StaticResource TextMuted}"/>
+
+        <!-- Primary Button Style -->
+        <Style x:Key="PrimaryButton" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource AccentBlueBrush}"/>
             <Setter Property="Foreground" Value="White"/>
-            <Setter Property="Padding" Value="15,8"/>
-            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Padding" Value="20,12"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}"
-                                CornerRadius="4"
-                                Padding="{TemplateBinding Padding}">
+                        <Border x:Name="border" Background="{TemplateBinding Background}"
+                                CornerRadius="6" Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="{StaticResource SecondaryBrush}"/>
+                                <Setter TargetName="border" Property="Background" Value="#79C0FF"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Background" Value="#555555"/>
-                                <Setter Property="Foreground" Value="#888888"/>
+                                <Setter TargetName="border" Property="Background" Value="#30363D"/>
+                                <Setter Property="Foreground" Value="#484F58"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -95,400 +113,598 @@ if (Test-Path $configPath) {
             </Setter>
         </Style>
 
-        <!-- TextBox Style -->
-        <Style TargetType="TextBox">
-            <Setter Property="Background" Value="#3C3C3C"/>
-            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+        <!-- Secondary Button Style -->
+        <Style x:Key="SecondaryButton" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource BgCardBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="FontSize" Value="12"/>
             <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
-            <Setter Property="Padding" Value="8,6"/>
-            <Setter Property="Margin" Value="5"/>
-            <Setter Property="CaretBrush" Value="White"/>
-        </Style>
-
-        <!-- ComboBox Style -->
-        <Style TargetType="ComboBox">
-            <Setter Property="Background" Value="#3C3C3C"/>
-            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
-            <Setter Property="Padding" Value="8,6"/>
-            <Setter Property="Margin" Value="5"/>
-        </Style>
-
-        <!-- CheckBox Style -->
-        <Style TargetType="CheckBox">
-            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
-            <Setter Property="Margin" Value="5"/>
-        </Style>
-
-        <!-- Label Style -->
-        <Style TargetType="Label">
-            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
-            <Setter Property="Margin" Value="5,5,5,0"/>
-        </Style>
-
-        <!-- GroupBox Style -->
-        <Style TargetType="GroupBox">
-            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
-            <Setter Property="Margin" Value="5"/>
-            <Setter Property="Padding" Value="10"/>
-        </Style>
-
-        <!-- TabItem Style -->
-        <Style TargetType="TabItem">
-            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
-            <Setter Property="Background" Value="{StaticResource PanelBrush}"/>
-            <Setter Property="Padding" Value="15,8"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
-                    <ControlTemplate TargetType="TabItem">
-                        <Border x:Name="Border" Background="{StaticResource PanelBrush}"
-                                BorderBrush="{StaticResource BorderBrush}"
-                                BorderThickness="1,1,1,0" CornerRadius="4,4,0,0"
-                                Padding="{TemplateBinding Padding}" Margin="2,0,2,0">
-                            <ContentPresenter x:Name="ContentSite" ContentSource="Header"
-                                              HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
-                            <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Border" Property="Background" Value="{StaticResource PrimaryBrush}"/>
-                            </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Border" Property="Background" Value="{StaticResource SecondaryBrush}"/>
+                                <Setter TargetName="border" Property="Background" Value="#30363D"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#484F58"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="#484F58"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+        </Style>
+
+        <!-- Small Button Style -->
+        <Style x:Key="SmallButton" TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="FontSize" Value="11"/>
+        </Style>
+
+        <!-- Navigation Button Style -->
+        <Style x:Key="NavButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+            <Setter Property="Padding" Value="16,12"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#21262D"/>
+                                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Active Navigation Button Style -->
+        <Style x:Key="NavButtonActive" TargetType="Button" BasedOn="{StaticResource NavButton}">
+            <Setter Property="Background" Value="#21262D"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+        </Style>
+
+        <!-- Modern TextBox Style -->
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="{StaticResource BgInputBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="CaretBrush" Value="{StaticResource TextPrimaryBrush}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="border" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource AccentBlueBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Modern PasswordBox Style -->
+        <Style TargetType="PasswordBox">
+            <Setter Property="Background" Value="{StaticResource BgInputBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="CaretBrush" Value="{StaticResource TextPrimaryBrush}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="PasswordBox">
+                        <Border x:Name="border" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource AccentBlueBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Modern ComboBox Style -->
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="{StaticResource BgInputBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="FontSize" Value="13"/>
+        </Style>
+
+        <!-- Modern CheckBox Style -->
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+
+        <!-- Modern RadioButton Style -->
+        <Style TargetType="RadioButton">
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+
+        <!-- Modern ListBox Style -->
+        <Style TargetType="ListBox">
+            <Setter Property="Background" Value="{StaticResource BgInputBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="4"/>
+        </Style>
+
+        <!-- Card Style -->
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource BgCardBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="20"/>
+            <Setter Property="Margin" Value="0,0,0,16"/>
         </Style>
     </Window.Resources>
 
     <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="200"/>
-        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="240"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
 
-        <!-- Header -->
-        <Border Grid.Row="0" Background="{StaticResource PanelBrush}" Padding="15">
+        <!-- Sidebar -->
+        <Border Grid.Column="0" Background="{StaticResource BgSidebarBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0">
             <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <StackPanel Grid.Column="0">
-                    <TextBlock Text="GA-AppLocker Toolkit" FontSize="24" FontWeight="Bold"
-                               Foreground="{StaticResource PrimaryBrush}"/>
-                    <TextBlock Text="Windows AppLocker Policy Management" FontSize="12"
-                               Foreground="{StaticResource TextBrush}" Margin="0,5,0,0"/>
-                </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock x:Name="StatusIndicator" Text="● Ready" Foreground="{StaticResource SuccessBrush}"
-                               FontSize="14" VerticalAlignment="Center" Margin="10,0"/>
-                </StackPanel>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Logo/Title -->
+                <Border Grid.Row="0" Padding="20,24,20,20" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+                    <StackPanel>
+                        <TextBlock Text="GA-AppLocker" FontSize="20" FontWeight="Bold"
+                                   Foreground="{StaticResource TextPrimaryBrush}"/>
+                        <TextBlock Text="Security Policy Toolkit" FontSize="11"
+                                   Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Navigation -->
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="8,12,8,12">
+                        <TextBlock Text="WORKFLOWS" FontSize="10" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   Margin="16,8,0,8"/>
+
+                        <Button x:Name="NavScan" Style="{StaticResource NavButtonActive}" Content="Scan Computers"/>
+                        <Button x:Name="NavGenerate" Style="{StaticResource NavButton}" Content="Generate Policy"/>
+                        <Button x:Name="NavMerge" Style="{StaticResource NavButton}" Content="Merge Policies"/>
+                        <Button x:Name="NavValidate" Style="{StaticResource NavButton}" Content="Validate Policy"/>
+                        <Button x:Name="NavEvents" Style="{StaticResource NavButton}" Content="Collect Events"/>
+                        <Button x:Name="NavCompare" Style="{StaticResource NavButton}" Content="Compare Inventory"/>
+
+                        <TextBlock Text="MANAGEMENT" FontSize="10" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   Margin="16,20,0,8"/>
+
+                        <Button x:Name="NavSoftware" Style="{StaticResource NavButton}" Content="Software Lists"/>
+                        <Button x:Name="NavAD" Style="{StaticResource NavButton}" Content="Active Directory"/>
+
+                        <TextBlock Text="UTILITIES" FontSize="10" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   Margin="16,20,0,8"/>
+
+                        <Button x:Name="NavDiagnostics" Style="{StaticResource NavButton}" Content="Diagnostics"/>
+                        <Button x:Name="NavWinRM" Style="{StaticResource NavButton}" Content="WinRM Setup"/>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- Status Bar -->
+                <Border Grid.Row="2" Padding="16,12" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="{StaticResource AccentGreenBrush}" Margin="0,0,8,0"/>
+                            <TextBlock x:Name="StatusText" Text="Ready" FontSize="12"
+                                       Foreground="{StaticResource TextSecondaryBrush}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
             </Grid>
         </Border>
 
-        <!-- Main Content -->
-        <TabControl Grid.Row="1" x:Name="MainTabs" Background="{StaticResource BackgroundBrush}"
-                    BorderBrush="{StaticResource BorderBrush}" Margin="10,10,10,0">
+        <!-- Main Content Area -->
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-            <!-- Scan Tab -->
-            <TabItem Header="📡 Scan">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="20">
-                        <TextBlock Text="Remote Computer Scanning" FontSize="18" FontWeight="Bold"
-                                   Foreground="{StaticResource TextBrush}" Margin="0,0,0,15"/>
-                        <TextBlock Text="Collect application inventory data from remote computers via WinRM."
-                                   Foreground="#888888" Margin="0,0,0,20" TextWrapping="Wrap"/>
+            <!-- Content Pages -->
+            <Grid x:Name="ContentArea" Grid.Row="0" Margin="0">
 
-                        <GroupBox Header="Computer List">
+                <!-- Scan Page -->
+                <ScrollViewer x:Name="PageScan" VerticalScrollBarVisibility="Auto" Visibility="Visible">
+                    <StackPanel Margin="32,24,32,32">
+                        <TextBlock Text="Scan Computers" FontSize="24" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,8"/>
+                        <TextBlock Text="Collect application inventory from remote computers via WinRM"
+                                   FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,24"/>
+
+                        <Border Style="{StaticResource Card}">
                             <StackPanel>
+                                <TextBlock Text="Computer List" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBox x:Name="ScanComputerList" Grid.Column="0"/>
-                                    <Button x:Name="BrowseScanComputerList" Grid.Column="1" Content="Browse..." Width="100"/>
+                                    <Button x:Name="BrowseScanComputerList" Grid.Column="1" Content="Browse"
+                                            Style="{StaticResource SecondaryButton}" Margin="8,0,0,0"/>
                                 </Grid>
-                                <TextBlock Text="Text file (one per line) or CSV with ComputerName column"
-                                           Foreground="#888888" FontSize="11" Margin="5,0,0,0"/>
+                                <TextBlock Text="Text file with one computer per line, or CSV with ComputerName column"
+                                           FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,8,0,0"/>
                             </StackPanel>
-                        </GroupBox>
+                        </Border>
 
-                        <GroupBox Header="Credentials">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="0">
-                                    <Label Content="Username (DOMAIN\User):"/>
-                                    <TextBox x:Name="ScanUsername"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="1">
-                                    <Label Content="Password:"/>
-                                    <PasswordBox x:Name="ScanPassword" Background="#3C3C3C"
-                                                 Foreground="{StaticResource TextBrush}"
-                                                 BorderBrush="{StaticResource BorderBrush}"
-                                                 Padding="8,6" Margin="5"/>
-                                </StackPanel>
-                            </Grid>
-                        </GroupBox>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Credentials (Optional)" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="16"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="Username" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                                        <TextBox x:Name="ScanUsername" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="Password" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                                        <PasswordBox x:Name="ScanPassword"/>
+                                    </StackPanel>
+                                </Grid>
+                                <TextBlock Text="Leave blank to use current credentials"
+                                           FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,8,0,0"/>
+                            </StackPanel>
+                        </Border>
 
-                        <GroupBox Header="Options">
-                            <WrapPanel>
-                                <CheckBox x:Name="ScanUserProfiles" Content="Scan User Profiles" Margin="10,5"/>
-                                <CheckBox x:Name="ScanIncludeDLLs" Content="Include DLLs" Margin="10,5"/>
-                                <StackPanel Orientation="Horizontal" Margin="10,5">
-                                    <Label Content="Throttle Limit:" VerticalAlignment="Center"/>
-                                    <TextBox x:Name="ScanThrottleLimit" Text="10" Width="50"/>
-                                </StackPanel>
-                            </WrapPanel>
-                        </GroupBox>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Options" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <WrapPanel>
+                                    <CheckBox x:Name="ScanUserProfiles" Content="Scan User Profiles" Margin="0,0,24,8"/>
+                                    <CheckBox x:Name="ScanIncludeDLLs" Content="Include DLLs" Margin="0,0,24,8"/>
+                                </WrapPanel>
+                                <Grid Margin="0,8,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="100"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Throttle Limit:" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
+                                               VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <TextBox x:Name="ScanThrottleLimit" Grid.Column="1" Text="10"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
 
-                        <GroupBox Header="Output">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBox x:Name="ScanOutputPath" Grid.Column="0" Text=".\Scans"/>
-                                <Button x:Name="BrowseScanOutput" Grid.Column="1" Content="Browse..." Width="100"/>
-                            </Grid>
-                        </GroupBox>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Output Location" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="ScanOutputPath" Grid.Column="0" Text=".\Scans"/>
+                                    <Button x:Name="BrowseScanOutput" Grid.Column="1" Content="Browse"
+                                            Style="{StaticResource SecondaryButton}" Margin="8,0,0,0"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
 
-                        <Button x:Name="StartScan" Content="Start Scan" HorizontalAlignment="Left"
-                                FontSize="14" Padding="30,12" Margin="5,15,5,5"/>
+                        <Button x:Name="StartScan" Content="Start Scan" Style="{StaticResource PrimaryButton}"
+                                HorizontalAlignment="Left" Margin="0,8,0,0"/>
                     </StackPanel>
                 </ScrollViewer>
-            </TabItem>
 
-            <!-- Generate Tab -->
-            <TabItem Header="📝 Generate">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="20">
-                        <TextBlock Text="Policy Generation" FontSize="18" FontWeight="Bold"
-                                   Foreground="{StaticResource TextBrush}" Margin="0,0,0,15"/>
-                        <TextBlock Text="Create AppLocker policies from scan data."
-                                   Foreground="#888888" Margin="0,0,0,20"/>
+                <!-- Generate Page -->
+                <ScrollViewer x:Name="PageGenerate" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                    <StackPanel Margin="32,24,32,32">
+                        <TextBlock Text="Generate Policy" FontSize="24" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,8"/>
+                        <TextBlock Text="Create AppLocker policies from scan data"
+                                   FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,24"/>
 
-                        <GroupBox Header="Scan Data Source">
+                        <Border Style="{StaticResource Card}">
                             <StackPanel>
+                                <TextBlock Text="Scan Data Source" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBox x:Name="GenerateScanPath" Grid.Column="0"/>
-                                    <Button x:Name="BrowseGenerateScanPath" Grid.Column="1" Content="Browse..." Width="100"/>
+                                    <Button x:Name="BrowseGenerateScanPath" Grid.Column="1" Content="Browse"
+                                            Style="{StaticResource SecondaryButton}" Margin="8,0,0,0"/>
                                 </Grid>
                                 <TextBlock Text="Select a scan folder containing computer subdirectories"
-                                           Foreground="#888888" FontSize="11" Margin="5,0,0,0"/>
+                                           FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,8,0,0"/>
                             </StackPanel>
-                        </GroupBox>
+                        </Border>
 
-                        <GroupBox Header="Policy Mode">
+                        <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <RadioButton x:Name="GenerateSimplified" Content="Simplified Mode"
-                                             Foreground="{StaticResource TextBrush}" IsChecked="True" Margin="5"/>
-                                <TextBlock Text="Quick deployment - single target user/group"
-                                           Foreground="#888888" FontSize="11" Margin="25,0,0,10"/>
+                                <TextBlock Text="Policy Mode" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
 
-                                <RadioButton x:Name="GenerateBuildGuide" Content="Build Guide Mode"
-                                             Foreground="{StaticResource TextBrush}" Margin="5"/>
-                                <TextBlock Text="Enterprise deployment - proper scoping, phased rollout"
-                                           Foreground="#888888" FontSize="11" Margin="25,0,0,5"/>
+                                <RadioButton x:Name="GenerateSimplified" Content="Simplified Mode" IsChecked="True" Margin="0,0,0,4"/>
+                                <TextBlock Text="Quick deployment with single target user/group. Best for labs and testing."
+                                           FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="20,0,0,16"/>
+
+                                <RadioButton x:Name="GenerateBuildGuide" Content="Build Guide Mode" Margin="0,0,0,4"/>
+                                <TextBlock Text="Enterprise deployment with proper scoping and phased rollout."
+                                           FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="20,0,0,0"/>
                             </StackPanel>
-                        </GroupBox>
+                        </Border>
 
-                        <GroupBox x:Name="BuildGuideOptions" Header="Build Guide Options" Visibility="Collapsed">
+                        <Border x:Name="BuildGuideOptions" Style="{StaticResource Card}" Visibility="Collapsed">
                             <StackPanel>
+                                <TextBlock Text="Build Guide Options" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="16"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Grid.Column="0">
-                                        <Label Content="Target Type:"/>
+                                        <TextBlock Text="Target Type" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
                                         <ComboBox x:Name="GenerateTargetType" SelectedIndex="0">
                                             <ComboBoxItem Content="Workstation"/>
                                             <ComboBoxItem Content="Server"/>
                                             <ComboBoxItem Content="DomainController"/>
                                         </ComboBox>
                                     </StackPanel>
-                                    <StackPanel Grid.Column="1">
-                                        <Label Content="Phase:"/>
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="Phase" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
                                         <ComboBox x:Name="GeneratePhase" SelectedIndex="0">
-                                            <ComboBoxItem Content="Phase 1 - EXE only (lowest risk)"/>
+                                            <ComboBoxItem Content="Phase 1 - EXE only"/>
                                             <ComboBoxItem Content="Phase 2 - EXE + Script"/>
                                             <ComboBoxItem Content="Phase 3 - EXE + Script + MSI"/>
-                                            <ComboBoxItem Content="Phase 4 - Full (EXE + Script + MSI + DLL)"/>
+                                            <ComboBoxItem Content="Phase 4 - Full"/>
                                         </ComboBox>
                                     </StackPanel>
                                 </Grid>
-                                <Label Content="Domain Name:"/>
-                                <TextBox x:Name="GenerateDomainName" />
+                                <TextBlock Text="Domain Name" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,16,0,6"/>
+                                <TextBox x:Name="GenerateDomainName"/>
                             </StackPanel>
-                        </GroupBox>
+                        </Border>
 
-                        <GroupBox Header="Additional Options">
-                            <WrapPanel>
-                                <CheckBox x:Name="GenerateIncludeDenyRules" Content="Include LOLBins Deny Rules" Margin="10,5"/>
-                                <CheckBox x:Name="GenerateIncludeVendorPublishers" Content="Trust Vendor Publishers" Margin="10,5"/>
-                            </WrapPanel>
-                        </GroupBox>
-
-                        <GroupBox Header="Output">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBox x:Name="GenerateOutputPath" Grid.Column="0" Text=".\Outputs"/>
-                                <Button x:Name="BrowseGenerateOutput" Grid.Column="1" Content="Browse..." Width="100"/>
-                            </Grid>
-                        </GroupBox>
-
-                        <Button x:Name="StartGenerate" Content="Generate Policy" HorizontalAlignment="Left"
-                                FontSize="14" Padding="30,12" Margin="5,15,5,5"/>
-                    </StackPanel>
-                </ScrollViewer>
-            </TabItem>
-
-            <!-- Merge Tab -->
-            <TabItem Header="🔗 Merge">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="20">
-                        <TextBlock Text="Policy Merge" FontSize="18" FontWeight="Bold"
-                                   Foreground="{StaticResource TextBrush}" Margin="0,0,0,15"/>
-                        <TextBlock Text="Combine multiple AppLocker policy files with deduplication."
-                                   Foreground="#888888" Margin="0,0,0,20"/>
-
-                        <GroupBox Header="Policy Files">
+                        <Border Style="{StaticResource Card}">
                             <StackPanel>
+                                <TextBlock Text="Additional Options" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <WrapPanel>
+                                    <CheckBox x:Name="GenerateIncludeDenyRules" Content="Include LOLBins Deny Rules" Margin="0,0,24,8"/>
+                                    <CheckBox x:Name="GenerateIncludeVendorPublishers" Content="Trust Vendor Publishers" Margin="0,0,0,8"/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Output Location" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="GenerateOutputPath" Grid.Column="0" Text=".\Outputs"/>
+                                    <Button x:Name="BrowseGenerateOutput" Grid.Column="1" Content="Browse"
+                                            Style="{StaticResource SecondaryButton}" Margin="8,0,0,0"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <Button x:Name="StartGenerate" Content="Generate Policy" Style="{StaticResource PrimaryButton}"
+                                HorizontalAlignment="Left" Margin="0,8,0,0"/>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- Merge Page -->
+                <ScrollViewer x:Name="PageMerge" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                    <StackPanel Margin="32,24,32,32">
+                        <TextBlock Text="Merge Policies" FontSize="24" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,8"/>
+                        <TextBlock Text="Combine multiple AppLocker policy files with deduplication"
+                                   FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,24"/>
+
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Policy Files" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <ListBox x:Name="MergePolicyList" Grid.Column="0" Height="150"
-                                             Background="#3C3C3C" Foreground="{StaticResource TextBrush}"
-                                             BorderBrush="{StaticResource BorderBrush}"/>
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                        <Button x:Name="MergeAddFile" Content="Add File" Width="100"/>
-                                        <Button x:Name="MergeAddFolder" Content="Add Folder" Width="100"/>
-                                        <Button x:Name="MergeRemoveFile" Content="Remove" Width="100"/>
-                                        <Button x:Name="MergeClearList" Content="Clear All" Width="100"/>
+                                    <ListBox x:Name="MergePolicyList" Grid.Column="0" Height="180"/>
+                                    <StackPanel Grid.Column="1" Margin="12,0,0,0">
+                                        <Button x:Name="MergeAddFile" Content="Add File" Style="{StaticResource SmallButton}" Margin="0,0,0,4"/>
+                                        <Button x:Name="MergeAddFolder" Content="Add Folder" Style="{StaticResource SmallButton}" Margin="0,0,0,4"/>
+                                        <Button x:Name="MergeRemoveFile" Content="Remove" Style="{StaticResource SmallButton}" Margin="0,0,0,4"/>
+                                        <Button x:Name="MergeClearList" Content="Clear All" Style="{StaticResource SmallButton}"/>
                                     </StackPanel>
                                 </Grid>
                             </StackPanel>
-                        </GroupBox>
+                        </Border>
 
-                        <GroupBox Header="Output">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBox x:Name="MergeOutputPath" Grid.Column="0" Text=".\Outputs"/>
-                                <Button x:Name="BrowseMergeOutput" Grid.Column="1" Content="Browse..." Width="100"/>
-                            </Grid>
-                        </GroupBox>
-
-                        <Button x:Name="StartMerge" Content="Merge Policies" HorizontalAlignment="Left"
-                                FontSize="14" Padding="30,12" Margin="5,15,5,5"/>
-                    </StackPanel>
-                </ScrollViewer>
-            </TabItem>
-
-            <!-- Validate Tab -->
-            <TabItem Header="✓ Validate">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="20">
-                        <TextBlock Text="Policy Validation" FontSize="18" FontWeight="Bold"
-                                   Foreground="{StaticResource TextBrush}" Margin="0,0,0,15"/>
-                        <TextBlock Text="Check an AppLocker policy file for issues and security concerns."
-                                   Foreground="#888888" Margin="0,0,0,20"/>
-
-                        <GroupBox Header="Policy File">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBox x:Name="ValidatePolicyPath" Grid.Column="0"/>
-                                <Button x:Name="BrowseValidatePolicy" Grid.Column="1" Content="Browse..." Width="100"/>
-                            </Grid>
-                        </GroupBox>
-
-                        <GroupBox Header="Validation Results" Visibility="Collapsed" x:Name="ValidationResultsGroup">
+                        <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBox x:Name="ValidationResults" Height="300"
-                                         IsReadOnly="True" TextWrapping="Wrap"
-                                         VerticalScrollBarVisibility="Auto"
-                                         FontFamily="Consolas" FontSize="12"/>
-                            </StackPanel>
-                        </GroupBox>
-
-                        <Button x:Name="StartValidate" Content="Validate Policy" HorizontalAlignment="Left"
-                                FontSize="14" Padding="30,12" Margin="5,15,5,5"/>
-                    </StackPanel>
-                </ScrollViewer>
-            </TabItem>
-
-            <!-- Events Tab -->
-            <TabItem Header="📊 Events">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="20">
-                        <TextBlock Text="AppLocker Event Collection" FontSize="18" FontWeight="Bold"
-                                   Foreground="{StaticResource TextBrush}" Margin="0,0,0,15"/>
-                        <TextBlock Text="Collect AppLocker audit events (8003/8004) from remote computers."
-                                   Foreground="#888888" Margin="0,0,0,20" TextWrapping="Wrap"/>
-
-                        <GroupBox Header="Computer List">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBox x:Name="EventsComputerList" Grid.Column="0"/>
-                                <Button x:Name="BrowseEventsComputerList" Grid.Column="1" Content="Browse..." Width="100"/>
-                            </Grid>
-                        </GroupBox>
-
-                        <GroupBox Header="Credentials">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="0">
-                                    <Label Content="Username (DOMAIN\User):"/>
-                                    <TextBox x:Name="EventsUsername"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="1">
-                                    <Label Content="Password:"/>
-                                    <PasswordBox x:Name="EventsPassword" Background="#3C3C3C"
-                                                 Foreground="{StaticResource TextBrush}"
-                                                 BorderBrush="{StaticResource BorderBrush}"
-                                                 Padding="8,6" Margin="5"/>
-                                </StackPanel>
-                            </Grid>
-                        </GroupBox>
-
-                        <GroupBox Header="Event Options">
-                            <StackPanel>
+                                <TextBlock Text="Output Location" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="MergeOutputPath" Grid.Column="0" Text=".\Outputs"/>
+                                    <Button x:Name="BrowseMergeOutput" Grid.Column="1" Content="Browse"
+                                            Style="{StaticResource SecondaryButton}" Margin="8,0,0,0"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <Button x:Name="StartMerge" Content="Merge Policies" Style="{StaticResource PrimaryButton}"
+                                HorizontalAlignment="Left" Margin="0,8,0,0"/>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- Validate Page -->
+                <ScrollViewer x:Name="PageValidate" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                    <StackPanel Margin="32,24,32,32">
+                        <TextBlock Text="Validate Policy" FontSize="24" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,8"/>
+                        <TextBlock Text="Check an AppLocker policy for issues and security concerns"
+                                   FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,24"/>
+
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Policy File" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="ValidatePolicyPath" Grid.Column="0"/>
+                                    <Button x:Name="BrowseValidatePolicy" Grid.Column="1" Content="Browse"
+                                            Style="{StaticResource SecondaryButton}" Margin="8,0,0,0"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <Border x:Name="ValidationResultsCard" Style="{StaticResource Card}" Visibility="Collapsed">
+                            <StackPanel>
+                                <TextBlock Text="Validation Results" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <TextBox x:Name="ValidationResults" Height="300" IsReadOnly="True"
+                                         TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                                         FontFamily="Consolas" FontSize="12"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Button x:Name="StartValidate" Content="Validate Policy" Style="{StaticResource PrimaryButton}"
+                                HorizontalAlignment="Left" Margin="0,8,0,0"/>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- Events Page -->
+                <ScrollViewer x:Name="PageEvents" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                    <StackPanel Margin="32,24,32,32">
+                        <TextBlock Text="Collect Events" FontSize="24" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,8"/>
+                        <TextBlock Text="Collect AppLocker audit events (8003/8004) from remote computers"
+                                   FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,24"/>
+
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Computer List" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="EventsComputerList" Grid.Column="0"/>
+                                    <Button x:Name="BrowseEventsComputerList" Grid.Column="1" Content="Browse"
+                                            Style="{StaticResource SecondaryButton}" Margin="8,0,0,0"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Credentials (Optional)" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="16"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Grid.Column="0">
-                                        <Label Content="Days Back:"/>
+                                        <TextBlock Text="Username" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                                        <TextBox x:Name="EventsUsername"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="Password" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                                        <PasswordBox x:Name="EventsPassword"/>
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Event Options" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="16"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="Days Back" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
                                         <ComboBox x:Name="EventsDaysBack" SelectedIndex="1">
                                             <ComboBoxItem Content="7 days"/>
                                             <ComboBoxItem Content="14 days"/>
@@ -497,316 +713,361 @@ if (Test-Path $configPath) {
                                             <ComboBoxItem Content="All available"/>
                                         </ComboBox>
                                     </StackPanel>
-                                    <StackPanel Grid.Column="1">
-                                        <Label Content="Event Types:"/>
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="Event Types" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
                                         <ComboBox x:Name="EventsType" SelectedIndex="0">
-                                            <ComboBoxItem Content="Blocked Only (8004/8006/8008)"/>
+                                            <ComboBoxItem Content="Blocked Only"/>
                                             <ComboBoxItem Content="All Audit Events"/>
                                         </ComboBox>
                                     </StackPanel>
                                 </Grid>
                             </StackPanel>
-                        </GroupBox>
+                        </Border>
 
-                        <GroupBox Header="Output">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBox x:Name="EventsOutputPath" Grid.Column="0" Text=".\Events"/>
-                                <Button x:Name="BrowseEventsOutput" Grid.Column="1" Content="Browse..." Width="100"/>
-                            </Grid>
-                        </GroupBox>
-
-                        <Button x:Name="StartEvents" Content="Collect Events" HorizontalAlignment="Left"
-                                FontSize="14" Padding="30,12" Margin="5,15,5,5"/>
-                    </StackPanel>
-                </ScrollViewer>
-            </TabItem>
-
-            <!-- Compare Tab -->
-            <TabItem Header="⚖ Compare">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="20">
-                        <TextBlock Text="Software Inventory Comparison" FontSize="18" FontWeight="Bold"
-                                   Foreground="{StaticResource TextBrush}" Margin="0,0,0,15"/>
-                        <TextBlock Text="Compare executables between two machines to identify drift."
-                                   Foreground="#888888" Margin="0,0,0,20"/>
-
-                        <GroupBox Header="Reference (Baseline)">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBox x:Name="CompareReferencePath" Grid.Column="0"/>
-                                <Button x:Name="BrowseCompareReference" Grid.Column="1" Content="Browse..." Width="100"/>
-                            </Grid>
-                        </GroupBox>
-
-                        <GroupBox Header="Compare (Target)">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBox x:Name="CompareTargetPath" Grid.Column="0"/>
-                                <Button x:Name="BrowseCompareTarget" Grid.Column="1" Content="Browse..." Width="100"/>
-                            </Grid>
-                        </GroupBox>
-
-                        <GroupBox Header="Comparison Method">
-                            <ComboBox x:Name="CompareMethod" SelectedIndex="0">
-                                <ComboBoxItem Content="Name - Compare by file name only"/>
-                                <ComboBoxItem Content="NameVersion - Compare by name and version"/>
-                                <ComboBoxItem Content="Hash - Compare by file hash"/>
-                                <ComboBoxItem Content="Publisher - Compare by publisher"/>
-                            </ComboBox>
-                        </GroupBox>
-
-                        <GroupBox Header="Output">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBox x:Name="CompareOutputPath" Grid.Column="0" Text=".\Outputs"/>
-                                <Button x:Name="BrowseCompareOutput" Grid.Column="1" Content="Browse..." Width="100"/>
-                            </Grid>
-                        </GroupBox>
-
-                        <Button x:Name="StartCompare" Content="Compare Inventories" HorizontalAlignment="Left"
-                                FontSize="14" Padding="30,12" Margin="5,15,5,5"/>
-                    </StackPanel>
-                </ScrollViewer>
-            </TabItem>
-
-            <!-- Software Lists Tab -->
-            <TabItem Header="📋 Software">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="20">
-                        <TextBlock Text="Software List Management" FontSize="18" FontWeight="Bold"
-                                   Foreground="{StaticResource TextBrush}" Margin="0,0,0,15"/>
-                        <TextBlock Text="Manage curated software allowlists for policy generation."
-                                   Foreground="#888888" Margin="0,0,0,20"/>
-
-                        <GroupBox Header="Available Lists">
+                        <Border Style="{StaticResource Card}">
                             <StackPanel>
+                                <TextBlock Text="Output Location" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <ListBox x:Name="SoftwareListBox" Grid.Column="0" Height="150"
-                                             Background="#3C3C3C" Foreground="{StaticResource TextBrush}"
-                                             BorderBrush="{StaticResource BorderBrush}"/>
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                        <Button x:Name="SoftwareRefresh" Content="Refresh" Width="100"/>
-                                        <Button x:Name="SoftwareNew" Content="New List" Width="100"/>
-                                        <Button x:Name="SoftwareView" Content="View/Edit" Width="100"/>
-                                        <Button x:Name="SoftwareDelete" Content="Delete" Width="100"/>
+                                    <TextBox x:Name="EventsOutputPath" Grid.Column="0" Text=".\Events"/>
+                                    <Button x:Name="BrowseEventsOutput" Grid.Column="1" Content="Browse"
+                                            Style="{StaticResource SecondaryButton}" Margin="8,0,0,0"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <Button x:Name="StartEvents" Content="Collect Events" Style="{StaticResource PrimaryButton}"
+                                HorizontalAlignment="Left" Margin="0,8,0,0"/>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- Compare Page -->
+                <ScrollViewer x:Name="PageCompare" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                    <StackPanel Margin="32,24,32,32">
+                        <TextBlock Text="Compare Inventory" FontSize="24" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,8"/>
+                        <TextBlock Text="Compare software inventories between two systems to identify drift"
+                                   FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,24"/>
+
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Reference (Baseline)" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="CompareReferencePath" Grid.Column="0"/>
+                                    <Button x:Name="BrowseCompareReference" Grid.Column="1" Content="Browse"
+                                            Style="{StaticResource SecondaryButton}" Margin="8,0,0,0"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Target (Compare To)" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="CompareTargetPath" Grid.Column="0"/>
+                                    <Button x:Name="BrowseCompareTarget" Grid.Column="1" Content="Browse"
+                                            Style="{StaticResource SecondaryButton}" Margin="8,0,0,0"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Comparison Method" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <ComboBox x:Name="CompareMethod" SelectedIndex="0">
+                                    <ComboBoxItem Content="Name - Compare by file name only"/>
+                                    <ComboBoxItem Content="NameVersion - Compare by name and version"/>
+                                    <ComboBoxItem Content="Hash - Compare by file hash"/>
+                                    <ComboBoxItem Content="Publisher - Compare by publisher"/>
+                                </ComboBox>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Output Location" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="CompareOutputPath" Grid.Column="0" Text=".\Outputs"/>
+                                    <Button x:Name="BrowseCompareOutput" Grid.Column="1" Content="Browse"
+                                            Style="{StaticResource SecondaryButton}" Margin="8,0,0,0"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <Button x:Name="StartCompare" Content="Compare Inventories" Style="{StaticResource PrimaryButton}"
+                                HorizontalAlignment="Left" Margin="0,8,0,0"/>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- Software Lists Page -->
+                <ScrollViewer x:Name="PageSoftware" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                    <StackPanel Margin="32,24,32,32">
+                        <TextBlock Text="Software Lists" FontSize="24" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,8"/>
+                        <TextBlock Text="Manage curated software allowlists for policy generation"
+                                   FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,24"/>
+
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Available Lists" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ListBox x:Name="SoftwareListBox" Grid.Column="0" Height="180"/>
+                                    <StackPanel Grid.Column="1" Margin="12,0,0,0">
+                                        <Button x:Name="SoftwareRefresh" Content="Refresh" Style="{StaticResource SmallButton}" Margin="0,0,0,4"/>
+                                        <Button x:Name="SoftwareNew" Content="New List" Style="{StaticResource SmallButton}" Margin="0,0,0,4"/>
+                                        <Button x:Name="SoftwareView" Content="View/Edit" Style="{StaticResource SmallButton}" Margin="0,0,0,4"/>
+                                        <Button x:Name="SoftwareDelete" Content="Delete" Style="{StaticResource SmallButton}"/>
                                     </StackPanel>
                                 </Grid>
                             </StackPanel>
-                        </GroupBox>
+                        </Border>
 
-                        <GroupBox Header="Import Options">
-                            <WrapPanel>
-                                <Button x:Name="SoftwareImportScan" Content="From Scan Data" Width="130"/>
-                                <Button x:Name="SoftwareImportPolicy" Content="From Policy XML" Width="130"/>
-                                <Button x:Name="SoftwareImportPublishers" Content="Common Publishers" Width="130"/>
-                                <Button x:Name="SoftwareImportCSV" Content="From CSV" Width="130"/>
-                            </WrapPanel>
-                        </GroupBox>
-
-                        <GroupBox Header="Generate Policy from List">
+                        <Border Style="{StaticResource Card}">
                             <StackPanel>
+                                <TextBlock Text="Import Options" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <WrapPanel>
+                                    <Button x:Name="SoftwareImportScan" Content="From Scan Data" Style="{StaticResource SecondaryButton}" Margin="0,0,8,8"/>
+                                    <Button x:Name="SoftwareImportPolicy" Content="From Policy XML" Style="{StaticResource SecondaryButton}" Margin="0,0,8,8"/>
+                                    <Button x:Name="SoftwareImportPublishers" Content="Common Publishers" Style="{StaticResource SecondaryButton}" Margin="0,0,8,8"/>
+                                    <Button x:Name="SoftwareImportCSV" Content="From CSV" Style="{StaticResource SecondaryButton}" Margin="0,0,0,8"/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Generate Policy from List" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <ComboBox x:Name="SoftwareGenerateList" Grid.Column="0"/>
-                                    <Button x:Name="SoftwareGeneratePolicy" Grid.Column="1" Content="Generate Policy" Width="120"/>
+                                    <Button x:Name="SoftwareGeneratePolicy" Grid.Column="1" Content="Generate Policy"
+                                            Style="{StaticResource PrimaryButton}" Margin="8,0,0,0"/>
                                 </Grid>
                             </StackPanel>
-                        </GroupBox>
+                        </Border>
                     </StackPanel>
                 </ScrollViewer>
-            </TabItem>
 
-            <!-- AD Management Tab -->
-            <TabItem Header="🏢 AD">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="20">
-                        <TextBlock Text="Active Directory Management" FontSize="18" FontWeight="Bold"
-                                   Foreground="{StaticResource TextBrush}" Margin="0,0,0,15"/>
-                        <TextBlock Text="Manage AD resources for AppLocker deployment."
-                                   Foreground="#888888" Margin="0,0,0,20"/>
+                <!-- AD Management Page -->
+                <ScrollViewer x:Name="PageAD" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                    <StackPanel Margin="32,24,32,32">
+                        <TextBlock Text="Active Directory" FontSize="24" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,8"/>
+                        <TextBlock Text="Manage AD resources for AppLocker deployment"
+                                   FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,24"/>
 
-                        <GroupBox Header="AD Setup">
+                        <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <Label Content="Domain Name:"/>
-                                <TextBox x:Name="ADDomainName"/>
-                                <Label Content="Parent OU (optional):"/>
-                                <TextBox x:Name="ADParentOU"/>
-                                <Label Content="Group Prefix:"/>
-                                <TextBox x:Name="ADGroupPrefix" Text="AppLocker"/>
-                                <Button x:Name="ADSetup" Content="Create AppLocker OUs and Groups"
-                                        HorizontalAlignment="Left" Margin="5,15,5,5"/>
+                                <TextBlock Text="AD Setup" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <TextBlock Text="Domain Name" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                                <TextBox x:Name="ADDomainName" Margin="0,0,0,12"/>
+                                <TextBlock Text="Parent OU (optional)" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                                <TextBox x:Name="ADParentOU" Margin="0,0,0,12"/>
+                                <TextBlock Text="Group Prefix" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                                <TextBox x:Name="ADGroupPrefix" Text="AppLocker" Margin="0,0,0,16"/>
+                                <Button x:Name="ADSetup" Content="Create AppLocker OUs and Groups" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left"/>
                             </StackPanel>
-                        </GroupBox>
+                        </Border>
 
-                        <GroupBox Header="Computer Export">
+                        <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <Label Content="Search Base (optional):"/>
-                                <TextBox x:Name="ADSearchBase"/>
-                                <Button x:Name="ADExportComputers" Content="Export Computer List"
-                                        HorizontalAlignment="Left" Margin="5,10,5,5"/>
+                                <TextBlock Text="Computer Export" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <TextBlock Text="Search Base (optional)" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                                <TextBox x:Name="ADSearchBase" Margin="0,0,0,16"/>
+                                <Button x:Name="ADExportComputers" Content="Export Computer List" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left"/>
                             </StackPanel>
-                        </GroupBox>
+                        </Border>
 
-                        <GroupBox Header="User Group Export/Import">
-                            <WrapPanel>
-                                <Button x:Name="ADExportUsers" Content="Export User Groups" Width="150"/>
-                                <Button x:Name="ADImportUsers" Content="Import Group Changes" Width="150"/>
-                            </WrapPanel>
-                        </GroupBox>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="User Group Management" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <WrapPanel>
+                                    <Button x:Name="ADExportUsers" Content="Export User Groups" Style="{StaticResource SecondaryButton}" Margin="0,0,8,0"/>
+                                    <Button x:Name="ADImportUsers" Content="Import Group Changes" Style="{StaticResource SecondaryButton}"/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </ScrollViewer>
-            </TabItem>
 
-            <!-- Diagnostics Tab -->
-            <TabItem Header="🔧 Diagnostics">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="20">
-                        <TextBlock Text="Diagnostic Tools" FontSize="18" FontWeight="Bold"
-                                   Foreground="{StaticResource TextBrush}" Margin="0,0,0,15"/>
-                        <TextBlock Text="Troubleshoot connectivity and scanning issues."
-                                   Foreground="#888888" Margin="0,0,0,20"/>
+                <!-- Diagnostics Page -->
+                <ScrollViewer x:Name="PageDiagnostics" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                    <StackPanel Margin="32,24,32,32">
+                        <TextBlock Text="Diagnostics" FontSize="24" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,8"/>
+                        <TextBlock Text="Troubleshoot connectivity and scanning issues"
+                                   FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,24"/>
 
-                        <GroupBox Header="Test Type">
-                            <ComboBox x:Name="DiagnosticType" SelectedIndex="0">
-                                <ComboBoxItem Content="Connectivity - Test ping, WinRM, sessions"/>
-                                <ComboBoxItem Content="JobSession - Test PowerShell job execution"/>
-                                <ComboBoxItem Content="JobFull - Full job test with tracing"/>
-                                <ComboBoxItem Content="SimpleScan - Scan without parallel jobs"/>
-                            </ComboBox>
-                        </GroupBox>
-
-                        <GroupBox Header="Target Computer">
+                        <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <RadioButton x:Name="DiagnosticSingle" Content="Single Computer"
-                                             Foreground="{StaticResource TextBrush}" IsChecked="True" Margin="5"/>
-                                <TextBox x:Name="DiagnosticComputerName"/>
-                                <RadioButton x:Name="DiagnosticMultiple" Content="Computer List"
-                                             Foreground="{StaticResource TextBrush}" Margin="5,15,5,5"/>
+                                <TextBlock Text="Test Type" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <ComboBox x:Name="DiagnosticType" SelectedIndex="0">
+                                    <ComboBoxItem Content="Connectivity - Test ping, WinRM, sessions"/>
+                                    <ComboBoxItem Content="JobSession - Test PowerShell job execution"/>
+                                    <ComboBoxItem Content="JobFull - Full job test with tracing"/>
+                                    <ComboBoxItem Content="SimpleScan - Scan without parallel jobs"/>
+                                </ComboBox>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Target Computer" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <RadioButton x:Name="DiagnosticSingle" Content="Single Computer" IsChecked="True" Margin="0,0,0,8"/>
+                                <TextBox x:Name="DiagnosticComputerName" Margin="0,0,0,12"/>
+                                <RadioButton x:Name="DiagnosticMultiple" Content="Computer List" Margin="0,0,0,8"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBox x:Name="DiagnosticComputerList" Grid.Column="0" IsEnabled="False"/>
-                                    <Button x:Name="BrowseDiagnosticList" Grid.Column="1" Content="Browse..."
-                                            Width="100" IsEnabled="False"/>
+                                    <Button x:Name="BrowseDiagnosticList" Grid.Column="1" Content="Browse"
+                                            Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" IsEnabled="False"/>
                                 </Grid>
                             </StackPanel>
-                        </GroupBox>
+                        </Border>
 
-                        <GroupBox Header="Credentials">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="0">
-                                    <Label Content="Username (DOMAIN\User):"/>
-                                    <TextBox x:Name="DiagnosticUsername"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="1">
-                                    <Label Content="Password:"/>
-                                    <PasswordBox x:Name="DiagnosticPassword" Background="#3C3C3C"
-                                                 Foreground="{StaticResource TextBrush}"
-                                                 BorderBrush="{StaticResource BorderBrush}"
-                                                 Padding="8,6" Margin="5"/>
-                                </StackPanel>
-                            </Grid>
-                        </GroupBox>
-
-                        <Button x:Name="StartDiagnostic" Content="Run Diagnostic" HorizontalAlignment="Left"
-                                FontSize="14" Padding="30,12" Margin="5,15,5,5"/>
-                    </StackPanel>
-                </ScrollViewer>
-            </TabItem>
-
-            <!-- WinRM Tab -->
-            <TabItem Header="🌐 WinRM">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="20">
-                        <TextBlock Text="WinRM GPO Management" FontSize="18" FontWeight="Bold"
-                                   Foreground="{StaticResource TextBrush}" Margin="0,0,0,15"/>
-                        <TextBlock Text="Deploy or remove WinRM Group Policy Objects for remote scanning."
-                                   Foreground="#888888" Margin="0,0,0,20"/>
-
-                        <GroupBox Header="WinRM GPO Actions">
+                        <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <Button x:Name="WinRMDeploy" Content="Deploy WinRM GPO"
-                                        HorizontalAlignment="Left" FontSize="14" Padding="30,12"/>
-                                <TextBlock Text="Creates a GPO to enable WinRM on domain computers"
-                                           Foreground="#888888" FontSize="11" Margin="5,5,0,15"/>
-
-                                <Button x:Name="WinRMRemove" Content="Remove WinRM GPO"
-                                        HorizontalAlignment="Left" FontSize="14" Padding="30,12"/>
-                                <TextBlock Text="Removes the WinRM GPO created by this tool"
-                                           Foreground="#888888" FontSize="11" Margin="5,5,0,5"/>
+                                <TextBlock Text="Credentials (Optional)" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="16"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="Username" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                                        <TextBox x:Name="DiagnosticUsername"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="Password" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                                        <PasswordBox x:Name="DiagnosticPassword"/>
+                                    </StackPanel>
+                                </Grid>
                             </StackPanel>
-                        </GroupBox>
+                        </Border>
+
+                        <Button x:Name="StartDiagnostic" Content="Run Diagnostic" Style="{StaticResource PrimaryButton}"
+                                HorizontalAlignment="Left" Margin="0,8,0,0"/>
                     </StackPanel>
                 </ScrollViewer>
-            </TabItem>
-        </TabControl>
 
-        <!-- Log Panel -->
-        <Border Grid.Row="2" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}"
-                BorderThickness="0,1,0,0">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
+                <!-- WinRM Page -->
+                <ScrollViewer x:Name="PageWinRM" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                    <StackPanel Margin="32,24,32,32">
+                        <TextBlock Text="WinRM Setup" FontSize="24" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,8"/>
+                        <TextBlock Text="Deploy or remove WinRM Group Policy Objects for remote scanning"
+                                   FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,24"/>
 
-                <Grid Grid.Row="0" Margin="10,5">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" Orientation="Horizontal">
-                        <TextBlock Text="Output Log" FontWeight="Bold" Foreground="{StaticResource TextBrush}"
-                                   VerticalAlignment="Center"/>
-                        <ProgressBar x:Name="ProgressBar" Width="200" Height="18" Margin="20,0,0,0"
-                                     Visibility="Collapsed"/>
-                        <TextBlock x:Name="ProgressText" Text="" Foreground="{StaticResource TextBrush}"
-                                   VerticalAlignment="Center" Margin="10,0,0,0"/>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Deploy WinRM GPO" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,8"/>
+                                <TextBlock Text="Creates a Group Policy Object to enable WinRM on domain computers"
+                                           FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,16"/>
+                                <Button x:Name="WinRMDeploy" Content="Deploy WinRM GPO" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Remove WinRM GPO" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,8"/>
+                                <TextBlock Text="Removes the WinRM GPO created by this tool"
+                                           FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,16"/>
+                                <Button x:Name="WinRMRemove" Content="Remove WinRM GPO" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
-                    <Button Grid.Column="1" x:Name="ClearLog" Content="Clear" Padding="10,4" Margin="5,0"/>
-                    <Button Grid.Column="2" x:Name="SaveLog" Content="Save Log" Padding="10,4" Margin="5,0"/>
-                </Grid>
-
-                <TextBox Grid.Row="1" x:Name="LogOutput"
-                         IsReadOnly="True"
-                         TextWrapping="Wrap"
-                         VerticalScrollBarVisibility="Auto"
-                         HorizontalScrollBarVisibility="Auto"
-                         FontFamily="Consolas"
-                         FontSize="11"
-                         Background="#1E1E1E"
-                         Foreground="{StaticResource TextBrush}"
-                         BorderThickness="0"
-                         Margin="10,0,10,10"/>
+                </ScrollViewer>
             </Grid>
-        </Border>
+
+            <!-- Log Panel (Collapsible) -->
+            <Border x:Name="LogPanel" Grid.Row="1" Background="{StaticResource BgSidebarBrush}"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0"
+                    Height="200">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0" Padding="16,8" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="Output Log" FontSize="12" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                <ProgressBar x:Name="ProgressBar" Width="150" Height="4" Margin="16,0,0,0"
+                                             Visibility="Collapsed" Background="#30363D" Foreground="{StaticResource AccentBlueBrush}"/>
+                                <TextBlock x:Name="ProgressText" Text="" FontSize="11"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           VerticalAlignment="Center" Margin="8,0,0,0"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <Button x:Name="ToggleLog" Content="Hide" Style="{StaticResource SmallButton}" Margin="0,0,8,0"/>
+                                <Button x:Name="ClearLog" Content="Clear" Style="{StaticResource SmallButton}" Margin="0,0,8,0"/>
+                                <Button x:Name="SaveLog" Content="Save" Style="{StaticResource SmallButton}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <TextBox x:Name="LogOutput" Grid.Row="1"
+                             IsReadOnly="True"
+                             TextWrapping="NoWrap"
+                             VerticalScrollBarVisibility="Auto"
+                             HorizontalScrollBarVisibility="Auto"
+                             FontFamily="Consolas"
+                             FontSize="11"
+                             Background="{StaticResource BgDarkBrush}"
+                             Foreground="{StaticResource TextSecondaryBrush}"
+                             BorderThickness="0"
+                             Padding="16,8"/>
+                </Grid>
+            </Border>
+        </Grid>
     </Grid>
 </Window>
 "@
@@ -852,7 +1113,7 @@ function Write-Log {
     })
 }
 
-# PSScriptAnalyzer thinks Set-Status changes system state, but it only updates UI elements
+# PSScriptAnalyzer: Set-Status only updates UI elements
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
 function Set-Status {
     param(
@@ -861,14 +1122,14 @@ function Set-Status {
         [string]$State = 'Ready'
     )
 
-    $controls['StatusIndicator'].Dispatcher.Invoke([Action]{
-        $controls['StatusIndicator'].Text = switch ($State) {
-            'Running' { "● Running..." }
-            'Success' { "● Complete" }
-            'Error'   { "● Error" }
-            default   { "● Ready" }
+    $controls['StatusText'].Dispatcher.Invoke([Action]{
+        $controls['StatusText'].Text = switch ($State) {
+            'Running' { "Running..." }
+            'Success' { "Complete" }
+            'Error'   { "Error" }
+            default   { "Ready" }
         }
-        $controls['StatusIndicator'].Foreground = switch ($State) {
+        $controls['StatusDot'].Fill = switch ($State) {
             'Running' { [System.Windows.Media.Brushes]::Orange }
             'Success' { [System.Windows.Media.Brushes]::LightGreen }
             'Error'   { [System.Windows.Media.Brushes]::Red }
@@ -948,82 +1209,6 @@ function Get-Credential-FromInputs {
     return New-Object System.Management.Automation.PSCredential($Username, $Password)
 }
 
-function Invoke-AsyncOperation {
-    param(
-        [scriptblock]$ScriptBlock,
-        [hashtable]$Parameters = @{},
-        [string]$OperationName = "Operation"
-    )
-
-    Set-Status -State 'Running'
-    Write-Log "Starting $OperationName..." -Level Info
-    Show-Progress -Percent 0 -Text "Initializing..."
-
-    $runspace = [runspacefactory]::CreateRunspace()
-    $runspace.ApartmentState = "STA"
-    $runspace.ThreadOptions = "ReuseThread"
-    $runspace.Open()
-
-    # Pass variables to runspace
-    $runspace.SessionStateProxy.SetVariable('AppRoot', $Script:AppRoot)
-    $runspace.SessionStateProxy.SetVariable('Parameters', $Parameters)
-
-    $powershell = [powershell]::Create()
-    $powershell.Runspace = $runspace
-    $powershell.AddScript($ScriptBlock) | Out-Null
-
-    $handle = $powershell.BeginInvoke()
-
-    # Poll for completion
-    $timer = New-Object System.Windows.Threading.DispatcherTimer
-    $timer.Interval = [TimeSpan]::FromMilliseconds(500)
-    $timer.Tag = @{
-        PowerShell = $powershell
-        Handle = $handle
-        Runspace = $runspace
-        OperationName = $OperationName
-    }
-
-    $timer.Add_Tick({
-        $tag = $this.Tag
-        if ($tag.Handle.IsCompleted) {
-            $this.Stop()
-
-            try {
-                $result = $tag.PowerShell.EndInvoke($tag.Handle)
-                if ($tag.PowerShell.Streams.Error.Count -gt 0) {
-                    foreach ($err in $tag.PowerShell.Streams.Error) {
-                        Write-Log $err.ToString() -Level Error
-                    }
-                    Set-Status -State 'Error'
-                } else {
-                    Write-Log "$($tag.OperationName) completed successfully." -Level Success
-                    Set-Status -State 'Success'
-                }
-
-                # Log output
-                foreach ($output in $result) {
-                    if ($output) {
-                        Write-Log $output.ToString() -Level Info
-                    }
-                }
-            }
-            catch {
-                Write-Log "Error: $_" -Level Error
-                Set-Status -State 'Error'
-            }
-            finally {
-                Hide-Progress
-                $tag.PowerShell.Dispose()
-                $tag.Runspace.Close()
-                $tag.Runspace.Dispose()
-            }
-        }
-    })
-
-    $timer.Start()
-}
-
 function Update-SoftwareLists {
     $controls['SoftwareListBox'].Items.Clear()
     $controls['SoftwareGenerateList'].Items.Clear()
@@ -1040,10 +1225,52 @@ function Update-SoftwareLists {
         $controls['SoftwareGenerateList'].SelectedIndex = 0
     }
 }
+
+# Navigation helper
+$Script:CurrentPage = "Scan"
+$Script:Pages = @("Scan", "Generate", "Merge", "Validate", "Events", "Compare", "Software", "AD", "Diagnostics", "WinRM")
+
+function Switch-Page {
+    param([string]$PageName)
+
+    # Hide all pages
+    foreach ($page in $Script:Pages) {
+        $controls["Page$page"].Visibility = 'Collapsed'
+    }
+
+    # Show selected page
+    $controls["Page$PageName"].Visibility = 'Visible'
+
+    # Update navigation button styles
+    foreach ($page in $Script:Pages) {
+        $navButton = $controls["Nav$page"]
+        if ($navButton) {
+            if ($page -eq $PageName) {
+                $navButton.Style = $window.FindResource("NavButtonActive")
+            } else {
+                $navButton.Style = $window.FindResource("NavButton")
+            }
+        }
+    }
+
+    $Script:CurrentPage = $PageName
+}
 #endregion
 
-#region Event Handlers
+#region Navigation Event Handlers
+$controls['NavScan'].Add_Click({ Switch-Page "Scan" })
+$controls['NavGenerate'].Add_Click({ Switch-Page "Generate" })
+$controls['NavMerge'].Add_Click({ Switch-Page "Merge" })
+$controls['NavValidate'].Add_Click({ Switch-Page "Validate" })
+$controls['NavEvents'].Add_Click({ Switch-Page "Events" })
+$controls['NavCompare'].Add_Click({ Switch-Page "Compare" })
+$controls['NavSoftware'].Add_Click({ Switch-Page "Software" })
+$controls['NavAD'].Add_Click({ Switch-Page "AD" })
+$controls['NavDiagnostics'].Add_Click({ Switch-Page "Diagnostics" })
+$controls['NavWinRM'].Add_Click({ Switch-Page "WinRM" })
+#endregion
 
+#region UI State Handlers
 # Build Guide toggle visibility
 $controls['GenerateBuildGuide'].Add_Checked({
     $controls['BuildGuideOptions'].Visibility = 'Visible'
@@ -1066,7 +1293,22 @@ $controls['DiagnosticMultiple'].Add_Checked({
     $controls['BrowseDiagnosticList'].IsEnabled = $true
 })
 
-# Browse buttons
+# Log panel toggle
+$Script:LogExpanded = $true
+$controls['ToggleLog'].Add_Click({
+    if ($Script:LogExpanded) {
+        $controls['LogPanel'].Height = 36
+        $controls['ToggleLog'].Content = "Show"
+        $Script:LogExpanded = $false
+    } else {
+        $controls['LogPanel'].Height = 200
+        $controls['ToggleLog'].Content = "Hide"
+        $Script:LogExpanded = $true
+    }
+})
+#endregion
+
+#region Browse Button Handlers
 $controls['BrowseScanComputerList'].Add_Click({
     $file = Get-OpenFileDialog -Title "Select Computer List" -Filter "Text/CSV Files (*.txt;*.csv)|*.txt;*.csv|All Files (*.*)|*.*"
     if ($file) { $controls['ScanComputerList'].Text = $file }
@@ -1126,8 +1368,9 @@ $controls['BrowseDiagnosticList'].Add_Click({
     $file = Get-OpenFileDialog -Title "Select Computer List" -Filter "Text/CSV Files (*.txt;*.csv)|*.txt;*.csv|All Files (*.*)|*.*"
     if ($file) { $controls['DiagnosticComputerList'].Text = $file }
 })
+#endregion
 
-# Merge policy list management
+#region Merge Policy List Management
 $controls['MergeAddFile'].Add_Click({
     $file = Get-OpenFileDialog -Title "Select Policy File" -Filter "XML Files (*.xml)|*.xml|All Files (*.*)|*.*"
     if ($file) {
@@ -1153,8 +1396,9 @@ $controls['MergeRemoveFile'].Add_Click({
 $controls['MergeClearList'].Add_Click({
     $controls['MergePolicyList'].Items.Clear()
 })
+#endregion
 
-# Log management
+#region Log Management
 $controls['ClearLog'].Add_Click({
     $controls['LogOutput'].Clear()
 })
@@ -1170,8 +1414,9 @@ $controls['SaveLog'].Add_Click({
         Write-Log "Log saved to: $($dialog.FileName)" -Level Success
     }
 })
+#endregion
 
-# Software list management
+#region Software List Management
 $controls['SoftwareRefresh'].Add_Click({
     Update-SoftwareLists
     Write-Log "Software lists refreshed." -Level Info
@@ -1184,7 +1429,7 @@ $controls['SoftwareNew'].Add_Click({
     $inputDialog.Height = 150
     $inputDialog.WindowStartupLocation = "CenterOwner"
     $inputDialog.Owner = $window
-    $inputDialog.Background = [System.Windows.Media.Brushes]::FromHtml("#252526")
+    $inputDialog.Background = [System.Windows.Media.BrushConverter]::new().ConvertFrom("#21262D")
 
     $panel = New-Object System.Windows.Controls.StackPanel
     $panel.Margin = 20
@@ -1249,6 +1494,7 @@ $controls['SoftwareDelete'].Add_Click({
         }
     }
 })
+#endregion
 
 #region Main Operations
 
@@ -1442,7 +1688,7 @@ $controls['StartValidate'].Add_Click({
             $results += "[!] Warning: $($wildcardPaths.Count) wildcard path conditions found"
         }
 
-        $controls['ValidationResultsGroup'].Visibility = 'Visible'
+        $controls['ValidationResultsCard'].Visibility = 'Visible'
         $controls['ValidationResults'].Text = $results -join "`r`n"
 
         Set-Status -State 'Success'
