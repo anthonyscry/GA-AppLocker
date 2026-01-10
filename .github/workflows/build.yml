@@ -355,11 +355,11 @@ jobs:
         Install-Module -Name Pester -MinimumVersion 5.0.0 -Force -Scope CurrentUser
         Get-Module -Name Pester -ListAvailable | Select-Object Name, Version
 
-    - name: Run Pester Tests
+    - name: Run Pester Tests with Code Coverage
       id: pester
       shell: pwsh
       run: |
-        Write-Host "=== Running Pester Tests ===" -ForegroundColor Cyan
+        Write-Host "=== Running Pester Tests with Code Coverage ===" -ForegroundColor Cyan
 
         # Find all test files
         $testFiles = Get-ChildItem -Path . -Filter "*.Tests.ps1" -Recurse
@@ -369,13 +369,21 @@ jobs:
           echo "TESTS_RUN=0" >> $env:GITHUB_OUTPUT
           echo "TESTS_PASSED=0" >> $env:GITHUB_OUTPUT
           echo "TESTS_FAILED=0" >> $env:GITHUB_OUTPUT
+          echo "COVERAGE=0" >> $env:GITHUB_OUTPUT
           exit 0
         }
 
         Write-Host "Found $($testFiles.Count) test file(s):"
         $testFiles | ForEach-Object { Write-Host "  - $($_.Name)" }
 
-        # Configure Pester
+        # Find PowerShell files to measure coverage (exclude test files and git)
+        $coverageFiles = Get-ChildItem -Path . -Include *.ps1, *.psm1 -Recurse -File |
+          Where-Object { $_.FullName -notmatch '\\Tests\\|\\\.git\\' }
+
+        Write-Host ""
+        Write-Host "Measuring coverage for $($coverageFiles.Count) file(s)"
+
+        # Configure Pester with code coverage
         $config = New-PesterConfiguration
         $config.Run.Path = $testFiles.FullName
         $config.Run.Exit = $false
@@ -384,8 +392,23 @@ jobs:
         $config.TestResult.OutputPath = './test-results.xml'
         $config.TestResult.OutputFormat = 'NUnitXml'
 
+        # Enable code coverage
+        $config.CodeCoverage.Enabled = $true
+        $config.CodeCoverage.Path = $coverageFiles.FullName
+        $config.CodeCoverage.OutputPath = './coverage.xml'
+        $config.CodeCoverage.OutputFormat = 'JaCoCo'
+
         # Run tests
         $results = Invoke-Pester -Configuration $config
+
+        # Calculate coverage percentage
+        $coveragePercent = 0
+        if ($results.CodeCoverage.CommandsAnalyzedCount -gt 0) {
+          $coveragePercent = [math]::Round(
+            ($results.CodeCoverage.CommandsExecutedCount / $results.CodeCoverage.CommandsAnalyzedCount) * 100,
+            2
+          )
+        }
 
         Write-Host ""
         Write-Host "=== Test Summary ===" -ForegroundColor Cyan
@@ -394,9 +417,16 @@ jobs:
         Write-Host "Failed: $($results.FailedCount)" -ForegroundColor $(if ($results.FailedCount -gt 0) { 'Red' } else { 'Green' })
         Write-Host "Skipped: $($results.SkippedCount)" -ForegroundColor Yellow
 
+        Write-Host ""
+        Write-Host "=== Code Coverage ===" -ForegroundColor Cyan
+        Write-Host "Commands Analyzed: $($results.CodeCoverage.CommandsAnalyzedCount)"
+        Write-Host "Commands Executed: $($results.CodeCoverage.CommandsExecutedCount)"
+        Write-Host "Coverage: $coveragePercent%" -ForegroundColor $(if ($coveragePercent -ge 50) { 'Green' } elseif ($coveragePercent -ge 25) { 'Yellow' } else { 'Red' })
+
         echo "TESTS_RUN=$($results.TotalCount)" >> $env:GITHUB_OUTPUT
         echo "TESTS_PASSED=$($results.PassedCount)" >> $env:GITHUB_OUTPUT
         echo "TESTS_FAILED=$($results.FailedCount)" >> $env:GITHUB_OUTPUT
+        echo "COVERAGE=$coveragePercent" >> $env:GITHUB_OUTPUT
 
         if ($results.FailedCount -gt 0) {
           Write-Host ""
@@ -409,7 +439,9 @@ jobs:
       if: always()
       with:
         name: test-results
-        path: ./test-results.xml
+        path: |
+          ./test-results.xml
+          ./coverage.xml
         retention-days: 14
 
     - name: Generate Test Summary
@@ -419,7 +451,11 @@ jobs:
         $passed = '${{ steps.pester.outputs.TESTS_PASSED }}' -as [int]
         $failed = '${{ steps.pester.outputs.TESTS_FAILED }}' -as [int]
         $total = '${{ steps.pester.outputs.TESTS_RUN }}' -as [int]
+        $coverage = '${{ steps.pester.outputs.COVERAGE }}' -as [decimal]
         $passRate = if ($total -gt 0) { [math]::Round(($passed / $total) * 100, 1) } else { 0 }
+
+        # Coverage badge color
+        $coverageEmoji = if ($coverage -ge 80) { '🟢' } elseif ($coverage -ge 50) { '🟡' } else { '🔴' }
 
         $summary = @"
         ## Pester Test Results
@@ -430,6 +466,7 @@ jobs:
         | ✅ Passed | $passed |
         | ❌ Failed | $failed |
         | Pass Rate | $passRate% |
+        | $coverageEmoji Code Coverage | $coverage% |
 
         $(if ($failed -gt 0) {
           "### ⚠️ Failed Tests`nCheck the test-results.xml artifact for details."
@@ -438,6 +475,9 @@ jobs:
         } else {
           "### ✅ All Tests Passed"
         })
+
+        ### Code Coverage Details
+        Coverage report available in the test-results artifact (coverage.xml in JaCoCo format).
 
         ---
         *Run ID: ${{ github.run_id }} | Commit: ${{ github.sha }}*
