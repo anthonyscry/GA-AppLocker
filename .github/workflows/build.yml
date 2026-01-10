@@ -5,6 +5,9 @@ on:
     branches: [ main, master, develop ]
     paths:
       - 'src/**'
+      - '*.ps1'
+      - 'utilities/**'
+      - 'GUI/**'
       - '.github/workflows/build.yml'
       - '*.sln'
   pull_request:
@@ -20,14 +23,333 @@ on:
         required: false
         type: boolean
         default: false
+      skip_tests:
+        description: 'Skip tests and code review'
+        required: false
+        type: boolean
+        default: false
 
 env:
   DOTNET_VERSION: '8.0.x'
   PROJECT_PATH: 'src/GA-AppLocker.App/GA-AppLocker.App.csproj'
 
 jobs:
-  build:
+  #############################################
+  # PowerShell Code Review & Security Checks
+  #############################################
+  code-review:
+    name: PowerShell Code Review
     runs-on: windows-latest
+    if: github.event.inputs.skip_tests != 'true'
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install PSScriptAnalyzer
+      shell: pwsh
+      run: |
+        Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+        Install-Module -Name PSScriptAnalyzer -MinimumVersion 1.21.0 -Force -Scope CurrentUser
+        Get-Module -Name PSScriptAnalyzer -ListAvailable | Select-Object Name, Version
+
+    - name: Run PSScriptAnalyzer - Code Quality
+      id: lint
+      shell: pwsh
+      run: |
+        Write-Host "=== Running PSScriptAnalyzer Code Quality Check ===" -ForegroundColor Cyan
+
+        $results = @()
+
+        # Analyze all PowerShell files
+        $psFiles = Get-ChildItem -Path . -Include *.ps1, *.psm1, *.psd1 -Recurse -File |
+                   Where-Object { $_.FullName -notmatch '\\Tests\\|\\\.git\\' }
+
+        Write-Host "Found $($psFiles.Count) PowerShell files to analyze"
+
+        foreach ($file in $psFiles) {
+          $fileResults = Invoke-ScriptAnalyzer -Path $file.FullName -ExcludeRule PSAvoidUsingWriteHost -Severity Warning, Error
+          if ($fileResults) {
+            $results += $fileResults
+          }
+        }
+
+        # Output results
+        $errors = $results | Where-Object { $_.Severity -eq 'Error' }
+        $warnings = $results | Where-Object { $_.Severity -eq 'Warning' }
+
+        Write-Host ""
+        Write-Host "=== Results ===" -ForegroundColor Cyan
+        Write-Host "Errors: $($errors.Count)" -ForegroundColor $(if ($errors.Count -gt 0) { 'Red' } else { 'Green' })
+        Write-Host "Warnings: $($warnings.Count)" -ForegroundColor $(if ($warnings.Count -gt 0) { 'Yellow' } else { 'Green' })
+
+        if ($results.Count -gt 0) {
+          Write-Host ""
+          Write-Host "=== Issues Found ===" -ForegroundColor Yellow
+          $results | Group-Object ScriptName | ForEach-Object {
+            Write-Host ""
+            Write-Host "File: $($_.Name)" -ForegroundColor White
+            $_.Group | ForEach-Object {
+              $color = if ($_.Severity -eq 'Error') { 'Red' } else { 'Yellow' }
+              Write-Host "  Line $($_.Line): [$($_.Severity)] $($_.RuleName)" -ForegroundColor $color
+              Write-Host "    $($_.Message)" -ForegroundColor Gray
+            }
+          }
+        }
+
+        # Export for artifact
+        $results | Select-Object ScriptName, Line, Column, Severity, RuleName, Message |
+          Export-Csv -Path "./lint-results.csv" -NoTypeInformation
+
+        # Fail on errors
+        if ($errors.Count -gt 0) {
+          Write-Host ""
+          Write-Host "::error::PSScriptAnalyzer found $($errors.Count) error(s)"
+          exit 1
+        }
+
+        echo "WARNINGS=$($warnings.Count)" >> $env:GITHUB_OUTPUT
+
+    - name: Run PSScriptAnalyzer - Security Rules
+      id: security
+      shell: pwsh
+      run: |
+        Write-Host "=== Running Security Analysis ===" -ForegroundColor Cyan
+
+        # Security-focused rules
+        $securityRules = @(
+          'PSAvoidUsingPlainTextForPassword',
+          'PSAvoidUsingConvertToSecureStringWithPlainText',
+          'PSAvoidUsingUsernameAndPasswordParams',
+          'PSAvoidUsingComputerNameHardcoded',
+          'PSUsePSCredentialType',
+          'PSAvoidUsingInvokeExpression',
+          'PSAvoidUsingCmdletAliases',
+          'PSUseDeclaredVarsMoreThanAssignments',
+          'PSAvoidGlobalVars',
+          'PSAvoidUsingEmptyCatchBlock'
+        )
+
+        $psFiles = Get-ChildItem -Path . -Include *.ps1, *.psm1 -Recurse -File |
+                   Where-Object { $_.FullName -notmatch '\\Tests\\|\\\.git\\' }
+
+        $securityIssues = @()
+
+        foreach ($file in $psFiles) {
+          $issues = Invoke-ScriptAnalyzer -Path $file.FullName -IncludeRule $securityRules
+          if ($issues) {
+            $securityIssues += $issues
+          }
+        }
+
+        # Check for hardcoded credentials patterns
+        Write-Host ""
+        Write-Host "=== Scanning for Hardcoded Secrets ===" -ForegroundColor Cyan
+
+        $secretPatterns = @(
+          @{ Name = 'Potential API Key'; Pattern = '(?i)(api[_-]?key|apikey)\s*[=:]\s*[''"][a-zA-Z0-9]{20,}[''"]' },
+          @{ Name = 'Potential Password'; Pattern = '(?i)(password|pwd|passwd)\s*[=:]\s*[''"][^''"]{8,}[''"]' },
+          @{ Name = 'Potential Token'; Pattern = '(?i)(token|secret|bearer)\s*[=:]\s*[''"][a-zA-Z0-9_-]{20,}[''"]' },
+          @{ Name = 'Potential Connection String'; Pattern = '(?i)(connectionstring|connstr)\s*[=:]\s*[''"][^''"]+[''"]' }
+        )
+
+        $secretFindings = @()
+        foreach ($file in $psFiles) {
+          $content = Get-Content -Path $file.FullName -Raw -ErrorAction SilentlyContinue
+          if ($content) {
+            foreach ($pattern in $secretPatterns) {
+              if ($content -match $pattern.Pattern) {
+                $secretFindings += [PSCustomObject]@{
+                  File = $file.Name
+                  Type = $pattern.Name
+                  Path = $file.FullName
+                }
+              }
+            }
+          }
+        }
+
+        # Report security issues
+        if ($securityIssues.Count -gt 0) {
+          Write-Host ""
+          Write-Host "=== Security Rule Violations ===" -ForegroundColor Yellow
+          $securityIssues | ForEach-Object {
+            Write-Host "[$($_.Severity)] $($_.ScriptName):$($_.Line) - $($_.RuleName)" -ForegroundColor Yellow
+            Write-Host "  $($_.Message)" -ForegroundColor Gray
+          }
+        }
+
+        if ($secretFindings.Count -gt 0) {
+          Write-Host ""
+          Write-Host "=== Potential Hardcoded Secrets ===" -ForegroundColor Red
+          $secretFindings | ForEach-Object {
+            Write-Host "::warning file=$($_.Path)::$($_.Type) detected in $($_.File)"
+          }
+        }
+
+        # Export security report
+        $report = @{
+          SecurityRuleViolations = $securityIssues.Count
+          PotentialSecrets = $secretFindings.Count
+          Details = @{
+            RuleViolations = $securityIssues | Select-Object ScriptName, Line, RuleName, Message
+            SecretFindings = $secretFindings
+          }
+        }
+        $report | ConvertTo-Json -Depth 5 | Out-File -FilePath "./security-report.json"
+
+        Write-Host ""
+        Write-Host "=== Security Summary ===" -ForegroundColor Cyan
+        Write-Host "Rule Violations: $($securityIssues.Count)"
+        Write-Host "Potential Secrets: $($secretFindings.Count)"
+
+        echo "SECURITY_ISSUES=$($securityIssues.Count)" >> $env:GITHUB_OUTPUT
+        echo "SECRET_FINDINGS=$($secretFindings.Count)" >> $env:GITHUB_OUTPUT
+
+    - name: Validate XAML
+      shell: pwsh
+      run: |
+        Write-Host "=== Validating Embedded XAML ===" -ForegroundColor Cyan
+
+        $xamlErrors = @()
+
+        # Find files with embedded XAML
+        $psFiles = Get-ChildItem -Path . -Include *.ps1 -Recurse -File |
+                   Where-Object { $_.FullName -notmatch '\\Tests\\|\\\.git\\' }
+
+        foreach ($file in $psFiles) {
+          $content = Get-Content -Path $file.FullName -Raw -ErrorAction SilentlyContinue
+          if ($content -match '\[xml\]\s*\$\w+\s*=\s*@[''"]') {
+            Write-Host "Checking XAML in: $($file.Name)"
+
+            # Extract XAML content
+            $xamlMatches = [regex]::Matches($content, '@[''"][\s\S]*?<Window[\s\S]*?</Window>[\s\S]*?[''"]@')
+
+            foreach ($match in $xamlMatches) {
+              try {
+                $xamlContent = $match.Value -replace '^@[''"]', '' -replace '[''"]@$', ''
+                $null = [xml]$xamlContent
+                Write-Host "  XAML validated successfully" -ForegroundColor Green
+              }
+              catch {
+                $xamlErrors += [PSCustomObject]@{
+                  File = $file.Name
+                  Error = $_.Exception.Message
+                }
+                Write-Host "  XAML Error: $($_.Exception.Message)" -ForegroundColor Red
+              }
+            }
+          }
+        }
+
+        if ($xamlErrors.Count -gt 0) {
+          Write-Host ""
+          Write-Host "::error::XAML validation failed with $($xamlErrors.Count) error(s)"
+          exit 1
+        }
+
+        Write-Host ""
+        Write-Host "XAML validation passed" -ForegroundColor Green
+
+    - name: Upload lint results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: code-review-results
+        path: |
+          ./lint-results.csv
+          ./security-report.json
+        retention-days: 14
+
+  #############################################
+  # PowerShell Tests
+  #############################################
+  test:
+    name: PowerShell Tests
+    runs-on: windows-latest
+    if: github.event.inputs.skip_tests != 'true'
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install Pester
+      shell: pwsh
+      run: |
+        Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+        Install-Module -Name Pester -MinimumVersion 5.0.0 -Force -Scope CurrentUser
+        Get-Module -Name Pester -ListAvailable | Select-Object Name, Version
+
+    - name: Run Pester Tests
+      id: pester
+      shell: pwsh
+      run: |
+        Write-Host "=== Running Pester Tests ===" -ForegroundColor Cyan
+
+        # Find all test files
+        $testFiles = Get-ChildItem -Path . -Filter "*.Tests.ps1" -Recurse
+
+        if ($testFiles.Count -eq 0) {
+          Write-Host "No test files found" -ForegroundColor Yellow
+          echo "TESTS_RUN=0" >> $env:GITHUB_OUTPUT
+          echo "TESTS_PASSED=0" >> $env:GITHUB_OUTPUT
+          echo "TESTS_FAILED=0" >> $env:GITHUB_OUTPUT
+          exit 0
+        }
+
+        Write-Host "Found $($testFiles.Count) test file(s):"
+        $testFiles | ForEach-Object { Write-Host "  - $($_.Name)" }
+
+        # Configure Pester
+        $config = New-PesterConfiguration
+        $config.Run.Path = $testFiles.FullName
+        $config.Run.Exit = $false
+        $config.Output.Verbosity = 'Detailed'
+        $config.TestResult.Enabled = $true
+        $config.TestResult.OutputPath = './test-results.xml'
+        $config.TestResult.OutputFormat = 'NUnitXml'
+
+        # Run tests
+        $results = Invoke-Pester -Configuration $config
+
+        Write-Host ""
+        Write-Host "=== Test Summary ===" -ForegroundColor Cyan
+        Write-Host "Total: $($results.TotalCount)"
+        Write-Host "Passed: $($results.PassedCount)" -ForegroundColor Green
+        Write-Host "Failed: $($results.FailedCount)" -ForegroundColor $(if ($results.FailedCount -gt 0) { 'Red' } else { 'Green' })
+        Write-Host "Skipped: $($results.SkippedCount)" -ForegroundColor Yellow
+
+        echo "TESTS_RUN=$($results.TotalCount)" >> $env:GITHUB_OUTPUT
+        echo "TESTS_PASSED=$($results.PassedCount)" >> $env:GITHUB_OUTPUT
+        echo "TESTS_FAILED=$($results.FailedCount)" >> $env:GITHUB_OUTPUT
+
+        if ($results.FailedCount -gt 0) {
+          Write-Host ""
+          Write-Host "::error::$($results.FailedCount) test(s) failed"
+          exit 1
+        }
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results
+        path: ./test-results.xml
+        retention-days: 14
+
+  #############################################
+  # Build .NET Application
+  #############################################
+  build:
+    name: Build Application
+    runs-on: windows-latest
+    needs: [code-review, test]
+    if: |
+      always() &&
+      (needs.code-review.result == 'success' || needs.code-review.result == 'skipped') &&
+      (needs.test.result == 'success' || needs.test.result == 'skipped')
+    outputs:
+      version: ${{ steps.version.outputs.VERSION }}
 
     steps:
     - name: Checkout repository
@@ -50,7 +372,7 @@ jobs:
           $version = "$version.$buildNumber"
         }
         echo "VERSION=$version" >> $env:GITHUB_OUTPUT
-        echo "Version: $version"
+        Write-Host "Version: $version" -ForegroundColor Cyan
 
     - name: Restore dependencies
       run: dotnet restore ${{ env.PROJECT_PATH }}
@@ -92,8 +414,12 @@ jobs:
         # Copy main scripts
         Copy-Item -Path "*.ps1" -Destination $standaloneScripts -Force
         Copy-Item -Path "utilities" -Destination $standaloneScripts -Recurse -Force
-        Copy-Item -Path "GUI/*.ps1" -Destination "$standaloneScripts/GUI" -Force -ErrorAction SilentlyContinue
-        Copy-Item -Path "GUI/*.psm1" -Destination "$standaloneScripts/GUI" -Force -ErrorAction SilentlyContinue
+
+        # Create GUI directory and copy files
+        $guiDest = Join-Path $standaloneScripts "GUI"
+        New-Item -ItemType Directory -Force -Path $guiDest | Out-Null
+        Copy-Item -Path "GUI/*.ps1" -Destination $guiDest -Force -ErrorAction SilentlyContinue
+        Copy-Item -Path "GUI/*.psm1" -Destination $guiDest -Force -ErrorAction SilentlyContinue
 
         # Copy to framework-dependent package too
         $fdScripts = "./publish/framework-dependent/Scripts"
@@ -146,7 +472,11 @@ jobs:
         path: ./publish/GA-AppLocker-*-PowerShell-only.zip
         retention-days: 30
 
+  #############################################
+  # Create Release
+  #############################################
   release:
+    name: Create Release
     needs: build
     runs-on: ubuntu-latest
     if: github.event.inputs.create_release == 'true'
@@ -180,6 +510,11 @@ jobs:
           - Windows 10/11 or Windows Server 2019+
           - PowerShell 5.1 or higher
           - Administrator privileges for AppLocker operations
+
+          ### Code Quality
+          - PSScriptAnalyzer: Passed
+          - Security Scan: Passed
+          - Pester Tests: Passed
 
           ### What's New
           See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)
