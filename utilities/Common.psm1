@@ -767,6 +767,133 @@ function Clear-OldLogs {
 
 #endregion
 
+#region Remote Operation Helpers
+
+<#
+.SYNOPSIS
+    Creates a timestamped output folder for scan or event collection operations.
+
+.DESCRIPTION
+    Creates a subfolder with a standardized timestamp format and returns
+    the resolved absolute path. Useful for job-based operations where
+    relative paths may not work.
+
+.PARAMETER BasePath
+    The parent directory where the timestamped folder will be created.
+
+.PARAMETER Prefix
+    Prefix for the folder name (e.g., "Scan", "Events").
+
+.OUTPUTS
+    String containing the absolute path to the created folder.
+
+.EXAMPLE
+    $outputRoot = New-TimestampedOutputFolder -BasePath ".\Scans" -Prefix "Scan"
+    # Creates: .\Scans\Scan-20260110-143000 and returns absolute path
+#>
+function New-TimestampedOutputFolder {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$BasePath,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Prefix
+    )
+
+    $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
+    $folderName = "$Prefix-$timestamp"
+    $outputPath = Join-Path $BasePath $folderName
+
+    New-Item -ItemType Directory -Path $outputPath -Force | Out-Null
+
+    # Return absolute path for use in jobs
+    return (Resolve-Path $outputPath).Path
+}
+
+<#
+.SYNOPSIS
+    Parses AppLocker event data from XML format.
+
+.DESCRIPTION
+    Extracts structured data from an AppLocker event's XML representation,
+    including file path, hash, publisher info, and FQBN parsing.
+
+.PARAMETER EventXml
+    The XML representation of the event (from $event.ToXml()).
+
+.PARAMETER EventType
+    The type of event: "Blocked" or "Allowed".
+
+.OUTPUTS
+    PSCustomObject with parsed event data.
+
+.EXAMPLE
+    $xml = [xml]$event.ToXml()
+    $parsed = ConvertFrom-AppLockerEventXml -EventXml $xml -EventId $event.Id -EventType "Blocked"
+#>
+function ConvertFrom-AppLockerEventXml {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [xml]$EventXml,
+
+        [Parameter(Mandatory = $true)]
+        [int]$EventId,
+
+        [Parameter(Mandatory = $true)]
+        [datetime]$TimeCreated,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateSet("Blocked", "Allowed")]
+        [string]$EventType,
+
+        [string]$LogName = ""
+    )
+
+    $eventData = $EventXml.Event.EventData.Data
+
+    # Extract fields from event data
+    $filePath = ($eventData | Where-Object { $_.Name -eq 'FilePath' }).'#text'
+    $fileHash = ($eventData | Where-Object { $_.Name -eq 'FileHash' }).'#text'
+    $fqbn = ($eventData | Where-Object { $_.Name -eq 'Fqbn' }).'#text'
+    $targetUser = ($eventData | Where-Object { $_.Name -eq 'TargetUser' }).'#text'
+    $policyName = ($eventData | Where-Object { $_.Name -eq 'PolicyName' }).'#text'
+
+    # Parse publisher info from FQBN (format: O=Publisher, L=..., S=..., C=...\ProductName\Version\FileName)
+    $publisher = ""
+    $productName = ""
+    $fileVersion = ""
+    if ($fqbn -and $fqbn -ne "-") {
+        if ($fqbn -match "^O=([^\\,]+)") {
+            $publisher = $matches[1].Trim('"')
+        }
+        $parts = $fqbn -split '\\'
+        if ($parts.Count -ge 3) {
+            $productName = $parts[-3]
+            $fileVersion = $parts[-2]
+        }
+    }
+
+    return [PSCustomObject]@{
+        TimeCreated = $TimeCreated
+        EventId     = $EventId
+        EventType   = $EventType
+        FilePath    = $filePath
+        FileName    = if ($filePath) { Split-Path $filePath -Leaf } else { "" }
+        FileHash    = $fileHash
+        Publisher   = $publisher
+        ProductName = $productName
+        FileVersion = $fileVersion
+        FQBN        = $fqbn
+        TargetUser  = $targetUser
+        PolicyName  = $policyName
+        LogName     = $LogName
+    }
+}
+
+#endregion
+
 #region Console Output Functions
 
 <#
@@ -1491,6 +1618,10 @@ Export-ModuleMember -Function @(
     # Console Output
     'Write-Status',
     'Write-Banner',
+
+    # Remote Operation Helpers
+    'New-TimestampedOutputFolder',
+    'ConvertFrom-AppLockerEventXml',
 
     # File Utilities
     'Confirm-Directory',

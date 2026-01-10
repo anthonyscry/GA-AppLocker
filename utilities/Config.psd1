@@ -181,6 +181,13 @@
     ScanTimeout            = 300          # Seconds per computer
 
     # --------------------------------------------------------------------------
+    # Event Collection Defaults
+    # --------------------------------------------------------------------------
+
+    MaxEventsPerComputer   = 5000         # Limit events collected per computer
+    DefaultEventDaysBack   = 14           # Default days of events to collect (0 = all)
+
+    # --------------------------------------------------------------------------
     # Build Guide Phase Descriptions
     # --------------------------------------------------------------------------
     # Reference information for the phased deployment approach.
