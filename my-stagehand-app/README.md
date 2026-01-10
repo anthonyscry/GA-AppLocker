@@ -1,35 +1,104 @@
-# 🤘 Welcome to Stagehand!
+# Stagehand Browser Automation for GA-AppLocker
 
-Hey! This is a project built with [Stagehand](https://github.com/browserbase/stagehand).
+Autonomous browser automation for security research and AppLocker workflows.
 
-You can build your own web agent using: `npx create-browser-app`!
-
-## Setting the Stage
-
-Stagehand is an SDK for automating browsers. It's built on top of [Playwright](https://playwright.dev/) and provides a higher-level API for better debugging and AI fail-safes.
-
-## Curtain Call
-
-Get ready for a show-stopping development experience. Just run:
+## Setup
 
 ```bash
-npm start
+cd my-stagehand-app
+npm install
+cp .env.example .env
+# Add your API keys to .env
 ```
 
-## What's Next?
+### Required API Keys
 
-### Add your API keys
+Add to `.env`:
+```
+BROWSERBASE_PROJECT_ID=your_project_id
+BROWSERBASE_API_KEY=your_api_key
+ANTHROPIC_API_KEY=your_claude_key   # Recommended
+```
 
-Required API keys/environment variables are in the `.env.example` file. Copy it to `.env` and add your API keys.
+Get Browserbase keys at: https://browserbase.com
+
+## Usage
+
+### Pre-built Tasks
+
+Run specialized tasks with zero configuration:
 
 ```bash
-cp .env.example .env && nano .env # Add your API keys to .env
+# Research AppLocker documentation
+npm start applocker-docs
+
+# Research LOLBins (Living Off The Land Binaries)
+npm start lolbins
+
+# Look up software publisher information
+npm start publisher-lookup "Verify 7-Zip publisher certificate"
+
+# Check security advisories
+npm start security-advisories "CVE-2024-1234"
 ```
 
-### Custom .cursorrules
+### Custom Agent Mode
 
-We have custom .cursorrules for this project. It'll help quite a bit with writing Stagehand easily.
+Run any browser task with natural language:
 
-### Run on Local
+```bash
+# Custom objective with custom URL
+npm start agent "Find all PowerShell security modules" "https://github.com"
 
-To run on a local browser, add your API keys to .env and change `env: "LOCAL"` to `env: "BROWSERBASE"` in [stagehand.config.ts](stagehand.config.ts).
+# Interactive mode for ad-hoc tasks
+npm start interactive "Search for Windows Defender exclusion best practices"
+```
+
+### Examples for AppLocker Workflows
+
+```bash
+# Research software before adding to whitelist
+npm start publisher-lookup "Adobe Acrobat Reader official publisher"
+
+# Find AppLocker GPO configuration guides
+npm start agent "Find step-by-step AppLocker GPO deployment guide" "https://learn.microsoft.com"
+
+# Research blocked application
+npm start agent "Find information about mshta.exe security risks"
+
+# Check if software has known vulnerabilities
+npm start security-advisories "7-Zip vulnerabilities 2024"
+```
+
+## Available Tasks
+
+| Task | Description |
+|------|-------------|
+| `applocker-docs` | Research Microsoft AppLocker documentation |
+| `publisher-lookup` | Look up software publisher/vendor information |
+| `security-advisories` | Check for security advisories and CVEs |
+| `lolbins` | Research Living Off The Land Binaries |
+| `agent` | Run autonomous agent with custom objective |
+| `interactive` | Interactive mode for ad-hoc tasks |
+
+## Output
+
+Results are saved to `./results/` as JSON files with:
+- Task name and timestamp
+- Objective executed
+- Extracted findings
+- URLs visited
+
+## How It Works
+
+1. **Browserbase** provides cloud browser infrastructure
+2. **Stagehand** controls the browser with AI
+3. **Claude/GPT** interprets objectives and navigates autonomously
+4. **Results** are extracted and saved locally
+
+The agent can:
+- Navigate websites and click elements
+- Fill forms and submit searches
+- Extract structured data from pages
+- Handle multi-step workflows
+- Overcome obstacles and try alternatives
