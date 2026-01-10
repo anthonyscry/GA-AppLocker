@@ -239,12 +239,17 @@ if (Test-LoggingEnabled) {
     Write-Log "Loaded $($computers.Count) computers from list" -Level Info
 }
 
-Write-Host "=== AppLocker Event Collection ===" -ForegroundColor Cyan
-Write-Host "Collecting events from $($computers.Count) computers..." -ForegroundColor Cyan
-Write-Host "Results will be saved to: $outputRoot" -ForegroundColor Cyan
+# Display banner
+if (Get-Command Write-Banner -ErrorAction SilentlyContinue) {
+    Write-Banner -Title "GA-AppLocker Event Collection" -Subtitle "Collecting events from $($computers.Count) computers"
+} else {
+    Write-Host "=== GA-AppLocker Event Collection ===" -ForegroundColor Cyan
+    Write-Host "Collecting events from $($computers.Count) computers..." -ForegroundColor Cyan
+    Write-Host ""
+}
+Write-Host "Results will be saved to: $outputRoot" -ForegroundColor Gray
 Write-Host "Days back: $(if ($DaysBack -eq 0) { 'All available' } else { $DaysBack })" -ForegroundColor Gray
 Write-Host "Event types: $(if ($BlockedOnly) { 'Blocked only' } elseif ($IncludeAllowedEvents) { 'All audit events' } else { 'Blocked only (default)' })" -ForegroundColor Gray
-Write-Host ""
 
 # Results collection
 $results = [System.Collections.Generic.List[PSCustomObject]]::new()

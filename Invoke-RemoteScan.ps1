@@ -127,6 +127,7 @@ param(
         }
         $true
     })]
+    [Alias("OutputPath")]
     [string]$SharePath,
 
     [Parameter(ParameterSetName='Standard',
@@ -246,10 +247,15 @@ if (Test-LoggingEnabled) {
     }
 }
 
-Write-Host "=== AaronLocker Remote Scanner ===" -ForegroundColor Cyan
-Write-Host "Scanning $($computers.Count) computers..." -ForegroundColor Cyan
-Write-Host "Results will be saved to: $outputRoot" -ForegroundColor Cyan
-Write-Host ""
+# Display banner
+if (Get-Command Write-Banner -ErrorAction SilentlyContinue) {
+    Write-Banner -Title "GA-AppLocker Remote Scanner" -Subtitle "Scanning $($computers.Count) computers"
+} else {
+    Write-Host "=== GA-AppLocker Remote Scanner ===" -ForegroundColor Cyan
+    Write-Host "Scanning $($computers.Count) computers..." -ForegroundColor Cyan
+    Write-Host ""
+}
+Write-Host "Results will be saved to: $outputRoot" -ForegroundColor Gray
 
 # Results collection
 $results = [System.Collections.Generic.List[PSCustomObject]]::new()
