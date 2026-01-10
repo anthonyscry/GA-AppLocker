@@ -31,6 +31,9 @@ function Close-AsyncPool {
     .SYNOPSIS
         Close and dispose of the runspace pool
     #>
+    # Clear active jobs first
+    $Script:ActiveJobs.Clear()
+
     if ($null -ne $Script:RunspacePool) {
         $Script:RunspacePool.Close()
         $Script:RunspacePool.Dispose()
@@ -51,6 +54,7 @@ function Start-AsyncOperation {
     .PARAMETER OnProgress
         Script block to execute for progress updates
     #>
+    [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory)]
         [scriptblock]$ScriptBlock,
@@ -214,6 +218,7 @@ function Stop-AsyncOperation {
     .SYNOPSIS
         Stop a running async operation
     #>
+    [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory)]
         [string]$JobId
@@ -241,7 +246,8 @@ function Get-AllAsyncOperations {
     .SYNOPSIS
         Get all active async operations
     #>
-    $Script:ActiveJobs.Keys | ForEach-Object {
+    # Use array subexpression to ensure we always return an array (even if empty)
+    @($Script:ActiveJobs.Keys | ForEach-Object {
         $job = $Script:ActiveJobs[$_]
         [PSCustomObject]@{
             Id = $_
@@ -250,7 +256,7 @@ function Get-AllAsyncOperations {
             IsCompleted = $job.Handle.IsCompleted
             Duration = (Get-Date) - $job.StartTime
         }
-    }
+    })
 }
 
 # Export functions

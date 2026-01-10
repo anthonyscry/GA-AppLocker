@@ -31,7 +31,13 @@ Describe "Initialize-AsyncPool" {
 
 Describe "Start-AsyncOperation" {
     BeforeAll {
+        # Ensure clean state
+        Close-AsyncPool
         Initialize-AsyncPool -MaxThreads 2
+    }
+
+    AfterAll {
+        Close-AsyncPool
     }
 
     It "Should return a job ID" {
@@ -64,7 +70,13 @@ Describe "Start-AsyncOperation" {
 
 Describe "Get-AsyncOperationStatus" {
     BeforeAll {
+        # Ensure clean state
+        Close-AsyncPool
         Initialize-AsyncPool -MaxThreads 2
+    }
+
+    AfterAll {
+        Close-AsyncPool
     }
 
     It "Should return NotFound for invalid job ID" {
@@ -74,9 +86,12 @@ Describe "Get-AsyncOperationStatus" {
 
     It "Should return Running or Completed for valid job" {
         $jobId = Start-AsyncOperation -ScriptBlock {
-            Start-Sleep -Milliseconds 100
+            Start-Sleep -Milliseconds 500
             return "done"
         } -OperationName "StatusTest"
+
+        # Verify job was created
+        $jobId | Should -Not -BeNullOrEmpty
 
         $status = Get-AsyncOperationStatus -JobId $jobId
         $status.Status | Should -BeIn @('Running', 'Completed')
@@ -85,7 +100,13 @@ Describe "Get-AsyncOperationStatus" {
 
 Describe "Wait-AsyncOperation" {
     BeforeAll {
+        # Ensure clean state
+        Close-AsyncPool
         Initialize-AsyncPool -MaxThreads 2
+    }
+
+    AfterAll {
+        Close-AsyncPool
     }
 
     It "Should wait for operation to complete" {
@@ -107,7 +128,13 @@ Describe "Wait-AsyncOperation" {
 
 Describe "Stop-AsyncOperation" {
     BeforeAll {
+        # Ensure clean state
+        Close-AsyncPool
         Initialize-AsyncPool -MaxThreads 2
+    }
+
+    AfterAll {
+        Close-AsyncPool
     }
 
     It "Should return false for invalid job ID" {
@@ -129,16 +156,27 @@ Describe "Stop-AsyncOperation" {
 
 Describe "Get-AllAsyncOperations" {
     BeforeAll {
+        # Ensure clean state
+        Close-AsyncPool
         Initialize-AsyncPool -MaxThreads 2
     }
 
+    AfterAll {
+        Close-AsyncPool
+    }
+
     It "Should return array of operations" {
-        # Start a couple of operations
-        $null = Start-AsyncOperation -ScriptBlock { Start-Sleep -Seconds 5 } -OperationName "Op1"
-        $null = Start-AsyncOperation -ScriptBlock { Start-Sleep -Seconds 5 } -OperationName "Op2"
+        # Start a couple of operations (store job IDs to verify they were created)
+        $jobId1 = Start-AsyncOperation -ScriptBlock { Start-Sleep -Seconds 5 } -OperationName "Op1"
+        $jobId2 = Start-AsyncOperation -ScriptBlock { Start-Sleep -Seconds 5 } -OperationName "Op2"
+
+        # Verify jobs were created
+        $jobId1 | Should -Not -BeNullOrEmpty
+        $jobId2 | Should -Not -BeNullOrEmpty
 
         $ops = Get-AllAsyncOperations
         $ops | Should -Not -BeNullOrEmpty
+        $ops.Count | Should -BeGreaterOrEqual 2
     }
 }
 

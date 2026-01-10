@@ -285,7 +285,7 @@ function Invoke-JobSessionTest {
 
     # MINIMAL job - just try to create a session
     $job = Start-Job -Name "Test-Job" -ArgumentList $Computer, $credUsername, $credPassword -ScriptBlock {
-        param($Comp, $CredUsername, $CredPassword)
+        param($Comp, $CredUser, $CredSecure)
 
         # Clear defaults inside job too
         $PSDefaultParameterValues.Clear()
@@ -299,7 +299,7 @@ function Invoke-JobSessionTest {
 
         try {
             $result.Step = "Creating credential"
-            $cred = New-Object System.Management.Automation.PSCredential($CredUsername, $CredPassword)
+            $cred = New-Object System.Management.Automation.PSCredential($CredUser, $CredSecure)
 
             $result.Step = "Creating session"
             $session = New-PSSession -ComputerName $Comp -Credential $cred -Authentication Default -ErrorAction Stop
@@ -384,7 +384,7 @@ function Invoke-JobFullTest {
     Write-Host "Starting job with full scriptblock..." -ForegroundColor Yellow
 
     $job = Start-Job -Name "FullTest" -ArgumentList $Computer, $credUsername, $credPassword, $OutPath -ScriptBlock {
-        param($Comp, $CredUsername, $CredPassword, $OutputRoot)
+        param($Comp, $CredUser, $CredSecure, $OutputRoot)
 
         $PSDefaultParameterValues.Clear()
 
@@ -394,7 +394,7 @@ function Invoke-JobFullTest {
         try {
             # Section 1: Credential
             $log += "Section 1: Creating credential..."
-            $Cred = New-Object System.Management.Automation.PSCredential($CredUsername, $CredPassword)
+            $Cred = New-Object System.Management.Automation.PSCredential($CredUser, $CredSecure)
             $log += "  OK"
 
             # Section 2: Session
