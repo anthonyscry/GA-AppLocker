@@ -47,6 +47,12 @@
 #>
 
 [CmdletBinding()]
+# Suppress PSReviewUnusedParameter - these parameters are used in nested functions
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', 'Target', Justification = 'Used in Invoke-Build function')]
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', 'Version', Justification = 'Used in Get-ProjectVersion function')]
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', 'SkipTests', Justification = 'Used in Test-Prerequisite and Invoke-Build functions')]
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', 'SkipValidation', Justification = 'Used in Test-Prerequisite and Invoke-Build functions')]
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', 'CI', Justification = 'Used in Invoke-Build, Invoke-Test, and Invoke-Validate functions')]
 param(
     [ValidateSet('All', 'Validate', 'Test', 'Package', 'Clean')]
     [string]$Target = 'All',
@@ -132,7 +138,7 @@ function Get-ProjectVersion {
     return (Get-Date -Format 'yyyy.MM.dd')
 }
 
-function Test-Prerequisites {
+function Test-Prerequisite {
     Write-BuildStep 'Checking prerequisites...'
 
     $prereqMet = $true
@@ -504,7 +510,7 @@ function Invoke-Build {
     Write-Host ''
 
     # Check prerequisites
-    if (-not (Test-Prerequisites)) {
+    if (-not (Test-Prerequisite)) {
         if ($CI) {
             Write-BuildError 'Prerequisites not met, aborting in CI mode'
             exit 1
