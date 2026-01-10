@@ -13,6 +13,17 @@
           }
         ]
       }
+    ],
+    "Notification": [
+      {
+        "matcher": ".*input.*|.*keyboard.*|.*attention.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/notify-input.ps1 -Title 'Claude Needs Input' -Message 'Check browser automation' -Urgent"
+          }
+        ]
+      }
     ]
   }
 }

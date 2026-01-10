@@ -3,14 +3,23 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "start": "tsx index.ts"
+    "start": "tsx index.ts",
+    "orchestrate": "tsx orchestrator.ts",
+    "test:auto": "tsx autonomous-runner.ts",
+    "mcp-test": "tsx mcp-integration.ts"
   },
   "dependencies": {
     "@browserbasehq/stagehand": "latest",
-    "dotenv": "^16.4.7"
+    "@playwright/test": "^1.40.0",
+    "playwright": "^1.40.0",
+    "dotenv": "^16.4.7",
+    "chalk": "^5.3.0",
+    "node-notifier": "^10.0.1"
   },
   "devDependencies": {
     "tsx": "^4.19.2",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0",
+    "@types/node-notifier": "^8.0.5"
   }
 }
