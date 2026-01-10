@@ -45,17 +45,36 @@ if ($Remove) {
 
     if ($winrmGPOs.Count -gt 0) {
         Write-Host "`nFound WinRM-related GPOs:" -ForegroundColor Yellow
+        $gpoArray = @($winrmGPOs)  # Ensure it's an array
         $i = 1
-        foreach ($gpo in $winrmGPOs) {
-            Write-Host "  [$i] $($gpo.DisplayName) (Created: $($gpo.CreationTime))" -ForegroundColor White
+        foreach ($g in $gpoArray) {
+            Write-Host "  [$i] $($g.DisplayName) (Created: $($g.CreationTime))" -ForegroundColor White
             $i++
         }
         Write-Host ""
+    } else {
+        $gpoArray = @()
     }
 
-    # Get GPO name to remove
-    $gpoName = Read-Host "GPO Name to remove (default: $defaultGPOName)"
-    if ([string]::IsNullOrWhiteSpace($gpoName)) { $gpoName = $defaultGPOName }
+    # Get GPO to remove - accept number or name
+    $gpoInput = Read-Host "Enter number or GPO name (default: $defaultGPOName)"
+    if ([string]::IsNullOrWhiteSpace($gpoInput)) {
+        $gpoName = $defaultGPOName
+    }
+    elseif ($gpoInput -match "^\d+$" -and $gpoArray.Count -gt 0) {
+        # User entered a number - look up from the list
+        $idx = [int]$gpoInput - 1
+        if ($idx -ge 0 -and $idx -lt $gpoArray.Count) {
+            $gpoName = $gpoArray[$idx].DisplayName
+        } else {
+            Write-Host "`n[-] Invalid selection. Please enter a number between 1 and $($gpoArray.Count)." -ForegroundColor Red
+            exit 1
+        }
+    }
+    else {
+        # User entered a name
+        $gpoName = $gpoInput
+    }
 
     # Check if GPO exists
     $gpo = Get-GPO -Name $gpoName -ErrorAction SilentlyContinue
