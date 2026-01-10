@@ -9,18 +9,18 @@
         "hooks": [
           {
             "type": "command",
-            "command": "pwsh -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/post-edit-lint.ps1"
+            "command": "pwsh -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/post-edit-lint.ps1 2>/dev/null || true"
           }
         ]
       }
     ],
     "Notification": [
       {
-        "matcher": ".*input.*|.*keyboard.*|.*attention.*",
+        "matcher": ".*input.*|.*keyboard.*|.*attention.*|.*captcha.*|.*blocked.*",
         "hooks": [
           {
             "type": "command",
-            "command": "pwsh -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/notify-input.ps1 -Title 'Claude Needs Input' -Message 'Check browser automation' -Urgent"
+            "command": "bash .claude/hooks/shout-alert.sh 'Claude Needs Input' 'Check browser automation' true"
           }
         ]
       }
