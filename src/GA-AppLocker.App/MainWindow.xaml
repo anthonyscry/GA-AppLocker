@@ -1,0 +1,354 @@
+<Window x:Class="GAAppLocker.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="GA-AppLocker Toolkit"
+        Height="750"
+        Width="1100"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource BackgroundBrush}">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="200"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Background="{StaticResource PanelBrush}" Padding="15">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="GA-AppLocker Toolkit" FontSize="24" FontWeight="Bold"
+                               Foreground="{StaticResource PrimaryBrush}"/>
+                    <TextBlock Text="Windows AppLocker Policy Management" FontSize="12"
+                               Foreground="{StaticResource TextBrush}" Margin="0,5,0,0"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock x:Name="StatusIndicator" Text="● Ready" Foreground="{StaticResource SuccessBrush}"
+                               FontSize="14" VerticalAlignment="Center" Margin="10,0"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Main Content -->
+        <TabControl Grid.Row="1" x:Name="MainTabs" Background="{StaticResource BackgroundBrush}"
+                    BorderBrush="{StaticResource BorderBrush}" Margin="10,10,10,0">
+
+            <!-- Scan Tab -->
+            <TabItem Header="Scan">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="20">
+                        <GroupBox Header="Remote Scan Configuration">
+                            <StackPanel>
+                                <Label Content="Computer List (one per line or file path):"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="ScanComputerList" Grid.Column="0" Height="100"
+                                             AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
+                                             Text="localhost"/>
+                                    <Button x:Name="BrowseComputerList" Grid.Column="1" Content="Browse..."
+                                            VerticalAlignment="Top" Click="BrowseComputerList_Click"/>
+                                </Grid>
+
+                                <Grid Margin="0,10,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <Label Content="Throttle Limit:"/>
+                                        <TextBox x:Name="ScanThrottleLimit" Text="10" Width="100" HorizontalAlignment="Left"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1">
+                                        <CheckBox x:Name="ScanUserProfiles" Content="Scan User Profiles" Margin="5,25,5,5"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,15,0,0">
+                                    <Button x:Name="StartScan" Content="Start Scan" Click="StartScan_Click"/>
+                                    <Button x:Name="CancelScan" Content="Cancel" IsEnabled="False" Click="CancelScan_Click"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </GroupBox>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Generate Tab -->
+            <TabItem Header="Generate">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="20">
+                        <GroupBox Header="Policy Generation">
+                            <StackPanel>
+                                <Label Content="Scan Data Path:"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="GenerateScanPath" Grid.Column="0"/>
+                                    <Button x:Name="BrowseScanPath" Grid.Column="1" Content="Browse..."
+                                            Click="BrowseScanPath_Click"/>
+                                </Grid>
+
+                                <Label Content="Generation Mode:" Margin="0,10,0,0"/>
+                                <StackPanel Orientation="Horizontal">
+                                    <RadioButton x:Name="SimplifiedMode" Content="Simplified" IsChecked="True" Margin="5"/>
+                                    <RadioButton x:Name="BuildGuideMode" Content="Build Guide (Enterprise)" Margin="15,5,5,5"/>
+                                </StackPanel>
+
+                                <GroupBox Header="Build Guide Options" x:Name="BuildGuideOptions" Margin="0,10,0,0">
+                                    <StackPanel>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0">
+                                                <Label Content="Target Type:"/>
+                                                <ComboBox x:Name="TargetType">
+                                                    <ComboBoxItem Content="Workstation" IsSelected="True"/>
+                                                    <ComboBoxItem Content="Server"/>
+                                                    <ComboBoxItem Content="DomainController"/>
+                                                </ComboBox>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1">
+                                                <Label Content="Phase:"/>
+                                                <ComboBox x:Name="Phase">
+                                                    <ComboBoxItem Content="Phase 1 - EXE Only" IsSelected="True"/>
+                                                    <ComboBoxItem Content="Phase 2 - EXE + MSI"/>
+                                                    <ComboBoxItem Content="Phase 3 - EXE + MSI + Script"/>
+                                                    <ComboBoxItem Content="Phase 4 - All + DLL"/>
+                                                </ComboBox>
+                                            </StackPanel>
+                                        </Grid>
+                                        <Label Content="Domain Name:"/>
+                                        <TextBox x:Name="DomainName" Text="DOMAIN"/>
+                                    </StackPanel>
+                                </GroupBox>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                    <CheckBox x:Name="IncludeDenyRules" Content="Include LOLBins Deny Rules" Margin="5"/>
+                                    <CheckBox x:Name="IncludeVendorPublishers" Content="Include Vendor Publishers" Margin="15,5,5,5"/>
+                                </StackPanel>
+
+                                <Button x:Name="GeneratePolicy" Content="Generate Policy" Margin="5,15,5,5"
+                                        HorizontalAlignment="Left" Click="GeneratePolicy_Click"/>
+                            </StackPanel>
+                        </GroupBox>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Merge Tab -->
+            <TabItem Header="Merge">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="20">
+                        <GroupBox Header="Policy Merge">
+                            <StackPanel>
+                                <Label Content="Policy Files to Merge:"/>
+                                <ListBox x:Name="MergePolicyList" Height="150" Background="#3C3C3C"
+                                         Foreground="{StaticResource TextBrush}"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                                    <Button x:Name="AddMergePolicy" Content="Add Policy..." Click="AddMergePolicy_Click"/>
+                                    <Button x:Name="RemoveMergePolicy" Content="Remove Selected" Click="RemoveMergePolicy_Click"/>
+                                    <Button x:Name="ClearMergePolicies" Content="Clear All" Click="ClearMergePolicies_Click"/>
+                                </StackPanel>
+
+                                <Label Content="Output Path:" Margin="0,15,0,0"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="MergeOutputPath" Grid.Column="0" Text=".\Outputs\MergedPolicy.xml"/>
+                                    <Button Grid.Column="1" Content="Browse..." Click="BrowseMergeOutput_Click"/>
+                                </Grid>
+
+                                <Button x:Name="MergePolicies" Content="Merge Policies" Margin="5,15,5,5"
+                                        HorizontalAlignment="Left" Click="MergePolicies_Click"/>
+                            </StackPanel>
+                        </GroupBox>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Validate Tab -->
+            <TabItem Header="Validate">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="20">
+                        <GroupBox Header="Policy Validation">
+                            <StackPanel>
+                                <Label Content="Policy File:"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="ValidatePolicyPath" Grid.Column="0"/>
+                                    <Button Grid.Column="1" Content="Browse..." Click="BrowseValidatePolicy_Click"/>
+                                </Grid>
+
+                                <Button x:Name="ValidatePolicy" Content="Validate Policy" Margin="5,15,5,5"
+                                        HorizontalAlignment="Left" Click="ValidatePolicy_Click"/>
+                            </StackPanel>
+                        </GroupBox>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Events Tab -->
+            <TabItem Header="Events">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="20">
+                        <GroupBox Header="AppLocker Event Collection">
+                            <StackPanel>
+                                <Label Content="Computer List:"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="EventsComputerList" Grid.Column="0" Height="100"
+                                             AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
+                                             Text="localhost"/>
+                                    <Button Grid.Column="1" Content="Browse..." VerticalAlignment="Top"
+                                            Click="BrowseEventsComputerList_Click"/>
+                                </Grid>
+
+                                <Grid Margin="0,10,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <Label Content="Days Back (0 = all):"/>
+                                        <TextBox x:Name="EventsDaysBack" Text="14" Width="100" HorizontalAlignment="Left"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1">
+                                        <CheckBox x:Name="EventsBlockedOnly" Content="Blocked Events Only"
+                                                  IsChecked="True" Margin="5,25,5,5"/>
+                                        <CheckBox x:Name="EventsIncludeAllowed" Content="Include Allowed Events" Margin="5"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <Button x:Name="CollectEvents" Content="Collect Events" Margin="5,15,5,5"
+                                        HorizontalAlignment="Left" Click="CollectEvents_Click"/>
+                            </StackPanel>
+                        </GroupBox>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Compare Tab -->
+            <TabItem Header="Compare">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="20">
+                        <GroupBox Header="Software Inventory Comparison">
+                            <StackPanel>
+                                <Label Content="Reference (Baseline):"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="CompareReferencePath" Grid.Column="0"/>
+                                    <Button Grid.Column="1" Content="Browse..." Click="BrowseCompareReference_Click"/>
+                                </Grid>
+
+                                <Label Content="Target (Compare To):" Margin="0,10,0,0"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="CompareTargetPath" Grid.Column="0"/>
+                                    <Button Grid.Column="1" Content="Browse..." Click="BrowseCompareTarget_Click"/>
+                                </Grid>
+
+                                <Button x:Name="CompareInventories" Content="Compare Inventories" Margin="5,15,5,5"
+                                        HorizontalAlignment="Left" Click="CompareInventories_Click"/>
+                            </StackPanel>
+                        </GroupBox>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Settings Tab -->
+            <TabItem Header="Settings">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="20">
+                        <GroupBox Header="Application Settings">
+                            <StackPanel>
+                                <Label Content="Default Output Directory:"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="DefaultOutputPath" Grid.Column="0" Text=".\Outputs"/>
+                                    <Button Grid.Column="1" Content="Browse..." Click="BrowseDefaultOutput_Click"/>
+                                </Grid>
+
+                                <Label Content="PowerShell Scripts Location:" Margin="0,15,0,0"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="ScriptsPath" Grid.Column="0" IsReadOnly="True"/>
+                                    <Button Grid.Column="1" Content="Locate..." Click="LocateScripts_Click"/>
+                                </Grid>
+
+                                <Button Content="Save Settings" Margin="5,20,5,5" HorizontalAlignment="Left"
+                                        Click="SaveSettings_Click"/>
+                            </StackPanel>
+                        </GroupBox>
+
+                        <GroupBox Header="About" Margin="0,10,0,0">
+                            <StackPanel>
+                                <TextBlock Text="GA-AppLocker Toolkit" FontWeight="Bold" Foreground="{StaticResource TextBrush}"/>
+                                <TextBlock Text="Windows AppLocker Policy Management" Foreground="{StaticResource TextBrush}" Margin="0,5,0,0"/>
+                                <TextBlock Text="Created by Tony Tran (ISSO, GA-ASI)" Foreground="{StaticResource TextBrush}" Margin="0,10,0,0"/>
+                                <TextBlock x:Name="VersionText" Text="Version: 1.0.0" Foreground="{StaticResource TextBrush}" Margin="0,5,0,0"/>
+                            </StackPanel>
+                        </GroupBox>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+        </TabControl>
+
+        <!-- Output Log -->
+        <Border Grid.Row="2" Background="{StaticResource PanelBrush}" Margin="10" CornerRadius="4">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <Grid Grid.Row="0" Margin="10,10,10,5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Output Log" FontWeight="Bold" Foreground="{StaticResource TextBrush}"
+                               VerticalAlignment="Center"/>
+                    <Button x:Name="ClearLog" Grid.Column="1" Content="Clear" Padding="10,4"
+                            Click="ClearLog_Click"/>
+                </Grid>
+                <TextBox Grid.Row="1" x:Name="OutputLog" Margin="10,0,10,10"
+                         IsReadOnly="True" TextWrapping="Wrap"
+                         VerticalScrollBarVisibility="Auto"
+                         Background="#2D2D30" Foreground="{StaticResource TextBrush}"
+                         FontFamily="Consolas" FontSize="12"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

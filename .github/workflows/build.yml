@@ -1,0 +1,187 @@
+name: Build GA-AppLocker
+
+on:
+  push:
+    branches: [ main, master, develop ]
+    paths:
+      - 'src/**'
+      - '.github/workflows/build.yml'
+      - '*.sln'
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g., 1.0.0)'
+        required: false
+        default: ''
+      create_release:
+        description: 'Create GitHub release'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  PROJECT_PATH: 'src/GA-AppLocker.App/GA-AppLocker.App.csproj'
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Get version
+      id: version
+      shell: pwsh
+      run: |
+        if ("${{ github.event.inputs.version }}" -ne "") {
+          $version = "${{ github.event.inputs.version }}"
+        } else {
+          $version = Get-Date -Format "yyyy.MM.dd"
+          $buildNumber = "${{ github.run_number }}"
+          $version = "$version.$buildNumber"
+        }
+        echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+        echo "Version: $version"
+
+    - name: Restore dependencies
+      run: dotnet restore ${{ env.PROJECT_PATH }}
+
+    - name: Build
+      run: |
+        dotnet build ${{ env.PROJECT_PATH }} `
+          --configuration Release `
+          --no-restore `
+          -p:Version=${{ steps.version.outputs.VERSION }}
+
+    - name: Publish - Self-contained single file
+      run: |
+        dotnet publish ${{ env.PROJECT_PATH }} `
+          --configuration Release `
+          --runtime win-x64 `
+          --self-contained true `
+          -p:PublishSingleFile=true `
+          -p:IncludeNativeLibrariesForSelfExtract=true `
+          -p:Version=${{ steps.version.outputs.VERSION }} `
+          --output ./publish/standalone
+
+    - name: Publish - Framework-dependent
+      run: |
+        dotnet publish ${{ env.PROJECT_PATH }} `
+          --configuration Release `
+          --runtime win-x64 `
+          --self-contained false `
+          -p:Version=${{ steps.version.outputs.VERSION }} `
+          --output ./publish/framework-dependent
+
+    - name: Copy PowerShell scripts to publish
+      shell: pwsh
+      run: |
+        # Copy scripts to standalone package
+        $standaloneScripts = "./publish/standalone/Scripts"
+        New-Item -ItemType Directory -Force -Path $standaloneScripts | Out-Null
+
+        # Copy main scripts
+        Copy-Item -Path "*.ps1" -Destination $standaloneScripts -Force
+        Copy-Item -Path "utilities" -Destination $standaloneScripts -Recurse -Force
+        Copy-Item -Path "GUI/*.ps1" -Destination "$standaloneScripts/GUI" -Force -ErrorAction SilentlyContinue
+        Copy-Item -Path "GUI/*.psm1" -Destination "$standaloneScripts/GUI" -Force -ErrorAction SilentlyContinue
+
+        # Copy to framework-dependent package too
+        $fdScripts = "./publish/framework-dependent/Scripts"
+        Copy-Item -Path $standaloneScripts -Destination $fdScripts -Recurse -Force
+
+    - name: Create ZIP packages
+      shell: pwsh
+      run: |
+        $version = "${{ steps.version.outputs.VERSION }}"
+
+        # Standalone package (recommended)
+        Compress-Archive -Path "./publish/standalone/*" `
+          -DestinationPath "./publish/GA-AppLocker-$version-win-x64-standalone.zip"
+
+        # Framework-dependent package (smaller, requires .NET runtime)
+        Compress-Archive -Path "./publish/framework-dependent/*" `
+          -DestinationPath "./publish/GA-AppLocker-$version-win-x64-framework-dependent.zip"
+
+        # PowerShell-only package (CLI only, no GUI exe)
+        $psOnlyDir = "./publish/powershell-only"
+        New-Item -ItemType Directory -Force -Path $psOnlyDir | Out-Null
+        Copy-Item -Path "*.ps1" -Destination $psOnlyDir -Force
+        Copy-Item -Path "utilities" -Destination $psOnlyDir -Recurse -Force
+        Copy-Item -Path "GUI" -Destination $psOnlyDir -Recurse -Force
+        Copy-Item -Path "ADManagement" -Destination $psOnlyDir -Recurse -Force -ErrorAction SilentlyContinue
+        Copy-Item -Path "README.md" -Destination $psOnlyDir -Force -ErrorAction SilentlyContinue
+        Copy-Item -Path "CHANGELOG.md" -Destination $psOnlyDir -Force -ErrorAction SilentlyContinue
+
+        Compress-Archive -Path "$psOnlyDir/*" `
+          -DestinationPath "./publish/GA-AppLocker-$version-PowerShell-only.zip"
+
+    - name: Upload standalone artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: GA-AppLocker-standalone-${{ steps.version.outputs.VERSION }}
+        path: ./publish/GA-AppLocker-*-standalone.zip
+        retention-days: 30
+
+    - name: Upload framework-dependent artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: GA-AppLocker-framework-dependent-${{ steps.version.outputs.VERSION }}
+        path: ./publish/GA-AppLocker-*-framework-dependent.zip
+        retention-days: 30
+
+    - name: Upload PowerShell-only artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: GA-AppLocker-PowerShell-${{ steps.version.outputs.VERSION }}
+        path: ./publish/GA-AppLocker-*-PowerShell-only.zip
+        retention-days: 30
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event.inputs.create_release == 'true'
+
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: ./artifacts
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ needs.build.outputs.version }}
+        name: GA-AppLocker v${{ needs.build.outputs.version }}
+        draft: true
+        prerelease: false
+        files: ./artifacts/**/*.zip
+        body: |
+          ## GA-AppLocker v${{ needs.build.outputs.version }}
+
+          ### Downloads
+
+          | Package | Description |
+          |---------|-------------|
+          | `GA-AppLocker-*-standalone.zip` | **Recommended** - Single .exe file, no dependencies needed |
+          | `GA-AppLocker-*-framework-dependent.zip` | Smaller package, requires .NET 8 runtime |
+          | `GA-AppLocker-*-PowerShell-only.zip` | PowerShell scripts only, no compiled GUI |
+
+          ### Requirements
+          - Windows 10/11 or Windows Server 2019+
+          - PowerShell 5.1 or higher
+          - Administrator privileges for AppLocker operations
+
+          ### What's New
+          See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
