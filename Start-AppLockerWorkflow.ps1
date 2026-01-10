@@ -1335,6 +1335,7 @@ function Show-SoftwareListMenu {
     Write-Host "    [3] Import     - Import from scan data or executable" -ForegroundColor White
     Write-Host "    [4] Publishers - Import common trusted publishers" -ForegroundColor White
     Write-Host "    [5] Policy     - Import from existing AppLocker policy" -ForegroundColor White
+    Write-Host "    [8] CSV        - Import from CSV file" -ForegroundColor White
     Write-Host ""
     Write-Host "  === Export & Generate ===" -ForegroundColor Cyan
     Write-Host "    [6] Export     - Export list to CSV" -ForegroundColor White
@@ -1724,6 +1725,83 @@ function Invoke-SoftwareListWorkflow {
                 }
 
                 Set-SoftwareListItemApproval @approvalParams
+            }
+            "8" {
+                # Import from CSV file
+                Write-Host "`n  --- Import from CSV ---" -ForegroundColor Cyan
+                Write-Host "  CSV should have columns: name, publisher, productName, binaryName," -ForegroundColor Gray
+                Write-Host "                           hash, path, category, approved, ruleType, notes" -ForegroundColor Gray
+                Write-Host ""
+
+                # Get target list
+                $lists = Get-ChildItem -Path $defaultListPath -Filter "*.json" -ErrorAction SilentlyContinue
+                $targetList = $null
+
+                if ($lists.Count -gt 0) {
+                    Write-Host "  Import to existing list or create new?" -ForegroundColor Gray
+                    $i = 1
+                    foreach ($list in $lists) {
+                        Write-Host "    [$i] $($list.BaseName)" -ForegroundColor White
+                        $i++
+                    }
+                    Write-Host "    [N] Create new list" -ForegroundColor White
+                    $listChoice = Read-Host "  Select option"
+
+                    if ($listChoice -match "^\d+$" -and [int]$listChoice -le $lists.Count) {
+                        $targetList = $lists[[int]$listChoice - 1].FullName
+                    }
+                }
+
+                if (-not $targetList) {
+                    $newName = Read-Host "  Enter new list name (default: CSVImport)"
+                    if ([string]::IsNullOrWhiteSpace($newName)) { $newName = "CSVImport" }
+                    $targetList = Join-Path $defaultListPath "$newName.json"
+                    New-SoftwareList -Name $newName -Description "Imported from CSV" -OutputPath $defaultListPath | Out-Null
+                }
+
+                # Get CSV file path
+                $csvPath = Read-Host "  Enter path to CSV file"
+                if (-not (Test-Path $csvPath)) {
+                    Write-Host "  [-] CSV file not found: $csvPath" -ForegroundColor Red
+                    continue
+                }
+
+                # Preview CSV contents
+                Write-Host ""
+                Write-Host "  Previewing CSV contents..." -ForegroundColor Yellow
+                $csvPreview = Import-Csv -Path $csvPath | Select-Object -First 5
+                $totalRows = (Import-Csv -Path $csvPath | Measure-Object).Count
+                Write-Host "  Total rows: $totalRows" -ForegroundColor Cyan
+                Write-Host ""
+
+                if ($csvPreview.Count -gt 0) {
+                    Write-Host "  First 5 rows:" -ForegroundColor Gray
+                    foreach ($row in $csvPreview) {
+                        $displayName = if ($row.name) { $row.name } else { "(no name)" }
+                        $displayType = if ($row.ruleType) { $row.ruleType } else { "(auto)" }
+                        $displayPub = if ($row.publisher) { $row.publisher.Substring(0, [Math]::Min(40, $row.publisher.Length)) + "..." } else { "" }
+                        Write-Host "    - [$displayType] $displayName" -ForegroundColor White
+                        if ($displayPub) {
+                            Write-Host "      Publisher: $displayPub" -ForegroundColor DarkGray
+                        }
+                    }
+                    if ($totalRows -gt 5) {
+                        Write-Host "    ... and $($totalRows - 5) more rows" -ForegroundColor DarkGray
+                    }
+                }
+
+                Write-Host ""
+                $confirm = Read-Host "  Proceed with import? (Y/n)"
+                if ($confirm -eq "n" -or $confirm -eq "N") {
+                    Write-Host "  [-] Import cancelled." -ForegroundColor Yellow
+                    continue
+                }
+
+                Import-SoftwareListFromCsv -CsvPath $csvPath -ListPath $targetList
+
+                Write-Host ""
+                Write-Host "  [+] CSV imported successfully!" -ForegroundColor Green
+                Write-Host "  [+] Use [G] Generate to create AppLocker policy from this list." -ForegroundColor Cyan
             }
             "G" {
                 # Generate policy from software list using Build Guide mode (with AppLocker groups)
