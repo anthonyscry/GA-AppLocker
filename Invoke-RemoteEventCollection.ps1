@@ -275,9 +275,9 @@ $startDate = if ($DaysBack -gt 0) {
 $startDateStr = $startDate.ToString("o")
 
 # Determine which event IDs to collect
+# Blocked events: 8004 (EXE/DLL), 8006 (MSI/Script), 8008 (Packaged app)
+# Allowed events: 8003 (EXE/DLL), 8005 (MSI/Script), 8007 (Packaged app)
 $collectAllowed = $IncludeAllowedEvents -and -not $BlockedOnly
-$blockedEventIds = @(8004, 8006, 8008)
-$allowedEventIds = @(8003, 8005, 8007)
 
 # Process each computer
 $jobCount = 0
@@ -286,10 +286,10 @@ foreach ($computer in $computers) {
     Write-Host "[$jobCount/$($computers.Count)] Starting: $computer" -ForegroundColor Gray
 
     Start-Job -Name "EventCollect-$computer" -ArgumentList $computer, $credUsername, $credPassword, $outputRoot, $startDateStr, $MaxEventsPerComputer, $collectAllowed -ScriptBlock {
-        param($Computer, $CredUsername, $CredPassword, $OutputRoot, $StartDateStr, $MaxEvents, $CollectAllowed)
+        param($Computer, $UserName, $SecurePass, $OutputRoot, $StartDateStr, $MaxEvents, $CollectAllowed)
 
         # Reconstruct credential
-        $Credential = New-Object System.Management.Automation.PSCredential($CredUsername, $CredPassword)
+        $Credential = New-Object System.Management.Automation.PSCredential($UserName, $SecurePass)
         $PSDefaultParameterValues.Clear()
 
         $startDate = [DateTime]::Parse($StartDateStr)

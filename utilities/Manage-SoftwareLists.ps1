@@ -35,7 +35,6 @@ Import-ScanDataToSoftwareList -ScanPath .\Scans -ListPath .\SoftwareLists\Discov
 #Requires -Version 5.1
 
 # Import common utilities if available
-$scriptRoot = Split-Path -Parent $PSScriptRoot
 $modulePath = Join-Path $PSScriptRoot "Common.psm1"
 if (Test-Path $modulePath) {
     Import-Module $modulePath -Force -ErrorAction SilentlyContinue
@@ -2374,6 +2373,7 @@ if ($MyInvocation.Line -notmatch '^\.\s') {
         ) -ErrorAction SilentlyContinue
     }
     catch {
-        # Silently ignore - file is being dot-sourced, not loaded as module
+        # Expected when file is dot-sourced instead of loaded as module
+        Write-Verbose "Module export skipped: $_"
     }
 }

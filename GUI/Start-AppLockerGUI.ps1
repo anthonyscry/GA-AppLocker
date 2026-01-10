@@ -852,6 +852,8 @@ function Write-Log {
     })
 }
 
+# PSScriptAnalyzer thinks Set-Status changes system state, but it only updates UI elements
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
 function Set-Status {
     param(
         [string]$Status,
@@ -1022,7 +1024,7 @@ function Invoke-AsyncOperation {
     $timer.Start()
 }
 
-function Refresh-SoftwareLists {
+function Update-SoftwareLists {
     $controls['SoftwareListBox'].Items.Clear()
     $controls['SoftwareGenerateList'].Items.Clear()
 
@@ -1171,7 +1173,7 @@ $controls['SaveLog'].Add_Click({
 
 # Software list management
 $controls['SoftwareRefresh'].Add_Click({
-    Refresh-SoftwareLists
+    Update-SoftwareLists
     Write-Log "Software lists refreshed." -Level Info
 })
 
@@ -1222,7 +1224,7 @@ $controls['SoftwareNew'].Add_Click({
     $inputDialog.Content = $panel
 
     if ($inputDialog.ShowDialog()) {
-        Refresh-SoftwareLists
+        Update-SoftwareLists
         Write-Log "Created new software list: $($textbox.Text)" -Level Success
     }
 })
@@ -1241,7 +1243,7 @@ $controls['SoftwareDelete'].Add_Click({
             $listFile = Join-Path $Script:AppRoot "SoftwareLists\$selected.json"
             if (Test-Path $listFile) {
                 Remove-Item -Path $listFile -Force
-                Refresh-SoftwareLists
+                Update-SoftwareLists
                 Write-Log "Deleted software list: $selected" -Level Success
             }
         }
@@ -1721,7 +1723,7 @@ Write-Log "GA-AppLocker GUI initialized." -Level Info
 Write-Log "Application root: $Script:AppRoot" -Level Info
 
 # Refresh software lists on load
-Refresh-SoftwareLists
+Update-SoftwareLists
 
 # Set default paths
 $controls['ScanOutputPath'].Text = Join-Path $Script:AppRoot "Scans"

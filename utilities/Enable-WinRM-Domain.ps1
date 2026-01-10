@@ -403,8 +403,8 @@ Revision=1
 
     foreach ($target in $selectedTargets) {
         try {
-            # Check if it's a container (CN=) vs OU
-            $targetObj = Get-ADObject -Identity $target -ErrorAction Stop
+            # Check if it's a container (CN=) vs OU - verify target exists
+            $null = Get-ADObject -Identity $target -ErrorAction Stop
 
             New-GPLink -Name $gpoName -Target $target -LinkEnabled Yes -ErrorAction Stop | Out-Null
             Write-Host "  Linked to: $target" -ForegroundColor Green

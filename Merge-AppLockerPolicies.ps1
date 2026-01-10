@@ -569,7 +569,7 @@ Write-Host "`nMerged policy saved to: $OutputPath" -ForegroundColor Cyan
 
 # Validate the output
 try {
-    [xml]$validation = Get-Content -Path $OutputPath -Raw
+    $null = [xml](Get-Content -Path $OutputPath -Raw)
     Write-Host "Policy XML validation: PASSED" -ForegroundColor Green
 }
 catch {

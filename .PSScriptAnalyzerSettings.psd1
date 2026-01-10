@@ -1,26 +1,27 @@
+# PSScriptAnalyzer Settings for GA-AppLocker
+# Apply consistent code quality rules across the entire codebase
+
 @{
     # Severity levels to include
     Severity = @('Error', 'Warning')
 
     # Rules to exclude (with justification)
     ExcludeRules = @(
-        # Write-Host is appropriate for GUI console output and colored feedback
-        'PSAvoidUsingWriteHost',
-        # GUI code uses scriptblock-reset indentation style which PSScriptAnalyzer doesn't understand
-        'PSUseConsistentIndentation',
-        # Whitespace inside event handler scriptblocks follows different conventions
-        'PSUseConsistentWhitespace',
-        # BOM is not required for UTF-8 files in modern systems
-        'PSUseBOMForUnicodeEncodedFile'
+        # Write-Host is appropriate for CLI tools with colored feedback
+        'PSAvoidUsingWriteHost'
     )
 
-    # Rules to include explicitly
+    # Rules to include explicitly (security + quality)
     IncludeRules = @(
-        'PSAvoidUsingCmdletAliases',
-        'PSAvoidUsingPositionalParameters',
+        # Security rules
         'PSAvoidUsingPlainTextForPassword',
         'PSAvoidUsingConvertToSecureStringWithPlainText',
         'PSAvoidUsingUserNameAndPasswordParams',
+        'PSAvoidUsingInvokeExpression',
+
+        # Best practices
+        'PSAvoidUsingCmdletAliases',
+        'PSAvoidUsingPositionalParameters',
         'PSUseDeclaredVarsMoreThanAssignments',
         'PSUseShouldProcessForStateChangingFunctions',
         'PSUseApprovedVerbs',
@@ -30,10 +31,15 @@
         'PSAvoidDefaultValueSwitchParameter',
         'PSAvoidGlobalVars',
         'PSAvoidUsingEmptyCatchBlock',
-        'PSAvoidUsingInvokeExpression',
         'PSUseCmdletCorrectly',
         'PSUseOutputTypeCorrectly',
-        'PSAvoidTrailingWhitespace'
+
+        # Formatting rules
+        'PSAvoidTrailingWhitespace',
+        'PSUseConsistentIndentation',
+        'PSUseConsistentWhitespace',
+        'PSPlaceOpenBrace',
+        'PSPlaceCloseBrace'
     )
 
     # Custom rule configurations
