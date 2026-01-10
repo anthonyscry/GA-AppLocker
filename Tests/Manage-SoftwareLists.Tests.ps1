@@ -242,7 +242,7 @@ Describe 'Save-SoftwareList' {
             Save-SoftwareList -List $list -ListPath $savePath -CreateBackup
 
             # Check backup exists
-            "$savePath.bak" | Should -Exist
+            Test-Path "$savePath.bak" | Should -Be $true
         }
 
         It 'Returns false when saving null list' {

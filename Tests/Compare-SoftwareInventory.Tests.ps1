@@ -28,7 +28,7 @@ Describe 'Compare-SoftwareInventory' {
             $result = & $scriptPath -ReferencePath $referencePath -ComparePath $comparePath -OutputPath $outputPath -ExportFormat 'CSV' 2>$null
 
             # Verify output exists
-            "$outputPath.csv" | Should -Exist
+            Test-Path "$outputPath.csv" | Should -Be $true
         }
 
         It 'Detects missing software in target' {
@@ -135,7 +135,7 @@ Describe 'Compare-SoftwareInventory' {
 
             & $scriptPath -ReferencePath $referencePath -ComparePath $comparePath -OutputPath $outputPath -ExportFormat 'CSV' 2>$null
 
-            "$outputPath.csv" | Should -Exist
+            Test-Path "$outputPath.csv" | Should -Be $true
             { Import-Csv -Path "$outputPath.csv" } | Should -Not -Throw
         }
 
@@ -146,7 +146,7 @@ Describe 'Compare-SoftwareInventory' {
 
             & $scriptPath -ReferencePath $referencePath -ComparePath $comparePath -OutputPath $outputPath -ExportFormat 'HTML' 2>$null
 
-            "$outputPath.html" | Should -Exist
+            Test-Path "$outputPath.html" | Should -Be $true
 
             # Verify it contains expected HTML structure
             $htmlContent = Get-Content -Path "$outputPath.html" -Raw
@@ -161,8 +161,8 @@ Describe 'Compare-SoftwareInventory' {
 
             & $scriptPath -ReferencePath $referencePath -ComparePath $comparePath -OutputPath $outputPath -ExportFormat 'Both' 2>$null
 
-            "$outputPath.csv" | Should -Exist
-            "$outputPath.html" | Should -Exist
+            Test-Path "$outputPath.csv" | Should -Be $true
+            Test-Path "$outputPath.html" | Should -Be $true
         }
     }
 
@@ -235,7 +235,7 @@ Describe 'Compare-SoftwareInventory' {
 
             # Reference is excluded from comparison automatically, so this tests the self-exclusion logic
             # The output should still be created
-            "$outputPath.csv" | Should -Exist
+            Test-Path "$outputPath.csv" | Should -Be $true
         }
     }
 }
