@@ -101,14 +101,16 @@ jobs:
         $results | Select-Object ScriptName, Line, Column, Severity, RuleName, Message |
           Export-Csv -Path "./lint-results.csv" -NoTypeInformation
 
+        # Set outputs before potential exit
+        echo "WARNINGS=$($warnings.Count)" >> $env:GITHUB_OUTPUT
+        echo "ERRORS=$($errors.Count)" >> $env:GITHUB_OUTPUT
+
         # Fail on errors
         if ($errors.Count -gt 0) {
           Write-Host ""
           Write-Host "::error::PSScriptAnalyzer found $($errors.Count) error(s)"
           exit 1
         }
-
-        echo "WARNINGS=$($warnings.Count)" >> $env:GITHUB_OUTPUT
 
     - name: Run PSScriptAnalyzer - Security Rules
       id: security
@@ -207,6 +209,7 @@ jobs:
         echo "SECRET_FINDINGS=$($secretFindings.Count)" >> $env:GITHUB_OUTPUT
 
     - name: Validate XAML
+      id: xaml
       shell: pwsh
       run: |
         Write-Host "=== Validating Embedded XAML ===" -ForegroundColor Cyan
@@ -241,6 +244,9 @@ jobs:
             }
           }
         }
+
+        # Set outputs before potential exit
+        echo "XAML_ERRORS=$($xamlErrors.Count)" >> $env:GITHUB_OUTPUT
 
         if ($xamlErrors.Count -gt 0) {
           Write-Host ""
