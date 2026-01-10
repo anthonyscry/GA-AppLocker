@@ -1327,19 +1327,10 @@ function Show-SoftwareListMenu {
     Write-Host "  Main > Software Lists" -ForegroundColor DarkGray
     Write-Host "  Software List Management:" -ForegroundColor Yellow
     Write-Host ""
-    Write-Host "  === Basic Operations ===" -ForegroundColor Cyan
-    Write-Host "    [1] Create     - Create a new software list" -ForegroundColor White
-    Write-Host "    [2] View       - View/search existing software lists" -ForegroundColor White
-    Write-Host ""
-    Write-Host "  === Import Methods ===" -ForegroundColor Cyan
-    Write-Host "    [3] Import     - Import from scan data or executable" -ForegroundColor White
-    Write-Host "    [4] Publishers - Import common trusted publishers" -ForegroundColor White
-    Write-Host "    [5] Policy     - Import from existing AppLocker policy" -ForegroundColor White
-    Write-Host ""
-    Write-Host "  === Export & Generate ===" -ForegroundColor Cyan
-    Write-Host "    [6] Export     - Export list to CSV" -ForegroundColor White
-    Write-Host "    [7] Approve    - Bulk approve/unapprove items" -ForegroundColor White
-    Write-Host "    [G] Generate   - Generate policy from software list (Build Guide)" -ForegroundColor White
+    Write-Host "    [1] View       - View, search, and export lists" -ForegroundColor White
+    Write-Host "    [2] Import     - Import from scan, CSV, policy, or publishers" -ForegroundColor White
+    Write-Host "    [3] Approve    - Bulk approve/unapprove items" -ForegroundColor White
+    Write-Host "    [G] Generate   - Generate AppLocker policy from list" -ForegroundColor White
     Write-Host ""
     Write-Host "    [B] Back" -ForegroundColor Gray
     Write-Host ""
@@ -1371,27 +1362,49 @@ function Invoke-SoftwareListWorkflow {
         New-Item -ItemType Directory -Path $defaultListPath -Force | Out-Null
     }
 
+    # Helper function to select or create a target list
+    function Select-TargetList {
+        param([string]$DefaultName = "NewList", [string]$Description = "Software list")
+
+        $lists = Get-ChildItem -Path $defaultListPath -Filter "*.json" -ErrorAction SilentlyContinue
+        $targetList = $null
+
+        if ($lists.Count -gt 0) {
+            Write-Host "  Select list or create new:" -ForegroundColor Gray
+            $i = 1
+            foreach ($list in $lists) {
+                Write-Host "    [$i] $($list.BaseName)" -ForegroundColor White
+                $i++
+            }
+            Write-Host "    [N] Create new list" -ForegroundColor White
+            $listChoice = Read-Host "  Select"
+
+            if ($listChoice -match "^\d+$" -and [int]$listChoice -le $lists.Count -and [int]$listChoice -ge 1) {
+                $targetList = $lists[[int]$listChoice - 1].FullName
+            }
+        }
+
+        if (-not $targetList) {
+            $newName = Read-Host "  Enter new list name (default: $DefaultName)"
+            if ([string]::IsNullOrWhiteSpace($newName)) { $newName = $DefaultName }
+            $targetList = Join-Path $defaultListPath "$newName.json"
+            New-SoftwareList -Name $newName -Description $Description -OutputPath $defaultListPath | Out-Null
+        }
+
+        return $targetList
+    }
+
     do {
         $slChoice = (Show-SoftwareListMenu).ToUpper()
 
         switch ($slChoice) {
             "1" {
-                # Create new software list
-                Write-Host "`n  --- Create New Software List ---" -ForegroundColor Cyan
-                $listName = Read-Host "  Enter list name"
-                if ([string]::IsNullOrWhiteSpace($listName)) {
-                    Write-Host "  [-] Name is required" -ForegroundColor Red
-                    continue
-                }
-                $listDesc = Read-Host "  Enter description (optional)"
-                New-SoftwareList -Name $listName -Description $listDesc -OutputPath $defaultListPath
-            }
-            "2" {
-                # View software lists
+                # View, search, and export lists
                 Write-Host "`n  --- Software Lists ---" -ForegroundColor Cyan
                 $lists = Get-ChildItem -Path $defaultListPath -Filter "*.json" -ErrorAction SilentlyContinue
                 if ($lists.Count -eq 0) {
                     Write-Host "  No software lists found in $defaultListPath" -ForegroundColor Yellow
+                    Write-Host "  Use [2] Import to create one." -ForegroundColor Gray
                     continue
                 }
 
@@ -1405,13 +1418,13 @@ function Invoke-SoftwareListWorkflow {
                 }
                 Write-Host ""
 
-                $viewChoice = Read-Host "  Enter number to view details (or Enter to skip)"
+                $viewChoice = Read-Host "  Enter number to view (or Enter to skip)"
                 if ($viewChoice -match "^\d+$") {
                     $idx = [int]$viewChoice - 1
                     if ($idx -ge 0 -and $idx -lt $lists.Count) {
-                        $selectedList = $lists[$idx].FullName
-                        $items = (Get-SoftwareList -ListPath $selectedList).items
-                        Write-Host "`n  Items in $($lists[$idx].BaseName):" -ForegroundColor Yellow
+                        $selectedList = $lists[$idx]
+                        $items = (Get-SoftwareList -ListPath $selectedList.FullName).items
+                        Write-Host "`n  Items in $($selectedList.BaseName):" -ForegroundColor Yellow
                         foreach ($item in $items | Select-Object -First 20) {
                             $status = if ($item.approved) { "[+]" } else { "[-]" }
                             $typeIcon = switch ($item.ruleType) {
@@ -1428,299 +1441,202 @@ function Invoke-SoftwareListWorkflow {
                         if ($items.Count -gt 20) {
                             Write-Host "    ... and $($items.Count - 20) more items" -ForegroundColor DarkGray
                         }
+
+                        # Offer export option
+                        Write-Host ""
+                        $exportChoice = Read-Host "  Export to CSV? (y/N)"
+                        if ($exportChoice -eq "y" -or $exportChoice -eq "Y") {
+                            $csvPath = Join-Path $defaultListPath "$($selectedList.BaseName).csv"
+                            Export-SoftwareListToCsv -ListPath $selectedList.FullName -OutputPath $csvPath
+                        }
+                    }
+                }
+            }
+            "2" {
+                # Import from various sources (sub-menu)
+                Write-Host "`n  --- Import Software ---" -ForegroundColor Cyan
+                Write-Host "    [1] Scan data   - From remote scan results" -ForegroundColor White
+                Write-Host "    [2] CSV file    - From exported/external CSV" -ForegroundColor White
+                Write-Host "    [3] Policy XML  - From existing AppLocker policy" -ForegroundColor White
+                Write-Host "    [4] Publishers  - Common trusted publishers (Microsoft, Adobe, etc.)" -ForegroundColor White
+                Write-Host "    [5] Executable  - Single executable file" -ForegroundColor White
+                Write-Host "    [B] Back" -ForegroundColor Gray
+                Write-Host ""
+                $importChoice = Read-Host "  Select source"
+
+                if ($importChoice -eq "B" -or $importChoice -eq "b") { continue }
+
+                switch ($importChoice) {
+                    "1" {
+                        # Import from scan data
+                        Write-Host ""
+                        $targetList = Select-TargetList -DefaultName "ScanImport" -Description "Imported from scan"
+
+                        Write-Host ""
+                        Write-Host "  Select scan data:" -ForegroundColor Yellow
+                        Write-Host "    [1] Browse folders" -ForegroundColor White
+                        Write-Host "    [2] Enter path" -ForegroundColor Gray
+                        $browseChoice = Read-Host "  Choice"
+
+                        $scanPath = $null
+                        if ($browseChoice -eq "1") {
+                            $scanPath = Select-ScanPath -ScansPath ".\Scans" -Prompt "import source" -AllowRecursive
+                        } else {
+                            $scanPath = Read-Host "  Enter path"
+                        }
+
+                        if ($scanPath -and (Test-Path $scanPath)) {
+                            Write-Host ""
+                            Write-Host "  Filter:" -ForegroundColor Gray
+                            Write-Host "    [1] Signed only (publisher rules)" -ForegroundColor White
+                            Write-Host "    [2] Unsigned only (hash rules)" -ForegroundColor White
+                            Write-Host "    [3] All software" -ForegroundColor White
+                            $filterChoice = Read-Host "  Select"
+
+                            $importParams = @{ ScanPath = $scanPath; ListPath = $targetList; Deduplicate = $true }
+                            switch ($filterChoice) {
+                                "1" { $importParams.SignedOnly = $true }
+                                "2" { $importParams.UnsignedOnly = $true }
+                            }
+
+                            $autoApprove = Read-Host "  Auto-approve? (y/N)"
+                            if ($autoApprove -eq "y" -or $autoApprove -eq "Y") { $importParams.AutoApprove = $true }
+
+                            Import-ScanDataToSoftwareList @importParams
+                        } else {
+                            Write-Host "  [-] Path not found or cancelled" -ForegroundColor Red
+                        }
+                    }
+                    "2" {
+                        # Import from CSV
+                        Write-Host ""
+                        Write-Host "  CSV columns: name, publisher, ruleType, approved, category, hash, notes" -ForegroundColor Gray
+                        $targetList = Select-TargetList -DefaultName "CSVImport" -Description "Imported from CSV"
+
+                        $csvPath = Read-Host "  CSV file path"
+                        if (-not (Test-Path $csvPath)) {
+                            Write-Host "  [-] File not found" -ForegroundColor Red
+                            continue
+                        }
+
+                        $totalRows = (Import-Csv -Path $csvPath | Measure-Object).Count
+                        Write-Host "  Found $totalRows rows" -ForegroundColor Cyan
+
+                        $confirm = Read-Host "  Import? (Y/n)"
+                        if ($confirm -ne "n" -and $confirm -ne "N") {
+                            Import-SoftwareListFromCsv -CsvPath $csvPath -ListPath $targetList
+                            Write-Host "  [+] Imported!" -ForegroundColor Green
+                        }
+                    }
+                    "3" {
+                        # Import from AppLocker policy
+                        Write-Host ""
+                        $targetList = Select-TargetList -DefaultName "PolicyImport" -Description "Imported from policy"
+
+                        $policyPath = Read-Host "  Policy XML path"
+                        if (-not (Test-Path $policyPath)) {
+                            Write-Host "  [-] File not found" -ForegroundColor Red
+                            continue
+                        }
+
+                        Write-Host "  Rule types: [1] All  [2] Publisher only  [3] Hash only" -ForegroundColor Gray
+                        $ruleTypeChoice = Read-Host "  Select"
+
+                        $importParams = @{ PolicyPath = $policyPath; ListPath = $targetList; AllowOnly = $true }
+                        switch ($ruleTypeChoice) {
+                            "2" { $importParams.RuleTypes = "Publisher" }
+                            "3" { $importParams.RuleTypes = "Hash" }
+                            default { $importParams.RuleTypes = "All" }
+                        }
+
+                        $autoApprove = Read-Host "  Auto-approve? (Y/n)"
+                        if ($autoApprove -ne "n" -and $autoApprove -ne "N") { $importParams.AutoApprove = $true }
+
+                        Import-AppLockerPolicyToSoftwareList @importParams
+                    }
+                    "4" {
+                        # Import common publishers
+                        Write-Host ""
+                        $targetList = Select-TargetList -DefaultName "TrustedPublishers" -Description "Common trusted publishers"
+
+                        $categories = Get-CommonPublisherCategories
+                        Write-Host "  Categories: $($categories -join ', ')" -ForegroundColor Gray
+                        Write-Host "  [A] All categories" -ForegroundColor White
+                        $catChoice = Read-Host "  Select category or [A]"
+
+                        $importParams = @{ ListPath = $targetList }
+                        if ($catChoice -ne "A" -and $catChoice -ne "a" -and -not [string]::IsNullOrWhiteSpace($catChoice)) {
+                            $importParams.Category = $catChoice
+                        }
+
+                        $autoApprove = Read-Host "  Auto-approve? (Y/n)"
+                        if ($autoApprove -ne "n" -and $autoApprove -ne "N") { $importParams.AutoApprove = $true }
+
+                        Import-CommonPublishersToSoftwareList @importParams
+                    }
+                    "5" {
+                        # Import single executable
+                        Write-Host ""
+                        $targetList = Select-TargetList -DefaultName "Imported" -Description "Imported executables"
+
+                        $exePath = Read-Host "  Executable path"
+                        if (Test-Path $exePath) {
+                            $category = Read-Host "  Category (default: Imported)"
+                            if ([string]::IsNullOrWhiteSpace($category)) { $category = "Imported" }
+                            Import-ExecutableToSoftwareList -FilePath $exePath -ListPath $targetList -Category $category
+                        } else {
+                            Write-Host "  [-] File not found" -ForegroundColor Red
+                        }
+                    }
+                    default {
+                        Write-Host "  [-] Invalid choice" -ForegroundColor Red
                     }
                 }
             }
             "3" {
-                # Import from scan data or executable
-                Write-Host "`n  --- Import Software ---" -ForegroundColor Cyan
-                Write-Host "    [1] Import from scan data" -ForegroundColor White
-                Write-Host "    [2] Import from executable file" -ForegroundColor White
-                $importChoice = Read-Host "  Select import source"
-
-                # Get target list
-                $lists = Get-ChildItem -Path $defaultListPath -Filter "*.json" -ErrorAction SilentlyContinue
-                $targetList = $null
-
-                if ($lists.Count -gt 0) {
-                    Write-Host "  Import to existing list or create new?" -ForegroundColor Gray
-                    $i = 1
-                    foreach ($list in $lists) {
-                        Write-Host "    [$i] $($list.BaseName)" -ForegroundColor White
-                        $i++
-                    }
-                    Write-Host "    [N] Create new list" -ForegroundColor White
-                    $listChoice = Read-Host "  Select option"
-
-                    if ($listChoice -match "^\d+$" -and [int]$listChoice -le $lists.Count) {
-                        $targetList = $lists[[int]$listChoice - 1].FullName
-                    }
-                }
-
-                if (-not $targetList) {
-                    $newName = Read-Host "  Enter new list name"
-                    $targetList = Join-Path $defaultListPath "$newName.json"
-                    New-SoftwareList -Name $newName -Description "Imported software" -OutputPath $defaultListPath | Out-Null
-                }
-
-                if ($importChoice -eq "1") {
-                    # Use folder browser to select scan data
-                    Write-Host ""
-                    Write-Host "  Select scan data to import from:" -ForegroundColor Yellow
-                    Write-Host "    [1] Browse scan folders (recommended)" -ForegroundColor White
-                    Write-Host "    [2] Enter path manually" -ForegroundColor Gray
-                    Write-Host ""
-                    $browseChoice = Read-Host "  Enter choice"
-
-                    $scanPath = $null
-                    if ($browseChoice -eq "1") {
-                        $scanPath = Select-ScanPath -ScansPath ".\Scans" -Prompt "import source" -AllowRecursive
-                    } else {
-                        $scanPath = Read-Host "  Enter scan data path"
-                    }
-
-                    if ($scanPath -and (Test-Path $scanPath)) {
-                        Write-Host "  Import options:" -ForegroundColor Gray
-                        Write-Host "    [1] Signed software only (publisher rules)" -ForegroundColor White
-                        Write-Host "    [2] Unsigned software only (hash rules)" -ForegroundColor White
-                        Write-Host "    [3] All software" -ForegroundColor White
-                        $filterChoice = Read-Host "  Select filter"
-
-                        $importParams = @{
-                            ScanPath    = $scanPath
-                            ListPath    = $targetList
-                            Deduplicate = $true
-                        }
-
-                        switch ($filterChoice) {
-                            "1" { $importParams.SignedOnly = $true }
-                            "2" { $importParams.UnsignedOnly = $true }
-                        }
-
-                        $autoApprove = Read-Host "  Auto-approve imported items? (y/N)"
-                        if ($autoApprove -eq "y" -or $autoApprove -eq "Y") {
-                            $importParams.AutoApprove = $true
-                        }
-
-                        Import-ScanDataToSoftwareList @importParams
-                    }
-                    else {
-                        Write-Host "  [-] Scan path not found or cancelled" -ForegroundColor Red
-                    }
-                }
-                else {
-                    $exePath = Read-Host "  Enter executable file path"
-                    if (Test-Path $exePath) {
-                        $category = Read-Host "  Category (default: Imported)"
-                        if ([string]::IsNullOrWhiteSpace($category)) { $category = "Imported" }
-
-                        Import-ExecutableToSoftwareList -FilePath $exePath -ListPath $targetList -Category $category
-                    }
-                    else {
-                        Write-Host "  [-] File not found: $exePath" -ForegroundColor Red
-                    }
-                }
-            }
-            "4" {
-                # Import common trusted publishers
-                Write-Host "`n  --- Import Common Publishers ---" -ForegroundColor Cyan
-
-                # Get target list
-                $lists = Get-ChildItem -Path $defaultListPath -Filter "*.json" -ErrorAction SilentlyContinue
-                $targetList = $null
-
-                if ($lists.Count -gt 0) {
-                    Write-Host "  Import to existing list or create new?" -ForegroundColor Gray
-                    $i = 1
-                    foreach ($list in $lists) {
-                        Write-Host "    [$i] $($list.BaseName)" -ForegroundColor White
-                        $i++
-                    }
-                    Write-Host "    [N] Create new list" -ForegroundColor White
-                    $listChoice = Read-Host "  Select option"
-
-                    if ($listChoice -match "^\d+$" -and [int]$listChoice -le $lists.Count) {
-                        $targetList = $lists[[int]$listChoice - 1].FullName
-                    }
-                }
-
-                if (-not $targetList) {
-                    $newName = Read-Host "  Enter new list name (default: TrustedPublishers)"
-                    if ([string]::IsNullOrWhiteSpace($newName)) { $newName = "TrustedPublishers" }
-                    $targetList = Join-Path $defaultListPath "$newName.json"
-                    New-SoftwareList -Name $newName -Description "Common trusted publishers" -OutputPath $defaultListPath | Out-Null
-                }
-
-                # Show category filter option
-                Write-Host ""
-                Write-Host "  Filter by category (optional):" -ForegroundColor Gray
-                $categories = Get-CommonPublisherCategories
-                Write-Host "    Available: $($categories -join ', ')" -ForegroundColor DarkGray
-                Write-Host "    [A] All categories" -ForegroundColor White
-                $catChoice = Read-Host "  Enter category name or [A] for all"
-
-                $importParams = @{
-                    ListPath = $targetList
-                }
-
-                if ($catChoice -ne "A" -and $catChoice -ne "a" -and -not [string]::IsNullOrWhiteSpace($catChoice)) {
-                    $importParams.Category = $catChoice
-                }
-
-                $autoApprove = Read-Host "  Auto-approve imported items? (Y/n)"
-                if ($autoApprove -ne "n" -and $autoApprove -ne "N") {
-                    $importParams.AutoApprove = $true
-                }
-
-                Import-CommonPublishersToSoftwareList @importParams
-            }
-            "5" {
-                # Import from existing AppLocker policy
-                Write-Host "`n  --- Import from AppLocker Policy ---" -ForegroundColor Cyan
-
-                # Get target list
-                $lists = Get-ChildItem -Path $defaultListPath -Filter "*.json" -ErrorAction SilentlyContinue
-                $targetList = $null
-
-                if ($lists.Count -gt 0) {
-                    Write-Host "  Import to existing list or create new?" -ForegroundColor Gray
-                    $i = 1
-                    foreach ($list in $lists) {
-                        Write-Host "    [$i] $($list.BaseName)" -ForegroundColor White
-                        $i++
-                    }
-                    Write-Host "    [N] Create new list" -ForegroundColor White
-                    $listChoice = Read-Host "  Select option"
-
-                    if ($listChoice -match "^\d+$" -and [int]$listChoice -le $lists.Count) {
-                        $targetList = $lists[[int]$listChoice - 1].FullName
-                    }
-                }
-
-                if (-not $targetList) {
-                    $newName = Read-Host "  Enter new list name (default: PolicyImport)"
-                    if ([string]::IsNullOrWhiteSpace($newName)) { $newName = "PolicyImport" }
-                    $targetList = Join-Path $defaultListPath "$newName.json"
-                    New-SoftwareList -Name $newName -Description "Imported from policy" -OutputPath $defaultListPath | Out-Null
-                }
-
-                $policyPath = Read-Host "  Enter path to AppLocker policy XML file"
-                if (-not (Test-Path $policyPath)) {
-                    Write-Host "  [-] Policy file not found: $policyPath" -ForegroundColor Red
-                    continue
-                }
-
-                Write-Host ""
-                Write-Host "  Import options:" -ForegroundColor Gray
-                Write-Host "    [1] All rule types" -ForegroundColor White
-                Write-Host "    [2] Publisher rules only" -ForegroundColor White
-                Write-Host "    [3] Hash rules only" -ForegroundColor White
-                $ruleTypeChoice = Read-Host "  Select rule type filter"
-
-                $importParams = @{
-                    PolicyPath = $policyPath
-                    ListPath   = $targetList
-                    AllowOnly  = $true
-                }
-
-                switch ($ruleTypeChoice) {
-                    "2" { $importParams.RuleTypes = "Publisher" }
-                    "3" { $importParams.RuleTypes = "Hash" }
-                    default { $importParams.RuleTypes = "All" }
-                }
-
-                $autoApprove = Read-Host "  Auto-approve imported items? (Y/n)"
-                if ($autoApprove -ne "n" -and $autoApprove -ne "N") {
-                    $importParams.AutoApprove = $true
-                }
-
-                Import-AppLockerPolicyToSoftwareList @importParams
-            }
-            "6" {
-                # Export to CSV
-                Write-Host "`n  --- Export to CSV ---" -ForegroundColor Cyan
-                $lists = Get-ChildItem -Path $defaultListPath -Filter "*.json" -ErrorAction SilentlyContinue
-                if ($lists.Count -eq 0) {
-                    Write-Host "  No software lists found." -ForegroundColor Yellow
-                    continue
-                }
-
-                Write-Host "  Select list to export:" -ForegroundColor Gray
-                $i = 1
-                foreach ($list in $lists) {
-                    Write-Host "    [$i] $($list.BaseName)" -ForegroundColor White
-                    $i++
-                }
-                $listChoice = Read-Host "  Select list"
-                if (-not ($listChoice -match "^\d+$") -or [int]$listChoice -lt 1 -or [int]$listChoice -gt $lists.Count) {
-                    continue
-                }
-
-                $selectedList = $lists[[int]$listChoice - 1]
-                $csvPath = Join-Path $defaultListPath "$($selectedList.BaseName).csv"
-                Export-SoftwareListToCsv -ListPath $selectedList.FullName -OutputPath $csvPath
-            }
-            "7" {
                 # Bulk approve/unapprove items
-                Write-Host "`n  --- Bulk Approval Management ---" -ForegroundColor Cyan
+                Write-Host "`n  --- Bulk Approval ---" -ForegroundColor Cyan
                 $lists = Get-ChildItem -Path $defaultListPath -Filter "*.json" -ErrorAction SilentlyContinue
                 if ($lists.Count -eq 0) {
                     Write-Host "  No software lists found." -ForegroundColor Yellow
                     continue
                 }
 
-                Write-Host "  Select software list:" -ForegroundColor Gray
                 $i = 1
                 foreach ($list in $lists) {
                     $summary = Get-SoftwareListSummary -ListPath $list.FullName
-                    Write-Host "    [$i] $($list.BaseName) (Approved: $($summary.ApprovedItems)/$($summary.TotalItems))" -ForegroundColor White
+                    Write-Host "    [$i] $($list.BaseName) ($($summary.ApprovedItems)/$($summary.TotalItems) approved)" -ForegroundColor White
                     $i++
                 }
                 $listChoice = Read-Host "  Select list"
-                if (-not ($listChoice -match "^\d+$") -or [int]$listChoice -lt 1 -or [int]$listChoice -gt $lists.Count) {
-                    continue
-                }
+                if (-not ($listChoice -match "^\d+$") -or [int]$listChoice -lt 1 -or [int]$listChoice -gt $lists.Count) { continue }
                 $selectedListPath = $lists[[int]$listChoice - 1].FullName
 
                 Write-Host ""
-                Write-Host "  Action:" -ForegroundColor Gray
-                Write-Host "    [1] Approve all items" -ForegroundColor White
-                Write-Host "    [2] Unapprove all items" -ForegroundColor White
-                Write-Host "    [3] Approve by category" -ForegroundColor White
-                Write-Host "    [4] Approve by publisher pattern" -ForegroundColor White
-                $actionChoice = Read-Host "  Select action"
+                Write-Host "    [1] Approve all    [2] Unapprove all" -ForegroundColor White
+                Write-Host "    [3] By category    [4] By publisher pattern" -ForegroundColor White
+                $actionChoice = Read-Host "  Action"
 
-                $approvalParams = @{
-                    ListPath = $selectedListPath
-                }
+                $approvalParams = @{ ListPath = $selectedListPath }
 
                 switch ($actionChoice) {
-                    "1" {
-                        $approvalParams.Approved = $true
-                        $approvalParams.All = $true
-                    }
-                    "2" {
-                        $approvalParams.Approved = $false
-                        $approvalParams.All = $true
-                    }
+                    "1" { $approvalParams.Approved = $true; $approvalParams.All = $true }
+                    "2" { $approvalParams.Approved = $false; $approvalParams.All = $true }
                     "3" {
                         $summary = Get-SoftwareListSummary -ListPath $selectedListPath
-                        Write-Host "  Available categories: $($summary.Categories -join ', ')" -ForegroundColor DarkGray
-                        $category = Read-Host "  Enter category"
-                        $approveChoice = Read-Host "  Approve (Y) or Unapprove (N)?"
+                        Write-Host "  Categories: $($summary.Categories -join ', ')" -ForegroundColor DarkGray
+                        $category = Read-Host "  Category"
+                        $approve = Read-Host "  Approve (Y) or Unapprove (N)?"
                         $approvalParams.Category = $category
-                        $approvalParams.Approved = ($approveChoice -eq "Y" -or $approveChoice -eq "y")
+                        $approvalParams.Approved = ($approve -eq "Y" -or $approve -eq "y")
                     }
                     "4" {
-                        $publisher = Read-Host "  Enter publisher pattern (supports wildcards, e.g., *MICROSOFT*)"
-                        $approveChoice = Read-Host "  Approve (Y) or Unapprove (N)?"
+                        $publisher = Read-Host "  Publisher pattern (e.g., *MICROSOFT*)"
+                        $approve = Read-Host "  Approve (Y) or Unapprove (N)?"
                         $approvalParams.Publisher = $publisher
-                        $approvalParams.Approved = ($approveChoice -eq "Y" -or $approveChoice -eq "y")
+                        $approvalParams.Approved = ($approve -eq "Y" -or $approve -eq "y")
                     }
-                    default {
-                        Write-Host "  [-] Invalid choice" -ForegroundColor Red
-                        continue
-                    }
+                    default { Write-Host "  [-] Invalid choice" -ForegroundColor Red; continue }
                 }
 
                 Set-SoftwareListItemApproval @approvalParams
