@@ -1,0 +1,34 @@
+{
+  "Name": "TestSoftwareList",
+  "Description": "Sample software list for testing",
+  "Created": "2025-01-10T10:00:00",
+  "Modified": "2025-01-10T10:00:00",
+  "Items": [
+    {
+      "Type": "Publisher",
+      "Publisher": "O=MICROSOFT CORPORATION, L=REDMOND, S=WASHINGTON, C=US",
+      "Product": "*",
+      "Binary": "*",
+      "Source": "Manual"
+    },
+    {
+      "Type": "Publisher",
+      "Publisher": "O=ADOBE INC., L=SAN JOSE, S=CALIFORNIA, C=US",
+      "Product": "Adobe Acrobat Reader",
+      "Binary": "*",
+      "Source": "Import"
+    },
+    {
+      "Type": "Path",
+      "Path": "C:\\Program Files\\CustomApp\\*",
+      "Source": "Manual"
+    },
+    {
+      "Type": "Hash",
+      "Hash": "ABCD1234ABCD1234ABCD1234ABCD1234ABCD1234ABCD1234ABCD1234ABCD1234",
+      "FileName": "custom.exe",
+      "FileSize": 2048,
+      "Source": "Scan"
+    }
+  ]
+}

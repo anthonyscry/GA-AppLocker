@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AppLockerPolicy Version="1">
+  <RuleCollection Type="Exe" EnforcementMode="AuditOnly">
+    <FilePublisherRule Id="a61c8b2c-a319-4cd0-9690-d2177cad7b51" Name="Microsoft Publisher Rule" Description="Allows Microsoft signed executables" UserOrGroupSid="S-1-1-0" Action="Allow">
+      <Conditions>
+        <FilePublisherCondition PublisherName="O=MICROSOFT CORPORATION, L=REDMOND, S=WASHINGTON, C=US" ProductName="*" BinaryName="*">
+          <BinaryVersionRange LowSection="*" HighSection="*"/>
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>
+    <FilePathRule Id="b61c8b2c-a319-4cd0-9690-d2177cad7b52" Name="Allow Windows" Description="Allow Windows directory" UserOrGroupSid="S-1-1-0" Action="Allow">
+      <Conditions>
+        <FilePathCondition Path="C:\Windows\*"/>
+      </Conditions>
+    </FilePathRule>
+    <FileHashRule Id="c61c8b2c-a319-4cd0-9690-d2177cad7b53" Name="Hash Rule Test" Description="Test hash rule" UserOrGroupSid="S-1-1-0" Action="Allow">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF" SourceFileName="test.exe" SourceFileLength="1024"/>
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>
+  </RuleCollection>
+  <RuleCollection Type="Msi" EnforcementMode="NotConfigured">
+  </RuleCollection>
+  <RuleCollection Type="Script" EnforcementMode="NotConfigured">
+  </RuleCollection>
+  <RuleCollection Type="Dll" EnforcementMode="NotConfigured">
+  </RuleCollection>
+  <RuleCollection Type="Appx" EnforcementMode="NotConfigured">
+  </RuleCollection>
+</AppLockerPolicy>

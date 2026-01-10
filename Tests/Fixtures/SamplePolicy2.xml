@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AppLockerPolicy Version="1">
+  <RuleCollection Type="Exe" EnforcementMode="AuditOnly">
+    <FilePublisherRule Id="d61c8b2c-a319-4cd0-9690-d2177cad7b54" Name="Adobe Publisher Rule" Description="Allows Adobe signed executables" UserOrGroupSid="S-1-1-0" Action="Allow">
+      <Conditions>
+        <FilePublisherCondition PublisherName="O=ADOBE INC., L=SAN JOSE, S=CALIFORNIA, C=US" ProductName="*" BinaryName="*">
+          <BinaryVersionRange LowSection="*" HighSection="*"/>
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>
+    <FilePathRule Id="e61c8b2c-a319-4cd0-9690-d2177cad7b55" Name="Allow Program Files" Description="Allow Program Files directory" UserOrGroupSid="S-1-1-0" Action="Allow">
+      <Conditions>
+        <FilePathCondition Path="C:\Program Files\*"/>
+      </Conditions>
+    </FilePathRule>
+    <FilePublisherRule Id="f61c8b2c-a319-4cd0-9690-d2177cad7b56" Name="Microsoft Publisher Rule Duplicate" Description="Duplicate Microsoft rule" UserOrGroupSid="S-1-1-0" Action="Allow">
+      <Conditions>
+        <FilePublisherCondition PublisherName="O=MICROSOFT CORPORATION, L=REDMOND, S=WASHINGTON, C=US" ProductName="*" BinaryName="*">
+          <BinaryVersionRange LowSection="*" HighSection="*"/>
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>
+  </RuleCollection>
+  <RuleCollection Type="Msi" EnforcementMode="NotConfigured">
+    <FilePublisherRule Id="g61c8b2c-a319-4cd0-9690-d2177cad7b57" Name="Microsoft MSI Rule" Description="Allows Microsoft MSI" UserOrGroupSid="S-1-1-0" Action="Allow">
+      <Conditions>
+        <FilePublisherCondition PublisherName="O=MICROSOFT CORPORATION, L=REDMOND, S=WASHINGTON, C=US" ProductName="*" BinaryName="*">
+          <BinaryVersionRange LowSection="*" HighSection="*"/>
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>
+  </RuleCollection>
+  <RuleCollection Type="Script" EnforcementMode="NotConfigured">
+  </RuleCollection>
+  <RuleCollection Type="Dll" EnforcementMode="NotConfigured">
+  </RuleCollection>
+  <RuleCollection Type="Appx" EnforcementMode="NotConfigured">
+  </RuleCollection>
+</AppLockerPolicy>
