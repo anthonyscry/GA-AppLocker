@@ -669,7 +669,7 @@ function Invoke-SimpleScan {
                                     else { "" }
                                 }
                             }
-                            catch { }
+                            catch { continue }
                         }
                     }
                     return $executables
