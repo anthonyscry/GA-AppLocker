@@ -28,6 +28,11 @@ on:
         required: false
         type: boolean
         default: false
+      debug:
+        description: 'Enable debug output'
+        required: false
+        type: boolean
+        default: false
 
 env:
   DOTNET_VERSION: '8.0.x'
@@ -45,6 +50,29 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+
+    - name: Environment Diagnostics
+      if: github.event.inputs.debug == 'true'
+      shell: pwsh
+      run: |
+        Write-Host "=== Environment Diagnostics ===" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "PowerShell Version:" -ForegroundColor Yellow
+        $PSVersionTable | Format-Table -AutoSize
+        Write-Host ""
+        Write-Host "OS Information:" -ForegroundColor Yellow
+        [System.Environment]::OSVersion | Format-List
+        Write-Host ""
+        Write-Host "Working Directory:" -ForegroundColor Yellow
+        Get-Location
+        Write-Host ""
+        Write-Host "Repository Files:" -ForegroundColor Yellow
+        Get-ChildItem -Path . -Recurse -File -Include *.ps1,*.psm1,*.psd1 |
+          Select-Object FullName, Length, LastWriteTime |
+          Format-Table -AutoSize
+        Write-Host ""
+        Write-Host "Git Info:" -ForegroundColor Yellow
+        git log -1 --format="Commit: %H%nAuthor: %an%nDate: %ai%nMessage: %s"
 
     - name: Install PSScriptAnalyzer
       shell: pwsh
@@ -93,6 +121,11 @@ jobs:
               $color = if ($_.Severity -eq 'Error') { 'Red' } else { 'Yellow' }
               Write-Host "  Line $($_.Line): [$($_.Severity)] $($_.RuleName)" -ForegroundColor $color
               Write-Host "    $($_.Message)" -ForegroundColor Gray
+
+              # GitHub file annotations - shows in PR diff view
+              $level = if ($_.Severity -eq 'Error') { 'error' } else { 'warning' }
+              $file = $_.ScriptName -replace '^.*[/\\]', ''
+              Write-Host "::$level file=$($_.ScriptName),line=$($_.Line),col=$($_.Column)::[$($_.RuleName)] $($_.Message)"
             }
           }
         }
@@ -267,6 +300,30 @@ jobs:
           ./security-report.json
         retention-days: 14
 
+    - name: Generate Job Summary
+      if: always()
+      shell: pwsh
+      run: |
+        $summary = @"
+        ## PowerShell Code Review Results
+
+        | Check | Result | Details |
+        |-------|--------|---------|
+        | Code Quality | $(if (${{ steps.lint.outcome == 'success' }}) { '✅ Passed' } else { '❌ Failed' }) | Errors: ${{ steps.lint.outputs.ERRORS || '0' }}, Warnings: ${{ steps.lint.outputs.WARNINGS || '0' }} |
+        | Security Analysis | $(if (${{ steps.security.outcome == 'success' }}) { '✅ Passed' } else { '⚠️ Issues' }) | Violations: ${{ steps.security.outputs.SECURITY_ISSUES || '0' }}, Secrets: ${{ steps.security.outputs.SECRET_FINDINGS || '0' }} |
+        | XAML Validation | $(if (${{ steps.xaml.outcome == 'success' }}) { '✅ Passed' } else { '❌ Failed' }) | Errors: ${{ steps.xaml.outputs.XAML_ERRORS || '0' }} |
+
+        ### Files Analyzed
+        ``````
+        $(Get-ChildItem -Path . -Include *.ps1,*.psm1,*.psd1 -Recurse -File | Where-Object { $_.FullName -notmatch '\\Tests\\|\\\.git\\' } | Measure-Object | Select-Object -ExpandProperty Count) PowerShell files
+        ``````
+
+        ---
+        *Run ID: ${{ github.run_id }} | Commit: ${{ github.sha }}*
+        "@
+
+        $summary | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8
+
   #############################################
   # PowerShell Tests
   #############################################
@@ -342,6 +399,39 @@ jobs:
         name: test-results
         path: ./test-results.xml
         retention-days: 14
+
+    - name: Generate Test Summary
+      if: always()
+      shell: pwsh
+      run: |
+        $passed = '${{ steps.pester.outputs.TESTS_PASSED }}' -as [int]
+        $failed = '${{ steps.pester.outputs.TESTS_FAILED }}' -as [int]
+        $total = '${{ steps.pester.outputs.TESTS_RUN }}' -as [int]
+        $passRate = if ($total -gt 0) { [math]::Round(($passed / $total) * 100, 1) } else { 0 }
+
+        $summary = @"
+        ## Pester Test Results
+
+        | Metric | Value |
+        |--------|-------|
+        | Total Tests | $total |
+        | ✅ Passed | $passed |
+        | ❌ Failed | $failed |
+        | Pass Rate | $passRate% |
+
+        $(if ($failed -gt 0) {
+          "### ⚠️ Failed Tests`nCheck the test-results.xml artifact for details."
+        } elseif ($total -eq 0) {
+          "### ℹ️ No Tests Found`nConsider adding Pester tests to validate functionality."
+        } else {
+          "### ✅ All Tests Passed"
+        })
+
+        ---
+        *Run ID: ${{ github.run_id }} | Commit: ${{ github.sha }}*
+        "@
+
+        $summary | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8
 
   #############################################
   # Build .NET Application
