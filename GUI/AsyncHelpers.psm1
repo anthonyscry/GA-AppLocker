@@ -251,21 +251,27 @@ function Get-AllAsyncOperations {
         return @()
     }
 
-    # Take a snapshot of keys to avoid "Stack empty" error during enumeration
-    $keys = @($Script:ActiveJobs.Keys)
+    # Use ToArray() to get a proper snapshot and avoid "Stack empty" error during enumeration
+    # This is safer than iterating .Keys on a ConcurrentDictionary during concurrent modifications
     $results = @()
-
-    foreach ($key in $keys) {
-        $job = $null
-        if ($Script:ActiveJobs.TryGetValue($key, [ref]$job)) {
-            $results += [PSCustomObject]@{
-                Id = $key
-                OperationName = $job.OperationName
-                StartTime = $job.StartTime
-                IsCompleted = $job.Handle.IsCompleted
-                Duration = (Get-Date) - $job.StartTime
+    try {
+        $snapshot = $Script:ActiveJobs.ToArray()
+        foreach ($kvp in $snapshot) {
+            $job = $kvp.Value
+            if ($null -ne $job) {
+                $results += [PSCustomObject]@{
+                    Id = $kvp.Key
+                    OperationName = $job.OperationName
+                    StartTime = $job.StartTime
+                    IsCompleted = $job.Handle.IsCompleted
+                    Duration = (Get-Date) - $job.StartTime
+                }
             }
         }
+    }
+    catch {
+        # If enumeration fails, return what we have so far
+        Write-Verbose "Error enumerating async operations: $_"
     }
 
     return $results
