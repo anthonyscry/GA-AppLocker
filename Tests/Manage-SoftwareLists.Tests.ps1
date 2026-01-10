@@ -242,7 +242,7 @@ Describe 'Save-SoftwareList' {
             Save-SoftwareList -List $list -ListPath $savePath -CreateBackup
 
             # Check backup exists
-            "$savePath.bak" | Should -Exist
+            Test-Path "$savePath.bak" | Should -Be $true
         }
 
         It 'Returns false when saving null list' {
@@ -290,7 +290,7 @@ Describe 'Test Fixture Loading' {
             $result = Get-SoftwareList -ListPath $script:fixtureListPath
 
             $result | Should -Not -BeNullOrEmpty
-            $result.Name | Should -Be 'TestSoftwareList'
+            $result.metadata.name | Should -Be 'TestSoftwareList'
         }
     }
 
@@ -298,7 +298,7 @@ Describe 'Test Fixture Loading' {
         if (Test-Path $script:fixtureListPath) {
             $result = Get-SoftwareList -ListPath $script:fixtureListPath
 
-            $itemTypes = $result.Items | ForEach-Object { $_.Type }
+            $itemTypes = $result.items | ForEach-Object { $_.ruleType }
             $itemTypes | Should -Contain 'Publisher'
             $itemTypes | Should -Contain 'Path'
             $itemTypes | Should -Contain 'Hash'
