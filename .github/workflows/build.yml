@@ -89,6 +89,18 @@ jobs:
 
         $results = @()
 
+        # Rules to exclude globally
+        # - PSAvoidUsingWriteHost: Appropriate for CLI tools with user feedback
+        # - PSUseConsistentIndentation: Project uses scriptblock-reset style
+        # - PSUseConsistentWhitespace: Conflicts with scriptblock indentation style
+        # - PSUseBOMForUnicodeEncodedFile: BOM not required for UTF-8 in modern systems
+        $excludeRules = @(
+          'PSAvoidUsingWriteHost',
+          'PSUseConsistentIndentation',
+          'PSUseConsistentWhitespace',
+          'PSUseBOMForUnicodeEncodedFile'
+        )
+
         # Analyze all PowerShell files
         $psFiles = Get-ChildItem -Path . -Include *.ps1, *.psm1, *.psd1 -Recurse -File |
                    Where-Object { $_.FullName -notmatch '\\Tests\\|\\\.git\\' }
@@ -96,7 +108,7 @@ jobs:
         Write-Host "Found $($psFiles.Count) PowerShell files to analyze"
 
         foreach ($file in $psFiles) {
-          $fileResults = Invoke-ScriptAnalyzer -Path $file.FullName -ExcludeRule PSAvoidUsingWriteHost -Severity Warning, Error
+          $fileResults = Invoke-ScriptAnalyzer -Path $file.FullName -ExcludeRule $excludeRules -Severity Warning, Error
           if ($fileResults) {
             $results += $fileResults
           }
