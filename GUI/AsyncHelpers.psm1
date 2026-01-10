@@ -246,17 +246,29 @@ function Get-AllAsyncOperations {
     .SYNOPSIS
         Get all active async operations
     #>
-    # Use array subexpression to ensure we always return an array (even if empty)
-    @($Script:ActiveJobs.Keys | ForEach-Object {
-        $job = $Script:ActiveJobs[$_]
-        [PSCustomObject]@{
-            Id = $_
-            OperationName = $job.OperationName
-            StartTime = $job.StartTime
-            IsCompleted = $job.Handle.IsCompleted
-            Duration = (Get-Date) - $job.StartTime
+    # Return empty array if no jobs exist
+    if ($null -eq $Script:ActiveJobs -or $Script:ActiveJobs.Count -eq 0) {
+        return @()
+    }
+
+    # Take a snapshot of keys to avoid "Stack empty" error during enumeration
+    $keys = @($Script:ActiveJobs.Keys)
+    $results = @()
+
+    foreach ($key in $keys) {
+        $job = $null
+        if ($Script:ActiveJobs.TryGetValue($key, [ref]$job)) {
+            $results += [PSCustomObject]@{
+                Id = $key
+                OperationName = $job.OperationName
+                StartTime = $job.StartTime
+                IsCompleted = $job.Handle.IsCompleted
+                Duration = (Get-Date) - $job.StartTime
+            }
         }
-    })
+    }
+
+    return $results
 }
 
 # Export functions

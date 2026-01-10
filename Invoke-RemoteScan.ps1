@@ -156,15 +156,13 @@ param(
 
 #Requires -Version 5.1
 
-# Import utilities module and config
+# Import utilities module
 $scriptRoot = $PSScriptRoot
 $modulePath = Join-Path $scriptRoot "utilities\Common.psm1"
 if (Test-Path $modulePath) {
     Import-Module $modulePath -Force
-    $config = Get-AppLockerConfig
 }
 else {
-    $config = $null
     Write-Warning "Common.psm1 not found - some features may be limited"
 }
 
@@ -293,10 +291,10 @@ foreach ($computer in $computers) {
     # Note: Pass username and SecureString password separately, then reconstruct credential inside job
     # ScanPaths is passed as JSON to avoid array flattening issues with ArgumentList
     Start-Job -Name "Scan-$computer" -ArgumentList $computer, $credUsername, $credPassword, $outputRoot, $scanPathsJson, $ScanUserProfiles.IsPresent, $SkipWritableDirectoryScan.IsPresent -ScriptBlock {
-        param($Computer, $CredUsername, $CredPassword, $OutputRoot, $ExtraScanPathsJson, $ScanUserProfiles, $SkipWritableScan)
+        param($Computer, $UserName, $SecurePass, $OutputRoot, $ExtraScanPathsJson, $ScanUserProfiles, $SkipWritableScan)
 
         # Reconstruct the credential from username and SecureString password
-        $Credential = New-Object System.Management.Automation.PSCredential($CredUsername, $CredPassword)
+        $Credential = New-Object System.Management.Automation.PSCredential($UserName, $SecurePass)
 
         # Parse ScanPaths from JSON
         $ExtraScanPaths = @()

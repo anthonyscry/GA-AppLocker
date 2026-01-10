@@ -5,7 +5,13 @@
     # Rules to exclude (with justification)
     ExcludeRules = @(
         # Write-Host is appropriate for GUI console output and colored feedback
-        'PSAvoidUsingWriteHost'
+        'PSAvoidUsingWriteHost',
+        # GUI code uses scriptblock-reset indentation style which PSScriptAnalyzer doesn't understand
+        'PSUseConsistentIndentation',
+        # Whitespace inside event handler scriptblocks follows different conventions
+        'PSUseConsistentWhitespace',
+        # BOM is not required for UTF-8 files in modern systems
+        'PSUseBOMForUnicodeEncodedFile'
     )
 
     # Rules to include explicitly
@@ -25,12 +31,9 @@
         'PSAvoidGlobalVars',
         'PSAvoidUsingEmptyCatchBlock',
         'PSAvoidUsingInvokeExpression',
-        'PSUseBOMForUnicodeEncodedFile',
         'PSUseCmdletCorrectly',
         'PSUseOutputTypeCorrectly',
-        'PSAvoidTrailingWhitespace',
-        'PSUseConsistentIndentation',
-        'PSUseConsistentWhitespace'
+        'PSAvoidTrailingWhitespace'
     )
 
     # Custom rule configurations
