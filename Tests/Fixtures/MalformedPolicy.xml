@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<!-- This is an intentionally malformed XML file for testing -->
+<AppLockerPolicy Version="1">
+  <RuleCollection Type="Exe" EnforcementMode="AuditOnly">
+    <FilePathRule Id="broken" Name="Broken Rule" UserOrGroupSid="S-1-1-0" Action="Allow">
+      <!-- Missing closing tag -->
+      <Conditions>
+        <FilePathCondition Path="C:\Test\*"
+</AppLockerPolicy>

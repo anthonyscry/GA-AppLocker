@@ -8,7 +8,7 @@
 
 BeforeAll {
     # Get paths
-    $scriptPath = Join-Path $PSScriptRoot '..\Merge-AppLockerPolicies.ps1'
+    $scriptPath = Join-Path $PSScriptRoot '..\src\Core\Merge-AppLockerPolicies.ps1'
     $fixturesPath = Join-Path $PSScriptRoot 'Fixtures'
 
     # Create temp output directory for tests

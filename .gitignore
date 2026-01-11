@@ -1,3 +1,8 @@
+# Windows special files
+nul
+con
+prn
+aux
 
 # Playwright
 node_modules/
@@ -6,3 +11,14 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# Build artifacts
+/Build/
+
+# IDE settings
+.vscode/
+*.code-workspace
+
+# Temporary files
+*.tmp
+*.log

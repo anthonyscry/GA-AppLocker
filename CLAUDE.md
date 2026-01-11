@@ -26,24 +26,54 @@
 
 ```
 GA-AppLocker/
-├── Start-AppLockerWorkflow.ps1      # Main entry point (interactive menu + parameter modes)
-├── Invoke-RemoteScan.ps1            # WinRM-based remote data collection
-├── Invoke-RemoteEventCollection.ps1 # AppLocker audit event collection (8003/8004)
-├── New-AppLockerPolicyFromGuide.ps1 # Policy generation (Build Guide + Simplified modes)
-├── Merge-AppLockerPolicies.ps1      # Policy consolidation with deduplication
+├── GA-AppLocker.exe                 # Standalone portable executable (main entry)
+├── GA-AppLocker.psd1                # PowerShell module manifest
+├── GA-AppLocker.psm1                # Root module with wrapper functions
+├── README.md                        # Full documentation
+├── LICENSE
 ├── ADManagement/                    # AD-related files (created automatically)
-│   ├── computers.csv                # Target computer list (from AD export)
-│   ├── groups.csv                   # Group memberships for import
-│   └── ADUserGroups-Export.csv      # User export for editing
-├── utilities/
-│   ├── Common.psm1                  # Shared functions (SID resolution, XML helpers, logging)
-│   ├── Config.psd1                  # Centralized configuration (LOLBins, SIDs, paths)
-│   ├── Manage-SoftwareLists.ps1     # Software whitelist management (JSON storage)
-│   ├── Enable-WinRM-Domain.ps1      # GPO-based WinRM deployment
-│   ├── Manage-ADResources.ps1       # AD OU and security group creation
-│   ├── Compare-SoftwareInventory.ps1 # Compare executables between machines
-│   └── Test-AppLockerDiagnostic.ps1 # Connectivity troubleshooting
-└── README.md                        # Full documentation
+│   └── computers.csv.example
+├── build/
+│   ├── Build-AppLocker.ps1          # Full build orchestrator
+│   ├── Build-Executable.ps1         # CLI executable compilation
+│   ├── Build-GUI.ps1                # GUI executable compilation
+│   ├── Invoke-LocalValidation.ps1   # Pre-commit validation
+│   └── Publish-ToGallery.ps1        # PowerShell Gallery publishing
+├── src/
+│   ├── Core/                        # Core workflow scripts
+│   │   ├── Start-AppLockerWorkflow.ps1   # Main entry point
+│   │   ├── Start-GUI.ps1                 # GUI launcher
+│   │   ├── Invoke-RemoteScan.ps1         # WinRM-based scanning
+│   │   ├── Invoke-RemoteEventCollection.ps1  # Audit event collection
+│   │   ├── New-AppLockerPolicyFromGuide.ps1  # Policy generation
+│   │   └── Merge-AppLockerPolicies.ps1   # Policy merging
+│   ├── GUI/
+│   │   ├── GA-AppLocker-Portable.ps1     # WPF GUI application
+│   │   ├── AsyncHelpers.psm1             # Async execution module
+│   │   ├── Scripts/                      # Setup scripts
+│   │   └── Tests/                        # GUI-specific tests
+│   └── Utilities/
+│       ├── Common.psm1                   # Shared functions
+│       ├── Config.psd1                   # Centralized configuration
+│       ├── ErrorHandling.psm1            # Standardized error handling
+│       ├── CredentialManager.psm1        # Secure credential storage
+│       ├── Manage-SoftwareLists.ps1      # Software whitelist management
+│       ├── PolicyVersionControl.psm1     # Git-like policy versioning
+│       ├── PolicyTemplates.psd1          # Industry-specific templates
+│       ├── WhitelistRequestManager.psm1  # Self-service whitelist workflows
+│       ├── Start-AppLockerMonitor.ps1    # Continuous monitoring
+│       ├── Export-AppLockerGPO.ps1       # GPO/SCCM/Intune export
+│       ├── Get-RuleImpactAnalysis.ps1    # Pre-deployment analysis
+│       ├── Invoke-PhaseAdvancement.ps1   # Automatic phase progression
+│       ├── New-PolicyFromTemplate.ps1    # Template-based generation
+│       ├── Test-RuleHealth.ps1           # Rule health checking
+│       ├── Enable-WinRM-Domain.ps1       # WinRM deployment
+│       ├── Manage-ADResources.ps1        # AD management
+│       ├── Compare-SoftwareInventory.ps1 # Inventory comparison
+│       └── Test-AppLockerDiagnostic.ps1  # Diagnostics
+├── Tests/                           # Pester test files
+├── assets/                          # Icons and images
+└── docs/                            # Additional documentation
 ```
 
 ## Key Patterns and Conventions
@@ -86,6 +116,12 @@ GA-AppLocker/
 - **Output Defaults**: Validate/Merge workflows default to `./Outputs` folder
 - **Auto-selection**: Compare workflow auto-selects InstalledSoftware.csv
 
+### GUI Features
+- **Button State Management**: Buttons disabled during long operations to prevent conflicts
+- **Operation Cancellation**: Cancel button appears during long operations (cancels at next output line)
+- **Keyboard Shortcuts**: Ctrl+1-6 for navigation, F1 for help (tooltips show shortcuts)
+- **Progress Indicators**: Visual feedback during XML validation and file processing
+
 ### Software List Management
 The toolkit includes advanced software list features for curated allowlists:
 
@@ -100,53 +136,193 @@ The toolkit includes advanced software list features for curated allowlists:
 
 ## Common Commands
 
-### Interactive Mode
+### Recommended: Use the EXE
 ```powershell
-.\Start-AppLockerWorkflow.ps1
+# Double-click GA-AppLocker.exe in the root folder
+# Or run from command line:
+.\GA-AppLocker.exe
+```
+
+### Interactive Mode (PowerShell)
+```powershell
+.\src\Core\Start-AppLockerWorkflow.ps1
 ```
 
 ### Direct Parameter Mode
 ```powershell
 # Quick scan
-.\Start-AppLockerWorkflow.ps1 -Mode Scan -ComputerList .\ADManagement\computers.csv
+.\src\Core\Start-AppLockerWorkflow.ps1 -Mode Scan -ComputerList .\ADManagement\computers.csv
 
 # Generate simplified policy
-.\Start-AppLockerWorkflow.ps1 -Mode Generate -ScanPath .\Scans -Simplified
+.\src\Core\Start-AppLockerWorkflow.ps1 -Mode Generate -ScanPath .\Scans -Simplified
 
 # Generate Build Guide policy
-.\Start-AppLockerWorkflow.ps1 -Mode Generate -ScanPath .\Scans\Scan-20260109 `
+.\src\Core\Start-AppLockerWorkflow.ps1 -Mode Generate -ScanPath .\Scans\Scan-20260109 `
     -TargetType Workstation -DomainName CONTOSO -Phase 1
 
 # Validate policy
-.\Start-AppLockerWorkflow.ps1 -Mode Validate -PolicyPath .\policy.xml
+.\src\Core\Start-AppLockerWorkflow.ps1 -Mode Validate -PolicyPath .\policy.xml
 
 # Full workflow (Scan + Generate)
-.\Start-AppLockerWorkflow.ps1 -Mode Full -ComputerList .\ADManagement\computers.csv
+.\src\Core\Start-AppLockerWorkflow.ps1 -Mode Full -ComputerList .\ADManagement\computers.csv
 
 # Collect AppLocker audit events (blocked apps from last 14 days)
-.\Start-AppLockerWorkflow.ps1 -Mode Events -ComputerList .\ADManagement\computers.csv
+.\src\Core\Start-AppLockerWorkflow.ps1 -Mode Events -ComputerList .\ADManagement\computers.csv
 
 # Collect events from last 30 days
-.\Start-AppLockerWorkflow.ps1 -Mode Events -ComputerList .\ADManagement\computers.csv -DaysBack 30
+.\src\Core\Start-AppLockerWorkflow.ps1 -Mode Events -ComputerList .\ADManagement\computers.csv -DaysBack 30
 
 # Collect all audit events (blocked + allowed)
-.\Start-AppLockerWorkflow.ps1 -Mode Events -ComputerList .\ADManagement\computers.csv -IncludeAllowedEvents
+.\src\Core\Start-AppLockerWorkflow.ps1 -Mode Events -ComputerList .\ADManagement\computers.csv -IncludeAllowedEvents
 ```
 
 ### Utility Scripts
 ```powershell
 # Software list management (use interactive menu [S] from main workflow)
-.\Start-AppLockerWorkflow.ps1
+.\src\Core\Start-AppLockerWorkflow.ps1
 # Select [S] Software → [4] Publishers to import trusted publishers
 
 # Compare inventories
-.\utilities\Compare-SoftwareInventory.ps1 -ReferencePath .\baseline.csv -ComparePath .\target.csv
+.\src\Utilities\Compare-SoftwareInventory.ps1 -ReferencePath .\baseline.csv -ComparePath .\target.csv
 
 # Diagnostics
-.\utilities\Test-AppLockerDiagnostic.ps1 -ComputerName TARGET-PC
+.\src\Utilities\Test-AppLockerDiagnostic.ps1 -ComputerName TARGET-PC
 
 # WinRM setup
-.\utilities\Enable-WinRM-Domain.ps1
+.\src\Utilities\Enable-WinRM-Domain.ps1
+```
+
+### Advanced Features (v1.1.0)
+```powershell
+# Continuous monitoring with alerts
+.\src\Utilities\Start-AppLockerMonitor.ps1 -ComputerListPath .\computers.txt -IntervalMinutes 30
+
+# Background monitoring with webhook alerts
+.\src\Utilities\Start-AppLockerMonitor.ps1 -ComputerListPath .\computers.txt -AsJob `
+    -AlertWebhook "https://teams.webhook.url" -AlertThreshold 5
+
+# Export policy for GPO deployment
+.\src\Utilities\Export-AppLockerGPO.ps1 -PolicyPath .\policy.xml -OutputPath .\GPO-Export
+
+# Export for specific deployment method (GPOBackup, PowerShell, Registry, SCCM, Intune)
+.\src\Utilities\Export-AppLockerGPO.ps1 -PolicyPath .\policy.xml -Format Intune
+
+# Pre-deployment impact analysis
+.\src\Utilities\Get-RuleImpactAnalysis.ps1 -PolicyPath .\new-policy.xml -ScanPath .\Scans
+
+# Detailed impact with current policy comparison
+.\src\Utilities\Get-RuleImpactAnalysis.ps1 -PolicyPath .\new-policy.xml -ScanPath .\Scans `
+    -CurrentPolicyPath .\current.xml -Detailed
+
+# Publish to PowerShell Gallery
+.\build\Publish-ToGallery.ps1 -ApiKey "your-api-key"
+
+# Preview what would be published
+.\build\Publish-ToGallery.ps1 -WhatIf
+```
+
+### Policy Lifecycle Features (v1.2.0)
+```powershell
+# Initialize policy version control repository
+Import-Module .\src\Utilities\PolicyVersionControl.psm1
+Initialize-PolicyRepository -Path .\PolicyRepo
+
+# Save a policy version with message
+Save-PolicyVersion -PolicyPath .\policy.xml -Message "Added Chrome rules"
+
+# View policy history
+Show-PolicyLog -Last 10
+
+# Compare policy versions
+Compare-PolicyVersions -Version1 "v1" -Version2 "v2"
+
+# Restore previous version
+Restore-PolicyVersion -Version "v3"
+
+# Branch management for testing
+New-PolicyBranch -Name "test-dlls"
+Switch-PolicyBranch -Name "main"
+```
+
+### Industry Templates (v1.2.0)
+```powershell
+# List available templates
+.\src\Utilities\New-PolicyFromTemplate.ps1 -ListTemplates
+
+# Get detailed template info
+.\src\Utilities\New-PolicyFromTemplate.ps1 -TemplateInfo Healthcare
+
+# Generate policy from template
+.\src\Utilities\New-PolicyFromTemplate.ps1 -Template FinancialServices -Phase 1
+
+# Generate with custom publishers
+.\src\Utilities\New-PolicyFromTemplate.ps1 -Template Government -Phase 2 `
+    -CustomPublishers @('O=MY COMPANY*')
+```
+
+**Available Templates:**
+- **FinancialServices**: SOX/PCI-DSS compliance (Banking, Insurance)
+- **Healthcare**: HIPAA/HITECH compliance (Hospitals, Clinics)
+- **Government**: NIST/CMMC compliance (Federal, State, Defense)
+- **Manufacturing**: ICS/OT integration (Automotive, Aerospace)
+- **Education**: FERPA/COPPA compliance (K-12, Higher Ed)
+- **Retail**: PCI-DSS for POS systems
+- **SmallBusiness**: Balanced productivity/security
+
+### Phase Advancement (v1.2.0)
+```powershell
+# Check if ready for next phase
+.\src\Utilities\Invoke-PhaseAdvancement.ps1 -CurrentPhase 1 -EventPath .\Events
+
+# With custom thresholds
+.\src\Utilities\Invoke-PhaseAdvancement.ps1 -CurrentPhase 2 -EventPath .\Events `
+    -Thresholds @{ MaxBlockedPerDay = 5; MinAuditDays = 14 }
+
+# Auto-advance if ready
+.\src\Utilities\Invoke-PhaseAdvancement.ps1 -CurrentPhase 1 -EventPath .\Events -AutoAdvance
+```
+
+### Rule Health Checking (v1.2.0)
+```powershell
+# Run health check on policy
+.\src\Utilities\Test-RuleHealth.ps1 -PolicyPath .\policy.xml
+
+# With scan data for usage analysis
+.\src\Utilities\Test-RuleHealth.ps1 -PolicyPath .\policy.xml -ScanPath .\Scans
+
+# Full check with certificate validation
+.\src\Utilities\Test-RuleHealth.ps1 -PolicyPath .\policy.xml -CheckCertificates `
+    -EventPath .\Events -OutputPath .\Reports
+```
+
+**Health Checks:**
+- Path validation (broken paths, environment variables)
+- Publisher validation (wildcards, certificate expiry)
+- Hash validation (matching files exist)
+- Rule conflicts (overlapping allow/deny)
+- SID validation (resolvable principals)
+- Usage analysis (never-matched rules)
+
+### Self-Service Whitelist Requests (v1.2.0)
+```powershell
+Import-Module .\src\Utilities\WhitelistRequestManager.psm1
+
+# Initialize request system
+Initialize-WhitelistSystem -RequestsPath .\Requests -ApproversGroup "AppLocker-Approvers"
+
+# Submit a whitelist request
+New-WhitelistRequest -ApplicationPath "C:\Apps\MyApp.exe" `
+    -Justification "Required for daily operations" `
+    -Requester "john.doe@company.com"
+
+# List pending requests
+Get-WhitelistRequests -Status Pending
+
+# Approve request (creates policy rule automatically)
+Approve-WhitelistRequest -RequestId "REQ-001" -Approver "admin@company.com"
+
+# Reject request
+Deny-WhitelistRequest -RequestId "REQ-002" -Reason "Security concern"
 ```
 
 ## Important Parameters
@@ -178,10 +354,37 @@ The toolkit follows these security principles:
 
 ### When Modifying Scripts
 - Import `Common.psm1` for shared functions
+- Import `ErrorHandling.psm1` for standardized error handling
 - Reference `Config.psd1` for configurable values
 - Follow existing parameter patterns for consistency
 - Use `Write-Host` with color for user feedback
 - Support both interactive and parameter-driven modes
+
+### ErrorHandling.psm1 Functions
+```powershell
+# Standardized error handling
+Invoke-SafeOperation -ScriptBlock { ... } -ErrorMessage "Operation failed" -ContinueOnError
+
+# Input validation
+Test-ValidPath -Path $path -Type Directory -MustExist -CreateIfMissing
+Test-ValidXml -Path $file -RootElement "AppLockerPolicy"
+Test-ValidAppLockerPolicy -Path $policyFile
+Test-ValidComputerList -Path $computers
+Test-RequiredKeys -Hashtable $config -RequiredKeys @('Key1', 'Key2')
+
+# Credential validation (tests WinRM connectivity)
+Test-CredentialValidity -Credential $cred -ComputerName 'TARGET-PC' -TimeoutSeconds 30
+
+# Standardized output
+Write-SectionHeader -Title "Processing..."
+Write-StepProgress -Step 1 -Total 5 -Message "Loading data"
+Write-SuccessMessage -Message "Completed successfully"
+Write-ErrorMessage -Message "Failed to process" -Throw
+Write-ResultSummary -Title "Results" -Results $results
+
+# Script initialization
+Initialize-GAAppLockerScript -RequireAdmin -RequireModules @('ActiveDirectory')
+```
 
 ### Config.psd1 Key Sections
 - `WellKnownSids` - Windows security identifiers

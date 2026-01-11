@@ -8,7 +8,7 @@
 
 BeforeAll {
     # Import the module
-    $modulePath = Join-Path $PSScriptRoot '..\utilities\Common.psm1'
+    $modulePath = Join-Path $PSScriptRoot '..\src\Utilities\Common.psm1'
     Import-Module $modulePath -Force
 }
 
@@ -208,5 +208,76 @@ Describe 'Get-AppLockerConfig' {
 
         $result.WellKnownSids | Should -Not -BeNullOrEmpty
         $result.WellKnownSids['Everyone'] | Should -Be 'S-1-1-0'
+    }
+}
+
+Describe 'Get-PublisherRuleKey' {
+    Context 'With Publisher granularity' {
+        It 'Returns publisher as key with wildcards for product and binary' {
+            $result = Get-PublisherRuleKey -Publisher 'Microsoft' -Granularity 'Publisher'
+
+            $result.Key | Should -Be 'Microsoft'
+            $result.Publisher | Should -Be 'Microsoft'
+            $result.Product | Should -Be '*'
+            $result.Binary | Should -Be '*'
+        }
+    }
+
+    Context 'With PublisherProduct granularity' {
+        It 'Returns combined key with wildcard for binary' {
+            $result = Get-PublisherRuleKey -Publisher 'Microsoft' -Product 'Office' -Granularity 'PublisherProduct'
+
+            $result.Key | Should -Be 'Microsoft|Office'
+            $result.Publisher | Should -Be 'Microsoft'
+            $result.Product | Should -Be 'Office'
+            $result.Binary | Should -Be '*'
+        }
+    }
+
+    Context 'With PublisherProductBinary granularity' {
+        It 'Returns fully qualified key' {
+            $result = Get-PublisherRuleKey -Publisher 'Microsoft' -Product 'Office' -Binary 'excel.exe' -Granularity 'PublisherProductBinary'
+
+            $result.Key | Should -Be 'Microsoft|Office|excel.exe'
+            $result.Publisher | Should -Be 'Microsoft'
+            $result.Product | Should -Be 'Office'
+            $result.Binary | Should -Be 'excel.exe'
+        }
+    }
+}
+
+Describe 'Add-PublisherRule' {
+    BeforeEach {
+        $script:Rules = @{}
+    }
+
+    It 'Adds new rule and returns true' {
+        $result = Add-PublisherRule -Rules $script:Rules -Publisher 'Microsoft' -Granularity 'Publisher'
+
+        $result | Should -BeTrue
+        $script:Rules.Count | Should -Be 1
+        $script:Rules['Microsoft'].Publisher | Should -Be 'Microsoft'
+    }
+
+    It 'Returns false for duplicate rule' {
+        Add-PublisherRule -Rules $script:Rules -Publisher 'Microsoft' -Granularity 'Publisher'
+        $result = Add-PublisherRule -Rules $script:Rules -Publisher 'Microsoft' -Granularity 'Publisher'
+
+        $result | Should -BeFalse
+        $script:Rules.Count | Should -Be 1
+    }
+
+    It 'Includes source when specified' {
+        Add-PublisherRule -Rules $script:Rules -Publisher 'Adobe' -Granularity 'Publisher' -Source 'ScanData'
+
+        $script:Rules['Adobe'].Source | Should -Be 'ScanData'
+    }
+
+    It 'Handles different granularities correctly' {
+        # Same publisher but different granularity should create different keys
+        Add-PublisherRule -Rules $script:Rules -Publisher 'Microsoft' -Product 'Office' -Binary 'word.exe' -Granularity 'PublisherProductBinary'
+        Add-PublisherRule -Rules $script:Rules -Publisher 'Microsoft' -Product 'Office' -Binary 'excel.exe' -Granularity 'PublisherProductBinary'
+
+        $script:Rules.Count | Should -Be 2
     }
 }

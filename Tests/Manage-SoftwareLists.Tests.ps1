@@ -9,7 +9,7 @@
 
 BeforeAll {
     # Import the script to get access to functions
-    $scriptPath = Join-Path $PSScriptRoot '..\utilities\Manage-SoftwareLists.ps1'
+    $scriptPath = Join-Path $PSScriptRoot '..\src\Utilities\Manage-SoftwareLists.ps1'
     . $scriptPath
 
     # Create temp output directory for tests

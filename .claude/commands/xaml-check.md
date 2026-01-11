@@ -18,8 +18,8 @@ Get-ChildItem -Path ./GUI -Filter "*.ps1" -Recurse |
 3. If the validation script doesn't exist, create it and run validation manually:
 
 ```powershell
-# Extract and validate XAML from Start-AppLockerGUI.ps1
-$content = Get-Content -Path ./GUI/Start-AppLockerGUI.ps1 -Raw
+# Extract and validate XAML from GA-AppLocker-Portable.ps1
+$content = Get-Content -Path ./GUI/GA-AppLocker-Portable.ps1 -Raw
 
 # Find XAML here-string
 if ($content -match '(?s)\[xml\]\$xaml\s*=\s*@"(.+?)"@') {

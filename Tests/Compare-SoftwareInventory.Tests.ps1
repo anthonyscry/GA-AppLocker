@@ -9,7 +9,7 @@
 
 BeforeAll {
     # Get paths
-    $scriptPath = Join-Path $PSScriptRoot '..\utilities\Compare-SoftwareInventory.ps1'
+    $scriptPath = Join-Path $PSScriptRoot '..\src\Utilities\Compare-SoftwareInventory.ps1'
     $fixturesPath = Join-Path $PSScriptRoot 'Fixtures'
 
     # Create temp output directory for tests

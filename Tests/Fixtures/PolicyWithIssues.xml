@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Policy with various health check issues for testing -->
+<AppLockerPolicy Version="1">
+  <RuleCollection Type="Exe" EnforcementMode="AuditOnly">
+    <!-- Overly permissive rule (Critical) -->
+    <FilePathRule Id="a1111111-1111-1111-1111-111111111111" Name="Overly Permissive" Description="Allows everything" UserOrGroupSid="S-1-1-0" Action="Allow">
+      <Conditions>
+        <FilePathCondition Path="C:\*"/>
+      </Conditions>
+    </FilePathRule>
+
+    <!-- Path that likely doesn't exist (Warning) -->
+    <FilePathRule Id="a2222222-2222-2222-2222-222222222222" Name="Nonexistent Path" Description="Path unlikely to exist" UserOrGroupSid="S-1-1-0" Action="Allow">
+      <Conditions>
+        <FilePathCondition Path="C:\NonExistentFolder12345\SubFolder\*"/>
+      </Conditions>
+    </FilePathRule>
+
+    <!-- Wildcard publisher (Critical) -->
+    <FilePublisherRule Id="a3333333-3333-3333-3333-333333333333" Name="Wildcard Publisher" Description="Allows any signed file" UserOrGroupSid="S-1-1-0" Action="Allow">
+      <Conditions>
+        <FilePublisherCondition PublisherName="*" ProductName="*" BinaryName="*">
+          <BinaryVersionRange LowSection="*" HighSection="*"/>
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>
+
+    <!-- Conflicting allow/deny rules (Warning) -->
+    <FilePathRule Id="a4444444-4444-4444-4444-444444444444" Name="Allow Temp" Description="Allow temp" UserOrGroupSid="S-1-1-0" Action="Allow">
+      <Conditions>
+        <FilePathCondition Path="%TEMP%\*"/>
+      </Conditions>
+    </FilePathRule>
+    <FilePathRule Id="a5555555-5555-5555-5555-555555555555" Name="Deny Temp" Description="Deny temp" UserOrGroupSid="S-1-1-0" Action="Deny">
+      <Conditions>
+        <FilePathCondition Path="%TEMP%\*"/>
+      </Conditions>
+    </FilePathRule>
+
+    <!-- Unresolvable SID (Warning) -->
+    <FilePathRule Id="a6666666-6666-6666-6666-666666666666" Name="Unknown SID" Description="SID that cannot be resolved" UserOrGroupSid="S-1-5-21-9999999999-9999999999-9999999999-1234" Action="Allow">
+      <Conditions>
+        <FilePathCondition Path="%PROGRAMFILES%\*"/>
+      </Conditions>
+    </FilePathRule>
+
+    <!-- Valid rule for baseline -->
+    <FilePathRule Id="a7777777-7777-7777-7777-777777777777" Name="Valid Rule" Description="A properly configured rule" UserOrGroupSid="S-1-5-32-544" Action="Allow">
+      <Conditions>
+        <FilePathCondition Path="%WINDIR%\*"/>
+      </Conditions>
+    </FilePathRule>
+  </RuleCollection>
+
+  <RuleCollection Type="Msi" EnforcementMode="NotConfigured">
+  </RuleCollection>
+
+  <RuleCollection Type="Script" EnforcementMode="NotConfigured">
+  </RuleCollection>
+
+  <RuleCollection Type="Dll" EnforcementMode="NotConfigured">
+  </RuleCollection>
+
+  <RuleCollection Type="Appx" EnforcementMode="NotConfigured">
+  </RuleCollection>
+</AppLockerPolicy>
