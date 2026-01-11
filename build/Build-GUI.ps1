@@ -75,10 +75,10 @@ Write-Host "      Output: $OutputPath" -ForegroundColor Green
 # Build parameters
 Write-Host "[3/4] Compiling to executable..." -ForegroundColor Yellow
 
-$iconPath = Join-Path $projectRoot "assets\wsus-icon.ico"
+$iconPath = Join-Path $projectRoot "assets\general-atomics-logo.ico"
 if (-not (Test-Path $iconPath)) {
-    # Fallback to general-atomics icon
-    $iconPath = Join-Path $projectRoot "assets\general-atomics-logo.ico"
+    # Fallback to wsus icon
+    $iconPath = Join-Path $projectRoot "assets\wsus-icon.ico"
 }
 
 $buildParams = @{

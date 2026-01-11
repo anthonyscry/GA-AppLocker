@@ -12,7 +12,7 @@
 |---|---|
 | **Author** | Tony Tran, ISSO |
 | **Department** | Information Security |
-| **Version** | 1.2.2 |
+| **Version** | 1.2.3 |
 | **Last Updated** | January 2026 |
 
 ---
@@ -104,11 +104,12 @@ For automation or advanced users:
 
 | Feature | Description |
 |---------|-------------|
-| **Keyboard Shortcuts** | Ctrl+1-8 for navigation, F1 for help |
+| **Keyboard Shortcuts** | Ctrl+1-8 for navigation, Ctrl+Q quick workflow, Ctrl+R refresh, F1 for help |
 | **Operation Cancellation** | Cancel button for long-running operations |
 | **Progress Indicators** | Visual feedback during XML validation and file processing |
 | **Button State Management** | Prevents conflicts during operations |
 | **CORA Evidence Page** | Generate compliance packages directly from the GUI (Ctrl+8) |
+| **Compact UI** | Streamlined layout with consistent styling and reduced spacing |
 
 ### Advanced Features (v1.1.0+)
 
@@ -312,6 +313,7 @@ This tests:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.2.3 | January 2026 | GUI cleanup: consolidated XAML styles, compact UI with reduced margins/spacing, code organization improvements |
 | 1.2.2 | January 2026 | Bug fixes for test compatibility (PowerShell 5.1), build script improvements, download bundle placeholder |
 | 1.2.1 | January 2026 | CORA Evidence Generator for compliance audits, incremental event collection (-SinceLastRun), GUI CORA page with Ctrl+8 shortcut |
 | 1.2.0 | January 2026 | Policy version control, industry templates, phase advancement, rule health checking, whitelist request workflow, GUI improvements (keyboard shortcuts, cancellation, progress indicators) |

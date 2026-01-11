@@ -14,7 +14,7 @@
 
     To compile to EXE:
     Install-Module -Name PS2EXE -Scope CurrentUser
-    Invoke-PS2EXE -InputFile .\GA-AppLocker-Portable.ps1 -OutputFile .\GA-AppLocker.exe -NoConsole -IconFile .\assets\general-atomics-large.ico -Title "GA-AppLocker" -Version "1.0.0"
+    Invoke-PS2EXE -InputFile .\GA-AppLocker-Portable.ps1 -OutputFile .\GA-AppLocker.exe -NoConsole -IconFile .\assets\general-atomics-logo.ico -Title "GA-AppLocker" -Version "1.0.0"
 #>
 
 #Requires -Version 5.1
@@ -150,8 +150,8 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
         <Style x:Key="PrimaryButton" TargetType="Button">
             <Setter Property="Background" Value="{StaticResource AccentBlueBrush}"/>
             <Setter Property="Foreground" Value="White"/>
-            <Setter Property="Padding" Value="20,12"/>
-            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="FontSize" Value="12"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -180,8 +180,8 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
         <Style x:Key="SecondaryButton" TargetType="Button">
             <Setter Property="Background" Value="{StaticResource BgCardBrush}"/>
             <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
-            <Setter Property="Padding" Value="16,10"/>
-            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="FontSize" Value="11"/>
             <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -218,8 +218,9 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
         <Style x:Key="NavButton" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
-            <Setter Property="Padding" Value="16,12"/>
+            <Setter Property="Padding" Value="14,10"/>
             <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="FontSize" Value="12"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
@@ -344,20 +345,59 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
             <Setter Property="Padding" Value="4"/>
         </Style>
 
-        <!-- Card Style -->
+        <!-- Card Styles -->
         <Style x:Key="Card" TargetType="Border">
             <Setter Property="Background" Value="{StaticResource BgCardBrush}"/>
             <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="Padding" Value="20"/>
-            <Setter Property="Margin" Value="0,0,0,16"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="16"/>
+            <Setter Property="Margin" Value="0,0,0,12"/>
+        </Style>
+
+        <Style x:Key="CardDark" TargetType="Border">
+            <Setter Property="Background" Value="#161B22"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="10"/>
+        </Style>
+
+        <!-- Text Styles -->
+        <Style x:Key="PageTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="22"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
+
+        <Style x:Key="PageSubtitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+            <Setter Property="Margin" Value="0,0,0,20"/>
+        </Style>
+
+        <Style x:Key="CardTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
+        </Style>
+
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
+
+        <Style x:Key="HintText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}"/>
+            <Setter Property="Margin" Value="0,6,0,0"/>
         </Style>
     </Window.Resources>
 
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="240"/>
+            <ColumnDefinition Width="220"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
@@ -385,50 +425,51 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
 
                 <!-- Navigation -->
                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="8,12,8,12">
-                        <TextBlock Text="COLLECTION" FontSize="11" FontWeight="Bold"
+                    <StackPanel Margin="6,10,6,10">
+                        <TextBlock Text="COLLECTION" FontSize="10" FontWeight="Bold"
                                    Foreground="{StaticResource AccentBlueBrush}"
-                                   Margin="16,8,0,10"/>
+                                   Margin="14,6,0,6"/>
 
                         <Button x:Name="NavScan" Style="{StaticResource NavButtonActive}" Content="Scan Computers" ToolTip="Ctrl+1"/>
                         <Button x:Name="NavEvents" Style="{StaticResource NavButton}" Content="Collect Events" ToolTip="Ctrl+2"/>
 
-                        <TextBlock Text="ANALYSIS" FontSize="11" FontWeight="Bold"
+                        <TextBlock Text="ANALYSIS" FontSize="10" FontWeight="Bold"
                                    Foreground="{StaticResource AccentBlueBrush}"
-                                   Margin="16,20,0,10"/>
+                                   Margin="14,14,0,6"/>
 
                         <Button x:Name="NavCompare" Style="{StaticResource NavButton}" Content="Compare Inventory" ToolTip="Ctrl+3"/>
                         <Button x:Name="NavValidate" Style="{StaticResource NavButton}" Content="Validate Policy" ToolTip="Ctrl+4"/>
 
-                        <TextBlock Text="COMPLIANCE" FontSize="11" FontWeight="Bold"
+                        <TextBlock Text="COMPLIANCE" FontSize="10" FontWeight="Bold"
                                    Foreground="{StaticResource AccentPurpleBrush}"
-                                   Margin="16,20,0,10"/>
+                                   Margin="14,14,0,6"/>
 
                         <Button x:Name="NavCORA" Style="{StaticResource NavButton}" Content="CORA Evidence" ToolTip="Ctrl+8"/>
 
-                        <TextBlock Text="POLICY" FontSize="11" FontWeight="Bold"
+                        <TextBlock Text="POLICY" FontSize="10" FontWeight="Bold"
                                    Foreground="{StaticResource AccentBlueBrush}"
-                                   Margin="16,20,0,10"/>
+                                   Margin="14,14,0,6"/>
 
                         <Button x:Name="NavGenerate" Style="{StaticResource NavButton}" Content="Generate Policy" ToolTip="Ctrl+5"/>
                         <Button x:Name="NavMerge" Style="{StaticResource NavButton}" Content="Merge Policies" ToolTip="Ctrl+6"/>
                         <Button x:Name="NavSoftware" Style="{StaticResource NavButton}" Content="Software Lists" ToolTip="Ctrl+7"/>
                         <Button x:Name="NavClone" Style="{StaticResource NavButton}" Content="Clone Rules"/>
 
-                        <TextBlock Text="DEPLOYMENT" FontSize="11" FontWeight="Bold"
+                        <TextBlock Text="DEPLOYMENT" FontSize="10" FontWeight="Bold"
                                    Foreground="{StaticResource AccentBlueBrush}"
-                                   Margin="16,20,0,10"/>
+                                   Margin="14,14,0,6"/>
 
                         <Button x:Name="NavAD" Style="{StaticResource NavButton}" Content="Active Directory"/>
                         <Button x:Name="NavWinRM" Style="{StaticResource NavButton}" Content="WinRM Setup"/>
                         <Button x:Name="NavDiagnostics" Style="{StaticResource NavButton}" Content="Diagnostics"/>
 
-                        <TextBlock Text="APPLICATION" FontSize="11" FontWeight="Bold"
+                        <TextBlock Text="APPLICATION" FontSize="10" FontWeight="Bold"
                                    Foreground="{StaticResource AccentBlueBrush}"
-                                   Margin="16,20,0,10"/>
+                                   Margin="14,14,0,6"/>
 
                         <Button x:Name="NavSettings" Style="{StaticResource NavButton}" Content="Settings" ToolTip="Ctrl+,"/>
-                        <Button x:Name="NavAbout" Style="{StaticResource NavButton}" Content="About" ToolTip="F1"/>
+                        <Button x:Name="NavHelp" Style="{StaticResource NavButton}" Content="Help" ToolTip="F1"/>
+                        <Button x:Name="NavAbout" Style="{StaticResource NavButton}" Content="About"/>
                     </StackPanel>
                 </ScrollViewer>
 
@@ -480,12 +521,6 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
 
                         <Button x:Name="RunWorkflow" Grid.Column="2" Content="▶ Run Workflow"
                                 Style="{StaticResource PrimaryButton}" Margin="12,0,0,0" Padding="16,8"/>
-
-                        <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center">
-                            <Ellipse x:Name="WorkflowStatusDot" Width="10" Height="10" Fill="{StaticResource AccentGreenBrush}" Margin="0,0,8,0"/>
-                            <TextBlock x:Name="WorkflowStatusText" Text="Ready" FontSize="12"
-                                       Foreground="{StaticResource TextSecondaryBrush}"/>
-                        </StackPanel>
                     </Grid>
                     <!-- Workflow Description -->
                     <TextBlock x:Name="WorkflowDescription" FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,8,0,0"
@@ -499,19 +534,17 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
 
                 <!-- Scan Page -->
                 <ScrollViewer x:Name="PageScan" VerticalScrollBarVisibility="Auto" Visibility="Visible">
-                    <StackPanel Margin="32,24,32,32">
-                        <TextBlock Text="Scan Computers" FontSize="24" FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,8"/>
+                    <StackPanel Margin="24,20,24,24">
+                        <TextBlock Text="Scan Computers" Style="{StaticResource PageTitle}"/>
                         <TextBlock Text="Collect application inventory from remote computers via WinRM"
-                                   FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,24"/>
+                                   Style="{StaticResource PageSubtitle}"/>
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="Computer List" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <TextBlock Text="Computer List" Style="{StaticResource CardTitle}"/>
 
                                 <!-- Export from AD Section -->
-                                <Border Background="#161B22" CornerRadius="6" Padding="12" Margin="0,0,0,16">
+                                <Border Style="{StaticResource CardDark}" Margin="0,0,0,12">
                                     <StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                             <TextBlock Text="&#xE716;" FontFamily="Segoe MDL2 Assets" FontSize="14"
@@ -542,7 +575,7 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
                                 </Border>
 
                                 <!-- Manual file selection -->
-                                <TextBlock Text="Or select existing file:" FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,8"/>
+                                <TextBlock Text="Or select existing file:" Style="{StaticResource HintText}" Margin="0,0,0,6"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -553,16 +586,15 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
                                             Style="{StaticResource SecondaryButton}" Margin="8,0,0,0"/>
                                 </Grid>
                                 <TextBlock Text="Text file with one computer per line, or CSV with ComputerName column"
-                                           FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,8,0,0"/>
+                                           Style="{StaticResource HintText}"/>
                             </StackPanel>
                         </Border>
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="System Admin Credentials" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="System Admin Credentials" Style="{StaticResource CardTitle}"/>
                                 <TextBlock Text="For workstations and member servers"
-                                           FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,12"/>
+                                           Style="{StaticResource HintText}" Margin="0,0,0,10"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -570,11 +602,11 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Grid.Column="0">
-                                        <TextBlock Text="Username (DOMAIN\user or user@domain)" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                                        <TextBlock Text="Username (DOMAIN\user or user@domain)" Style="{StaticResource FieldLabel}"/>
                                         <TextBox x:Name="ScanUsername" />
                                     </StackPanel>
                                     <StackPanel Grid.Column="2">
-                                        <TextBlock Text="Password" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                                        <TextBlock Text="Password" Style="{StaticResource FieldLabel}"/>
                                         <PasswordBox x:Name="ScanPassword"/>
                                     </StackPanel>
                                 </Grid>
@@ -583,10 +615,9 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
 
                         <Border x:Name="ScanDCCredentialsCard" Style="{StaticResource Card}" Visibility="Collapsed">
                             <StackPanel>
-                                <TextBlock Text="Domain Admin Credentials" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,4"/>
-                                <TextBlock Text="Domain Controllers detected in computer list - separate credentials required"
-                                           FontSize="11" Foreground="{StaticResource AccentOrangeBrush}" Margin="0,0,0,12"/>
+                                <TextBlock Text="Domain Admin Credentials" Style="{StaticResource CardTitle}"/>
+                                <TextBlock Text="Domain Controllers detected - separate credentials required"
+                                           FontSize="10" Foreground="{StaticResource AccentOrangeBrush}" Margin="0,0,0,10"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -594,11 +625,11 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Grid.Column="0">
-                                        <TextBlock Text="Username (DOMAIN\user or user@domain)" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                                        <TextBlock Text="Username (DOMAIN\user or user@domain)" Style="{StaticResource FieldLabel}"/>
                                         <TextBox x:Name="ScanDCUsername" />
                                     </StackPanel>
                                     <StackPanel Grid.Column="2">
-                                        <TextBlock Text="Password" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                                        <TextBlock Text="Password" Style="{StaticResource FieldLabel}"/>
                                         <PasswordBox x:Name="ScanDCPassword"/>
                                     </StackPanel>
                                 </Grid>
@@ -607,19 +638,18 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="Options" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <TextBlock Text="Options" Style="{StaticResource CardTitle}"/>
                                 <WrapPanel>
                                     <CheckBox x:Name="ScanUserProfiles" Content="Scan User Profiles" Margin="0,0,24,8"/>
                                     <CheckBox x:Name="ScanIncludeDLLs" Content="Include DLLs" Margin="0,0,24,8"/>
                                 </WrapPanel>
-                                <Grid Margin="0,8,0,0">
+                                <Grid Margin="0,6,0,0">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="100"/>
+                                        <ColumnDefinition Width="80"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="Throttle Limit:" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
-                                               VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <TextBlock Text="Throttle Limit:" Style="{StaticResource FieldLabel}"
+                                               VerticalAlignment="Center" Margin="0,0,10,0"/>
                                     <TextBox x:Name="ScanThrottleLimit" Grid.Column="1" Text="10"/>
                                 </Grid>
                             </StackPanel>
@@ -627,8 +657,7 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="Output Location" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <TextBlock Text="Output Location" Style="{StaticResource CardTitle}"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -642,42 +671,39 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
                         </Border>
 
                         <Button x:Name="StartScan" Content="Start Scan" Style="{StaticResource PrimaryButton}"
-                                HorizontalAlignment="Left" Margin="0,8,0,0"/>
+                                HorizontalAlignment="Left" Margin="0,4,0,0"/>
                     </StackPanel>
                 </ScrollViewer>
 
                 <!-- CORA Evidence Page -->
                 <ScrollViewer x:Name="PageCORA" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
-                    <StackPanel Margin="32,24,32,32">
-                        <TextBlock Text="CORA Evidence Package" FontSize="24" FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,8"/>
+                    <StackPanel Margin="24,20,24,24">
+                        <TextBlock Text="CORA Evidence Package" Style="{StaticResource PageTitle}"/>
                         <TextBlock Text="Generate comprehensive audit evidence for CORA assessments"
-                                   FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,24"/>
+                                   Style="{StaticResource PageSubtitle}"/>
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="What This Generates" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
-                                <TextBlock Text="The CORA Evidence Generator collects and organizes all AppLocker deployment artifacts into an audit-ready package:"
-                                           FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,0,0,12"/>
+                                <TextBlock Text="What This Generates" Style="{StaticResource CardTitle}"/>
+                                <TextBlock Text="Collects and organizes all AppLocker deployment artifacts into an audit-ready package:"
+                                           FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,0,0,10"/>
 
-                                <StackPanel Margin="8,0,0,0">
-                                    <TextBlock Text="• Software Inventory Evidence (from Scans folder)" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,2"/>
-                                    <TextBlock Text="• AppLocker Event Collections (from Events folder)" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,2"/>
-                                    <TextBlock Text="• Generated Policies (from Outputs folder)" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,2"/>
-                                    <TextBlock Text="• Compliance Report with score" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,2"/>
-                                    <TextBlock Text="• Rule Health Check results" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,2"/>
-                                    <TextBlock Text="• Deployment Timeline" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,2"/>
-                                    <TextBlock Text="• Control Mapping (NIST 800-53, CIS, CMMC)" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,2"/>
-                                    <TextBlock Text="• Executive Summary HTML" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,2"/>
+                                <StackPanel Margin="6,0,0,0">
+                                    <TextBlock Text="• Software Inventory Evidence (Scans folder)" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"/>
+                                    <TextBlock Text="• AppLocker Event Collections (Events folder)" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"/>
+                                    <TextBlock Text="• Generated Policies (Outputs folder)" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"/>
+                                    <TextBlock Text="• Compliance Report with score" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"/>
+                                    <TextBlock Text="• Rule Health Check results" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"/>
+                                    <TextBlock Text="• Deployment Timeline" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"/>
+                                    <TextBlock Text="• Control Mapping (NIST 800-53, CIS, CMMC)" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"/>
+                                    <TextBlock Text="• Executive Summary HTML" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"/>
                                 </StackPanel>
                             </StackPanel>
                         </Border>
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="Output Location" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <TextBlock Text="Output Location" Style="{StaticResource CardTitle}"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -688,21 +714,19 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
                                             Style="{StaticResource SecondaryButton}" Margin="8,0,0,0"/>
                                 </Grid>
                                 <TextBlock Text="A timestamped subfolder will be created automatically"
-                                           FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,8,0,0"/>
+                                           Style="{StaticResource HintText}"/>
                             </StackPanel>
                         </Border>
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="Options" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <TextBlock Text="Options" Style="{StaticResource CardTitle}"/>
                                 <CheckBox x:Name="CORAIncludeRawData" Content="Include raw scan/event data (larger package)"
-                                          IsChecked="False" Margin="0,0,0,8"/>
+                                          IsChecked="False" Margin="0,0,0,6"/>
                                 <CheckBox x:Name="CORAOpenWhenComplete" Content="Open folder when complete"
-                                          IsChecked="True" Margin="0,0,0,8"/>
+                                          IsChecked="True" Margin="0,0,0,6"/>
 
-                                <TextBlock Text="Specific Policy (optional)" FontSize="12"
-                                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,12,0,8"/>
+                                <TextBlock Text="Specific Policy (optional)" Style="{StaticResource FieldLabel}" Margin="0,10,0,4"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -713,30 +737,27 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
                                             Style="{StaticResource SecondaryButton}" Margin="8,0,0,0"/>
                                 </Grid>
                                 <TextBlock Text="Leave blank to include all policies from Outputs folder"
-                                           FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,8,0,0"/>
+                                           Style="{StaticResource HintText}"/>
                             </StackPanel>
                         </Border>
 
-                        <Button x:Name="StartCORA" Content="Generate CORA Evidence Package" Style="{StaticResource PrimaryButton}"
-                                HorizontalAlignment="Left" Margin="0,8,0,0"/>
+                        <Button x:Name="StartCORA" Content="Generate CORA Evidence" Style="{StaticResource PrimaryButton}"
+                                HorizontalAlignment="Left" Margin="0,4,0,0"/>
                     </StackPanel>
                 </ScrollViewer>
 
                 <!-- Generate Page -->
                 <ScrollViewer x:Name="PageGenerate" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
-                    <StackPanel Margin="32,24,32,32">
-                        <TextBlock Text="Generate Policy" FontSize="24" FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,8"/>
+                    <StackPanel Margin="24,20,24,24">
+                        <TextBlock Text="Generate Policy" Style="{StaticResource PageTitle}"/>
                         <TextBlock Text="Create AppLocker policies from scan data"
-                                   FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,24"/>
+                                   Style="{StaticResource PageSubtitle}"/>
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="Data Sources" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
-                                <TextBlock Text="Scan Data (from Invoke-RemoteScan)" FontSize="12"
-                                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
-                                <Grid Margin="0,0,0,16">
+                                <TextBlock Text="Data Sources" Style="{StaticResource CardTitle}"/>
+                                <TextBlock Text="Scan Data (from Invoke-RemoteScan)" Style="{StaticResource FieldLabel}"/>
+                                <Grid Margin="0,0,0,12">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
@@ -745,8 +766,7 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
                                     <Button x:Name="BrowseGenerateScanPath" Grid.Column="1" Content="Browse"
                                             Style="{StaticResource SecondaryButton}" Margin="8,0,0,0"/>
                                 </Grid>
-                                <TextBlock Text="Event Data (blocked apps from audit mode)" FontSize="12"
-                                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                                <TextBlock Text="Event Data (blocked apps from audit mode)" Style="{StaticResource FieldLabel}"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -757,27 +777,25 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
                                             Style="{StaticResource SecondaryButton}" Margin="8,0,0,0"/>
                                 </Grid>
                                 <TextBlock Text="Provide at least one data source (scan data, event data, or software list)"
-                                           FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,8,0,0"/>
+                                           Style="{StaticResource HintText}"/>
                             </StackPanel>
                         </Border>
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="Policy Mode" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
-                                <RadioButton x:Name="GenerateSimplified" Content="Simplified Mode" IsChecked="True" Margin="0,0,0,4"/>
+                                <TextBlock Text="Policy Mode" Style="{StaticResource CardTitle}"/>
+                                <RadioButton x:Name="GenerateSimplified" Content="Simplified Mode" IsChecked="True" Margin="0,0,0,2"/>
                                 <TextBlock Text="Quick deployment with single target user/group"
-                                           FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="20,0,0,16"/>
-                                <RadioButton x:Name="GenerateBuildGuide" Content="Build Guide Mode" Margin="0,0,0,4"/>
+                                           Style="{StaticResource HintText}" Margin="18,0,0,12"/>
+                                <RadioButton x:Name="GenerateBuildGuide" Content="Build Guide Mode" Margin="0,0,0,2"/>
                                 <TextBlock Text="Enterprise deployment with proper scoping"
-                                           FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="20,0,0,0"/>
+                                           Style="{StaticResource HintText}" Margin="18,0,0,0"/>
                             </StackPanel>
                         </Border>
 
                         <Border x:Name="BuildGuideOptions" Style="{StaticResource Card}" Visibility="Collapsed">
                             <StackPanel>
-                                <TextBlock Text="Build Guide Options" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <TextBlock Text="Build Guide Options" Style="{StaticResource CardTitle}"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -785,7 +803,7 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Grid.Column="0">
-                                        <TextBlock Text="Target Type" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                                        <TextBlock Text="Target Type" Style="{StaticResource FieldLabel}"/>
                                         <ComboBox x:Name="GenerateTargetType" SelectedIndex="0">
                                             <ComboBoxItem Content="Workstation"/>
                                             <ComboBoxItem Content="Server"/>
@@ -793,7 +811,7 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
                                         </ComboBox>
                                     </StackPanel>
                                     <StackPanel Grid.Column="2">
-                                        <TextBlock Text="Phase" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                                        <TextBlock Text="Phase" Style="{StaticResource FieldLabel}"/>
                                         <ComboBox x:Name="GeneratePhase" SelectedIndex="0">
                                             <ComboBoxItem Content="Phase 1 - EXE only"/>
                                             <ComboBoxItem Content="Phase 2 - EXE + Script"/>
@@ -802,20 +820,19 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
                                         </ComboBox>
                                     </StackPanel>
                                 </Grid>
-                                <TextBlock Text="Domain Name" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,16,0,6"/>
+                                <TextBlock Text="Domain Name" Style="{StaticResource FieldLabel}" Margin="0,12,0,4"/>
                                 <TextBox x:Name="GenerateDomainName"/>
                             </StackPanel>
                         </Border>
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="Additional Options" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
-                                <CheckBox x:Name="GenerateIncludeDenyRules" Content="Include LOLBins Deny Rules" Margin="0,0,0,12"/>
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <TextBlock Text="Additional Options" Style="{StaticResource CardTitle}"/>
+                                <CheckBox x:Name="GenerateIncludeDenyRules" Content="Include LOLBins Deny Rules" Margin="0,0,0,8"/>
+                                <StackPanel Orientation="Horizontal">
                                     <Button x:Name="SelectTrustedPublishers" Content="Select Trusted Publishers..."
-                                            Style="{StaticResource SecondaryButton}" Margin="0,0,12,0"/>
-                                    <TextBlock x:Name="TrustedPublishersCount" Text="0 selected" FontSize="12"
+                                            Style="{StaticResource SecondaryButton}" Margin="0,0,10,0"/>
+                                    <TextBlock x:Name="TrustedPublishersCount" Text="0 selected" FontSize="11"
                                                Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </StackPanel>
@@ -823,8 +840,7 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="Output Location" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <TextBlock Text="Output Location" Style="{StaticResource CardTitle}"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -838,29 +854,27 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
                         </Border>
 
                         <Button x:Name="StartGenerate" Content="Generate Policy" Style="{StaticResource PrimaryButton}"
-                                HorizontalAlignment="Left" Margin="0,8,0,0"/>
+                                HorizontalAlignment="Left" Margin="0,4,0,0"/>
                     </StackPanel>
                 </ScrollViewer>
 
                 <!-- Merge Page -->
                 <ScrollViewer x:Name="PageMerge" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
-                    <StackPanel Margin="32,24,32,32">
-                        <TextBlock Text="Merge Policies" FontSize="24" FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,8"/>
+                    <StackPanel Margin="24,20,24,24">
+                        <TextBlock Text="Merge Policies" Style="{StaticResource PageTitle}"/>
                         <TextBlock Text="Combine multiple AppLocker policy files"
-                                   FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,24"/>
+                                   Style="{StaticResource PageSubtitle}"/>
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="Policy Files" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <TextBlock Text="Policy Files" Style="{StaticResource CardTitle}"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <ListBox x:Name="MergePolicyList" Grid.Column="0" Height="180"/>
-                                    <StackPanel Grid.Column="1" Margin="12,0,0,0">
+                                    <ListBox x:Name="MergePolicyList" Grid.Column="0" Height="150"/>
+                                    <StackPanel Grid.Column="1" Margin="10,0,0,0">
                                         <Button x:Name="MergeAddFile" Content="Add File" Style="{StaticResource SmallButton}" Margin="0,0,0,4"/>
                                         <Button x:Name="MergeAddFolder" Content="Add Folder" Style="{StaticResource SmallButton}" Margin="0,0,0,4"/>
                                         <Button x:Name="MergeRemoveFile" Content="Remove" Style="{StaticResource SmallButton}" Margin="0,0,0,4"/>
@@ -872,8 +886,7 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="Output Location" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <TextBlock Text="Output Location" Style="{StaticResource CardTitle}"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -887,22 +900,20 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
                         </Border>
 
                         <Button x:Name="StartMerge" Content="Merge Policies" Style="{StaticResource PrimaryButton}"
-                                HorizontalAlignment="Left" Margin="0,8,0,0"/>
+                                HorizontalAlignment="Left" Margin="0,4,0,0"/>
                     </StackPanel>
                 </ScrollViewer>
 
                 <!-- Validate Page -->
                 <ScrollViewer x:Name="PageValidate" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
-                    <StackPanel Margin="32,24,32,32">
-                        <TextBlock Text="Validate Policy" FontSize="24" FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,8"/>
+                    <StackPanel Margin="24,20,24,24">
+                        <TextBlock Text="Validate Policy" Style="{StaticResource PageTitle}"/>
                         <TextBlock Text="Check an AppLocker policy for issues"
-                                   FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,24"/>
+                                   Style="{StaticResource PageSubtitle}"/>
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="Policy File" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <TextBlock Text="Policy File" Style="{StaticResource CardTitle}"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -917,31 +928,28 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
 
                         <Border x:Name="ValidationResultsCard" Style="{StaticResource Card}" Visibility="Collapsed">
                             <StackPanel>
-                                <TextBlock Text="Validation Results" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
-                                <TextBox x:Name="ValidationResults" Height="300" IsReadOnly="True"
+                                <TextBlock Text="Validation Results" Style="{StaticResource CardTitle}"/>
+                                <TextBox x:Name="ValidationResults" Height="250" IsReadOnly="True"
                                          TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
-                                         FontFamily="Consolas" FontSize="12"/>
+                                         FontFamily="Consolas" FontSize="11"/>
                             </StackPanel>
                         </Border>
 
                         <Button x:Name="StartValidate" Content="Validate Policy" Style="{StaticResource PrimaryButton}"
-                                HorizontalAlignment="Left" Margin="0,8,0,0"/>
+                                HorizontalAlignment="Left" Margin="0,4,0,0"/>
                     </StackPanel>
                 </ScrollViewer>
 
                 <!-- Clone Rules Page -->
                 <ScrollViewer x:Name="PageClone" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
-                    <StackPanel Margin="32,24,32,32">
-                        <TextBlock Text="Clone Rules" FontSize="24" FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,8"/>
+                    <StackPanel Margin="24,20,24,24">
+                        <TextBlock Text="Clone Rules" Style="{StaticResource PageTitle}"/>
                         <TextBlock Text="Clone policy rules with different groups or actions"
-                                   FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,24"/>
+                                   Style="{StaticResource PageSubtitle}"/>
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="Source Policy" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <TextBlock Text="Source Policy" Style="{StaticResource CardTitle}"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -959,29 +967,26 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
 
                         <Border x:Name="CloneOptionsCard" Style="{StaticResource Card}" Visibility="Collapsed">
                             <StackPanel>
-                                <TextBlock Text="Policy Summary" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
-                                <TextBlock x:Name="ClonePolicySummary" Text="" FontSize="12"
-                                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,16"/>
+                                <TextBlock Text="Policy Summary" Style="{StaticResource CardTitle}"/>
+                                <TextBlock x:Name="ClonePolicySummary" Text="" FontSize="11"
+                                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,12"/>
 
-                                <TextBlock Text="Rules to Clone" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
-                                <WrapPanel Margin="0,0,0,16">
-                                    <RadioButton x:Name="CloneAllRules" Content="All Rules" IsChecked="True" Margin="0,0,20,8"/>
-                                    <RadioButton x:Name="ClonePublisherOnly" Content="Publisher Only" Margin="0,0,20,8"/>
-                                    <RadioButton x:Name="CloneHashOnly" Content="Hash Only" Margin="0,0,20,8"/>
-                                    <RadioButton x:Name="ClonePathOnly" Content="Path Only" Margin="0,0,20,8"/>
+                                <TextBlock Text="Rules to Clone" Style="{StaticResource CardTitle}"/>
+                                <WrapPanel Margin="0,0,0,12">
+                                    <RadioButton x:Name="CloneAllRules" Content="All Rules" IsChecked="True" Margin="0,0,16,6"/>
+                                    <RadioButton x:Name="ClonePublisherOnly" Content="Publisher Only" Margin="0,0,16,6"/>
+                                    <RadioButton x:Name="CloneHashOnly" Content="Hash Only" Margin="0,0,16,6"/>
+                                    <RadioButton x:Name="ClonePathOnly" Content="Path Only" Margin="0,0,16,6"/>
                                 </WrapPanel>
 
-                                <TextBlock Text="Filter by Current Action" FontSize="12"
-                                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,8"/>
-                                <WrapPanel Margin="0,0,0,16">
-                                    <RadioButton x:Name="CloneFilterAll" Content="All Actions" IsChecked="True" Margin="0,0,20,8"/>
-                                    <RadioButton x:Name="CloneFilterAllow" Content="Allow Rules Only" Margin="0,0,20,8"/>
-                                    <RadioButton x:Name="CloneFilterDeny" Content="Deny Rules Only" Margin="0,0,20,8"/>
+                                <TextBlock Text="Filter by Current Action" Style="{StaticResource FieldLabel}" Margin="0,0,0,6"/>
+                                <WrapPanel Margin="0,0,0,12">
+                                    <RadioButton x:Name="CloneFilterAll" Content="All Actions" IsChecked="True" Margin="0,0,16,6"/>
+                                    <RadioButton x:Name="CloneFilterAllow" Content="Allow Rules Only" Margin="0,0,16,6"/>
+                                    <RadioButton x:Name="CloneFilterDeny" Content="Deny Rules Only" Margin="0,0,16,6"/>
                                 </WrapPanel>
 
-                                <Grid Margin="0,0,0,16">
+                                <Grid Margin="0,0,0,12">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="16"/>
@@ -989,28 +994,24 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
                                     </Grid.ColumnDefinitions>
 
                                     <StackPanel Grid.Column="0">
-                                        <TextBlock Text="New Group/User" FontSize="14" FontWeight="SemiBold"
-                                                   Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
-                                        <ComboBox x:Name="CloneTargetGroup" Margin="0,0,0,8">
-                                        </ComboBox>
+                                        <TextBlock Text="New Group/User" Style="{StaticResource CardTitle}"/>
+                                        <ComboBox x:Name="CloneTargetGroup" Margin="0,0,0,6"/>
                                         <TextBox x:Name="CloneCustomGroup" Visibility="Collapsed"
                                                  Text="DOMAIN\GroupName"/>
                                     </StackPanel>
 
                                     <StackPanel Grid.Column="2">
-                                        <TextBlock Text="New Action" FontSize="14" FontWeight="SemiBold"
-                                                   Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
-                                        <RadioButton x:Name="CloneActionKeep" Content="Keep Original" IsChecked="True" Margin="0,0,0,8"/>
-                                        <RadioButton x:Name="CloneActionAllow" Content="Set to Allow" Margin="0,0,0,8"/>
-                                        <RadioButton x:Name="CloneActionDeny" Content="Set to Deny" Margin="0,0,0,8"/>
+                                        <TextBlock Text="New Action" Style="{StaticResource CardTitle}"/>
+                                        <RadioButton x:Name="CloneActionKeep" Content="Keep Original" IsChecked="True" Margin="0,0,0,6"/>
+                                        <RadioButton x:Name="CloneActionAllow" Content="Set to Allow" Margin="0,0,0,6"/>
+                                        <RadioButton x:Name="CloneActionDeny" Content="Set to Deny" Margin="0,0,0,6"/>
                                     </StackPanel>
                                 </Grid>
 
-                                <TextBlock Text="Output" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
-                                <RadioButton x:Name="CloneAppendSource" Content="Append to source policy" IsChecked="True" Margin="0,0,0,8"/>
-                                <RadioButton x:Name="CloneNewFile" Content="Create new policy file" Margin="0,0,0,8"/>
-                                <Grid x:Name="CloneNewFileOptions" Visibility="Collapsed" Margin="20,8,0,0">
+                                <TextBlock Text="Output" Style="{StaticResource CardTitle}"/>
+                                <RadioButton x:Name="CloneAppendSource" Content="Append to source policy" IsChecked="True" Margin="0,0,0,6"/>
+                                <RadioButton x:Name="CloneNewFile" Content="Create new policy file" Margin="0,0,0,6"/>
+                                <Grid x:Name="CloneNewFileOptions" Visibility="Collapsed" Margin="18,6,0,0">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
@@ -1024,20 +1025,19 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
 
                         <Border x:Name="ClonePreviewCard" Style="{StaticResource Card}" Visibility="Collapsed">
                             <StackPanel>
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                                    <TextBlock Text="Preview" FontSize="14" FontWeight="SemiBold"
-                                               Foreground="{StaticResource TextPrimaryBrush}"/>
-                                    <TextBlock x:Name="ClonePreviewCount" Text=" (0 rules)" FontSize="14"
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                    <TextBlock Text="Preview" Style="{StaticResource CardTitle}" Margin="0"/>
+                                    <TextBlock x:Name="ClonePreviewCount" Text=" (0 rules)" FontSize="13"
                                                Foreground="{StaticResource TextSecondaryBrush}"/>
                                 </StackPanel>
-                                <ListBox x:Name="ClonePreviewList" Height="200" Background="#21262D"
+                                <ListBox x:Name="ClonePreviewList" Height="160" Background="#21262D"
                                          BorderBrush="{StaticResource BorderBrush}" Foreground="{StaticResource TextPrimaryBrush}"/>
                             </StackPanel>
                         </Border>
 
-                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
                             <Button x:Name="PreviewClone" Content="Preview" Style="{StaticResource SecondaryButton}"
-                                    Margin="0,0,12,0" Visibility="Collapsed"/>
+                                    Margin="0,0,10,0" Visibility="Collapsed"/>
                             <Button x:Name="ExecuteClone" Content="Clone Rules" Style="{StaticResource PrimaryButton}"
                                     Visibility="Collapsed"/>
                         </StackPanel>
@@ -1046,19 +1046,17 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
 
                 <!-- Events Page -->
                 <ScrollViewer x:Name="PageEvents" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
-                    <StackPanel Margin="32,24,32,32">
-                        <TextBlock Text="Collect Events" FontSize="24" FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,8"/>
+                    <StackPanel Margin="24,20,24,24">
+                        <TextBlock Text="Collect Events" Style="{StaticResource PageTitle}"/>
                         <TextBlock Text="Collect AppLocker audit events from remote computers"
-                                   FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,24"/>
+                                   Style="{StaticResource PageSubtitle}"/>
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="Computer List" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <TextBlock Text="Computer List" Style="{StaticResource CardTitle}"/>
 
                                 <!-- Export from AD Section -->
-                                <Border Background="#161B22" CornerRadius="6" Padding="12" Margin="0,0,0,16">
+                                <Border Style="{StaticResource CardDark}" Margin="0,0,0,12">
                                     <StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                             <TextBlock Text="&#xE716;" FontFamily="Segoe MDL2 Assets" FontSize="14"
@@ -1089,7 +1087,7 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
                                 </Border>
 
                                 <!-- Manual file selection -->
-                                <TextBlock Text="Or select existing file:" FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,8"/>
+                                <TextBlock Text="Or select existing file:" Style="{StaticResource HintText}" Margin="0,0,0,6"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -1100,16 +1098,15 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
                                             Style="{StaticResource SecondaryButton}" Margin="8,0,0,0"/>
                                 </Grid>
                                 <TextBlock Text="Text file with one computer per line, or CSV with ComputerName column"
-                                           FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,8,0,0"/>
+                                           Style="{StaticResource HintText}"/>
                             </StackPanel>
                         </Border>
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="System Admin Credentials" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="System Admin Credentials" Style="{StaticResource CardTitle}"/>
                                 <TextBlock Text="For workstations and member servers"
-                                           FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,12"/>
+                                           Style="{StaticResource HintText}" Margin="0,0,0,10"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -1117,11 +1114,11 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Grid.Column="0">
-                                        <TextBlock Text="Username (DOMAIN\user or user@domain)" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                                        <TextBlock Text="Username (DOMAIN\user or user@domain)" Style="{StaticResource FieldLabel}"/>
                                         <TextBox x:Name="EventsUsername"/>
                                     </StackPanel>
                                     <StackPanel Grid.Column="2">
-                                        <TextBlock Text="Password" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                                        <TextBlock Text="Password" Style="{StaticResource FieldLabel}"/>
                                         <PasswordBox x:Name="EventsPassword"/>
                                     </StackPanel>
                                 </Grid>
@@ -1130,10 +1127,9 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
 
                         <Border x:Name="EventsDCCredentialsCard" Style="{StaticResource Card}" Visibility="Collapsed">
                             <StackPanel>
-                                <TextBlock Text="Domain Admin Credentials" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,4"/>
-                                <TextBlock Text="Domain Controllers detected in computer list - separate credentials required"
-                                           FontSize="11" Foreground="{StaticResource AccentOrangeBrush}" Margin="0,0,0,12"/>
+                                <TextBlock Text="Domain Admin Credentials" Style="{StaticResource CardTitle}"/>
+                                <TextBlock Text="Domain Controllers detected - separate credentials required"
+                                           FontSize="10" Foreground="{StaticResource AccentOrangeBrush}" Margin="0,0,0,10"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -1141,11 +1137,11 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Grid.Column="0">
-                                        <TextBlock Text="Username (DOMAIN\user or user@domain)" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                                        <TextBlock Text="Username (DOMAIN\user or user@domain)" Style="{StaticResource FieldLabel}"/>
                                         <TextBox x:Name="EventsDCUsername"/>
                                     </StackPanel>
                                     <StackPanel Grid.Column="2">
-                                        <TextBlock Text="Password" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                                        <TextBlock Text="Password" Style="{StaticResource FieldLabel}"/>
                                         <PasswordBox x:Name="EventsDCPassword"/>
                                     </StackPanel>
                                 </Grid>
@@ -1154,8 +1150,7 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="Event Options" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <TextBlock Text="Event Options" Style="{StaticResource CardTitle}"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -1163,7 +1158,7 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Grid.Column="0">
-                                        <TextBlock Text="Days Back" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                                        <TextBlock Text="Days Back" Style="{StaticResource FieldLabel}"/>
                                         <ComboBox x:Name="EventsDaysBack" SelectedIndex="1">
                                             <ComboBoxItem Content="7 days"/>
                                             <ComboBoxItem Content="14 days"/>
@@ -1173,7 +1168,7 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
                                         </ComboBox>
                                     </StackPanel>
                                     <StackPanel Grid.Column="2">
-                                        <TextBlock Text="Event Types" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                                        <TextBlock Text="Event Types" Style="{StaticResource FieldLabel}"/>
                                         <ComboBox x:Name="EventsType" SelectedIndex="0">
                                             <ComboBoxItem Content="Blocked Only (8004/8006/8008)"/>
                                             <ComboBoxItem Content="Allowed Only (8003/8005/8007)"/>
@@ -1186,8 +1181,7 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="Output Location" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <TextBlock Text="Output Location" Style="{StaticResource CardTitle}"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -1201,22 +1195,20 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
                         </Border>
 
                         <Button x:Name="StartEvents" Content="Collect Events" Style="{StaticResource PrimaryButton}"
-                                HorizontalAlignment="Left" Margin="0,8,0,0"/>
+                                HorizontalAlignment="Left" Margin="0,4,0,0"/>
                     </StackPanel>
                 </ScrollViewer>
 
                 <!-- Compare Page -->
                 <ScrollViewer x:Name="PageCompare" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
-                    <StackPanel Margin="32,24,32,32">
-                        <TextBlock Text="Compare Inventory" FontSize="24" FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,8"/>
+                    <StackPanel Margin="24,20,24,24">
+                        <TextBlock Text="Compare Inventory" Style="{StaticResource PageTitle}"/>
                         <TextBlock Text="Compare software inventories between systems"
-                                   FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,24"/>
+                                   Style="{StaticResource PageSubtitle}"/>
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="Reference (Baseline)" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <TextBlock Text="Reference (Baseline)" Style="{StaticResource CardTitle}"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -1231,8 +1223,7 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="Target (Compare To)" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <TextBlock Text="Target (Compare To)" Style="{StaticResource CardTitle}"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -1247,8 +1238,7 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="Comparison Method" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <TextBlock Text="Comparison Method" Style="{StaticResource CardTitle}"/>
                                 <ComboBox x:Name="CompareMethod" SelectedIndex="0">
                                     <ComboBoxItem Content="Name - Compare by file name"/>
                                     <ComboBoxItem Content="NameVersion - Include version"/>
@@ -1260,8 +1250,7 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="Output Location" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <TextBlock Text="Output Location" Style="{StaticResource CardTitle}"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -1275,29 +1264,27 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
                         </Border>
 
                         <Button x:Name="StartCompare" Content="Compare Inventories" Style="{StaticResource PrimaryButton}"
-                                HorizontalAlignment="Left" Margin="0,8,0,0"/>
+                                HorizontalAlignment="Left" Margin="0,4,0,0"/>
                     </StackPanel>
                 </ScrollViewer>
 
                 <!-- Software Page -->
                 <ScrollViewer x:Name="PageSoftware" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
-                    <StackPanel Margin="32,24,32,32">
-                        <TextBlock Text="Software Lists" FontSize="24" FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,8"/>
+                    <StackPanel Margin="24,20,24,24">
+                        <TextBlock Text="Software Lists" Style="{StaticResource PageTitle}"/>
                         <TextBlock Text="Manage curated software allowlists"
-                                   FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,24"/>
+                                   Style="{StaticResource PageSubtitle}"/>
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="Available Lists" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <TextBlock Text="Available Lists" Style="{StaticResource CardTitle}"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <ListBox x:Name="SoftwareListBox" Grid.Column="0" Height="180"/>
-                                    <StackPanel Grid.Column="1" Margin="12,0,0,0">
+                                    <ListBox x:Name="SoftwareListBox" Grid.Column="0" Height="150"/>
+                                    <StackPanel Grid.Column="1" Margin="10,0,0,0">
                                         <Button x:Name="SoftwareRefresh" Content="Refresh" Style="{StaticResource SmallButton}" Margin="0,0,0,4"/>
                                         <Button x:Name="SoftwareNew" Content="New List" Style="{StaticResource SmallButton}" Margin="0,0,0,4"/>
                                         <Button x:Name="SoftwareDelete" Content="Delete" Style="{StaticResource SmallButton}"/>
@@ -1308,8 +1295,7 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="Generate Policy from List" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <TextBlock Text="Generate Policy from List" Style="{StaticResource CardTitle}"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -1326,11 +1312,10 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
 
                 <!-- AD Page -->
                 <ScrollViewer x:Name="PageAD" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
-                    <StackPanel Margin="32,24,32,32">
-                        <TextBlock Text="Active Directory" FontSize="24" FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,8"/>
+                    <StackPanel Margin="24,20,24,24">
+                        <TextBlock Text="Active Directory" Style="{StaticResource PageTitle}"/>
                         <TextBlock Text="Manage AD resources for AppLocker deployment"
-                                   FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,24"/>
+                                   Style="{StaticResource PageSubtitle}"/>
 
                         <!-- Two-column layout for AD Setup and Scan Users -->
                         <Grid>
@@ -1553,17 +1538,15 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
 
                 <!-- Diagnostics Page -->
                 <ScrollViewer x:Name="PageDiagnostics" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
-                    <StackPanel Margin="32,24,32,32">
-                        <TextBlock Text="Diagnostics" FontSize="24" FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,8"/>
+                    <StackPanel Margin="24,20,24,24">
+                        <TextBlock Text="Diagnostics" Style="{StaticResource PageTitle}"/>
                         <TextBlock Text="Troubleshoot connectivity issues"
-                                   FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,24"/>
+                                   Style="{StaticResource PageSubtitle}"/>
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="Target Computer" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
-                                <TextBox x:Name="DiagnosticComputerName" Margin="0,0,0,16"/>
+                                <TextBlock Text="Target Computer" Style="{StaticResource CardTitle}"/>
+                                <TextBox x:Name="DiagnosticComputerName" Margin="0,0,0,12"/>
                                 <Button x:Name="StartDiagnostic" Content="Run Diagnostic" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left"/>
                             </StackPanel>
                         </Border>
@@ -1572,26 +1555,23 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
 
                 <!-- WinRM Page -->
                 <ScrollViewer x:Name="PageWinRM" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
-                    <StackPanel Margin="32,24,32,32">
-                        <TextBlock Text="WinRM Setup" FontSize="24" FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,8"/>
+                    <StackPanel Margin="24,20,24,24">
+                        <TextBlock Text="WinRM Setup" Style="{StaticResource PageTitle}"/>
                         <TextBlock Text="Deploy WinRM for remote scanning"
-                                   FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,24"/>
+                                   Style="{StaticResource PageSubtitle}"/>
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="Deploy WinRM GPO" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,8"/>
+                                <TextBlock Text="Deploy WinRM GPO" Style="{StaticResource CardTitle}"/>
                                 <TextBlock Text="Creates a GPO to enable WinRM on domain computers"
-                                           FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,16"/>
+                                           Style="{StaticResource HintText}" Margin="0,0,0,12"/>
                                 <Button x:Name="WinRMDeploy" Content="Deploy GPO" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left"/>
                             </StackPanel>
                         </Border>
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="Remove WinRM GPO" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,8"/>
+                                <TextBlock Text="Remove WinRM GPO" Style="{StaticResource CardTitle}"/>
                                 <Button x:Name="WinRMRemove" Content="Remove GPO" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"/>
                             </StackPanel>
                         </Border>
@@ -1600,16 +1580,14 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
 
                 <!-- Settings Page -->
                 <ScrollViewer x:Name="PageSettings" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
-                    <StackPanel Margin="32,24,32,32">
-                        <TextBlock Text="Settings" FontSize="24" FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,8"/>
+                    <StackPanel Margin="24,20,24,24">
+                        <TextBlock Text="Settings" Style="{StaticResource PageTitle}"/>
                         <TextBlock Text="Configure application settings"
-                                   FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,24"/>
+                                   Style="{StaticResource PageSubtitle}"/>
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="Scripts Location" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <TextBlock Text="Scripts Location" Style="{StaticResource CardTitle}"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -1619,21 +1597,53 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
                                     <Button x:Name="BrowseScriptsPath" Grid.Column="1" Content="Browse"
                                             Style="{StaticResource SecondaryButton}" Margin="8,0,0,0"/>
                                 </Grid>
-                                <TextBlock x:Name="ScriptsStatusText" Text="" FontSize="11"
-                                           Foreground="{StaticResource TextMutedBrush}" Margin="0,8,0,0"/>
+                                <TextBlock x:Name="ScriptsStatusText" Text="" Style="{StaticResource HintText}"/>
                             </StackPanel>
                         </Border>
 
                     </StackPanel>
                 </ScrollViewer>
 
+                <!-- Help Page -->
+                <Grid x:Name="PageHelp" Visibility="Collapsed">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="180"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Help Topics Navigation -->
+                    <Border Grid.Column="0" Style="{StaticResource Card}" Padding="8" Margin="24,20,12,24">
+                        <StackPanel>
+                            <TextBlock Text="Topics" FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" Margin="8,4,0,12"/>
+                            <Button x:Name="HelpGettingStarted" Style="{StaticResource NavButton}" Content="Getting Started" Padding="8,6"/>
+                            <Button x:Name="HelpScanning" Style="{StaticResource NavButton}" Content="Scanning" Padding="8,6"/>
+                            <Button x:Name="HelpPolicyGen" Style="{StaticResource NavButton}" Content="Policy Generation" Padding="8,6"/>
+                            <Button x:Name="HelpMerging" Style="{StaticResource NavButton}" Content="Merging Policies" Padding="8,6"/>
+                            <Button x:Name="HelpEvents" Style="{StaticResource NavButton}" Content="Event Collection" Padding="8,6"/>
+                            <Button x:Name="HelpSoftwareLists" Style="{StaticResource NavButton}" Content="Software Lists" Padding="8,6"/>
+                            <Button x:Name="HelpDeployment" Style="{StaticResource NavButton}" Content="Deployment" Padding="8,6"/>
+                            <Button x:Name="HelpTroubleshooting" Style="{StaticResource NavButton}" Content="Troubleshooting" Padding="8,6"/>
+                            <Button x:Name="HelpFAQ" Style="{StaticResource NavButton}" Content="FAQ" Padding="8,6"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Help Content -->
+                    <Border Grid.Column="1" Style="{StaticResource Card}" Padding="20" Margin="0,20,24,24">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel x:Name="HelpContent">
+                                <TextBlock x:Name="HelpTitle" Text="Getting Started" FontSize="20" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,16"/>
+                                <TextBlock x:Name="HelpBody" TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Text="Welcome to GA-AppLocker!"/>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+                </Grid>
+
                 <!-- About Page -->
                 <ScrollViewer x:Name="PageAbout" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
-                    <StackPanel Margin="32,24,32,32">
-                        <TextBlock Text="About GA-AppLocker" FontSize="24" FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,8"/>
+                    <StackPanel Margin="24,20,24,24">
+                        <TextBlock Text="About GA-AppLocker" Style="{StaticResource PageTitle}"/>
                         <TextBlock Text="AppLocker Policy Deployment Toolkit"
-                                   FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,24"/>
+                                   Style="{StaticResource PageSubtitle}"/>
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
@@ -1644,18 +1654,18 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
                                     </Grid.ColumnDefinitions>
 
                                     <!-- Company Logo -->
-                                    <Border Grid.Column="0" Width="80" Height="80" Background="#1A3A6E" CornerRadius="8" Margin="0,0,20,0">
-                                        <Image x:Name="AboutLogo" Width="64" Height="64"
+                                    <Border Grid.Column="0" Width="70" Height="70" Background="#1A3A6E" CornerRadius="6" Margin="0,0,16,0">
+                                        <Image x:Name="AboutLogo" Width="56" Height="56"
                                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                     </Border>
 
                                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                        <TextBlock Text="GA-AppLocker" FontSize="22" FontWeight="Bold"
+                                        <TextBlock Text="GA-AppLocker" FontSize="20" FontWeight="Bold"
                                                    Foreground="{StaticResource TextPrimaryBrush}"/>
-                                        <TextBlock Text="Version 1.0.0" FontSize="13"
-                                                   Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0"/>
-                                        <TextBlock Text="Windows AppLocker Policy Management Toolkit" FontSize="12"
-                                                   Foreground="{StaticResource TextMutedBrush}" Margin="0,4,0,0"/>
+                                        <TextBlock Text="Version 1.0.0" FontSize="12"
+                                                   Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                                        <TextBlock Text="Windows AppLocker Policy Management Toolkit" FontSize="11"
+                                                   Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0"/>
                                     </StackPanel>
                                 </Grid>
                             </StackPanel>
@@ -1663,37 +1673,34 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="Author" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
-                                <TextBlock Text="Tony Tran" FontSize="14" FontWeight="SemiBold"
+                                <TextBlock Text="Author" Style="{StaticResource CardTitle}"/>
+                                <TextBlock Text="Tony Tran" FontSize="13" FontWeight="SemiBold"
                                            Foreground="{StaticResource AccentBlueBrush}"/>
-                                <TextBlock Text="Information Systems Security Officer" FontSize="12"
-                                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0"/>
-                                <TextBlock Text="Classified Computing, GA-ASI" FontSize="12"
+                                <TextBlock Text="Information Systems Security Officer" FontSize="11"
                                            Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,0"/>
-                                <TextBlock Text="tony.tran@ga-asi.com" FontSize="12"
-                                           Foreground="{StaticResource AccentBlueBrush}" Margin="0,8,0,0"/>
+                                <TextBlock Text="Classified Computing, GA-ASI" FontSize="11"
+                                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                                <TextBlock Text="tony.tran@ga-asi.com" FontSize="11"
+                                           Foreground="{StaticResource AccentBlueBrush}" Margin="0,6,0,0"/>
                             </StackPanel>
                         </Border>
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="Description" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
-                                <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
+                                <TextBlock Text="Description" Style="{StaticResource CardTitle}"/>
+                                <TextBlock TextWrapping="Wrap" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"
                                            Text="GA-AppLocker is a comprehensive toolkit for deploying Windows AppLocker policies across enterprise environments. It simplifies the process of scanning computers for installed software, generating AppLocker policies, and managing software allowlists."/>
-                                <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,12,0,0"
+                                <TextBlock TextWrapping="Wrap" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,10,0,0"
                                            Text="Features include remote computer scanning via WinRM, policy generation with phased deployment support, policy merging with SID replacement, software list management, and Active Directory integration."/>
                             </StackPanel>
                         </Border>
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="System Requirements" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <TextBlock Text="System Requirements" Style="{StaticResource CardTitle}"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="150"/>
+                                        <ColumnDefinition Width="130"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
                                     <Grid.RowDefinitions>
@@ -1703,29 +1710,28 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
                                         <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
 
-                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Operating System" FontSize="12" Foreground="{StaticResource TextMutedBrush}"/>
-                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="Windows 11 / Server 2019+" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Operating System" FontSize="11" Foreground="{StaticResource TextMutedBrush}"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="Windows 11 / Server 2019+" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
 
-                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="PowerShell" FontSize="12" Foreground="{StaticResource TextMutedBrush}" Margin="0,4,0,0"/>
-                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="Version 5.1 or higher" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="PowerShell" FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,3,0,0"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="Version 5.1 or higher" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,3,0,0"/>
 
-                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Remote Scans" FontSize="12" Foreground="{StaticResource TextMutedBrush}" Margin="0,4,0,0"/>
-                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="WinRM enabled on targets" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Remote Scans" FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,3,0,0"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="WinRM enabled on targets" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,3,0,0"/>
 
-                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="AD Features" FontSize="12" Foreground="{StaticResource TextMutedBrush}" Margin="0,4,0,0"/>
-                                    <TextBlock Grid.Row="3" Grid.Column="1" Text="Domain Admin credentials" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0"/>
+                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="AD Features" FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,3,0,0"/>
+                                    <TextBlock Grid.Row="3" Grid.Column="1" Text="Domain Admin credentials" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,3,0,0"/>
                                 </Grid>
                             </StackPanel>
                         </Border>
 
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="License" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
-                                <TextBlock Text="Internal Use Only - General Atomics Aeronautical Systems, Inc." FontSize="12"
+                                <TextBlock Text="License" Style="{StaticResource CardTitle}"/>
+                                <TextBlock Text="Internal Use Only - General Atomics Aeronautical Systems, Inc." FontSize="11"
                                            Foreground="{StaticResource TextSecondaryBrush}"/>
-                                <TextBlock Text="© 2026 GA-ASI. All rights reserved." FontSize="11"
-                                           Foreground="{StaticResource TextMutedBrush}" Margin="0,8,0,0"/>
+                                <TextBlock Text="© 2026 GA-ASI. All rights reserved." FontSize="10"
+                                           Foreground="{StaticResource TextMutedBrush}" Margin="0,6,0,0"/>
                             </StackPanel>
                         </Border>
                     </StackPanel>
@@ -1735,7 +1741,7 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
             <!-- Log Panel -->
             <Border x:Name="LogPanel" Grid.Row="2" Background="{StaticResource BgSidebarBrush}"
                     BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0"
-                    Height="180">
+                    Height="150">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -1788,9 +1794,11 @@ $xaml.SelectNodes("//*[@*[contains(translate(name(.),'n','N'),'Name')]]") | ForE
 # Load company logo/icon
 $Script:LogoPath = $null
 $possibleLogoPaths = @(
+    (Join-Path $Script:AppRoot "assets\general-atomics-logo.ico"),
     (Join-Path $Script:AppRoot "assets\general-atomics-large.ico"),
     (Join-Path $Script:AppRoot "assets\general-atomics.ico"),
     (Join-Path $Script:AppRoot "assets\ga-applocker.ico"),
+    (Join-Path (Split-Path -Parent $Script:AppRoot) "assets\general-atomics-logo.ico"),
     (Join-Path (Split-Path -Parent $Script:AppRoot) "assets\general-atomics-large.ico"),
     (Join-Path (Split-Path -Parent $Script:AppRoot) "assets\general-atomics.ico")
 )
@@ -1808,9 +1816,15 @@ if ($Script:LogoPath) {
         $iconUri = New-Object System.Uri $Script:LogoPath
         $window.Icon = [System.Windows.Media.Imaging.BitmapFrame]::Create($iconUri)
 
-        # Set sidebar logo image - use the GA icon
+        # Set sidebar logo image - use the GA logo
         if ($controls['SidebarLogo']) {
-            $sidebarLogoPath = Join-Path $Script:AppRoot "assets\general-atomics.ico"
+            $sidebarLogoPath = Join-Path $Script:AppRoot "assets\general-atomics-logo.ico"
+            if (-not (Test-Path $sidebarLogoPath)) {
+                $sidebarLogoPath = Join-Path (Split-Path -Parent $Script:AppRoot) "assets\general-atomics-logo.ico"
+            }
+            if (-not (Test-Path $sidebarLogoPath)) {
+                $sidebarLogoPath = Join-Path $Script:AppRoot "assets\general-atomics.ico"
+            }
             if (-not (Test-Path $sidebarLogoPath)) {
                 $sidebarLogoPath = Join-Path (Split-Path -Parent $Script:AppRoot) "assets\general-atomics.ico"
             }
@@ -1825,9 +1839,15 @@ if ($Script:LogoPath) {
             }
         }
 
-        # Set About page logo image - use the large GA logo
+        # Set About page logo image - use the GA logo
         if ($controls['AboutLogo']) {
-            $aboutLogoPath = Join-Path $Script:AppRoot "assets\general-atomics-large.ico"
+            $aboutLogoPath = Join-Path $Script:AppRoot "assets\general-atomics-logo.ico"
+            if (-not (Test-Path $aboutLogoPath)) {
+                $aboutLogoPath = Join-Path (Split-Path -Parent $Script:AppRoot) "assets\general-atomics-logo.ico"
+            }
+            if (-not (Test-Path $aboutLogoPath)) {
+                $aboutLogoPath = Join-Path $Script:AppRoot "assets\general-atomics-large.ico"
+            }
             if (-not (Test-Path $aboutLogoPath)) {
                 $aboutLogoPath = Join-Path (Split-Path -Parent $Script:AppRoot) "assets\general-atomics-large.ico"
             }
@@ -2094,6 +2114,111 @@ function Get-SaveFileDialog {
     return $null
 }
 
+#region Helper Functions for Event Handlers
+
+function New-BrowseHandler {
+    <#
+    .SYNOPSIS
+    Factory function to create browse button handlers
+    #>
+    param(
+        [string]$TargetControl,
+        [ValidateSet('Folder', 'File', 'XML', 'CSV')]
+        [string]$DialogType = 'Folder',
+        [string]$Title = $null
+    )
+
+    $handler = {
+        param($ctl, $dtype, $ttl)
+        $path = switch ($dtype) {
+            'Folder' { Get-FolderDialog -Description $(if ($ttl) { $ttl } else { "Select Folder" }) }
+            'File'   { Get-OpenFileDialog -Title $(if ($ttl) { $ttl } else { "Select File" }) }
+            'XML'    { Get-OpenFileDialog -Title $(if ($ttl) { $ttl } else { "Select XML File" }) -Filter "XML Files (*.xml)|*.xml|All Files (*.*)|*.*" }
+            'CSV'    { Get-OpenFileDialog -Title $(if ($ttl) { $ttl } else { "Select CSV File" }) -Filter "CSV/Text Files (*.csv;*.txt)|*.csv;*.txt|All Files (*.*)|*.*" }
+        }
+        if ($path) { $controls[$ctl].Text = $path }
+    }.GetNewClosure()
+
+    return { & $handler $TargetControl $DialogType $Title }.GetNewClosure()
+}
+
+function Add-CredentialParams {
+    <#
+    .SYNOPSIS
+    Adds credential parameters to a hashtable from UI controls
+    #>
+    param(
+        [hashtable]$Params,
+        [string]$PagePrefix
+    )
+
+    $username = $controls["${PagePrefix}Username"].Text
+    $password = $controls["${PagePrefix}Password"].SecurePassword
+    if ($username -and $password.Length -gt 0) {
+        $Params['Credential'] = [System.Management.Automation.PSCredential]::new($username, $password)
+    }
+
+    # Add DC credentials if available
+    if ($controls["${PagePrefix}DCUsername"]) {
+        $dcUser = $controls["${PagePrefix}DCUsername"].Text
+        $dcPass = $controls["${PagePrefix}DCPassword"].SecurePassword
+        if ($dcUser -and $dcPass.Length -gt 0) {
+            $Params['DCCredential'] = [System.Management.Automation.PSCredential]::new($dcUser, $dcPass)
+        }
+    }
+
+    return $Params
+}
+
+function Invoke-ADComputerExport {
+    <#
+    .SYNOPSIS
+    Exports computers from Active Directory for Scan or Events pages
+    #>
+    param([string]$PagePrefix)
+
+    $computerType = switch ($controls["${PagePrefix}ADComputerType"].SelectedIndex) {
+        0 { "All" }
+        1 { "Workstation" }
+        2 { "Server" }
+        3 { "DC" }
+        default { "All" }
+    }
+
+    $outputPath = Join-Path $Script:AppRoot "ADManagement"
+    if (-not (Test-Path $outputPath)) {
+        New-Item -ItemType Directory -Path $outputPath -Force | Out-Null
+    }
+    $outputFile = Join-Path $outputPath "computers.csv"
+
+    $adParams = @{
+        OutputPath = $outputFile
+        ComputerType = $computerType
+        EnabledOnly = $controls["${PagePrefix}ADEnabledOnly"].IsChecked
+        WindowsOnly = $controls["${PagePrefix}ADWindowsOnly"].IsChecked
+    }
+
+    Write-Log "Exporting $computerType computers from AD..." -Level Info
+
+    try {
+        $scriptPath = Join-Path $Script:AppRoot "src\Utilities\Manage-ADResources.ps1"
+        if (Test-Path $scriptPath) {
+            & $scriptPath -Mode ExportComputers @adParams
+            if (Test-Path $outputFile) {
+                $controls["${PagePrefix}ComputerList"].Text = $outputFile
+                Test-ComputerListForDCs -ComputerListPath $outputFile -DCCardName "${PagePrefix}DCCredentialsCard"
+                Write-Log "Exported to: $outputFile" -Level Success
+            }
+        } else {
+            Write-Log "AD export script not found" -Level Error
+        }
+    } catch {
+        Write-Log "AD export failed: $_" -Level Error
+    }
+}
+
+#endregion
+
 function Test-ComputerListForDCs {
     <#
     .SYNOPSIS
@@ -2237,7 +2362,7 @@ function Invoke-Script {
 }
 
 # Navigation
-$Script:Pages = @("Scan","Generate","Merge","Validate","Clone","Events","Compare","Software","CORA","AD","Diagnostics","WinRM","Settings","About")
+$Script:Pages = @("Scan","Generate","Merge","Validate","Clone","Events","Compare","Software","CORA","AD","Diagnostics","WinRM","Settings","Help","About")
 
 function Switch-Page {
     param([string]$PageName)
@@ -2251,11 +2376,12 @@ function Switch-Page {
 
 function Set-WorkflowStatus {
     param([ValidateSet('Ready','Running','Success','Error')][string]$State = 'Ready', [string]$Message = "")
-    $controls['WorkflowStatusText'].Dispatcher.Invoke([Action]{
-        $controls['WorkflowStatusText'].Text = if ($Message) { $Message } else {
+    # Use the sidebar status controls
+    $controls['StatusText'].Dispatcher.Invoke([Action]{
+        $controls['StatusText'].Text = if ($Message) { $Message } else {
             switch ($State) { 'Running' { "Running..." } 'Success' { "Complete" } 'Error' { "Error" } default { "Ready" } }
         }
-        $controls['WorkflowStatusDot'].Fill = switch ($State) {
+        $controls['StatusDot'].Fill = switch ($State) {
             'Running' { [System.Windows.Media.Brushes]::Orange }
             'Success' { [System.Windows.Media.Brushes]::LightGreen }
             'Error'   { [System.Windows.Media.Brushes]::Red }
@@ -2785,6 +2911,7 @@ $controls['NavAD'].Add_Click({ Switch-Page "AD" })
 $controls['NavDiagnostics'].Add_Click({ Switch-Page "Diagnostics" })
 $controls['NavWinRM'].Add_Click({ Switch-Page "WinRM" })
 $controls['NavSettings'].Add_Click({ Switch-Page "Settings" })
+$controls['NavHelp'].Add_Click({ Switch-Page "Help"; Show-HelpTopic "GettingStarted" })
 $controls['NavAbout'].Add_Click({ Switch-Page "About" })
 
 # Cancel operation button
@@ -3033,6 +3160,540 @@ $Script:TrustedPublishers = [ordered]@{
     'LogMeIn' = @{ Selected = $false; Description = 'LogMeIn Inc.'; Category = 'Remote' }
 }
 
+# Help Topics Content
+$Script:HelpTopics = @{
+    "GettingStarted" = @{
+        Title = "Getting Started"
+        Content = @"
+Welcome to GA-AppLocker - your comprehensive AppLocker deployment toolkit for Windows environments.
+
+QUICK START GUIDE
+
+1. Prerequisites
+   - Windows 11 / Server 2019+
+   - PowerShell 5.1 or higher
+   - Administrator privileges
+   - WinRM enabled on target computers (for remote scans)
+
+2. Recommended Workflow
+   Step 1: Scan computers to collect software inventory
+   Step 2: Generate an AppLocker policy from scan data
+   Step 3: Deploy policy in Audit mode for 14+ days
+   Step 4: Collect AppLocker events to find blocked apps
+   Step 5: Update policy with legitimate blocked software
+   Step 6: Advance through deployment phases
+
+3. Folder Structure
+   - Scans are saved to: .\Scans\
+   - Events are saved to: .\Events\
+   - Policies are saved to: .\Outputs\
+   - Software lists: .\SoftwareLists\
+
+KEYBOARD SHORTCUTS
+   Ctrl+1-6    Navigate to main pages
+   Ctrl+L      Toggle log panel
+   Ctrl+,      Open Settings
+   F1          Open Help
+
+QUICK WORKFLOW
+   Use the Quick Workflow bar at the top for guided workflows:
+   - Create Baseline: First-time AppLocker setup
+   - Assess Environment: Inventory only, no policy changes
+   - Update Policy: Add rules for blocked applications
+   - Monitor Blocks: Collect and analyze block events
+"@
+    }
+    "Scanning" = @{
+        Title = "Scanning Computers"
+        Content = @"
+REMOTE COMPUTER SCANNING
+
+Scan computers to collect installed software inventory via WinRM.
+
+PREREQUISITES
+
+1. WinRM must be enabled on target computers
+   - Use the WinRM page to deploy GPO settings
+   - Or manually: winrm quickconfig
+
+2. Firewall must allow:
+   - TCP 5985 (WinRM HTTP)
+   - TCP 5986 (WinRM HTTPS)
+
+3. Administrator credentials required
+
+SCAN PROCESS
+
+Step 1: Load Computer List
+   - Browse to a CSV file with 'ComputerName' column
+   - Or use 'Scan AD' to query Active Directory
+
+Step 2: Enter Credentials
+   - Provide domain admin credentials
+   - Credentials are used for WinRM connections
+
+Step 3: Configure Options
+   - Throttle Limit: Concurrent connections (default: 10)
+   - Scan User Profiles: Include AppData locations
+
+Step 4: Start Scan
+   - Progress shown in log panel
+   - Results saved per-computer as CSV files
+
+SCAN OUTPUT
+
+Each computer folder contains:
+- InstalledSoftware.csv: All detected applications
+- RunningProcesses.csv: Active processes at scan time
+- Services.csv: Windows services
+- ScheduledTasks.csv: Scheduled tasks
+
+TROUBLESHOOTING
+
+- WinRM errors: Run Test-WSMan <computer>
+- Access denied: Verify credentials and permissions
+- Timeout: Increase throttle limit or check network
+"@
+    }
+    "PolicyGen" = @{
+        Title = "Policy Generation"
+        Content = @"
+APPLOCKER POLICY GENERATION
+
+Generate AppLocker policies from scan data or software lists.
+
+TWO GENERATION MODES
+
+1. Build Guide Mode (Enterprise)
+   - Target-specific: Workstation, Server, Domain Controller
+   - Custom AD group scoping
+   - Phased deployment (Phase 1-4)
+   - Proper principal scoping
+
+2. Simplified Mode (Quick Setup)
+   - Single target user/group
+   - Good for labs or standalone machines
+
+DEPLOYMENT PHASES
+
+Phase 1 - EXE Only (Lowest Risk)
+   - Executable rules only
+   - Best for initial deployment
+
+Phase 2 - EXE + Scripts
+   - Adds PowerShell, BAT, CMD rules
+
+Phase 3 - EXE + Scripts + MSI
+   - Adds installer rules
+
+Phase 4 - Full (EXE + Scripts + MSI + DLL)
+   - Complete protection
+   - Highest security, requires careful testing
+
+RULE TYPES
+
+Publisher Rules (Recommended)
+   - Based on digital signatures
+   - Survives software updates
+
+Path Rules
+   - Based on file location
+   - Use for unsigned software
+
+Hash Rules
+   - Based on file hash
+   - Must update after every change
+
+OPTIONS EXPLAINED
+
+- Include Deny Rules: Block LOLBins (mshta, wscript, etc.)
+- Include Vendor Publishers: Trust publishers from scan data
+- Software List: Use curated allowlist for rules
+- Target Group: AD group for rule scoping
+
+OUTPUT
+
+Policies saved as XML to .\Outputs\
+Deploy via GPO, PowerShell, or SCCM/Intune
+"@
+    }
+    "Merging" = @{
+        Title = "Merging Policies"
+        Content = @"
+POLICY MERGING
+
+Combine multiple AppLocker policies into a single unified policy.
+
+WHEN TO MERGE
+
+- Combining department-specific policies
+- Merging baseline with custom rules
+- Consolidating policies from multiple sources
+- Removing duplicate rules
+
+MERGE PROCESS
+
+Step 1: Select Policies
+   - Click 'Browse' to select multiple XML files
+   - Or select a folder containing policies
+
+Step 2: Configure Options
+   - Remove Default Rules: Filter out standard defaults
+   - Target Group: Replace Everyone SID with specific group
+   - Replace Mode: Everyone, All, or None
+
+Step 3: Merge
+   - Output saved to .\Outputs\MergedPolicy.xml
+
+MERGE OPTIONS
+
+Remove Default Rules
+   - Filters out AppLocker default rules
+   - Useful when merging custom policies
+
+Target Group Replacement
+   - Replaces generic SIDs with specific AD groups
+   - Everyone: Only replace Everyone (S-1-1-0)
+   - All: Replace all generic SIDs
+   - None: Keep original SIDs
+
+DEDUPLICATION
+
+The merge process automatically:
+- Removes exact duplicate rules
+- Preserves unique rules from each source
+- Maintains rule conditions and exceptions
+
+VALIDATION
+
+After merging:
+- Use Validate page to check the merged policy
+- Review rule counts and types
+- Test in Audit mode before enforcement
+"@
+    }
+    "Events" = @{
+        Title = "Event Collection"
+        Content = @"
+APPLOCKER EVENT COLLECTION
+
+Collect AppLocker audit events from remote computers to identify blocked applications.
+
+EVENT TYPES
+
+Event 8003: Would have been allowed (EXE/DLL)
+Event 8004: Would have been blocked (EXE/DLL) - Most useful
+Event 8005/8006: MSI and Script events
+Event 8007/8008: Packaged app events
+
+COLLECTION PROCESS
+
+Step 1: Load Computer List
+   - Same list used for scanning
+   - Or use 'Scan AD' to discover computers
+
+Step 2: Configure Options
+   - Days Back: How many days of events (default: 14)
+   - Blocked Only: Only collect 8004 events
+   - Since Last Run: Incremental collection
+
+Step 3: Collect Events
+   - Progress shown in log panel
+   - Results saved to .\Events\
+
+OUTPUT FILES
+
+Per-Computer Files:
+- BlockedApps.csv: All blocked events for that computer
+
+Summary Files:
+- UniqueBlockedApps.csv: Deduplicated list with counts
+- AllBlockedEvents.csv: Consolidated view
+
+USING EVENT DATA
+
+1. Review UniqueBlockedApps.csv
+2. Identify legitimate software being blocked
+3. Create rules for legitimate apps:
+   - Use Software Lists to build allowlists
+   - Generate new policy with allowed apps
+   - Merge with existing policy
+
+INCREMENTAL COLLECTION
+
+Use 'Since Last Run' option to:
+- Only collect new events since last run
+- Faster collection for regular monitoring
+- Track timestamps per computer
+"@
+    }
+    "SoftwareLists" = @{
+        Title = "Software Lists"
+        Content = @"
+SOFTWARE LIST MANAGEMENT
+
+Create and manage curated software allowlists for policy generation.
+
+WHAT ARE SOFTWARE LISTS?
+
+JSON files containing:
+- Publisher names for publisher rules
+- File paths for path rules
+- File hashes for hash rules
+
+Stored in: .\SoftwareLists\
+
+IMPORT METHODS
+
+1. From Scan Data
+   - Import software from scan CSV files
+   - Select specific applications to include
+
+2. From Common Publishers
+   - Pre-defined trusted publishers
+   - Categories: Microsoft, Adobe, Security vendors, etc.
+
+3. From AppLocker Policy
+   - Extract rules from existing policy XML
+   - Useful for policy migration
+
+4. From Folder Scan
+   - Scan local folders for executables
+   - Collect publisher info from signatures
+
+PUBLISHER CATEGORIES
+
+Core: Microsoft, Apple
+Hardware: Intel, AMD, NVIDIA, Dell, HP
+Defense: Lockheed Martin, Boeing, General Atomics
+Security: CrowdStrike, Symantec, McAfee
+Productivity: Adobe, Google, Mozilla
+And many more...
+
+USING SOFTWARE LISTS
+
+1. Create or select a software list
+2. On Generate page, select 'Use Software List'
+3. Browse to your JSON file
+4. Policy rules created from list entries
+
+MANAGING LISTS
+
+- View: See all entries in a list
+- Add: Manually add publishers/paths
+- Remove: Delete individual entries
+- Export: Save list as JSON
+- Compare: Diff two lists
+"@
+    }
+    "Deployment" = @{
+        Title = "Deployment Guide"
+        Content = @"
+APPLOCKER DEPLOYMENT STRATEGY
+
+Recommended approach for enterprise AppLocker deployment.
+
+PHASED DEPLOYMENT
+
+Week 1-2: Assessment
+- Scan 14+ representative machines
+- Collect software inventory
+- Identify common applications
+
+Week 3-4: Initial Policy
+- Generate Phase 1 policy (EXE only)
+- Deploy via GPO in Audit mode
+- Monitor for 14+ days
+
+Week 5-6: Refinement
+- Collect AppLocker events
+- Review blocked applications
+- Add rules for legitimate software
+
+Week 7+: Enforcement
+- Switch from Audit to Enforce mode
+- Continue monitoring
+- Advance through phases gradually
+
+DEPLOYMENT METHODS
+
+1. Group Policy (Recommended)
+   - Computer Configuration > Windows Settings
+   - Security Settings > Application Control Policies
+   - Import XML policy
+
+2. PowerShell
+   Set-AppLockerPolicy -XmlPolicy policy.xml
+
+3. SCCM/Intune
+   - Use Export feature for deployment packages
+   - Deploy as configuration baseline
+
+GPO CONFIGURATION
+
+1. Create new GPO or edit existing
+2. Navigate to AppLocker settings
+3. Import your policy XML
+4. Configure enforcement mode:
+   - Audit Only: Log without blocking
+   - Enforce Rules: Block and log
+5. Link GPO to target OUs
+
+TESTING RECOMMENDATIONS
+
+- Always test in Audit mode first
+- Monitor for at least 14 days
+- Review all blocked events
+- Test with representative users
+- Have rollback plan ready
+"@
+    }
+    "Troubleshooting" = @{
+        Title = "Troubleshooting"
+        Content = @"
+COMMON ISSUES AND SOLUTIONS
+
+WINRM CONNECTION ISSUES
+
+Error: WinRM cannot complete the operation
+Solutions:
+- Verify WinRM is enabled: winrm quickconfig
+- Check firewall: TCP 5985, 5986
+- Verify credentials have admin rights
+- Test: Test-WSMan <computername>
+
+Error: Access is denied
+Solutions:
+- Use domain admin credentials
+- Verify computer is domain-joined
+- Check local admin group membership
+
+SCAN FAILURES
+
+Error: RPC server unavailable
+Solutions:
+- Computer may be offline
+- Check network connectivity: ping <computer>
+- Verify computer name is correct
+
+Error: Timeout expired
+Solutions:
+- Reduce throttle limit
+- Check target computer performance
+- Increase timeout in settings
+
+POLICY GENERATION ISSUES
+
+Error: No software data found
+Solutions:
+- Verify scan completed successfully
+- Check scan folder contains CSV files
+- Ensure InstalledSoftware.csv exists
+
+Error: Invalid XML
+Solutions:
+- Use Validate page to check policy
+- Review for special characters
+- Check file encoding (UTF-8)
+
+EVENT COLLECTION ISSUES
+
+Error: No events found
+Solutions:
+- Verify AppLocker is configured
+- Check policy is in Audit mode
+- Ensure event log is not cleared
+- Increase 'Days Back' setting
+
+APPLOCKER NOT WORKING
+
+Policy not applying:
+- Verify Application Identity service running
+- Check GPO is linked correctly
+- Run: gpupdate /force
+- Review Event Viewer > AppLocker logs
+
+Applications blocked unexpectedly:
+- Check policy mode (Audit vs Enforce)
+- Review Event ID 8004 details
+- Verify rule conditions
+
+LOGS AND DIAGNOSTICS
+
+Use the Diagnostics page to:
+- Test AppLocker service status
+- Verify policy application
+- Check event log access
+- Test WinRM connectivity
+"@
+    }
+    "FAQ" = @{
+        Title = "Frequently Asked Questions"
+        Content = @"
+FREQUENTLY ASKED QUESTIONS
+
+Q: What is AppLocker?
+A: Windows application control feature that lets admins specify which users/groups can run particular applications based on file attributes.
+
+Q: What's the difference between Audit and Enforce mode?
+A: Audit mode logs what would be blocked without actually blocking. Enforce mode both logs and blocks. Always start with Audit mode.
+
+Q: Why use publisher rules over hash rules?
+A: Publisher rules survive software updates because they're based on digital signatures. Hash rules must be updated after every software change.
+
+Q: What are LOLBins?
+A: Living-off-the-land binaries - legitimate Windows tools often abused by attackers (mshta.exe, wscript.exe, powershell.exe, etc.). Consider blocking in high-security environments.
+
+Q: How many computers should I scan?
+A: At least 14 representative machines covering all departments and user types. More is better for comprehensive coverage.
+
+Q: How long should I run in Audit mode?
+A: Minimum 14 days to capture regular business activities, monthly processes, and various user workflows.
+
+Q: Can I deploy without Active Directory?
+A: Yes, use local policy or PowerShell deployment for standalone machines.
+
+Q: What if I block something critical?
+A: In Audit mode, nothing is blocked. In Enforce mode, use GPO to quickly switch back to Audit or disable the policy.
+
+Q: Does AppLocker affect administrators?
+A: By default, local administrators can bypass AppLocker. Use explicit deny rules to include admins.
+
+Q: What about unsigned applications?
+A: Use path rules or hash rules for unsigned software. Consider getting software signed or using a controlled folder.
+
+Q: How do I handle software updates?
+A: Publisher rules automatically allow updates if signed by same publisher. Path rules don't need updates. Hash rules must be regenerated.
+
+Q: What's the performance impact?
+A: Minimal on modern hardware. DLL rules have highest overhead - only enable if needed.
+
+Q: Can I export policies for SCCM/Intune?
+A: Yes, use the Export feature to generate deployment packages for various platforms.
+"@
+    }
+}
+
+# Help topic navigation click handlers
+$controls['HelpGettingStarted'].Add_Click({ Show-HelpTopic "GettingStarted" })
+$controls['HelpScanning'].Add_Click({ Show-HelpTopic "Scanning" })
+$controls['HelpPolicyGen'].Add_Click({ Show-HelpTopic "PolicyGen" })
+$controls['HelpMerging'].Add_Click({ Show-HelpTopic "Merging" })
+$controls['HelpEvents'].Add_Click({ Show-HelpTopic "Events" })
+$controls['HelpSoftwareLists'].Add_Click({ Show-HelpTopic "SoftwareLists" })
+$controls['HelpDeployment'].Add_Click({ Show-HelpTopic "Deployment" })
+$controls['HelpTroubleshooting'].Add_Click({ Show-HelpTopic "Troubleshooting" })
+$controls['HelpFAQ'].Add_Click({ Show-HelpTopic "FAQ" })
+
+function Show-HelpTopic {
+    param([string]$TopicName)
+    if ($Script:HelpTopics.ContainsKey($TopicName)) {
+        $topic = $Script:HelpTopics[$TopicName]
+        $controls['HelpTitle'].Text = $topic.Title
+        $controls['HelpBody'].Text = $topic.Content
+    }
+}
+
 $controls['SelectTrustedPublishers'].Add_Click({
     # Create selection window
     $pubWindow = New-Object System.Windows.Window
@@ -3265,7 +3926,7 @@ $controls['SaveLog'].Add_Click({
     if ($dialog.ShowDialog() -eq $true) { $controls['LogOutput'].Text | Out-File $dialog.FileName -Encoding UTF8; Write-Log "Log saved." -Level Success }
 })
 
-# Browse buttons
+#region Browse Button Handlers
 $controls['BrowseScanComputerList'].Add_Click({
     $f = Get-OpenFileDialog -Title "Select Computer List" -Filter "Text/CSV (*.txt;*.csv)|*.txt;*.csv"
     if ($f) {
@@ -3295,7 +3956,9 @@ $controls['BrowseCompareOutput'].Add_Click({ $f = Get-FolderDialog; if ($f) { $c
 $controls['BrowseCORAOutput'].Add_Click({ $f = Get-FolderDialog; if ($f) { $controls['CORAOutputPath'].Text = $f } })
 $controls['BrowseCORAPolicy'].Add_Click({ $f = Get-OpenFileDialog -Title "Select Policy" -Filter "XML (*.xml)|*.xml"; if ($f) { $controls['CORAPolicyPath'].Text = $f } })
 $controls['BrowseScriptsPath'].Add_Click({ $f = Get-FolderDialog -Description "Select GA-AppLocker folder"; if ($f) { $controls['SettingsScriptsPath'].Text = $f; $Script:AppRoot = $f; $Script:ScriptsAvailable = Test-Path (Join-Path $f "Start-AppLockerWorkflow.ps1"); $controls['ScriptsStatusText'].Text = if ($Script:ScriptsAvailable) { "Scripts found!" } else { "Scripts not found" } } })
+#endregion
 
+#region AD Export Handlers
 # Export Computers from AD (on Scan page)
 $controls['ScanExportFromAD'].Add_Click({
     $computerType = switch ($controls['ScanADComputerType'].SelectedIndex) {
@@ -3382,6 +4045,9 @@ $controls['EventsExportFromAD'].Add_Click({
     }
 })
 
+#endregion
+
+#region Merge and Clone Handlers
 # Merge list management
 $controls['MergeAddFile'].Add_Click({ $f = Get-OpenFileDialog -Filter "XML (*.xml)|*.xml"; if ($f) { $null = $controls['MergePolicyList'].Items.Add($f) } })
 $controls['MergeAddFolder'].Add_Click({ $f = Get-FolderDialog; if ($f) { Get-ChildItem $f -Filter "*.xml" | ForEach-Object { $null = $controls['MergePolicyList'].Items.Add($_.FullName) } } })
@@ -3598,8 +4264,9 @@ $controls['ExecuteClone'].Add_Click({
         [System.Windows.MessageBoxImage]::Information
     )
 })
+#endregion
 
-# Main operations
+#region Main Operation Handlers
 $controls['StartScan'].Add_Click({
     $list = $controls['ScanComputerList'].Text
     if (-not $list -or -not (Test-Path $list)) { Write-Log "Please select a valid computer list." -Level Error; return }
@@ -3722,7 +4389,9 @@ $controls['StartCompare'].Add_Click({
     Invoke-Script -ScriptName "utilities\Compare-SoftwareInventory.ps1" -Parameters @{ ReferencePath = $ref; ComparePath = $target; CompareBy = $method; OutputPath = $controls['CompareOutputPath'].Text }
     Write-Log "Comparison completed." -Level Success
 })
+#endregion
 
+#region CORA and Diagnostic Handlers
 $controls['StartCORA'].Add_Click({
     $outputPath = $controls['CORAOutputPath'].Text
     if (-not $outputPath) { Write-Log "Please specify an output path." -Level Error; return }
@@ -3762,7 +4431,9 @@ $controls['StartDiagnostic'].Add_Click({
     Invoke-Script -ScriptName "utilities\Test-AppLockerDiagnostic.ps1" -Parameters @{ ComputerName = $computer }
     Write-Log "Diagnostic completed." -Level Success
 })
+#endregion
 
+#region AD Management Handlers
 # AD Setup - Create OUs and Groups
 $controls['ADSetup'].Add_Click({
     $domain = $controls['ADDomainName'].Text.Trim()
@@ -4294,8 +4965,9 @@ $controls['ADGroupManagerApply'].Add_Click({
         Update-GroupManagerStatus "Apply failed" "#FF6B6B"
     }
 })
-#endregion
+#endregion AD Management Handlers
 
+#region WinRM Handlers
 $controls['WinRMDeploy'].Add_Click({
     Write-Log "Deploying WinRM GPO..." -Level Info
     Invoke-Script -ScriptName "utilities\Enable-WinRM-Domain.ps1" -Parameters @{ Action = 'Deploy' }
@@ -4307,8 +4979,9 @@ $controls['WinRMRemove'].Add_Click({
     Invoke-Script -ScriptName "utilities\Enable-WinRM-Domain.ps1" -Parameters @{ Action = 'Remove' }
     Write-Log "Removal completed." -Level Success
 })
+#endregion
 
-# Software list management
+#region Software List Handlers
 function Update-SoftwareLists {
     $controls['SoftwareListBox'].Items.Clear()
     $controls['SoftwareGenerateList'].Items.Clear()

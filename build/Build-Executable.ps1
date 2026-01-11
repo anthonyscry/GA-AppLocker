@@ -399,7 +399,7 @@ Write-Host "[+] Consolidated script created: $ConsolidatedScript" -ForegroundCol
 
 # Build parameters
 $OutputPath = Join-Path $DistDir $OutputName
-$IconFile = Join-Path $ProjectRoot "assets\general-atomics-large.ico"
+$IconFile = Join-Path $ProjectRoot "assets\general-atomics-logo.ico"
 
 $Ps2ExeParams = @{
     InputFile = $ConsolidatedScript

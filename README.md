@@ -1,7 +1,7 @@
 # GA-AppLocker
 
 **Author:** Tony Tran, ISSO, GA-ASI
-**Version:** 1.2.2
+**Version:** 1.2.4
 
 Simplified AppLocker deployment toolkit for Windows 11/Server 2019+. No external dependencies required.
 
@@ -75,7 +75,8 @@ GA-AppLocker.exe    <-- Just double-click this!
 - Deploy WinRM via GPO
 
 ### GUI Features
-- **Keyboard shortcuts** - Ctrl+1-8 for navigation, F1 for help
+- **Embedded Help System** - Comprehensive in-app documentation (F1)
+- **Keyboard shortcuts** - Ctrl+1-8 for navigation, Ctrl+Q quick workflow, Ctrl+R refresh, F1 for help
 - **Operation cancellation** - Cancel long-running operations
 - **Button state management** - Prevents conflicts during operations
 - **Progress indicators** - Visual feedback during file processing

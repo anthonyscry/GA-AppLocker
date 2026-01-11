@@ -2,17 +2,35 @@
 
 ## GUI Improvements (v1.2.0+)
 
+### Embedded Help System (v1.2.4)
+
+Press **F1** or click **Help** in the navigation to access comprehensive in-app documentation:
+
+- **Getting Started** - Quick start guide, prerequisites, workflow overview
+- **Scanning** - Remote computer scanning via WinRM
+- **Policy Generation** - Build Guide vs Simplified mode, deployment phases
+- **Merging Policies** - Combining and deduplicating policies
+- **Event Collection** - AppLocker audit events (8003/8004)
+- **Software Lists** - Managing curated allowlists
+- **Deployment** - Enterprise deployment strategy
+- **Troubleshooting** - Common issues and solutions
+- **FAQ** - Frequently asked questions
+
 ### Keyboard Shortcuts
 
 | Shortcut | Action |
 |----------|--------|
-| Ctrl+1 | Scan Computers |
-| Ctrl+2 | Collect Events |
-| Ctrl+3 | Generate Policy |
-| Ctrl+4 | Merge Policies |
-| Ctrl+5 | Compare Inventories |
-| Ctrl+6 | Validate Policy |
+| Ctrl+1 | Scan Page |
+| Ctrl+2 | Generate Page |
+| Ctrl+3 | Merge Page |
+| Ctrl+4 | Validate Page |
+| Ctrl+5 | Events Page |
+| Ctrl+6 | Compare Page |
+| Ctrl+7 | Software Lists |
 | Ctrl+8 | CORA Evidence |
+| Ctrl+, | Settings |
+| Ctrl+Q | Quick Workflow |
+| Ctrl+R | Refresh Detection |
 | F1 | Help |
 
 Keyboard shortcut hints are displayed as tooltips on navigation buttons.

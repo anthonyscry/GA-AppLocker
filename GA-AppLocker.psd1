@@ -3,7 +3,7 @@
     RootModule = 'GA-AppLocker.psm1'
 
     # Version number of this module
-    ModuleVersion = '1.2.2'
+    ModuleVersion = '1.2.4'
 
     # ID used to uniquely identify this module
     GUID = 'f8d4a7c2-9e3b-4f6a-8d1c-5b2e9f0a3c7d'
@@ -178,6 +178,20 @@
 
             # ReleaseNotes of this module
             ReleaseNotes = @'
+## Version 1.2.4
+- Added embedded Help system with comprehensive in-app documentation
+- Help page with 9 topics: Getting Started, Scanning, Policy Generation, Merging, Events, Software Lists, Deployment, Troubleshooting, FAQ
+- Fixed duplicate status indicator in GUI (removed redundant workflow status)
+- Updated icon to use general-atomics-logo.ico across all build scripts
+
+## Version 1.2.3
+- GUI cleanup: Consolidated XAML styles (PageTitle, PageSubtitle, CardTitle, FieldLabel, HintText)
+- Compact UI: Reduced margins, padding, and spacing throughout
+- Sidebar width reduced from 240 to 220 pixels
+- Log panel height reduced from 180 to 150 pixels
+- Code organization: Added region markers for event handlers
+- Updated keyboard shortcut documentation
+
 ## Version 1.2.0
 - Policy version control with Git-like versioning and rollback (PolicyVersionControl.psm1)
 - Automatic phase advancement based on event analysis (Invoke-PhaseAdvancement.ps1)
