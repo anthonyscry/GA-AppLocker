@@ -7,7 +7,7 @@
 
 BeforeAll {
     # Import the module
-    $modulePath = Join-Path $PSScriptRoot ".." "AsyncHelpers.psm1"
+    $modulePath = Join-Path (Join-Path $PSScriptRoot "..") "AsyncHelpers.psm1"
     Import-Module $modulePath -Force
 }
 

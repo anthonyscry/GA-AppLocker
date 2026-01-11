@@ -4,7 +4,17 @@
 
 .DESCRIPTION
     Tests error handling functions, input validation, and output formatting.
+
+.NOTES
+    PSScriptAnalyzer suppressions:
+    - PSAvoidUsingConvertToSecureStringWithPlainText: Required for testing credential validation
+    - PSAvoidUsingComputerNameHardcoded: Required for testing computer name validation
 #>
+
+# Suppress PSScriptAnalyzer rules that are expected in test files
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingConvertToSecureStringWithPlainText', '', Justification='Required for testing credential validation functions')]
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingComputerNameHardcoded', '', Justification='Required for testing computer name validation functions')]
+param()
 
 BeforeAll {
     # Import the module

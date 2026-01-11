@@ -41,7 +41,9 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$ScriptRoot = $PSScriptRoot
+$BuildScriptRoot = $PSScriptRoot
+$ProjectRoot = Split-Path $PSScriptRoot -Parent
+$SrcRoot = Join-Path $ProjectRoot "src"
 
 Write-Host "`n========================================" -ForegroundColor Cyan
 Write-Host "  GA-AppLocker Executable Builder" -ForegroundColor Cyan
@@ -70,17 +72,17 @@ if (-not $SkipCodeReview) {
     if (-not $SkipCodeReview) {
         Import-Module PSScriptAnalyzer -Force
 
-        # Define scripts to analyze
+        # Define scripts to analyze (relative to SrcRoot)
         $ScriptsToAnalyze = @(
-            "Start-AppLockerWorkflow.ps1",
-            "Invoke-RemoteScan.ps1",
-            "Invoke-RemoteEventCollection.ps1",
-            "New-AppLockerPolicyFromGuide.ps1",
-            "Merge-AppLockerPolicies.ps1",
-            "utilities\Common.psm1",
-            "utilities\Manage-SoftwareLists.ps1",
-            "utilities\Test-AppLockerDiagnostic.ps1",
-            "utilities\Compare-SoftwareInventory.ps1"
+            "Core\Start-AppLockerWorkflow.ps1",
+            "Core\Invoke-RemoteScan.ps1",
+            "Core\Invoke-RemoteEventCollection.ps1",
+            "Core\New-AppLockerPolicyFromGuide.ps1",
+            "Core\Merge-AppLockerPolicies.ps1",
+            "Utilities\Common.psm1",
+            "Utilities\Manage-SoftwareLists.ps1",
+            "Utilities\Test-AppLockerDiagnostic.ps1",
+            "Utilities\Compare-SoftwareInventory.ps1"
         )
 
         $TotalIssues = 0
@@ -91,7 +93,7 @@ if (-not $SkipCodeReview) {
 
         Write-Host ""
         foreach ($script in $ScriptsToAnalyze) {
-            $scriptPath = Join-Path $ScriptRoot $script
+            $scriptPath = Join-Path $SrcRoot $script
             if (Test-Path $scriptPath) {
                 $issues = Invoke-ScriptAnalyzer -Path $scriptPath -Severity @('Error', 'Warning', 'Information')
 
@@ -173,7 +175,7 @@ if (-not $SkipCodeReview) {
             }
 
             # Export full report
-            $ReportPath = Join-Path $ScriptRoot "code-review-report.json"
+            $ReportPath = Join-Path $BuildScriptRoot "code-review-report.json"
             $AllIssues | ConvertTo-Json -Depth 3 | Set-Content -Path $ReportPath
             Write-Host "[*] Full report saved to: $ReportPath" -ForegroundColor Gray
             Write-Host ""
@@ -213,8 +215,8 @@ if (-not $ps2exeModule) {
 Import-Module ps2exe -Force
 
 # Create build directory
-$BuildDir = Join-Path $ScriptRoot "build"
-$DistDir = Join-Path $ScriptRoot "dist"
+$BuildDir = Join-Path $BuildScriptRoot "build"
+$DistDir = Join-Path $BuildScriptRoot "dist"
 
 if (Test-Path $BuildDir) { Remove-Item $BuildDir -Recurse -Force }
 if (-not (Test-Path $DistDir)) { New-Item -ItemType Directory -Path $DistDir -Force | Out-Null }
@@ -227,20 +229,20 @@ Write-Host "[*] Preparing build..." -ForegroundColor Yellow
 $ConsolidatedScript = Join-Path $BuildDir "GA-AppLocker-Consolidated.ps1"
 
 # Read the Common module
-$CommonModule = Get-Content (Join-Path $ScriptRoot "utilities\Common.psm1") -Raw
-$ConfigData = Get-Content (Join-Path $ScriptRoot "utilities\Config.psd1") -Raw
+$CommonModule = Get-Content (Join-Path $SrcRoot "Utilities\Common.psm1") -Raw
+$ConfigData = Get-Content (Join-Path $SrcRoot "Utilities\Config.psd1") -Raw
 
 # Read all the main scripts
-$MainWorkflow = Get-Content (Join-Path $ScriptRoot "Start-AppLockerWorkflow.ps1") -Raw
-$RemoteScan = Get-Content (Join-Path $ScriptRoot "Invoke-RemoteScan.ps1") -Raw
-$EventCollection = Get-Content (Join-Path $ScriptRoot "Invoke-RemoteEventCollection.ps1") -Raw
-$PolicyGenerator = Get-Content (Join-Path $ScriptRoot "New-AppLockerPolicyFromGuide.ps1") -Raw
-$PolicyMerger = Get-Content (Join-Path $ScriptRoot "Merge-AppLockerPolicies.ps1") -Raw
+$MainWorkflow = Get-Content (Join-Path $SrcRoot "Core\Start-AppLockerWorkflow.ps1") -Raw
+$RemoteScan = Get-Content (Join-Path $SrcRoot "Core\Invoke-RemoteScan.ps1") -Raw
+$EventCollection = Get-Content (Join-Path $SrcRoot "Core\Invoke-RemoteEventCollection.ps1") -Raw
+$PolicyGenerator = Get-Content (Join-Path $SrcRoot "Core\New-AppLockerPolicyFromGuide.ps1") -Raw
+$PolicyMerger = Get-Content (Join-Path $SrcRoot "Core\Merge-AppLockerPolicies.ps1") -Raw
 
 # Read utility scripts
-$SoftwareListMgr = Get-Content (Join-Path $ScriptRoot "utilities\Manage-SoftwareLists.ps1") -Raw
-$DiagnosticTool = Get-Content (Join-Path $ScriptRoot "utilities\Test-AppLockerDiagnostic.ps1") -Raw
-$CompareInventory = Get-Content (Join-Path $ScriptRoot "utilities\Compare-SoftwareInventory.ps1") -Raw
+$SoftwareListMgr = Get-Content (Join-Path $SrcRoot "Utilities\Manage-SoftwareLists.ps1") -Raw
+$DiagnosticTool = Get-Content (Join-Path $SrcRoot "Utilities\Test-AppLockerDiagnostic.ps1") -Raw
+$CompareInventory = Get-Content (Join-Path $SrcRoot "Utilities\Compare-SoftwareInventory.ps1") -Raw
 
 Write-Host "[*] Building consolidated script..." -ForegroundColor Yellow
 
@@ -397,7 +399,6 @@ Write-Host "[+] Consolidated script created: $ConsolidatedScript" -ForegroundCol
 
 # Build parameters
 $OutputPath = Join-Path $DistDir $OutputName
-$ProjectRoot = Split-Path -Parent $ScriptRoot
 $IconFile = Join-Path $ProjectRoot "assets\general-atomics-large.ico"
 
 $Ps2ExeParams = @{

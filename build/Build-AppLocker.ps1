@@ -227,10 +227,10 @@ function Invoke-Validate {
     try {
         $analysisResults = Invoke-ScriptAnalyzer @analyzerParams
 
-        # Separate errors and warnings
-        $errors = $analysisResults | Where-Object { $_.Severity -eq 'Error' }
-        $warnings = $analysisResults | Where-Object { $_.Severity -eq 'Warning' }
-        $info = $analysisResults | Where-Object { $_.Severity -eq 'Information' }
+        # Separate errors and warnings (ensure arrays even if empty)
+        $errors = @($analysisResults | Where-Object { $_.Severity -eq 'Error' })
+        $warnings = @($analysisResults | Where-Object { $_.Severity -eq 'Warning' })
+        $info = @($analysisResults | Where-Object { $_.Severity -eq 'Information' })
 
         # Export results
         $reportFile = Join-Path $ReportsPath 'ScriptAnalyzer.json'
@@ -356,7 +356,7 @@ function Invoke-Test {
     $testsPassed = $true
 
     # Find all test files
-    $testFiles = Get-ChildItem -Path $ProjectRoot -Filter '*.Tests.ps1' -Recurse
+    $testFiles = @(Get-ChildItem -Path $ProjectRoot -Filter '*.Tests.ps1' -Recurse)
 
     if ($testFiles.Count -eq 0) {
         Write-BuildWarning 'No test files found'
@@ -504,13 +504,13 @@ function Invoke-Package {
 
     # Generate file manifest
     Write-BuildStep 'Generating file manifest...'
-    $manifest = Get-ChildItem -Path $packagePath -Recurse -File | ForEach-Object {
+    $manifest = @(Get-ChildItem -Path $packagePath -Recurse -File | ForEach-Object {
         [PSCustomObject]@{
             RelativePath = $_.FullName.Substring($packagePath.Length + 1)
             Size         = $_.Length
             Hash         = (Get-FileHash -Path $_.FullName -Algorithm SHA256).Hash
         }
-    }
+    })
     $manifest | Export-Csv -Path (Join-Path $DistPath "$packageName-manifest.csv") -NoTypeInformation
     Write-BuildSuccess "Manifest created with $($manifest.Count) files"
 
