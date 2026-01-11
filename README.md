@@ -1,8 +1,24 @@
 # GA-AppLocker
 
 **Author:** Tony Tran, ISSO, GA-ASI
+**Version:** 1.2.2
 
 Simplified AppLocker deployment toolkit for Windows 11/Server 2019+. No external dependencies required.
+
+---
+
+## Download
+
+> **📦 Download the latest release package:**
+> **[GA-AppLocker Bundle Package](<!-- INSERT_BUNDLE_LINK_HERE -->)**
+>
+> _(Update this link with the actual bundle package location)_
+
+The bundle includes:
+- `GA-AppLocker.exe` - Standalone GUI executable
+- All PowerShell scripts and modules
+- Documentation and templates
+- Test fixtures and examples
 
 ---
 

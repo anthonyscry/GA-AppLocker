@@ -7,30 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- **Incremental Event Collection**: `-SinceLastRun` parameter for `Invoke-RemoteEventCollection.ps1`
-  - Only collects events since last successful run
-  - Stores timestamp in `.\Events\.lastrun` state file
-  - Ideal for continuous monitoring to avoid re-collecting old events
-- **AD Computer Export**: New `[C] Computers` menu option to export computer names from Active Directory for scanning
-  - Filter by computer type: All, Workstations, Servers, or Domain Controllers
-  - Exports to `.\ADManagement\computers.csv` by default with ComputerName, OperatingSystem, Enabled, LastLogonDate columns
-- **CSV Computer List Support**: All scripts now support CSV format with `ComputerName` column header
-  - TXT format still supported for backwards compatibility (one computer per line, # for comments)
-  - `Get-ComputerList` helper function in Common.psm1 for consistent parsing
-- **ADManagement folder**: Centralized location for AD-related files
-  - Computer lists: `.\ADManagement\computers.csv`
-  - User exports: `.\ADManagement\ADUserGroups-Export.csv`
-  - Group imports: `.\ADManagement\groups.csv`
-  - User list: `.\ADManagement\users.csv`
-- **Comparison results folder**: Compare workflow now saves results to `.\SoftwareLists\Comparisons\`
+_No unreleased changes_
+
+## [1.2.2] - 2026-01-11
+
+### Fixed
+- **AsyncHelpers.Tests.ps1**: Fixed `Join-Path` compatibility with PowerShell 5.1 (nested calls required)
+- **ErrorHandling.Tests.ps1**: Added PSScriptAnalyzer suppressions for test-specific rules
+- **Build-AppLocker.ps1**: Fixed array handling for `Count` property access on potentially null objects
+- **Build-Executable.ps1**: Updated path references for new `src/` directory structure
 
 ### Changed
-- **BREAKING**: Default computer list path changed from `.\computers.txt` to `.\ADManagement\computers.csv`
-- All scan/event workflows now default to `.\ADManagement\computers.csv`
-- Improved default paths throughout the menu to reduce manual typing
+- All 211 tests now pass (4 intentionally skipped)
+- Build scripts now work correctly with restructured project layout
+- Improved error handling in build process
 
-## [1.2.1] - 2025-01-10
+### Added
+- Download section in README with placeholder for bundle package link
+
+## [1.2.1] - 2026-01-10
 
 ### Added
 - **CORA Evidence Generator** (`New-CORAEvidence.ps1`)

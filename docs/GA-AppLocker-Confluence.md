@@ -12,8 +12,24 @@
 |---|---|
 | **Author** | Tony Tran, ISSO |
 | **Department** | Information Security |
-| **Version** | 1.2.1 |
+| **Version** | 1.2.2 |
 | **Last Updated** | January 2026 |
+
+---
+
+## Download
+
+{info:title=Download Link}
+**📦 Bundle Package:** [GA-AppLocker Bundle](<!-- INSERT_BUNDLE_LINK_HERE -->)
+
+_(Update this link with the actual bundle package location)_
+{info}
+
+The bundle package includes:
+- `GA-AppLocker.exe` - Standalone GUI executable
+- All PowerShell scripts and modules
+- Documentation and templates
+- Test fixtures and examples
 
 ---
 
@@ -25,9 +41,9 @@ Download and run the **GA-AppLocker.exe** GUI application. No installation or se
 
 ### Option 1: GUI Application (Recommended)
 
-1. Download `GA-AppLocker.exe` from the shared drive or release package
-2. Place it in a folder with the PowerShell scripts (for full functionality)
-3. Double-click to launch
+1. Download the bundle package from the link above
+2. Extract to a folder (e.g., `C:\GA-AppLocker`)
+3. Double-click `GA-AppLocker.exe` to launch
 
 The GUI provides point-and-click access to all features.
 
@@ -296,6 +312,7 @@ This tests:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.2.2 | January 2026 | Bug fixes for test compatibility (PowerShell 5.1), build script improvements, download bundle placeholder |
 | 1.2.1 | January 2026 | CORA Evidence Generator for compliance audits, incremental event collection (-SinceLastRun), GUI CORA page with Ctrl+8 shortcut |
 | 1.2.0 | January 2026 | Policy version control, industry templates, phase advancement, rule health checking, whitelist request workflow, GUI improvements (keyboard shortcuts, cancellation, progress indicators) |
 | 1.1.0 | January 2026 | Continuous monitoring, GPO export formats, impact analysis, credential caching |

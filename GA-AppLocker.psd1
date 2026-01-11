@@ -3,7 +3,7 @@
     RootModule = 'GA-AppLocker.psm1'
 
     # Version number of this module
-    ModuleVersion = '1.2.0'
+    ModuleVersion = '1.2.2'
 
     # ID used to uniquely identify this module
     GUID = 'f8d4a7c2-9e3b-4f6a-8d1c-5b2e9f0a3c7d'
