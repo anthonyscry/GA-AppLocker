@@ -12,7 +12,7 @@
 |---|---|
 | **Author** | Tony Tran, ISSO |
 | **Department** | Information Security |
-| **Version** | 1.2.0 |
+| **Version** | 1.2.1 |
 | **Last Updated** | January 2026 |
 
 ---
@@ -68,7 +68,14 @@ For automation or advanced users:
 | Feature | Description |
 |---------|-------------|
 | **Compare** | Compare software inventories between systems to identify drift |
-| **Events** | Collect AppLocker audit events (Event IDs 8003/8004) |
+| **Events** | Collect AppLocker audit events (Event IDs 8003/8004) with incremental collection support |
+
+### Compliance & Audit
+
+| Feature | Description |
+|---------|-------------|
+| **CORA Evidence** | Generate audit-ready evidence packages for compliance reviews (NIST, HIPAA, PCI-DSS) |
+| **Compliance Reports** | Consolidated documentation package for auditors and inspectors |
 
 ### Management
 
@@ -77,14 +84,15 @@ For automation or advanced users:
 | **Software Lists** | Create and manage curated software allowlists |
 | **AD Integration** | Create AppLocker OUs, security groups, and deploy WinRM GPO |
 
-### GUI Features (v1.2.0)
+### GUI Features (v1.2.0+)
 
 | Feature | Description |
 |---------|-------------|
-| **Keyboard Shortcuts** | Ctrl+1-6 for navigation, F1 for help |
+| **Keyboard Shortcuts** | Ctrl+1-8 for navigation, F1 for help |
 | **Operation Cancellation** | Cancel button for long-running operations |
 | **Progress Indicators** | Visual feedback during XML validation and file processing |
 | **Button State Management** | Prevents conflicts during operations |
+| **CORA Evidence Page** | Generate compliance packages directly from the GUI (Ctrl+8) |
 
 ### Advanced Features (v1.1.0+)
 
@@ -152,8 +160,30 @@ Monitor audit events for **minimum 14 days** before enforcing!
 
 Collect events using:
 ```powershell
+# Standard collection
 .\Start-AppLockerWorkflow.ps1 -Mode Events -ComputerList .\computers.csv
+
+# Incremental collection (only new events since last run)
+.\Start-AppLockerWorkflow.ps1 -Mode Events -ComputerList .\computers.csv -SinceLastRun
 ```
+
+### Phase 5b: Generate CORA Evidence (for audits)
+
+{tip:title=Audit Preparation}
+Use the CORA Evidence Generator to create audit-ready documentation packages:
+```powershell
+.\src\Utilities\New-CORAEvidence.ps1 -OutputPath .\CORA-Evidence
+```
+
+Or via GUI: Navigate to **CORA Evidence** (Ctrl+8) and click Generate.
+{tip}
+
+The CORA package includes:
+- Executive summary
+- Policy inventory
+- Rule analysis
+- Compliance assessment
+- System configuration details
 
 ### Phase 6: Enforcement
 
@@ -248,6 +278,7 @@ This tests:
 | `.\Events\` | Collected AppLocker events |
 | `.\SoftwareLists\` | Curated software allowlists |
 | `.\ADManagement\` | Computer lists and AD exports |
+| `.\CORA-Evidence\` | Generated CORA compliance packages |
 
 ---
 
@@ -265,6 +296,7 @@ This tests:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.2.1 | January 2026 | CORA Evidence Generator for compliance audits, incremental event collection (-SinceLastRun), GUI CORA page with Ctrl+8 shortcut |
 | 1.2.0 | January 2026 | Policy version control, industry templates, phase advancement, rule health checking, whitelist request workflow, GUI improvements (keyboard shortcuts, cancellation, progress indicators) |
 | 1.1.0 | January 2026 | Continuous monitoring, GPO export formats, impact analysis, credential caching |
 | 1.0.0 | January 2026 | Initial release with GUI |

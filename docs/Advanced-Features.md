@@ -1,6 +1,6 @@
 # Advanced Features
 
-## GUI Improvements (v1.2.0)
+## GUI Improvements (v1.2.0+)
 
 ### Keyboard Shortcuts
 
@@ -12,6 +12,7 @@
 | Ctrl+4 | Merge Policies |
 | Ctrl+5 | Compare Inventories |
 | Ctrl+6 | Validate Policy |
+| Ctrl+8 | CORA Evidence |
 | F1 | Help |
 
 Keyboard shortcut hints are displayed as tooltips on navigation buttons.
@@ -200,32 +201,62 @@ Approve-WhitelistRequest -RequestId "REQ-001" -Approver "admin@company.com"
 Deny-WhitelistRequest -RequestId "REQ-002" -Reason "Security concern"
 ```
 
-### Compliance Reporting
+### CORA Evidence Generator (v1.2.1)
 
-Generate audit-ready documentation for security inspectors:
+Generate comprehensive audit evidence packages for compliance reviews:
 
 ```powershell
-# Generate HTML compliance report
-.\src\Utilities\New-ComplianceReport.ps1
+# Generate CORA evidence package
+.\src\Utilities\New-CORAEvidence.ps1 -OutputPath .\CORA-Evidence
 
-# Generate Markdown report with evidence listings
-.\src\Utilities\New-ComplianceReport.ps1 -Format Markdown -IncludeEvidence
+# Include raw data files
+.\src\Utilities\New-CORAEvidence.ps1 -OutputPath .\CORA-Evidence -IncludeRawData
 
-# Generate report for specific policy
-.\src\Utilities\New-ComplianceReport.ps1 -PolicyPath .\policy.xml -Format HTML
+# For a specific policy
+.\src\Utilities\New-CORAEvidence.ps1 -OutputPath .\CORA-Evidence -PolicyPath .\policy.xml
 ```
 
-**Report Contents:**
-- Executive summary with compliance score
-- Evidence inventory (scans, events, policies, logs)
-- Compliance checklist verification
-- Risk assessment summary
-- Recommendations for improvement
+**Via GUI:** Navigate to **CORA Evidence** (Ctrl+8), set output path, and click Generate.
 
-**Supported Compliance Standards:**
+**CORA Package Contents:**
+- `CORA-Executive-Summary.md` - High-level overview for leadership
+- `CORA-Policy-Inventory.md` - Detailed policy listing
+- `CORA-Rule-Analysis.md` - Rule breakdown by type and collection
+- `CORA-Compliance-Assessment.md` - NIST/CIS/CMMC mapping
+- `CORA-System-Configuration.md` - AppLocker service status
+- `RawData/` folder (when `-IncludeRawData` is specified)
+
+**Supported Compliance Frameworks:**
 - NIST 800-53 (CM-7, CM-11, SI-7)
-- CIS Controls (2.5, 2.6)
+- CIS Controls (2.5, 2.6, 2.7)
 - CMMC (CM.L2-3.4.8)
+
+### Incremental Event Collection (v1.2.1)
+
+Efficiently collect only new events since the last collection:
+
+```powershell
+# First run - collects all events within DaysBack range
+.\src\Core\Invoke-RemoteEventCollection.ps1 -ComputerListPath .\computers.txt -OutputPath .\Events
+
+# Subsequent runs - only collects new events since last run
+.\src\Core\Invoke-RemoteEventCollection.ps1 -ComputerListPath .\computers.txt -OutputPath .\Events -SinceLastRun
+
+# Custom state file location
+.\src\Core\Invoke-RemoteEventCollection.ps1 -ComputerListPath .\computers.txt -OutputPath .\Events `
+    -SinceLastRun -StateFilePath .\Events\collection-state.json
+```
+
+**Via main workflow:**
+```powershell
+.\src\Core\Start-AppLockerWorkflow.ps1 -Mode Events -ComputerList .\computers.csv -SinceLastRun
+```
+
+The state file (`.lastrun`) tracks:
+- Last successful run timestamp
+- Computers processed
+- Total events collected
+- Output path used
 
 ---
 

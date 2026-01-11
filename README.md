@@ -33,15 +33,18 @@ GA-AppLocker.exe    <-- Just double-click this!
 
 ### Analysis
 - **Compare** - Compare software inventories between systems
-- **Events** - Collect AppLocker audit events (8003/8004)
+- **Events** - Collect AppLocker audit events (8003/8004) with incremental collection
 - **Impact Analysis** - Pre-deployment risk assessment
 - **Rule Health** - Detect broken, unused, or conflicting rules
+
+### Compliance & Audit
+- **CORA Evidence** - Generate audit-ready evidence packages for compliance reviews
+- **Compliance Reports** - Documentation for inspectors (NIST, HIPAA, PCI-DSS)
 
 ### Policy Lifecycle (v1.2.0)
 - **Version Control** - Git-like policy versioning with rollback
 - **Industry Templates** - Pre-built compliance templates (NIST, HIPAA, PCI-DSS)
 - **Phase Advancement** - Automated readiness assessment for phase progression
-- **Compliance Reports** - Audit-ready documentation for inspectors
 
 ### Software Lists
 - Create and manage curated software allowlists
@@ -56,10 +59,11 @@ GA-AppLocker.exe    <-- Just double-click this!
 - Deploy WinRM via GPO
 
 ### GUI Features
-- **Keyboard shortcuts** - Ctrl+1-6 for navigation, F1 for help
+- **Keyboard shortcuts** - Ctrl+1-8 for navigation, F1 for help
 - **Operation cancellation** - Cancel long-running operations
 - **Button state management** - Prevents conflicts during operations
 - **Progress indicators** - Visual feedback during file processing
+- **CORA Evidence page** - Generate compliance packages directly from GUI
 
 </details>
 
@@ -89,10 +93,22 @@ GA-AppLocker.exe    <-- Just double-click this!
 4. Keep in **Audit mode** initially
 
 **Step 4: Monitor Events (14+ days)**
+```powershell
+# Collect AppLocker audit events
+.\src\Core\Start-AppLockerWorkflow.ps1 -Mode Events -ComputerList .\ADManagement\computers.csv
+
+# Incremental collection (only new events since last run)
+.\src\Core\Start-AppLockerWorkflow.ps1 -Mode Events -ComputerList .\ADManagement\computers.csv -SinceLastRun
+```
 - Event ID 8003: Allowed
 - Event ID 8004: Would have been blocked
 
-**Step 5: Advance through phases**
+**Step 5: Generate CORA Evidence (for audits)**
+```powershell
+.\src\Utilities\New-CORAEvidence.ps1 -OutputPath .\CORA-Evidence
+```
+
+**Step 6: Advance through phases**
 ```powershell
 -Phase 2  # EXE + Script
 -Phase 3  # EXE + Script + MSI
