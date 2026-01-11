@@ -67,6 +67,7 @@ GA-AppLocker/
 │       ├── Invoke-PhaseAdvancement.ps1   # Automatic phase progression
 │       ├── New-PolicyFromTemplate.ps1    # Template-based generation
 │       ├── Test-RuleHealth.ps1           # Rule health checking
+│       ├── New-ComplianceReport.ps1      # Compliance audit reporting
 │       ├── Enable-WinRM-Domain.ps1       # WinRM deployment
 │       ├── Manage-ADResources.ps1        # AD management
 │       ├── Compare-SoftwareInventory.ps1 # Inventory comparison
@@ -103,13 +104,16 @@ GA-AppLocker/
 - **Policies:** AppLocker XML format
 - **Software Lists:** JSON format
 - **Scan Results:** CSV files (per-computer subdirectories)
-- **Computer Lists:** Plain text (one per line, # for comments)
+- **Computer Lists:** CSV format with `ComputerName` column (TXT also supported for backwards compatibility)
 
 ### Output Organization
 - Scans: `./Scans/Scan-YYYYMMDD-HHMMSS/[COMPUTERNAME]/`
 - Events: `./Events/Events-YYYYMMDD-HHMMSS/[COMPUTERNAME]/`
 - Policies: `./Outputs/AppLockerPolicy-[Mode].xml`
 - Software Lists: `./SoftwareLists/[ListName].json`
+- Comparisons: `./SoftwareLists/Comparisons/`
+- AD Files: `./ADManagement/` (computers.csv, users.csv, groups.csv)
+- Reports: `./Reports/` (compliance reports)
 
 ### Interactive UI Features
 - **Folder Browser**: Numbered selection for navigating scan folders
@@ -325,6 +329,58 @@ Approve-WhitelistRequest -RequestId "REQ-001" -Approver "admin@company.com"
 Deny-WhitelistRequest -RequestId "REQ-002" -Reason "Security concern"
 ```
 
+### Compliance Reporting (v1.2.0)
+```powershell
+# Generate HTML compliance report
+.\src\Utilities\New-ComplianceReport.ps1
+
+# Generate Markdown report with evidence listings
+.\src\Utilities\New-ComplianceReport.ps1 -Format Markdown -IncludeEvidence
+
+# Generate report for specific policy
+.\src\Utilities\New-ComplianceReport.ps1 -PolicyPath .\policy.xml -Format HTML
+```
+
+**Compliance Standards Supported:**
+- NIST 800-53 (CM-7, CM-11, SI-7)
+- CIS Controls (2.5, 2.6)
+- CMMC (CM.L2-3.4.8)
+
+### CORA Evidence Package (v1.2.1)
+```powershell
+# Generate complete CORA audit evidence package (use menu [R] or script directly)
+.\src\Utilities\New-CORAEvidence.ps1
+
+# Include raw data files (larger but complete)
+.\src\Utilities\New-CORAEvidence.ps1 -IncludeRawData
+
+# Analyze specific production policy
+.\src\Utilities\New-CORAEvidence.ps1 -PolicyPath .\production-policy.xml -IncludeRawData
+```
+
+**Evidence Package Contents:**
+- Executive Summary (HTML) with compliance score
+- Software inventory scans with timestamps
+- AppLocker event collections
+- Policy files with rule counts
+- Control mapping (NIST, CIS, CMMC)
+- Deployment timeline
+- Health check results
+- Machine-readable manifest (JSON)
+
+### Policy Merge Enhancements
+```powershell
+# Merge policies and remove default rules
+.\src\Core\Start-AppLockerWorkflow.ps1 -Mode Merge -RemoveDefaultRules
+
+# Replace Everyone SID with specific group during merge
+.\src\Core\Merge-AppLockerPolicies.ps1 -PolicyPaths .\policies\ `
+    -TargetGroup "DOMAIN\AppLocker-Users" -ReplaceMode Everyone
+
+# Merge with deduplication modes
+.\src\Core\Merge-AppLockerPolicies.ps1 -PolicyPaths .\policies\ -OutputPath .\merged.xml
+```
+
 ## Important Parameters
 
 | Parameter | Description |
@@ -341,6 +397,10 @@ Deny-WhitelistRequest -RequestId "REQ-002" -Reason "Security concern"
 | `-DaysBack` | Days of events to collect (default: 14, 0=all) |
 | `-BlockedOnly` | Only collect "would have been blocked" events |
 | `-IncludeAllowedEvents` | Also collect "would have been allowed" events |
+| `-SinceLastRun` | Incremental collection - only get events since last run |
+| `-RemoveDefaultRules` | Filter out default AppLocker rules during merge |
+| `-TargetGroup` | Replace Everyone SID with specific group in merged policies |
+| `-ReplaceMode` | SID replacement mode: Everyone, All, or None |
 
 ## Security Principles
 
@@ -387,13 +447,16 @@ Initialize-GAAppLockerScript -RequireAdmin -RequireModules @('ActiveDirectory')
 ```
 
 ### Config.psd1 Key Sections
-- `WellKnownSids` - Windows security identifiers
-- `LOLBins` - High-risk executables for deny rules
+- `WellKnownSids` - Windows security identifiers (26 entries)
+- `LOLBins` - High-risk executables for deny rules (18 executables)
 - `DefaultDenyPaths` - User-writable locations
 - `DefaultAllowPaths` - Protected system paths
 - `MicrosoftPublishers` - Microsoft certificate subjects
 - `DefaultScanPaths` - Paths to scan for executables
 - `FileExtensions` - Grouped by type (Exe, Dll, Script, Installer)
+- `CommonPublishers` - Pre-defined trusted publishers (19 vendors)
+- `SoftwareCategories` - Software categorization (13 categories)
+- `HealthCheck` - Rule health checking thresholds
 
 ### Manage-SoftwareLists.ps1 Key Features
 - `$Script:CommonPublishers` - Pre-defined trusted publishers by category

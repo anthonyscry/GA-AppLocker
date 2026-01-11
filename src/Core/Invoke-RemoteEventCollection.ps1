@@ -61,6 +61,15 @@
     Maximum events to collect per computer (default: 5000).
     Prevents overwhelming systems with large event logs.
 
+.PARAMETER SinceLastRun
+    Only collect events since the last successful collection.
+    Stores timestamp in .\Events\.lastrun file for incremental collection.
+    Useful for continuous monitoring to avoid re-collecting old events.
+
+.PARAMETER StateFilePath
+    Custom path for the state file that tracks last run timestamp.
+    Default: .\Events\.lastrun
+
 .EXAMPLE
     # Collect blocked events from last 14 days
     .\Invoke-RemoteEventCollection.ps1 -ComputerListPath .\ADManagement\computers.csv -OutputPath .\Events
@@ -72,6 +81,10 @@
 .EXAMPLE
     # Collect only blocked events (for rule creation)
     .\Invoke-RemoteEventCollection.ps1 -ComputerListPath .\ADManagement\computers.csv -OutputPath .\Events -BlockedOnly
+
+.EXAMPLE
+    # Incremental collection - only get events since last run
+    .\Invoke-RemoteEventCollection.ps1 -ComputerListPath .\ADManagement\computers.csv -OutputPath .\Events -SinceLastRun
 
 .NOTES
     Requires: PowerShell 5.1+
@@ -155,7 +168,13 @@ param(
 
     [Parameter(HelpMessage="Maximum events to collect per computer")]
     [ValidateRange(100, 50000)]
-    [int]$MaxEventsPerComputer = 5000
+    [int]$MaxEventsPerComputer = 5000,
+
+    [Parameter(HelpMessage="Only collect events since last successful run (incremental mode)")]
+    [switch]$SinceLastRun,
+
+    [Parameter(HelpMessage="Path to state file for tracking last run timestamp")]
+    [string]$StateFilePath
 )
 
 #Requires -Version 5.1
@@ -181,6 +200,32 @@ if (Get-Command Start-Logging -ErrorAction SilentlyContinue) {
 }
 
 # Note: Path validation is now handled by ValidateScript in parameter declaration
+
+# Handle incremental collection state
+if (-not $StateFilePath) {
+    $StateFilePath = Join-Path $OutputPath ".lastrun"
+}
+
+$lastRunTime = $null
+if ($SinceLastRun) {
+    if (Test-Path $StateFilePath) {
+        try {
+            $stateContent = Get-Content $StateFilePath -Raw | ConvertFrom-Json
+            $lastRunTime = [DateTime]::Parse($stateContent.LastSuccessfulRun)
+            Write-Host "Incremental mode: Collecting events since $($lastRunTime.ToString('yyyy-MM-dd HH:mm:ss'))" -ForegroundColor Cyan
+            if (Test-LoggingEnabled) {
+                Write-Log "Incremental mode: Starting from $($lastRunTime.ToString('o'))" -Level Info
+            }
+        }
+        catch {
+            Write-Warning "Could not read state file. Running full collection."
+            $lastRunTime = $null
+        }
+    }
+    else {
+        Write-Host "No previous run found. Running full collection (will save state for next run)." -ForegroundColor Yellow
+    }
+}
 
 # Create output directory
 $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
@@ -254,7 +299,11 @@ if (Get-Command Write-Banner -ErrorAction SilentlyContinue) {
     Write-Host ""
 }
 Write-Host "Results will be saved to: $outputRoot" -ForegroundColor Gray
-Write-Host "Days back: $(if ($DaysBack -eq 0) { 'All available' } else { $DaysBack })" -ForegroundColor Gray
+if ($SinceLastRun -and $lastRunTime) {
+    Write-Host "Collection mode: Incremental (since $($lastRunTime.ToString('yyyy-MM-dd HH:mm')))" -ForegroundColor Cyan
+} else {
+    Write-Host "Days back: $(if ($DaysBack -eq 0) { 'All available' } else { $DaysBack })" -ForegroundColor Gray
+}
 Write-Host "Event types: $(if ($BlockedOnly) { 'Blocked only' } elseif ($IncludeAllowedEvents) { 'All audit events' } else { 'Blocked only (default)' })" -ForegroundColor Gray
 
 # Results collection
@@ -294,12 +343,19 @@ catch {
 }
 
 # Calculate start date for event query
-$startDate = if ($DaysBack -gt 0) {
+# Priority: SinceLastRun (if valid) > DaysBack > All available
+$startDate = if ($SinceLastRun -and $lastRunTime) {
+    # Use last run time for incremental collection
+    $lastRunTime
+} elseif ($DaysBack -gt 0) {
     (Get-Date).AddDays(-$DaysBack)
 } else {
     [DateTime]::MinValue
 }
 $startDateStr = $startDate.ToString("o")
+
+# Track the collection start time (for saving state later)
+$collectionStartTime = Get-Date
 
 # Determine which event IDs to collect
 # Blocked events: 8004 (EXE/DLL), 8006 (MSI/Script), 8008 (Packaged app)
@@ -739,6 +795,26 @@ Write-Host "  Allowed events: $totalAllowed" -ForegroundColor Gray
 Write-Host "  Unique blocked apps: $totalUniqueApps" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "Results saved to: $outputRoot" -ForegroundColor Cyan
+
+# Save state for incremental collection (only if at least one success)
+if ($SinceLastRun -or $successCount -gt 0) {
+    try {
+        $stateData = @{
+            LastSuccessfulRun = $collectionStartTime.ToString("o")
+            ComputersProcessed = $results.Count
+            SuccessCount = $successCount
+            TotalBlocked = $totalBlocked
+            OutputPath = $outputRoot
+        }
+        $stateData | ConvertTo-Json | Out-File -FilePath $StateFilePath -Encoding UTF8 -Force
+        if ($SinceLastRun) {
+            Write-Host "State saved for next incremental run: $StateFilePath" -ForegroundColor Gray
+        }
+    }
+    catch {
+        Write-Warning "Could not save state file: $_"
+    }
+}
 
 # Show failures
 $failures = $results | Where-Object { $_.Status -eq "Failed" }

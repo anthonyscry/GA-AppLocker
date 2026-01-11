@@ -75,6 +75,12 @@ Write-Host "      Output: $OutputPath" -ForegroundColor Green
 # Build parameters
 Write-Host "[3/4] Compiling to executable..." -ForegroundColor Yellow
 
+$iconPath = Join-Path $projectRoot "assets\ga-applocker.ico"
+if (-not (Test-Path $iconPath)) {
+    # Fallback to general-atomics icon
+    $iconPath = Join-Path $projectRoot "assets\general-atomics-large.ico"
+}
+
 $buildParams = @{
     InputFile      = $sourcePath
     OutputFile     = $OutputPath
@@ -84,11 +90,16 @@ $buildParams = @{
     Company        = "GA-AppLocker Project"
     Product        = "GA-AppLocker Toolkit"
     Copyright      = "GA-AppLocker Project"
-    Version        = "1.0.0.0"
+    Version        = "1.2.1.0"
     RequireAdmin   = $false
     SupportOS      = $true
     Longpaths      = $true
     x64            = $true
+}
+
+if (Test-Path $iconPath) {
+    $buildParams['IconFile'] = $iconPath
+    Write-Host "      Icon: $iconPath" -ForegroundColor Green
 }
 
 if ($IncludeDebug) {

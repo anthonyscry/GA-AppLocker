@@ -28,21 +28,31 @@ GA-AppLocker.exe    <-- Just double-click this!
 ### Core Workflow
 - **Scan** - Collect software inventory from remote computers via WinRM
 - **Generate** - Create AppLocker policies from scan data
-- **Merge** - Combine multiple policy files with SID replacement and early XML validation
+- **Merge** - Combine multiple policy files with SID replacement and deduplication
 - **Validate** - Check policies for issues before deployment
 
 ### Analysis
 - **Compare** - Compare software inventories between systems
 - **Events** - Collect AppLocker audit events (8003/8004)
+- **Impact Analysis** - Pre-deployment risk assessment
+- **Rule Health** - Detect broken, unused, or conflicting rules
+
+### Policy Lifecycle (v1.2.0)
+- **Version Control** - Git-like policy versioning with rollback
+- **Industry Templates** - Pre-built compliance templates (NIST, HIPAA, PCI-DSS)
+- **Phase Advancement** - Automated readiness assessment for phase progression
+- **Compliance Reports** - Audit-ready documentation for inspectors
 
 ### Software Lists
 - Create and manage curated software allowlists
 - Import from scans, policies, or folders
-- Add trusted publishers (Microsoft, Adobe, Google, etc.)
+- Add trusted publishers (Microsoft, Adobe, Google, 19+ vendors)
+- Self-service whitelist request workflow
 
 ### AD Management
 - Create AppLocker OUs and security groups
 - Export/import group memberships
+- Export computer lists from AD
 - Deploy WinRM via GPO
 
 ### GUI Features
@@ -167,17 +177,21 @@ Set-AppLockerPolicy -XmlPolicy .\Outputs\AppLockerPolicy-Simplified.xml
 ```
 GA-AppLocker/
 ├── GA-AppLocker.exe              # Standalone executable (RECOMMENDED)
-├── GA-AppLocker.psd1             # PowerShell module manifest
+├── GA-AppLocker.psd1             # PowerShell module manifest (v1.2.0)
 ├── GA-AppLocker.psm1             # Root module
 ├── README.md
 ├── LICENSE
 ├── build/                        # Build scripts
+│   ├── Build-AppLocker.ps1       # Full build orchestrator
+│   ├── Build-Executable.ps1      # CLI executable compilation
+│   ├── Build-GUI.ps1             # GUI executable compilation
+│   └── Publish-ToGallery.ps1     # PowerShell Gallery publishing
 ├── src/
-│   ├── Core/                     # Core workflow scripts
+│   ├── Core/                     # Core workflow scripts (6 scripts)
 │   ├── GUI/                      # WPF GUI application
-│   └── Utilities/                # Utility scripts and modules
-├── Tests/                        # Pester tests
-├── ADManagement/                 # AD-related files
+│   └── Utilities/                # 12 utility scripts + 5 modules
+├── Tests/                        # Pester tests (7 test files)
+├── ADManagement/                 # AD-related files (computers.csv, users.csv)
 ├── assets/                       # Icons and images
 └── docs/                         # Additional documentation
 ```

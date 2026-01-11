@@ -200,6 +200,56 @@ Approve-WhitelistRequest -RequestId "REQ-001" -Approver "admin@company.com"
 Deny-WhitelistRequest -RequestId "REQ-002" -Reason "Security concern"
 ```
 
+### Compliance Reporting
+
+Generate audit-ready documentation for security inspectors:
+
+```powershell
+# Generate HTML compliance report
+.\src\Utilities\New-ComplianceReport.ps1
+
+# Generate Markdown report with evidence listings
+.\src\Utilities\New-ComplianceReport.ps1 -Format Markdown -IncludeEvidence
+
+# Generate report for specific policy
+.\src\Utilities\New-ComplianceReport.ps1 -PolicyPath .\policy.xml -Format HTML
+```
+
+**Report Contents:**
+- Executive summary with compliance score
+- Evidence inventory (scans, events, policies, logs)
+- Compliance checklist verification
+- Risk assessment summary
+- Recommendations for improvement
+
+**Supported Compliance Standards:**
+- NIST 800-53 (CM-7, CM-11, SI-7)
+- CIS Controls (2.5, 2.6)
+- CMMC (CM.L2-3.4.8)
+
+---
+
+## Policy Merge Enhancements
+
+Advanced merge options for policy consolidation:
+
+```powershell
+# Merge policies and remove default rules
+.\src\Core\Merge-AppLockerPolicies.ps1 -PolicyPaths .\policies\ -RemoveDefaultRules
+
+# Replace Everyone SID with specific group
+.\src\Core\Merge-AppLockerPolicies.ps1 -PolicyPaths .\policies\ `
+    -TargetGroup "DOMAIN\AppLocker-Users" -ReplaceMode Everyone
+
+# Merge all policies in folder
+.\src\Core\Merge-AppLockerPolicies.ps1 -PolicyPaths .\policies\ -OutputPath .\merged.xml
+```
+
+**ReplaceMode Options:**
+- `Everyone` - Replace only S-1-1-0 (Everyone) SID
+- `All` - Replace all user SIDs
+- `None` - Keep original SIDs
+
 ---
 
 ## Building the EXE

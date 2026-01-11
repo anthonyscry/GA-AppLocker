@@ -185,6 +185,9 @@ function Show-Menu {
     Write-Host "    [W] WinRM      - Deploy/Remove WinRM GPO" -ForegroundColor White
     Write-Host "    [D] Diagnostic - Troubleshoot remote scanning" -ForegroundColor White
     Write-Host ""
+    Write-Host "  === Compliance ===" -ForegroundColor Cyan
+    Write-Host "    [R] CORA       - Generate audit evidence package" -ForegroundColor Magenta
+    Write-Host ""
     Write-Host "    [F] Full       - Complete workflow (Scan + Generate)" -ForegroundColor Green
     Write-Host "    [Q] Quit" -ForegroundColor Gray
     Write-Host ""
@@ -1297,6 +1300,47 @@ function Invoke-DiagnosticWorkflow {
     }
 }
 
+function Invoke-CORAWorkflow {
+    <#
+    .SYNOPSIS
+    Generate CORA audit evidence package.
+    #>
+
+    Write-Host "`n=== CORA Evidence Generator ===" -ForegroundColor Magenta
+    Write-Host "  Generate comprehensive audit evidence for CORA assessment." -ForegroundColor Gray
+    Write-Host ""
+
+    $coraScript = Join-Path $utilitiesRoot "New-CORAEvidence.ps1"
+    if (Test-Path $coraScript) {
+        # Ask for options
+        Write-Host "  Options:" -ForegroundColor Yellow
+        $includeRaw = Read-Host "  Include raw data files? (larger package) [y/N]"
+        $includeRawData = $includeRaw.ToUpper() -eq 'Y'
+
+        Write-Host ""
+        $policyPath = Read-Host "  Path to current production policy [Enter to skip]"
+
+        $coraParams = @{}
+        if ($includeRawData) {
+            $coraParams['IncludeRawData'] = $true
+        }
+        if (-not [string]::IsNullOrWhiteSpace($policyPath) -and (Test-Path $policyPath)) {
+            $coraParams['PolicyPath'] = $policyPath
+        }
+
+        Write-Host ""
+        try {
+            & $coraScript @coraParams
+        }
+        catch {
+            Write-Host "  [-] CORA evidence generation failed: $($_.Exception.Message)" -ForegroundColor Red
+        }
+    }
+    else {
+        Write-Host "  [-] CORA script not found: $coraScript" -ForegroundColor Red
+    }
+}
+
 function Show-WinRMMenu {
     Write-Host ""
     Write-Host "  Main > WinRM" -ForegroundColor DarkGray
@@ -2380,6 +2424,8 @@ do {
         "C" { Invoke-ADComputersWorkflow }
         "W" { Invoke-WinRMMenuWorkflow }
         "D" { Invoke-DiagnosticWorkflow }
+        # Compliance
+        "R" { Invoke-CORAWorkflow }
         # Workflows
         "F" { Invoke-FullWorkflow }
         "Q" {
@@ -2391,7 +2437,7 @@ do {
         }
     }
 
-    if ($choice -in @("1", "2", "3", "4", "5", "6", "7", "8", "9", "C", "F", "W", "S", "D")) {
+    if ($choice -in @("1", "2", "3", "4", "5", "6", "7", "8", "9", "C", "F", "W", "S", "D", "R")) {
         Write-Host ""
         Read-Host "  Press Enter to continue"
         Clear-Host

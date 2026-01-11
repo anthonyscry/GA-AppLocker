@@ -107,6 +107,7 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
         <KeyBinding x:Name="KeyGenerate" Key="D5" Modifiers="Control" />
         <KeyBinding x:Name="KeyMerge" Key="D6" Modifiers="Control" />
         <KeyBinding x:Name="KeySoftware" Key="D7" Modifiers="Control" />
+        <KeyBinding x:Name="KeyCORA" Key="D8" Modifiers="Control" />
 
         <!-- Quick Actions -->
         <KeyBinding x:Name="KeyQuickWorkflow" Key="Q" Modifiers="Control" />
@@ -399,6 +400,12 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
                         <Button x:Name="NavCompare" Style="{StaticResource NavButton}" Content="Compare Inventory" ToolTip="Ctrl+3"/>
                         <Button x:Name="NavValidate" Style="{StaticResource NavButton}" Content="Validate Policy" ToolTip="Ctrl+4"/>
 
+                        <TextBlock Text="COMPLIANCE" FontSize="11" FontWeight="Bold"
+                                   Foreground="{StaticResource AccentPurpleBrush}"
+                                   Margin="16,20,0,10"/>
+
+                        <Button x:Name="NavCORA" Style="{StaticResource NavButton}" Content="CORA Evidence" ToolTip="Ctrl+8"/>
+
                         <TextBlock Text="POLICY" FontSize="11" FontWeight="Bold"
                                    Foreground="{StaticResource AccentBlueBrush}"
                                    Margin="16,20,0,10"/>
@@ -635,6 +642,82 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
                         </Border>
 
                         <Button x:Name="StartScan" Content="Start Scan" Style="{StaticResource PrimaryButton}"
+                                HorizontalAlignment="Left" Margin="0,8,0,0"/>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- CORA Evidence Page -->
+                <ScrollViewer x:Name="PageCORA" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                    <StackPanel Margin="32,24,32,32">
+                        <TextBlock Text="CORA Evidence Package" FontSize="24" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,8"/>
+                        <TextBlock Text="Generate comprehensive audit evidence for CORA assessments"
+                                   FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,24"/>
+
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="What This Generates" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <TextBlock Text="The CORA Evidence Generator collects and organizes all AppLocker deployment artifacts into an audit-ready package:"
+                                           FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,0,0,12"/>
+
+                                <StackPanel Margin="8,0,0,0">
+                                    <TextBlock Text="• Software Inventory Evidence (from Scans folder)" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,2"/>
+                                    <TextBlock Text="• AppLocker Event Collections (from Events folder)" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,2"/>
+                                    <TextBlock Text="• Generated Policies (from Outputs folder)" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,2"/>
+                                    <TextBlock Text="• Compliance Report with score" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,2"/>
+                                    <TextBlock Text="• Rule Health Check results" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,2"/>
+                                    <TextBlock Text="• Deployment Timeline" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,2"/>
+                                    <TextBlock Text="• Control Mapping (NIST 800-53, CIS, CMMC)" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,2"/>
+                                    <TextBlock Text="• Executive Summary HTML" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,2"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Output Location" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="CORAOutputPath" Grid.Column="0" Text=".\Reports"/>
+                                    <Button x:Name="BrowseCORAOutput" Grid.Column="1" Content="Browse"
+                                            Style="{StaticResource SecondaryButton}" Margin="8,0,0,0"/>
+                                </Grid>
+                                <TextBlock Text="A timestamped subfolder will be created automatically"
+                                           FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,8,0,0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Options" FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                <CheckBox x:Name="CORAIncludeRawData" Content="Include raw scan/event data (larger package)"
+                                          IsChecked="False" Margin="0,0,0,8"/>
+                                <CheckBox x:Name="CORAOpenWhenComplete" Content="Open folder when complete"
+                                          IsChecked="True" Margin="0,0,0,8"/>
+
+                                <TextBlock Text="Specific Policy (optional)" FontSize="12"
+                                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,12,0,8"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="CORAPolicyPath" Grid.Column="0" Text=""/>
+                                    <Button x:Name="BrowseCORAPolicy" Grid.Column="1" Content="Browse"
+                                            Style="{StaticResource SecondaryButton}" Margin="8,0,0,0"/>
+                                </Grid>
+                                <TextBlock Text="Leave blank to include all policies from Outputs folder"
+                                           FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,8,0,0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Button x:Name="StartCORA" Content="Generate CORA Evidence Package" Style="{StaticResource PrimaryButton}"
                                 HorizontalAlignment="Left" Margin="0,8,0,0"/>
                     </StackPanel>
                 </ScrollViewer>
@@ -2076,7 +2159,7 @@ function Test-ComputerListForDCs {
 # Track operation state for button management
 $Script:OperationRunning = $false
 $Script:CancellationRequested = $false
-$Script:OperationButtons = @('StartScan', 'StartEvents', 'StartGenerate', 'StartMerge', 'StartCompare', 'StartValidate', 'StartDiagnostic', 'RunWorkflow')
+$Script:OperationButtons = @('StartScan', 'StartEvents', 'StartGenerate', 'StartMerge', 'StartCompare', 'StartValidate', 'StartCORA', 'StartDiagnostic', 'RunWorkflow')
 
 function Set-OperationButtonsEnabled {
     param([bool]$Enabled)
@@ -2154,7 +2237,7 @@ function Invoke-Script {
 }
 
 # Navigation
-$Script:Pages = @("Scan","Generate","Merge","Validate","Clone","Events","Compare","Software","AD","Diagnostics","WinRM","Settings","About")
+$Script:Pages = @("Scan","Generate","Merge","Validate","Clone","Events","Compare","Software","CORA","AD","Diagnostics","WinRM","Settings","About")
 
 function Switch-Page {
     param([string]$PageName)
@@ -2697,6 +2780,7 @@ $controls['NavClone'].Add_Click({ Switch-Page "Clone" })
 $controls['NavEvents'].Add_Click({ Switch-Page "Events" })
 $controls['NavCompare'].Add_Click({ Switch-Page "Compare" })
 $controls['NavSoftware'].Add_Click({ Switch-Page "Software" })
+$controls['NavCORA'].Add_Click({ Switch-Page "CORA" })
 $controls['NavAD'].Add_Click({ Switch-Page "AD" })
 $controls['NavDiagnostics'].Add_Click({ Switch-Page "Diagnostics" })
 $controls['NavWinRM'].Add_Click({ Switch-Page "WinRM" })
@@ -3208,6 +3292,8 @@ $controls['BrowseEventsOutput'].Add_Click({ $f = Get-FolderDialog; if ($f) { $co
 $controls['BrowseCompareReference'].Add_Click({ $f = Get-OpenFileDialog -Filter "CSV (*.csv)|*.csv"; if ($f) { $controls['CompareReferencePath'].Text = $f } })
 $controls['BrowseCompareTarget'].Add_Click({ $f = Get-OpenFileDialog -Filter "CSV (*.csv)|*.csv"; if ($f) { $controls['CompareTargetPath'].Text = $f } })
 $controls['BrowseCompareOutput'].Add_Click({ $f = Get-FolderDialog; if ($f) { $controls['CompareOutputPath'].Text = $f } })
+$controls['BrowseCORAOutput'].Add_Click({ $f = Get-FolderDialog; if ($f) { $controls['CORAOutputPath'].Text = $f } })
+$controls['BrowseCORAPolicy'].Add_Click({ $f = Get-OpenFileDialog -Title "Select Policy" -Filter "XML (*.xml)|*.xml"; if ($f) { $controls['CORAPolicyPath'].Text = $f } })
 $controls['BrowseScriptsPath'].Add_Click({ $f = Get-FolderDialog -Description "Select GA-AppLocker folder"; if ($f) { $controls['SettingsScriptsPath'].Text = $f; $Script:AppRoot = $f; $Script:ScriptsAvailable = Test-Path (Join-Path $f "Start-AppLockerWorkflow.ps1"); $controls['ScriptsStatusText'].Text = if ($Script:ScriptsAvailable) { "Scripts found!" } else { "Scripts not found" } } })
 
 # Export Computers from AD (on Scan page)
@@ -3635,6 +3721,38 @@ $controls['StartCompare'].Add_Click({
     Write-Log "Comparing inventories..." -Level Info
     Invoke-Script -ScriptName "utilities\Compare-SoftwareInventory.ps1" -Parameters @{ ReferencePath = $ref; ComparePath = $target; CompareBy = $method; OutputPath = $controls['CompareOutputPath'].Text }
     Write-Log "Comparison completed." -Level Success
+})
+
+$controls['StartCORA'].Add_Click({
+    $outputPath = $controls['CORAOutputPath'].Text
+    if (-not $outputPath) { Write-Log "Please specify an output path." -Level Error; return }
+
+    $params = @{ OutputPath = $outputPath }
+
+    # Check for specific policy
+    $policyPath = $controls['CORAPolicyPath'].Text
+    if ($policyPath -and (Test-Path $policyPath)) {
+        $params['PolicyPath'] = $policyPath
+    }
+
+    # Check options
+    if ($controls['CORAIncludeRawData'].IsChecked) {
+        $params['IncludeRawData'] = $true
+    }
+
+    Write-Log "Generating CORA Evidence Package..." -Level Info
+    Invoke-Script -ScriptName "utilities\New-CORAEvidence.ps1" -Parameters $params
+
+    # Open folder if requested
+    if ($controls['CORAOpenWhenComplete'].IsChecked) {
+        $latestFolder = Get-ChildItem -Path $outputPath -Directory -Filter "CORA-*" -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTime -Descending | Select-Object -First 1
+        if ($latestFolder) {
+            Start-Process "explorer.exe" -ArgumentList $latestFolder.FullName
+        }
+    }
+
+    Write-Log "CORA Evidence Package generated." -Level Success
 })
 
 $controls['StartDiagnostic'].Add_Click({
@@ -4312,6 +4430,7 @@ $window.Add_KeyDown({
             'D5' { Switch-Page -PageName 'Events'; $e.Handled = $true }
             'D6' { Switch-Page -PageName 'Compare'; $e.Handled = $true }
             'D7' { Switch-Page -PageName 'Software'; $e.Handled = $true }
+            'D8' { Switch-Page -PageName 'CORA'; $e.Handled = $true }
             'Q' {
                 # Quick workflow - show workflow dialog
                 $result = Show-WorkflowDialog -WorkflowType "Create Baseline"
@@ -4348,6 +4467,7 @@ Navigation:
   Ctrl+5    Events Page
   Ctrl+6    Compare Page
   Ctrl+7    Software Page
+  Ctrl+8    CORA Evidence
   Ctrl+,    Settings
 
 Quick Actions:

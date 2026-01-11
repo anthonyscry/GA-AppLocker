@@ -22,7 +22,12 @@
       "Bash(powershell.exe -Command \"Get-ChildItem -Path ''C:\\\\Projects\\\\GA-AppLocker\\\\build'' -File | Select-Object Name\")",
       "Bash(powershell.exe -Command \"Remove-Item ''C:\\\\Projects\\\\GA-AppLocker\\\\GUI\\\\Start-AppLockerGUI.ps1'' -Force\")",
       "Bash(powershell.exe:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(git commit:*)",
+      "Bash(git config:*)",
+      "Bash(git push:*)",
+      "Bash(tree:*)",
+      "Bash(done)"
     ]
   }
 }
