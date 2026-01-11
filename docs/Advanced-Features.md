@@ -16,24 +16,24 @@ Press **F1** or click **Help** in the navigation to access comprehensive in-app 
 - **Troubleshooting** - Common issues and solutions
 - **FAQ** - Frequently asked questions
 
-### Keyboard Shortcuts
+### Keyboard Shortcuts (v1.2.4)
 
 | Shortcut | Action |
 |----------|--------|
 | Ctrl+1 | Scan Page |
-| Ctrl+2 | Generate Page |
-| Ctrl+3 | Merge Page |
+| Ctrl+2 | Events Page |
+| Ctrl+3 | Compare Page |
 | Ctrl+4 | Validate Page |
-| Ctrl+5 | Events Page |
-| Ctrl+6 | Compare Page |
+| Ctrl+5 | Generate Page |
+| Ctrl+6 | Merge Page |
 | Ctrl+7 | Software Lists |
 | Ctrl+8 | CORA Evidence |
 | Ctrl+, | Settings |
 | Ctrl+Q | Quick Workflow |
 | Ctrl+R | Refresh Detection |
-| F1 | Help |
+| F1 | Help (shows shortcuts dialog) |
 
-Keyboard shortcut hints are displayed as tooltips on navigation buttons.
+Keyboard shortcut hints are displayed as tooltips on navigation buttons. Shortcuts follow the sidebar navigation order.
 
 ### Operation Cancellation
 
@@ -298,6 +298,31 @@ Advanced merge options for policy consolidation:
 - `Everyone` - Replace only S-1-1-0 (Everyone) SID
 - `All` - Replace all user SIDs
 - `None` - Keep original SIDs
+
+---
+
+## GUI Automated Testing (v1.2.4)
+
+An AutoIt-based GUI test suite is included for automated testing:
+
+```batch
+# Run from Tests\GUI directory
+Run-GUITests.bat              # Full test suite
+Run-GUITests.bat quick        # Quick smoke test
+Run-GUITests.bat verbose      # Verbose output
+```
+
+**Test Coverage (21 tests):**
+- Window basics (exists, title, size, activation)
+- Navigation (Ctrl+1 through Ctrl+8)
+- Keyboard shortcuts (F1, Ctrl+R, Ctrl+Q, Ctrl+,)
+- Page elements (Scan, Generate, Events, Settings, Help)
+
+**Requirements:** AutoIt v3 from https://www.autoitscript.com/
+
+**Output:**
+- Log files: `Tests/GUI/test-results-YYYYMMDD-HHMMSS.log`
+- Exit code 0 = all tests passed, 1 = failures
 
 ---
 

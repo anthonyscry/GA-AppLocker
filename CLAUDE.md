@@ -73,6 +73,10 @@ GA-AppLocker/
 │       ├── Compare-SoftwareInventory.ps1 # Inventory comparison
 │       └── Test-AppLockerDiagnostic.ps1  # Diagnostics
 ├── Tests/                           # Pester test files
+│   └── GUI/                         # AutoIt GUI tests (v1.2.4)
+│       ├── GA-AppLocker-GUI-Test.au3    # AutoIt test script
+│       ├── Run-GUITests.bat             # Test runner
+│       └── README.md                    # Test documentation
 ├── assets/                          # Icons and images
 └── docs/                            # Additional documentation
 ```
@@ -123,8 +127,12 @@ GA-AppLocker/
 ### GUI Features
 - **Button State Management**: Buttons disabled during long operations to prevent conflicts
 - **Operation Cancellation**: Cancel button appears during long operations (cancels at next output line)
-- **Keyboard Shortcuts**: Ctrl+1-6 for navigation, F1 for help (tooltips show shortcuts)
+- **Keyboard Shortcuts** (v1.2.4 - matches sidebar order):
+  - Ctrl+1: Scan, Ctrl+2: Events, Ctrl+3: Compare, Ctrl+4: Validate
+  - Ctrl+5: Generate, Ctrl+6: Merge, Ctrl+7: Software, Ctrl+8: CORA
+  - Ctrl+Q: Quick Workflow, Ctrl+R: Refresh, Ctrl+,: Settings, F1: Help
 - **Progress Indicators**: Visual feedback during XML validation and file processing
+- **Version Display**: Window title and About page show version dynamically ($Script:AppVersion)
 
 ### Software List Management
 The toolkit includes advanced software list features for curated allowlists:

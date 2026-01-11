@@ -30,25 +30,39 @@ Write-Host ""
 # Check for PS2EXE module
 Write-Host "[1/4] Checking for PS2EXE module..." -ForegroundColor Yellow
 
-if (-not (Get-Module -ListAvailable -Name PS2EXE)) {
-    Write-Host "      PS2EXE not found. Installing..." -ForegroundColor Gray
+# ps2exe module name is lowercase
+$ps2exeModule = Get-InstalledModule -Name ps2exe -ErrorAction SilentlyContinue
+if (-not $ps2exeModule) {
+    Write-Host "      ps2exe not found. Installing..." -ForegroundColor Gray
     try {
-        Install-Module -Name PS2EXE -Scope CurrentUser -Force -AllowClobber
-        Write-Host "      PS2EXE installed successfully." -ForegroundColor Green
+        Install-Module -Name ps2exe -Scope CurrentUser -Force -AllowClobber
+        $ps2exeModule = Get-InstalledModule -Name ps2exe -ErrorAction SilentlyContinue
+        Write-Host "      ps2exe installed successfully." -ForegroundColor Green
     }
     catch {
-        Write-Host "      Failed to install PS2EXE: $_" -ForegroundColor Red
+        Write-Host "      Failed to install ps2exe: $_" -ForegroundColor Red
         Write-Host ""
         Write-Host "      Please install manually:" -ForegroundColor Yellow
-        Write-Host "      Install-Module -Name PS2EXE -Scope CurrentUser" -ForegroundColor White
+        Write-Host "      Install-Module -Name ps2exe -Scope CurrentUser" -ForegroundColor White
         exit 1
     }
 }
 else {
-    Write-Host "      PS2EXE module found." -ForegroundColor Green
+    Write-Host "      ps2exe module found at: $($ps2exeModule.InstalledLocation)" -ForegroundColor Green
 }
 
-Import-Module PS2EXE -Force
+# Import module - try by path first (handles OneDrive sync issues)
+try {
+    $modulePath = Join-Path $ps2exeModule.InstalledLocation "ps2exe.psd1"
+    if (Test-Path $modulePath) {
+        Import-Module $modulePath -Force
+    } else {
+        Import-Module ps2exe -Force
+    }
+} catch {
+    Write-Host "      Failed to import ps2exe: $_" -ForegroundColor Red
+    exit 1
+}
 
 # Locate source file
 Write-Host "[2/4] Locating source file..." -ForegroundColor Yellow
@@ -90,7 +104,7 @@ $buildParams = @{
     Company        = "GA-AppLocker Project"
     Product        = "GA-AppLocker Toolkit"
     Copyright      = "GA-AppLocker Project"
-    Version        = "1.2.1.0"
+    Version        = "1.2.4.0"
     RequireAdmin   = $false
     SupportOS      = $true
     Longpaths      = $true

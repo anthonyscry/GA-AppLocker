@@ -1,0 +1,77 @@
+[2026-01-11 15:26:03] [INFO] ======================================================================
+[2026-01-11 15:26:03] [INFO] GA-AppLocker GUI Automated Test Suite
+[2026-01-11 15:26:03] [INFO] Started: 2026/01/11 15:26:03
+[2026-01-11 15:26:03] [INFO] ======================================================================
+[2026-01-11 15:26:03] [INFO] 
+[2026-01-11 15:26:03] [INFO] Application: C:\Projects\GA-AppLocker\Tests\GUI\..\..\GA-AppLocker.exe
+[2026-01-11 15:26:03] [INFO] 
+[2026-01-11 15:26:03] [INFO] Launching application...
+[2026-01-11 15:26:08] [INFO] Application launched successfully (PID: 33840)
+[2026-01-11 15:26:08] [INFO] 
+[2026-01-11 15:26:08] [INFO] === Window Basics Test Suite ===
+[2026-01-11 15:26:08] [INFO] --- TEST: Window Exists ---
+[2026-01-11 15:26:08] [PASS] PASS: Window Exists
+[2026-01-11 15:26:08] [INFO] --- TEST: Window Title Contains App Name ---
+[2026-01-11 15:26:08] [PASS] PASS: Window Title Contains App Name - Title: GA-AppLocker Toolkit
+[2026-01-11 15:26:08] [INFO] --- TEST: Window Can Be Activated ---
+[2026-01-11 15:26:09] [PASS] PASS: Window Can Be Activated
+[2026-01-11 15:26:09] [INFO] --- TEST: Window Has Valid Size ---
+[2026-01-11 15:26:09] [PASS] PASS: Window Has Valid Size - Size: 1200x800
+[2026-01-11 15:26:09] [INFO] 
+[2026-01-11 15:26:09] [INFO] === Navigation Test Suite ===
+[2026-01-11 15:26:10] [INFO] --- TEST: Navigate to Scan page (Ctrl+1) ---
+[2026-01-11 15:26:11] [PASS] PASS: Navigate to Scan page (Ctrl+1)
+[2026-01-11 15:26:11] [INFO] --- TEST: Navigate to Events page (Ctrl+2) ---
+[2026-01-11 15:26:12] [PASS] PASS: Navigate to Events page (Ctrl+2)
+[2026-01-11 15:26:12] [INFO] --- TEST: Navigate to Compare page (Ctrl+3) ---
+[2026-01-11 15:26:12] [PASS] PASS: Navigate to Compare page (Ctrl+3)
+[2026-01-11 15:26:12] [INFO] --- TEST: Navigate to Validate page (Ctrl+4) ---
+[2026-01-11 15:26:13] [PASS] PASS: Navigate to Validate page (Ctrl+4)
+[2026-01-11 15:26:13] [INFO] --- TEST: Navigate to Generate page (Ctrl+5) ---
+[2026-01-11 15:26:14] [PASS] PASS: Navigate to Generate page (Ctrl+5)
+[2026-01-11 15:26:14] [INFO] --- TEST: Navigate to Merge page (Ctrl+6) ---
+[2026-01-11 15:26:15] [PASS] PASS: Navigate to Merge page (Ctrl+6)
+[2026-01-11 15:26:15] [INFO] --- TEST: Navigate to Software page (Ctrl+7) ---
+[2026-01-11 15:26:16] [PASS] PASS: Navigate to Software page (Ctrl+7)
+[2026-01-11 15:26:16] [INFO] --- TEST: Navigate to CORA page (Ctrl+8) ---
+[2026-01-11 15:26:17] [PASS] PASS: Navigate to CORA page (Ctrl+8)
+[2026-01-11 15:26:17] [INFO] 
+[2026-01-11 15:26:17] [INFO] === Keyboard Shortcuts Test Suite ===
+[2026-01-11 15:26:18] [INFO] --- TEST: F1 Shows Help ---
+[2026-01-11 15:26:18] [PASS] PASS: F1 Shows Help - Help dialog appeared
+[2026-01-11 15:26:19] [INFO] --- TEST: Ctrl+R Refresh Detection ---
+[2026-01-11 15:26:20] [PASS] PASS: Ctrl+R Refresh Detection - Refresh sent
+[2026-01-11 15:26:20] [INFO] --- TEST: Ctrl+Comma Opens Settings ---
+[2026-01-11 15:26:20] [PASS] PASS: Ctrl+Comma Opens Settings - Settings shortcut sent
+[2026-01-11 15:26:20] [INFO] --- TEST: Ctrl+Q Opens Quick Workflow ---
+[2026-01-11 15:26:22] [PASS] PASS: Ctrl+Q Opens Quick Workflow - Workflow dialog appeared
+[2026-01-11 15:26:23] [INFO] 
+[2026-01-11 15:26:23] [INFO] === Page Elements Test Suite ===
+[2026-01-11 15:26:24] [INFO] --- TEST: Scan Page Loads ---
+[2026-01-11 15:26:24] [PASS] PASS: Scan Page Loads
+[2026-01-11 15:26:24] [INFO] --- TEST: Generate Page Loads ---
+[2026-01-11 15:26:24] [PASS] PASS: Generate Page Loads
+[2026-01-11 15:26:24] [INFO] --- TEST: Events Page Loads ---
+[2026-01-11 15:26:25] [PASS] PASS: Events Page Loads
+[2026-01-11 15:26:25] [INFO] --- TEST: Settings Page Loads ---
+[2026-01-11 15:26:25] [PASS] PASS: Settings Page Loads
+[2026-01-11 15:26:25] [INFO] --- TEST: Help/About Accessible ---
+[2026-01-11 15:26:26] [PASS] PASS: Help/About Accessible - Help system accessible
+[2026-01-11 15:26:27] [INFO] Closing application...
+[2026-01-11 15:26:27] [INFO] Application closed
+[2026-01-11 15:26:27] [INFO] 
+[2026-01-11 15:26:27] [INFO] ======================================================================
+[2026-01-11 15:26:27] [INFO] TEST RESULTS SUMMARY
+[2026-01-11 15:26:27] [INFO] ======================================================================
+[2026-01-11 15:26:27] [INFO] Completed: 2026/01/11 15:26:27
+[2026-01-11 15:26:27] [INFO] 
+[2026-01-11 15:26:27] [INFO] Total Tests: 21
+[2026-01-11 15:26:27] [PASS]   Passed:  21
+[2026-01-11 15:26:27] [FAIL]   Failed:  0
+[2026-01-11 15:26:27] [SKIP]   Skipped: 0
+[2026-01-11 15:26:27] [INFO] 
+[2026-01-11 15:26:27] [INFO] Pass Rate: 100%
+[2026-01-11 15:26:27] [INFO] ======================================================================
+[2026-01-11 15:26:27] [PASS] RESULT: PASSED
+[2026-01-11 15:26:27] [INFO] 
+[2026-01-11 15:26:27] [INFO] Log file: C:\Projects\GA-AppLocker\Tests\GUI\test-results-20260111-152603.log

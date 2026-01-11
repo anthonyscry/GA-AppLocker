@@ -23,6 +23,9 @@ param(
     [string]$ScriptsPath = ""
 )
 
+# Version constant - update this when releasing new versions
+$Script:AppVersion = "1.2.4"
+
 # Load WPF assemblies
 Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName PresentationCore
@@ -1662,7 +1665,7 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
                                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                         <TextBlock Text="GA-AppLocker" FontSize="20" FontWeight="Bold"
                                                    Foreground="{StaticResource TextPrimaryBrush}"/>
-                                        <TextBlock Text="Version 1.0.0" FontSize="12"
+                                        <TextBlock Text="Version 1.2.4" FontSize="12"
                                                    Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,0"/>
                                         <TextBlock Text="Windows AppLocker Policy Management Toolkit" FontSize="11"
                                                    Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0"/>
@@ -5032,9 +5035,12 @@ $controls['SoftwareGeneratePolicy'].Add_Click({
 # Add Microsoft.VisualBasic for InputBox
 Add-Type -AssemblyName Microsoft.VisualBasic
 
-Write-Log "GA-AppLocker Portable GUI started." -Level Info
+Write-Log "GA-AppLocker Portable GUI v$Script:AppVersion started." -Level Info
 Write-Log "App Root: $Script:AppRoot" -Level Info
 Write-Log "Scripts Available: $Script:ScriptsAvailable" -Level Info
+
+# Update window title with version
+$window.Title = "GA-AppLocker Toolkit v$Script:AppVersion"
 
 # Set paths
 $controls['SettingsScriptsPath'].Text = $Script:AppRoot
@@ -5096,14 +5102,15 @@ $window.Add_KeyDown({
 
     if ($ctrlPressed) {
         switch ($e.Key) {
-            'D1' { Switch-Page -PageName 'Scan'; $e.Handled = $true }
-            'D2' { Switch-Page -PageName 'Generate'; $e.Handled = $true }
-            'D3' { Switch-Page -PageName 'Merge'; $e.Handled = $true }
-            'D4' { Switch-Page -PageName 'Validate'; $e.Handled = $true }
-            'D5' { Switch-Page -PageName 'Events'; $e.Handled = $true }
-            'D6' { Switch-Page -PageName 'Compare'; $e.Handled = $true }
-            'D7' { Switch-Page -PageName 'Software'; $e.Handled = $true }
-            'D8' { Switch-Page -PageName 'CORA'; $e.Handled = $true }
+            # Navigation matches sidebar order and tooltips
+            'D1' { Switch-Page -PageName 'Scan'; $e.Handled = $true }      # Collection
+            'D2' { Switch-Page -PageName 'Events'; $e.Handled = $true }    # Collection
+            'D3' { Switch-Page -PageName 'Compare'; $e.Handled = $true }   # Analysis
+            'D4' { Switch-Page -PageName 'Validate'; $e.Handled = $true }  # Analysis
+            'D5' { Switch-Page -PageName 'Generate'; $e.Handled = $true }  # Policy
+            'D6' { Switch-Page -PageName 'Merge'; $e.Handled = $true }     # Policy
+            'D7' { Switch-Page -PageName 'Software'; $e.Handled = $true }  # Policy
+            'D8' { Switch-Page -PageName 'CORA'; $e.Handled = $true }      # Compliance
             'Q' {
                 # Quick workflow - show workflow dialog
                 $result = Show-WorkflowDialog -WorkflowType "Create Baseline"
@@ -5132,14 +5139,14 @@ $window.Add_KeyDown({
 Keyboard Shortcuts
 ==================
 
-Navigation:
-  Ctrl+1    Scan Page
-  Ctrl+2    Generate Page
-  Ctrl+3    Merge Page
-  Ctrl+4    Validate Page
-  Ctrl+5    Events Page
-  Ctrl+6    Compare Page
-  Ctrl+7    Software Page
+Navigation (matches sidebar order):
+  Ctrl+1    Scan Computers
+  Ctrl+2    Collect Events
+  Ctrl+3    Compare Inventory
+  Ctrl+4    Validate Policy
+  Ctrl+5    Generate Policy
+  Ctrl+6    Merge Policies
+  Ctrl+7    Software Lists
   Ctrl+8    CORA Evidence
   Ctrl+,    Settings
 
@@ -5151,6 +5158,7 @@ Quick Actions:
 Tips:
   - Use Tab to navigate between fields
   - Press Enter to activate focused buttons
+  - Shortcuts match the tooltips on sidebar buttons
 "@
                 [System.Windows.MessageBox]::Show($helpText, "Keyboard Shortcuts", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Information)
                 $e.Handled = $true

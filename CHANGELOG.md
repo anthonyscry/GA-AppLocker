@@ -9,6 +9,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _No unreleased changes_
 
+## [1.2.4] - 2026-01-11
+
+### Added
+- **AutoIt GUI Test Suite** (`Tests/GUI/`)
+  - Automated GUI testing with 21 test cases
+  - Tests window basics, navigation, keyboard shortcuts, page elements
+  - Command line options: `/quick`, `/verbose`, `/full`
+  - Timestamped log files for test results
+  - Batch runner script (`Run-GUITests.bat`)
+
+### Fixed
+- **Version consistency**: All version references now unified at 1.2.4
+  - Build-GUI.ps1 version updated from 1.2.1.0 to 1.2.4.0
+  - About page version updated from 1.0.0 to 1.2.4
+  - Added `$Script:AppVersion` constant for centralized version management
+  - Window title now shows version dynamically
+
+- **Keyboard shortcuts**: Fixed mismatch between shortcuts and sidebar order
+  - Ctrl+1: Scan (was correct)
+  - Ctrl+2: Events (was Generate)
+  - Ctrl+3: Compare (was Merge)
+  - Ctrl+4: Validate (was correct)
+  - Ctrl+5: Generate (was Events)
+  - Ctrl+6: Merge (was Compare)
+  - Ctrl+7: Software (was correct)
+  - Ctrl+8: CORA (was correct)
+  - Updated F1 help text to match actual shortcuts
+
+### Changed
+- Startup log now shows version number
+- Help dialog (F1) now includes note about tooltips showing shortcuts
+
 ## [1.2.2] - 2026-01-11
 
 ### Fixed
