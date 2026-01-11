@@ -18,7 +18,8 @@
 [CmdletBinding()]
 param(
     [string]$OutputPath = ".\GA-AppLocker.exe",
-    [switch]$IncludeDebug
+    [switch]$IncludeDebug,
+    [switch]$SkipZip
 )
 
 $ErrorActionPreference = 'Stop'
@@ -127,8 +128,26 @@ try {
     if (Test-Path $OutputPath) {
         $fileInfo = Get-Item $OutputPath
         Write-Host "      Compilation successful!" -ForegroundColor Green
-        Write-Host ""
-        Write-Host "[4/4] Build complete!" -ForegroundColor Green
+
+        # Step 4: Create distribution zip (unless skipped)
+        if (-not $SkipZip) {
+            Write-Host ""
+            Write-Host "[4/5] Creating distribution package..." -ForegroundColor Yellow
+
+            $distScript = Join-Path $scriptRoot "Build-Distribution.ps1"
+            if (Test-Path $distScript) {
+                & $distScript -SkipBuild
+            } else {
+                Write-Host "      Distribution script not found, skipping zip" -ForegroundColor DarkGray
+            }
+
+            Write-Host ""
+            Write-Host "[5/5] Build complete!" -ForegroundColor Green
+        } else {
+            Write-Host ""
+            Write-Host "[4/4] Build complete!" -ForegroundColor Green
+        }
+
         Write-Host ""
         Write-Host "Output file: $OutputPath" -ForegroundColor Cyan
         Write-Host "Size: $([math]::Round($fileInfo.Length / 1MB, 2)) MB" -ForegroundColor Gray
