@@ -73,6 +73,12 @@ GA-AppLocker/
 │       ├── Compare-SoftwareInventory.ps1 # Inventory comparison
 │       └── Test-AppLockerDiagnostic.ps1  # Diagnostics
 ├── Tests/                           # Pester test files
+│   ├── Common.Tests.ps1             # Common.psm1 tests
+│   ├── ErrorHandling.Tests.ps1      # ErrorHandling.psm1 tests
+│   ├── GUI.Tests.ps1                # GUI/EXE validation tests
+│   ├── Merge-AppLockerPolicies.Tests.ps1
+│   ├── PolicyVersionControl.Tests.ps1
+│   ├── Test-RuleHealth.Tests.ps1
 │   └── GUI/                         # AutoIt GUI tests (v1.2.4)
 │       ├── GA-AppLocker-GUI-Test.au3    # AutoIt test script
 │       ├── Run-GUITests.bat             # Test runner
@@ -133,6 +139,9 @@ GA-AppLocker/
   - Ctrl+Q: Quick Workflow, Ctrl+R: Refresh, Ctrl+,: Settings, F1: Help
 - **Progress Indicators**: Visual feedback during XML validation and file processing
 - **Version Display**: Window title and About page show version dynamically ($Script:AppVersion)
+- **DPI Awareness**: Per-Monitor DPI awareness for crisp rendering on high-DPI displays
+- **Async Helpers**: Embedded runspace-based async execution for long-running operations
+- **Error Handling**: Global try/catch wrapper with error logging to `error.log`
 
 ### Software List Management
 The toolkit includes advanced software list features for curated allowlists:
@@ -481,6 +490,63 @@ Set-AppLockerPolicy -XmlPolicy .\Outputs\AppLockerPolicy.xml
 
 # Diagnostic mode
 .\utilities\Test-AppLockerDiagnostic.ps1 -ComputerName TARGET-PC
+```
+
+### Pre-Commit Validation
+Run local validation before committing changes:
+```powershell
+# Full validation (PSScriptAnalyzer, XAML, Pester tests, GUI/EXE checks)
+.\build\Invoke-LocalValidation.ps1
+
+# Quick validation (skip Pester tests)
+.\build\Invoke-LocalValidation.ps1 -SkipTests
+```
+
+**Validation checks include:**
+- **PSScriptAnalyzer**: Code quality and style checks
+- **XAML Validation**: WPF markup parsing
+- **Pester Tests**: Unit tests for modules
+- **GUI Component Checks**: DPI awareness, async helpers, error handling
+- **EXE Validation**: PE header, 64-bit check, version info
+
+### GUI Development
+The GUI (`src/GUI/GA-AppLocker-Portable.ps1`) includes these embedded components:
+
+**DPI Awareness** (lines 35-58):
+```powershell
+# Per-Monitor DPI awareness for crisp high-DPI rendering
+[DpiAwareness]::SetProcessDpiAwareness(2)
+```
+
+**Async Helpers** (lines 60-209):
+```powershell
+# Runspace-based async execution
+$jobId = Start-AsyncOperation -ScriptBlock { ... } -OperationName "Scan"
+Wait-AsyncOperation -JobId $jobId
+Close-AsyncPool  # Call in finally block
+```
+
+**Error Handling Wrapper** (end of file):
+```powershell
+try {
+    $window.ShowDialog()
+} catch {
+    # Show error dialog, log to error.log
+} finally {
+    Close-AsyncPool
+}
+```
+
+### Building the EXE
+```powershell
+# Build GUI executable (creates GA-AppLocker.exe and zip package)
+.\build\Build-GUI.ps1
+
+# Build without creating distribution zip
+.\build\Build-GUI.ps1 -SkipZip
+
+# Build with console window for debugging
+.\build\Build-GUI.ps1 -IncludeDebug
 ```
 
 ## Workflow for Enterprise Deployment

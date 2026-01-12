@@ -1,5 +1,11 @@
 # GA-AppLocker
 
+[![Build](https://github.com/YOUR_ORG/GA-AppLocker/actions/workflows/build.yml/badge.svg)](https://github.com/YOUR_ORG/GA-AppLocker/actions/workflows/build.yml)
+[![Codacy Security](https://github.com/YOUR_ORG/GA-AppLocker/actions/workflows/codacy.yml/badge.svg)](https://github.com/YOUR_ORG/GA-AppLocker/actions/workflows/codacy.yml)
+[![codecov](https://codecov.io/gh/YOUR_ORG/GA-AppLocker/branch/main/graph/badge.svg)](https://codecov.io/gh/YOUR_ORG/GA-AppLocker)
+[![PowerShell](https://img.shields.io/badge/PowerShell-5.1+-blue.svg)](https://docs.microsoft.com/powershell/)
+[![.NET](https://img.shields.io/badge/.NET-8.0+-purple.svg)](https://dotnet.microsoft.com/)
+
 **Author:** Tony Tran, ISSO, GA-ASI
 **Version:** 1.2.4
 

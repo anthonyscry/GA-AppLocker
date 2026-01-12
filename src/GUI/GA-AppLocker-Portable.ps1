@@ -32,6 +32,183 @@ Add-Type -AssemblyName PresentationCore
 Add-Type -AssemblyName WindowsBase
 Add-Type -AssemblyName System.Windows.Forms
 
+#region DPI Awareness
+# Enable Per-Monitor DPI awareness for crisp rendering on high-DPI displays
+try {
+    Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public class DpiAwareness {
+    [DllImport("shcore.dll")]
+    public static extern int SetProcessDpiAwareness(int awareness);
+
+    // 0 = DPI_AWARENESS_UNAWARE
+    // 1 = SYSTEM_DPI_AWARE
+    // 2 = PER_MONITOR_DPI_AWARE
+    public const int PROCESS_PER_MONITOR_DPI_AWARE = 2;
+}
+"@ -ErrorAction SilentlyContinue
+
+    # Set Per-Monitor DPI awareness (best quality on mixed-DPI setups)
+    [void][DpiAwareness]::SetProcessDpiAwareness([DpiAwareness]::PROCESS_PER_MONITOR_DPI_AWARE)
+} catch {
+    # DPI awareness may already be set by the process or not supported (pre-Windows 8.1)
+    # This is not a fatal error - continue with default DPI handling
+}
+#endregion
+
+#region Async Helpers (Embedded)
+# Runspace-based async execution for long-running operations
+# Allows the GUI to remain responsive during scans, event collection, etc.
+
+$Script:RunspacePool = $null
+$Script:ActiveJobs = [System.Collections.Concurrent.ConcurrentDictionary[string, object]]::new()
+
+function Initialize-AsyncPool {
+    param([int]$MaxThreads = 5)
+    if ($null -eq $Script:RunspacePool) {
+        $Script:RunspacePool = [runspacefactory]::CreateRunspacePool(1, $MaxThreads)
+        $Script:RunspacePool.ApartmentState = "STA"
+        $Script:RunspacePool.Open()
+    }
+}
+
+function Close-AsyncPool {
+    $Script:ActiveJobs.Clear()
+    if ($null -ne $Script:RunspacePool) {
+        $Script:RunspacePool.Close()
+        $Script:RunspacePool.Dispose()
+        $Script:RunspacePool = $null
+    }
+}
+
+function Start-AsyncOperation {
+    param(
+        [Parameter(Mandatory)][scriptblock]$ScriptBlock,
+        [hashtable]$Parameters = @{},
+        [scriptblock]$OnComplete,
+        [scriptblock]$OnProgress,
+        [string]$OperationName = "Operation"
+    )
+
+    if ($null -eq $Script:RunspacePool) { Initialize-AsyncPool }
+
+    $jobId = [guid]::NewGuid().ToString()
+    $powershell = [powershell]::Create()
+    $powershell.RunspacePool = $Script:RunspacePool
+
+    $wrapperScript = {
+        param($ScriptToRun, $Params, $AppRoot)
+        $ErrorActionPreference = 'Continue'
+        $results = @{ Output = @(); Errors = @(); Success = $true }
+        try {
+            Set-Location $AppRoot
+            $output = & $ScriptToRun @Params 2>&1
+            foreach ($item in $output) {
+                if ($item -is [System.Management.Automation.ErrorRecord]) {
+                    $results.Errors += $item.ToString()
+                } else {
+                    $results.Output += $item.ToString()
+                }
+            }
+        } catch {
+            $results.Errors += $_.Exception.Message
+            $results.Success = $false
+        }
+        return $results
+    }
+
+    $powershell.AddScript($wrapperScript) | Out-Null
+    $powershell.AddParameter('ScriptToRun', $ScriptBlock) | Out-Null
+    $powershell.AddParameter('Params', $Parameters) | Out-Null
+    $powershell.AddParameter('AppRoot', $Script:AppRoot) | Out-Null
+
+    $handle = $powershell.BeginInvoke()
+
+    $jobInfo = @{
+        Id = $jobId
+        PowerShell = $powershell
+        Handle = $handle
+        OperationName = $OperationName
+        OnComplete = $OnComplete
+        OnProgress = $OnProgress
+        StartTime = Get-Date
+    }
+
+    $Script:ActiveJobs[$jobId] = $jobInfo
+    return $jobId
+}
+
+function Get-AsyncOperationStatus {
+    param([Parameter(Mandatory)][string]$JobId)
+    if (-not $Script:ActiveJobs.ContainsKey($JobId)) { return @{ Status = 'NotFound' } }
+    $job = $Script:ActiveJobs[$JobId]
+    if ($job.Handle.IsCompleted) {
+        return @{ Status = 'Completed'; Duration = (Get-Date) - $job.StartTime }
+    }
+    return @{ Status = 'Running'; Duration = (Get-Date) - $job.StartTime }
+}
+
+function Wait-AsyncOperation {
+    param([Parameter(Mandatory)][string]$JobId, [int]$TimeoutSeconds = 3600)
+    if (-not $Script:ActiveJobs.ContainsKey($JobId)) {
+        return @{ Success = $false; Error = "Job not found: $JobId" }
+    }
+    $job = $Script:ActiveJobs[$JobId]
+    $startWait = Get-Date
+    while (-not $job.Handle.IsCompleted) {
+        if (((Get-Date) - $startWait).TotalSeconds -gt $TimeoutSeconds) {
+            $job.PowerShell.Stop()
+            return @{ Success = $false; Error = "Operation timed out after $TimeoutSeconds seconds" }
+        }
+        Start-Sleep -Milliseconds 100
+    }
+    try {
+        $result = $job.PowerShell.EndInvoke($job.Handle)
+        if ($job.OnComplete) { & $job.OnComplete -Result $result }
+        return $result
+    } catch {
+        return @{ Success = $false; Error = $_.Exception.Message }
+    } finally {
+        $job.PowerShell.Dispose()
+        $Script:ActiveJobs.TryRemove($JobId, [ref]$null) | Out-Null
+    }
+}
+
+function Stop-AsyncOperation {
+    param([Parameter(Mandatory)][string]$JobId)
+    if (-not $Script:ActiveJobs.ContainsKey($JobId)) { return $false }
+    $job = $Script:ActiveJobs[$JobId]
+    try {
+        $job.PowerShell.Stop()
+        $job.PowerShell.Dispose()
+        $Script:ActiveJobs.TryRemove($JobId, [ref]$null) | Out-Null
+        return $true
+    } catch { return $false }
+}
+
+function Get-AllAsyncOperations {
+    if ($null -eq $Script:ActiveJobs -or $Script:ActiveJobs.Count -eq 0) { return @() }
+    $results = @()
+    try {
+        $snapshot = $Script:ActiveJobs.ToArray()
+        foreach ($kvp in $snapshot) {
+            $job = $kvp.Value
+            if ($null -ne $job) {
+                $results += [PSCustomObject]@{
+                    Id = $kvp.Key
+                    OperationName = $job.OperationName
+                    StartTime = $job.StartTime
+                    IsCompleted = $job.Handle.IsCompleted
+                    Duration = (Get-Date) - $job.StartTime
+                }
+            }
+        }
+    } catch { }
+    return $results
+}
+#endregion
+
 #region Script Path Detection
 # Detect script root - handles EXE, PS1, and ISE scenarios
 $Script:AppRoot = $null
@@ -5170,4 +5347,21 @@ Tips:
 Write-Log "Keyboard shortcuts enabled (Press F1 for help)" -Level Info
 #endregion
 
-$window.ShowDialog() | Out-Null
+#region Main Entry Point with Error Handling
+try {
+    $window.ShowDialog() | Out-Null
+} catch {
+    $errorMessage = "GA-AppLocker encountered a fatal error:`n`n$($_.Exception.Message)`n`nStack Trace:`n$($_.ScriptStackTrace)"
+    [System.Windows.MessageBox]::Show($errorMessage, "GA-AppLocker Error", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Error) | Out-Null
+
+    # Log to file if possible
+    try {
+        $errorLogPath = Join-Path $Script:AppRoot "error.log"
+        $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+        "$timestamp - FATAL ERROR`n$errorMessage`n$('-' * 50)" | Out-File -FilePath $errorLogPath -Append -Encoding UTF8
+    } catch { }
+} finally {
+    # Cleanup async resources
+    Close-AsyncPool
+}
+#endregion

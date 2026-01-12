@@ -243,6 +243,100 @@ try {
     }
     #endregion
 
+    #region GUI/EXE Validation
+    Write-Header "GUI & EXE Validation"
+
+    $guiScript = Join-Path $repoRoot "src\GUI\GA-AppLocker-Portable.ps1"
+    $exeFile = Join-Path $repoRoot "GA-AppLocker.exe"
+
+    # GUI Script Parse Benchmark
+    if (Test-Path $guiScript) {
+        $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+        $parseErrors = $null
+        $null = [System.Management.Automation.Language.Parser]::ParseFile(
+            $guiScript,
+            [ref]$null,
+            [ref]$parseErrors
+        )
+        $stopwatch.Stop()
+        $parseTime = $stopwatch.ElapsedMilliseconds
+
+        if ($parseErrors.Count -gt 0) {
+            Write-Result 'FAIL' "GUI script has $($parseErrors.Count) syntax error(s)"
+            $script:HasErrors = $true
+            foreach ($err in $parseErrors) {
+                Write-Host "       Line $($err.Extent.StartLineNumber): $($err.Message)" -ForegroundColor $ColorMuted
+            }
+        } else {
+            Write-Result 'PASS' "GUI script parsed in ${parseTime}ms"
+        }
+
+        # Check for required components
+        $guiContent = Get-Content $guiScript -Raw
+        $components = @(
+            @{ Name = 'DPI Awareness'; Pattern = 'DpiAwareness|SetProcessDpiAwareness' },
+            @{ Name = 'Async Helpers'; Pattern = 'Start-AsyncOperation|RunspacePool' },
+            @{ Name = 'Error Handling'; Pattern = 'try\s*\{[\s\S]*ShowDialog[\s\S]*\}\s*catch' },
+            @{ Name = 'Version Constant'; Pattern = '\$Script:AppVersion\s*=' }
+        )
+
+        foreach ($component in $components) {
+            if ($guiContent -match $component.Pattern) {
+                Write-Result 'PASS' "$($component.Name) present"
+            } else {
+                Write-Result 'WARN' "$($component.Name) missing"
+                $script:HasWarnings = $true
+            }
+        }
+    } else {
+        Write-Result 'FAIL' "GUI script not found: $guiScript"
+        $script:HasErrors = $true
+    }
+
+    # EXE Validation
+    if (Test-Path $exeFile) {
+        $exeInfo = Get-Item $exeFile
+        $sizeMB = [math]::Round($exeInfo.Length / 1MB, 2)
+        Write-Result 'PASS' "EXE exists ($sizeMB MB)"
+
+        # Check PE header
+        try {
+            $bytes = [System.IO.File]::ReadAllBytes($exeFile)
+            if ($bytes[0] -eq 0x4D -and $bytes[1] -eq 0x5A) {
+                Write-Result 'PASS' "Valid PE header (MZ)"
+            } else {
+                Write-Result 'FAIL' "Invalid PE header"
+                $script:HasErrors = $true
+            }
+
+            # Check 64-bit
+            $peOffset = [BitConverter]::ToInt32($bytes, 0x3C)
+            $machineType = [BitConverter]::ToUInt16($bytes, $peOffset + 4)
+            if ($machineType -eq 0x8664) {
+                Write-Result 'PASS' "64-bit executable"
+            } else {
+                Write-Result 'WARN' "Not 64-bit (machine type: 0x$($machineType.ToString('X4')))"
+                $script:HasWarnings = $true
+            }
+        } catch {
+            Write-Result 'WARN' "Could not validate PE header: $_"
+            $script:HasWarnings = $true
+        }
+
+        # Check version info
+        $versionInfo = $exeInfo.VersionInfo
+        if ($versionInfo.FileVersion) {
+            Write-Result 'PASS' "Version info: $($versionInfo.FileVersion)"
+        } else {
+            Write-Result 'WARN' "No version info embedded"
+            $script:HasWarnings = $true
+        }
+    } else {
+        Write-Result 'WARN' "EXE not found (run Build-GUI.ps1 to create)"
+        $script:HasWarnings = $true
+    }
+    #endregion
+
     #region Final Summary
     Write-Host "`n$('=' * 60)" -ForegroundColor $ColorInfo
     if ($script:HasErrors) {
