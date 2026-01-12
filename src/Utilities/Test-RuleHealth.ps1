@@ -51,7 +51,9 @@ param(
 
     [switch]$Detailed,
 
-    [string]$OutputPath
+    [string]$OutputPath,
+
+    [switch]$Quiet
 )
 
 $ErrorActionPreference = 'Stop'
@@ -62,6 +64,17 @@ $scriptRoot = Split-Path $PSScriptRoot -Parent
 # Import common functions and error handling
 Import-Module (Join-Path $scriptRoot 'utilities\Common.psm1') -Force
 Import-Module (Join-Path $PSScriptRoot 'ErrorHandling.psm1') -Force
+
+# Helper function to write output only when not in quiet mode
+function Write-Status {
+    param(
+        [string]$Message,
+        [string]$ForegroundColor = 'White'
+    )
+    if (-not $Quiet) {
+        Write-Host $Message -ForegroundColor $ForegroundColor
+    }
+}
 
 #region Health Check Functions
 
@@ -449,10 +462,10 @@ function Test-SIDValidity {
 
 #region Main
 
-Write-SectionHeader -Title "AppLocker Rule Health Check"
+if (-not $Quiet) { Write-SectionHeader -Title "AppLocker Rule Health Check" }
 
 # Load and validate policy using standardized validation
-Write-Host "Loading policy: $(Split-Path $PolicyPath -Leaf)" -ForegroundColor Yellow
+if (-not $Quiet) { Write-Host "Loading policy: $(Split-Path $PolicyPath -Leaf)" -ForegroundColor Yellow }
 $policyXml = Test-ValidAppLockerPolicy -Path $PolicyPath
 if (-not $policyXml) {
     Write-ErrorMessage -Message "Failed to load or validate policy: $PolicyPath" -Throw
@@ -463,52 +476,54 @@ $totalRules = 0
 foreach ($collection in $policyXml.AppLockerPolicy.RuleCollection) {
     $totalRules += ($collection.ChildNodes | Where-Object { $_.NodeType -eq 'Element' }).Count
 }
-Write-Host "  Total rules: $totalRules" -ForegroundColor Gray
-Write-Host ""
+if (-not $Quiet) {
+    Write-Host "  Total rules: $totalRules" -ForegroundColor Gray
+    Write-Host ""
+}
 
 # Run health checks
 $allIssues = @()
 $totalSteps = 6
 
-Write-Host "Running health checks..." -ForegroundColor Yellow
+if (-not $Quiet) { Write-Host "Running health checks..." -ForegroundColor Yellow }
 
-Write-StepProgress -Step 1 -Total $totalSteps -Message "Path rule validation"
+if (-not $Quiet) { Write-StepProgress -Step 1 -Total $totalSteps -Message "Path rule validation" }
 $pathIssues = Invoke-SafeOperation -ScriptBlock { Test-PathRuleHealth -PolicyXml $policyXml } -ErrorMessage "Path rule validation failed" -ContinueOnError
 $allIssues += @($pathIssues)
-Write-Host "        Found $(@($pathIssues).Count) issues" -ForegroundColor $(if (@($pathIssues).Count -gt 0) { 'Yellow' } else { 'Green' })
+if (-not $Quiet) { Write-Host "        Found $(@($pathIssues).Count) issues" -ForegroundColor $(if (@($pathIssues).Count -gt 0) { 'Yellow' } else { 'Green' }) }
 
-Write-StepProgress -Step 2 -Total $totalSteps -Message "Publisher rule validation"
+if (-not $Quiet) { Write-StepProgress -Step 2 -Total $totalSteps -Message "Publisher rule validation" }
 $pubIssues = Invoke-SafeOperation -ScriptBlock { Test-PublisherRuleHealth -PolicyXml $policyXml -CheckCertificates:$CheckCertificates } -ErrorMessage "Publisher rule validation failed" -ContinueOnError
 $allIssues += @($pubIssues)
-Write-Host "        Found $(@($pubIssues).Count) issues" -ForegroundColor $(if (@($pubIssues).Count -gt 0) { 'Yellow' } else { 'Green' })
+if (-not $Quiet) { Write-Host "        Found $(@($pubIssues).Count) issues" -ForegroundColor $(if (@($pubIssues).Count -gt 0) { 'Yellow' } else { 'Green' }) }
 
-Write-StepProgress -Step 3 -Total $totalSteps -Message "Hash rule validation"
+if (-not $Quiet) { Write-StepProgress -Step 3 -Total $totalSteps -Message "Hash rule validation" }
 $hashIssues = Invoke-SafeOperation -ScriptBlock { Test-HashRuleHealth -PolicyXml $policyXml -ScanPath $ScanPath } -ErrorMessage "Hash rule validation failed" -ContinueOnError
 $allIssues += @($hashIssues)
-Write-Host "        Found $(@($hashIssues).Count) issues" -ForegroundColor $(if (@($hashIssues).Count -gt 0) { 'Yellow' } else { 'Green' })
+if (-not $Quiet) { Write-Host "        Found $(@($hashIssues).Count) issues" -ForegroundColor $(if (@($hashIssues).Count -gt 0) { 'Yellow' } else { 'Green' }) }
 
-Write-StepProgress -Step 4 -Total $totalSteps -Message "Rule conflict detection"
+if (-not $Quiet) { Write-StepProgress -Step 4 -Total $totalSteps -Message "Rule conflict detection" }
 $conflictIssues = Invoke-SafeOperation -ScriptBlock { Test-RuleConflicts -PolicyXml $policyXml } -ErrorMessage "Conflict detection failed" -ContinueOnError
 $allIssues += @($conflictIssues)
-Write-Host "        Found $(@($conflictIssues).Count) issues" -ForegroundColor $(if (@($conflictIssues).Count -gt 0) { 'Yellow' } else { 'Green' })
+if (-not $Quiet) { Write-Host "        Found $(@($conflictIssues).Count) issues" -ForegroundColor $(if (@($conflictIssues).Count -gt 0) { 'Yellow' } else { 'Green' }) }
 
-Write-StepProgress -Step 5 -Total $totalSteps -Message "SID validation"
+if (-not $Quiet) { Write-StepProgress -Step 5 -Total $totalSteps -Message "SID validation" }
 $sidIssues = Invoke-SafeOperation -ScriptBlock { Test-SIDValidity -PolicyXml $policyXml } -ErrorMessage "SID validation failed" -ContinueOnError
 $allIssues += @($sidIssues)
-Write-Host "        Found $(@($sidIssues).Count) issues" -ForegroundColor $(if (@($sidIssues).Count -gt 0) { 'Yellow' } else { 'Green' })
+if (-not $Quiet) { Write-Host "        Found $(@($sidIssues).Count) issues" -ForegroundColor $(if (@($sidIssues).Count -gt 0) { 'Yellow' } else { 'Green' }) }
 
-Write-StepProgress -Step 6 -Total $totalSteps -Message "Usage analysis"
+if (-not $Quiet) { Write-StepProgress -Step 6 -Total $totalSteps -Message "Usage analysis" }
 $usageIssues = Invoke-SafeOperation -ScriptBlock { Test-RuleUsage -PolicyXml $policyXml -EventPath $EventPath } -ErrorMessage "Usage analysis failed" -ContinueOnError
 $allIssues += @($usageIssues)
-Write-Host "        Found $(@($usageIssues).Count) issues" -ForegroundColor $(if (@($usageIssues).Count -gt 0) { 'Yellow' } else { 'Green' })
+if (-not $Quiet) { Write-Host "        Found $(@($usageIssues).Count) issues" -ForegroundColor $(if (@($usageIssues).Count -gt 0) { 'Yellow' } else { 'Green' }) }
 
-Write-Host ""
+if (-not $Quiet) { Write-Host "" }
 
 #endregion
 
 #region Report
 
-Write-SectionHeader -Title "Health Check Results"
+if (-not $Quiet) { Write-SectionHeader -Title "Health Check Results" }
 
 # Summary by severity
 $bySeverity = $allIssues | Group-Object Severity
@@ -517,11 +532,13 @@ $criticalCount = ($bySeverity | Where-Object { $_.Name -eq 'Critical' }).Count
 $warningCount = ($bySeverity | Where-Object { $_.Name -eq 'Warning' }).Count
 $infoCount = ($bySeverity | Where-Object { $_.Name -eq 'Info' }).Count
 
-Write-Host "Summary:" -ForegroundColor Yellow
-Write-Host "  Critical: $criticalCount" -ForegroundColor $(if ($criticalCount -gt 0) { 'Red' } else { 'Gray' })
-Write-Host "  Warning:  $warningCount" -ForegroundColor $(if ($warningCount -gt 0) { 'Yellow' } else { 'Gray' })
-Write-Host "  Info:     $infoCount" -ForegroundColor $(if ($infoCount -gt 0) { 'Cyan' } else { 'Gray' })
-Write-Host ""
+if (-not $Quiet) {
+    Write-Host "Summary:" -ForegroundColor Yellow
+    Write-Host "  Critical: $criticalCount" -ForegroundColor $(if ($criticalCount -gt 0) { 'Red' } else { 'Gray' })
+    Write-Host "  Warning:  $warningCount" -ForegroundColor $(if ($warningCount -gt 0) { 'Yellow' } else { 'Gray' })
+    Write-Host "  Info:     $infoCount" -ForegroundColor $(if ($infoCount -gt 0) { 'Cyan' } else { 'Gray' })
+    Write-Host ""
+}
 
 # Health score
 $healthScore = 100
@@ -534,11 +551,13 @@ $healthColor = if ($healthScore -ge 80) { 'Green' }
                elseif ($healthScore -ge 60) { 'Yellow' }
                else { 'Red' }
 
-Write-Host "Policy Health Score: $healthScore / 100" -ForegroundColor $healthColor
-Write-Host ""
+if (-not $Quiet) {
+    Write-Host "Policy Health Score: $healthScore / 100" -ForegroundColor $healthColor
+    Write-Host ""
+}
 
 # Show critical and warning issues
-if ($criticalCount -gt 0) {
+if (-not $Quiet -and $criticalCount -gt 0) {
     Write-Host "CRITICAL ISSUES:" -ForegroundColor Red
     $allIssues | Where-Object { $_.Severity -eq 'Critical' } | ForEach-Object {
         Write-Host "  [!] $($_.RuleName)" -ForegroundColor Red
@@ -551,7 +570,7 @@ if ($criticalCount -gt 0) {
     Write-Host ""
 }
 
-if ($warningCount -gt 0) {
+if (-not $Quiet -and $warningCount -gt 0) {
     Write-Host "WARNINGS:" -ForegroundColor Yellow
     $allIssues | Where-Object { $_.Severity -eq 'Warning' } | Select-Object -First 10 | ForEach-Object {
         Write-Host "  [*] $($_.RuleName)" -ForegroundColor Yellow
@@ -586,7 +605,7 @@ if ($OutputPath) {
             $reportData | ConvertTo-Json -Depth 10 | Out-File $reportFile -Encoding UTF8
         } -ErrorMessage "Failed to save report" -ContinueOnError
 
-        Write-SuccessMessage -Message "Report saved: $reportFile"
+        if (-not $Quiet) { Write-SuccessMessage -Message "Report saved: $reportFile" }
     }
 }
 
