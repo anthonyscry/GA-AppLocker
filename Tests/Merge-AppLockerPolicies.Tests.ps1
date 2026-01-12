@@ -101,7 +101,7 @@ Describe 'Merge-AppLockerPolicies' {
             $outputPath = Join-Path $script:tempOutputPath 'DedupPublisher.xml'
 
             # SamplePolicy2.xml contains a duplicate Microsoft publisher rule
-            & $scriptPath -InputPath $inputPath -OutputPath $outputPath -IncludePattern 'SamplePolicy*.xml' -RemoveDuplicates 2>$null
+            & $scriptPath -InputPath $inputPath -OutputPath $outputPath -IncludePattern 'SamplePolicy*.xml' -RemoveDuplicates:$true 2>$null
 
             [xml]$policy = Get-Content -Path $outputPath -Raw
             $exeCollection = $policy.AppLockerPolicy.RuleCollection | Where-Object { $_.Type -eq 'Exe' }
@@ -120,7 +120,7 @@ Describe 'Merge-AppLockerPolicies' {
             $inputPath = Join-Path $PSScriptRoot 'Fixtures'
             $outputPath = Join-Path $script:tempOutputPath 'NoDedupPublisher.xml'
 
-            & $scriptPath -InputPath $inputPath -OutputPath $outputPath -IncludePattern 'SamplePolicy*.xml' -RemoveDuplicates $false 2>$null
+            & $scriptPath -InputPath $inputPath -OutputPath $outputPath -IncludePattern 'SamplePolicy*.xml' -RemoveDuplicates:$false 2>$null
 
             [xml]$policy = Get-Content -Path $outputPath -Raw
             $exeCollection = $policy.AppLockerPolicy.RuleCollection | Where-Object { $_.Type -eq 'Exe' }
