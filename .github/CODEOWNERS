@@ -2,19 +2,19 @@
 # https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 
 # Default owners for everything in the repo
-*       @YOUR_GITHUB_USERNAME
+*       @anthonyscry
 
 # Workflow files
-/.github/       @YOUR_GITHUB_USERNAME
+/.github/       @anthonyscry
 
 # PowerShell source files
-*.ps1   @YOUR_GITHUB_USERNAME
-*.psm1  @YOUR_GITHUB_USERNAME
-*.psd1  @YOUR_GITHUB_USERNAME
+*.ps1   @anthonyscry
+*.psm1  @anthonyscry
+*.psd1  @anthonyscry
 
 # .NET/C# source files
-*.cs    @YOUR_GITHUB_USERNAME
-*.csproj        @YOUR_GITHUB_USERNAME
+*.cs    @anthonyscry
+*.csproj        @anthonyscry
 
 # XAML UI files
-*.xaml  @YOUR_GITHUB_USERNAME
+*.xaml  @anthonyscry

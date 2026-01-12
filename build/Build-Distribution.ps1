@@ -48,7 +48,7 @@ if (-not (Test-Path $distPath)) {
 
 # Step 1: Build the EXE (unless skipped)
 if (-not $SkipBuild) {
-    Write-Host "[1/4] Building executable..." -ForegroundColor Yellow
+    Write-Host "[1/5] Building executable..." -ForegroundColor Yellow
     $buildScript = Join-Path $scriptRoot "Build-GUI.ps1"
     if (Test-Path $buildScript) {
         & $buildScript
@@ -61,11 +61,11 @@ if (-not $SkipBuild) {
         exit 1
     }
 } else {
-    Write-Host "[1/4] Skipping build (using existing EXE)..." -ForegroundColor Yellow
+    Write-Host "[1/5] Skipping build (using existing EXE)..." -ForegroundColor Yellow
 }
 
 # Step 2: Create staging directory
-Write-Host "[2/4] Preparing package contents..." -ForegroundColor Yellow
+Write-Host "[2/5] Preparing package contents..." -ForegroundColor Yellow
 
 $stagingPath = Join-Path $distPath "GA-AppLocker-v$Version"
 if (Test-Path $stagingPath) {
@@ -155,7 +155,7 @@ foreach ($item in $includeItems) {
 Write-Host "      $copiedCount items copied" -ForegroundColor Green
 
 # Step 3: Create zip archive
-Write-Host "[3/4] Creating zip archive..." -ForegroundColor Yellow
+Write-Host "[3/5] Creating zip archive..." -ForegroundColor Yellow
 
 $zipPath = Join-Path $distPath "GA-AppLocker-v$Version.zip"
 if (Test-Path $zipPath) {
@@ -168,19 +168,34 @@ $zipSize = [math]::Round((Get-Item $zipPath).Length / 1MB, 2)
 Write-Host "      Created: $zipPath ($zipSize MB)" -ForegroundColor Green
 
 # Step 4: Cleanup staging
-Write-Host "[4/4] Cleaning up..." -ForegroundColor Yellow
+Write-Host "[4/5] Cleaning up..." -ForegroundColor Yellow
 Remove-Item $stagingPath -Recurse -Force
 Write-Host "      Staging directory removed" -ForegroundColor Gray
+
+# Step 5: Copy standalone EXE to dist folder
+Write-Host "[5/5] Copying standalone EXE to dist..." -ForegroundColor Yellow
+$exePath = Join-Path $projectRoot "GA-AppLocker.exe"
+if (Test-Path $exePath) {
+    $distExePath = Join-Path $distPath "GA-AppLocker.exe"
+    Copy-Item -Path $exePath -Destination $distExePath -Force
+    $exeSize = [math]::Round((Get-Item $distExePath).Length / 1MB, 2)
+    Write-Host "      Copied: GA-AppLocker.exe ($exeSize MB)" -ForegroundColor Green
+} else {
+    Write-Host "      EXE not found, skipping" -ForegroundColor DarkGray
+}
 
 # Summary
 Write-Host ""
 Write-Host "==================================" -ForegroundColor Cyan
 Write-Host "Distribution package created!" -ForegroundColor Green
 Write-Host ""
-Write-Host "Output: $zipPath" -ForegroundColor White
-Write-Host "Size:   $zipSize MB" -ForegroundColor White
+Write-Host "Output folder: $distPath" -ForegroundColor White
 Write-Host ""
-Write-Host "Package contents:" -ForegroundColor Gray
+Write-Host "Release files:" -ForegroundColor Gray
+Write-Host "  - GA-AppLocker-v$Version.zip ($zipSize MB) - Full package" -ForegroundColor Gray
+Write-Host "  - GA-AppLocker.exe - Standalone executable" -ForegroundColor Gray
+Write-Host ""
+Write-Host "Package contents (zip):" -ForegroundColor Gray
 Write-Host "  - GA-AppLocker.exe (main executable)" -ForegroundColor Gray
 Write-Host "  - src/Core/ (workflow scripts)" -ForegroundColor Gray
 Write-Host "  - src/Utilities/ (utility scripts)" -ForegroundColor Gray
