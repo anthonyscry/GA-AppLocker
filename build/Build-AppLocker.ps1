@@ -76,7 +76,7 @@ $ErrorActionPreference = 'Stop'
 # Script root and project paths
 $Script:ProjectRoot = $PSScriptRoot
 $Script:BuildPath = Join-Path $ProjectRoot $OutputPath
-$Script:DistPath = Join-Path $BuildPath 'dist'
+$Script:DistPath = Join-Path (Split-Path $ProjectRoot -Parent) 'dist'
 $Script:ReportsPath = Join-Path $BuildPath 'reports'
 
 # Build state tracking
