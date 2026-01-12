@@ -41,7 +41,8 @@
     # Modules to import as nested modules of the module specified in RootModule/ModuleToProcess
     NestedModules = @(
         'src\Utilities\Common.psm1',
-        'src\Utilities\ErrorHandling.psm1'
+        'src\Utilities\ErrorHandling.psm1',
+        'src\GUI\AsyncHelpers.psm1'
     )
 
     # Functions to export from this module
@@ -65,6 +66,8 @@
         'Test-AppLockerPolicy',
         'Test-ScanData',
         'Compare-AppLockerPolicies',
+        'Test-PolicySecurity',
+        'Show-ValidationResult',
 
         # SID Resolution (from Common.psm1)
         'Resolve-AccountToSid',
@@ -75,15 +78,43 @@
 
         # Configuration
         'Get-AppLockerConfig',
+        'Get-DefaultConfig',
 
         # Logging
         'Start-Logging',
         'Write-Log',
+        'Write-LogSection',
+        'Write-LogResults',
         'Stop-Logging',
+        'Get-CurrentLogFile',
+        'Test-LoggingEnabled',
+        'Get-LogFiles',
+        'Clear-OldLogs',
 
         # Utilities
         'Get-ComputerList',
         'Confirm-Directory',
+        'New-TimestampedOutputFolder',
+        'Get-TimestampedFileName',
+        'Write-Status',
+        'Write-Banner',
+        'Get-ValidatedPath',
+        'Add-NonEmptyParameters',
+        'Get-PublisherRuleKey',
+        'Add-PublisherRule',
+
+        # Policy Diff
+        'Show-PolicyDiff',
+        'Get-PolicyRuleIdentifiers',
+
+        # XML Generation
+        'New-AppLockerRuleXml',
+        'New-PathConditionXml',
+        'New-PublisherConditionXml',
+        'New-HashConditionXml',
+        'New-PolicyHeaderXml',
+        'New-RuleCollectionXml',
+        'ConvertFrom-AppLockerEventXml',
 
         # Error Handling (from ErrorHandling.psm1)
         'Invoke-SafeOperation',
@@ -98,7 +129,15 @@
         'Write-SuccessMessage',
         'Write-ResultSummary',
         'Initialize-GAAppLockerScript',
-        'Test-CredentialValidity'
+        'Test-CredentialValidity',
+
+        # Async Helpers (from AsyncHelpers.psm1)
+        'Initialize-AsyncPool',
+        'Close-AsyncPool',
+        'Start-AsyncOperation',
+        'Get-AsyncResult',
+        'Stop-AsyncOperation',
+        'Get-ActiveJobs'
     )
 
     # Cmdlets to export from this module
