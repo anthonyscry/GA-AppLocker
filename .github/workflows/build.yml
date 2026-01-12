@@ -34,9 +34,10 @@ on:
         type: boolean
         default: false
 
-# Prevent concurrent runs on the same branch
+# Prevent concurrent runs - use head_ref for PRs to avoid duplicate runs on merge
+# When a PR is merged, both PR close and push events fire - this ensures only one runs
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 
 # Default permissions - least privilege principle
@@ -97,23 +98,19 @@ jobs:
       run: |
         Write-Host "=== Running PSScriptAnalyzer Code Quality Check ===" -ForegroundColor Cyan
 
-        $results = @()
+        # Load centralized code review rules
+        $rulesConfig = Import-PowerShellDataFile -Path "./build/CodeReviewRules.psd1"
+        $excludeRules = $rulesConfig.ExcludedRules
+        $excludePaths = $rulesConfig.ExcludePaths -join '|'
 
-        # Rules to exclude globally
-        # - PSAvoidUsingWriteHost: Appropriate for CLI tools with user feedback
-        # - PSUseConsistentIndentation: Project uses scriptblock-reset style
-        # - PSUseConsistentWhitespace: Conflicts with scriptblock indentation style
-        # - PSUseBOMForUnicodeEncodedFile: BOM not required for UTF-8 in modern systems
-        $excludeRules = @(
-          'PSAvoidUsingWriteHost',
-          'PSUseConsistentIndentation',
-          'PSUseConsistentWhitespace',
-          'PSUseBOMForUnicodeEncodedFile'
-        )
+        Write-Host "Loaded rules from build/CodeReviewRules.psd1"
+        Write-Host "Excluded rules: $($excludeRules -join ', ')"
+
+        $results = @()
 
         # Analyze all PowerShell files
         $psFiles = Get-ChildItem -Path . -Include *.ps1, *.psm1, *.psd1 -Recurse -File |
-                   Where-Object { $_.FullName -notmatch '\\Tests\\|\\\.git\\' }
+                   Where-Object { $_.FullName -notmatch $excludePaths }
 
         Write-Host "Found $($psFiles.Count) PowerShell files to analyze"
 
@@ -146,7 +143,6 @@ jobs:
 
               # GitHub file annotations - shows in PR diff view
               $level = if ($_.Severity -eq 'Error') { 'error' } else { 'warning' }
-              $file = $_.ScriptName -replace '^.*[/\\]', ''
               Write-Host "::$level file=$($_.ScriptName),line=$($_.Line),col=$($_.Column)::[$($_.RuleName)] $($_.Message)"
             }
           }
@@ -173,22 +169,16 @@ jobs:
       run: |
         Write-Host "=== Running Security Analysis ===" -ForegroundColor Cyan
 
-        # Security-focused rules
-        $securityRules = @(
-          'PSAvoidUsingPlainTextForPassword',
-          'PSAvoidUsingConvertToSecureStringWithPlainText',
-          'PSAvoidUsingUsernameAndPasswordParams',
-          'PSAvoidUsingComputerNameHardcoded',
-          'PSUsePSCredentialType',
-          'PSAvoidUsingInvokeExpression',
-          'PSAvoidUsingCmdletAliases',
-          'PSUseDeclaredVarsMoreThanAssignments',
-          'PSAvoidGlobalVars',
-          'PSAvoidUsingEmptyCatchBlock'
-        )
+        # Load centralized code review rules
+        $rulesConfig = Import-PowerShellDataFile -Path "./build/CodeReviewRules.psd1"
+        $securityRules = $rulesConfig.SecurityRules
+        $secretPatterns = $rulesConfig.SecretPatterns
+        $excludePaths = $rulesConfig.ExcludePaths -join '|'
+
+        Write-Host "Loaded security rules from build/CodeReviewRules.psd1"
 
         $psFiles = Get-ChildItem -Path . -Include *.ps1, *.psm1 -Recurse -File |
-                   Where-Object { $_.FullName -notmatch '\\Tests\\|\\\.git\\' }
+                   Where-Object { $_.FullName -notmatch $excludePaths }
 
         $securityIssues = @()
 
@@ -202,13 +192,6 @@ jobs:
         # Check for hardcoded credentials patterns
         Write-Host ""
         Write-Host "=== Scanning for Hardcoded Secrets ===" -ForegroundColor Cyan
-
-        $secretPatterns = @(
-          @{ Name = 'Potential API Key'; Pattern = '(?i)(api[_-]?key|apikey)\s*[=:]\s*[''"][a-zA-Z0-9]{20,}[''"]' },
-          @{ Name = 'Potential Password'; Pattern = '(?i)(password|pwd|passwd)\s*[=:]\s*[''"][^''"]{8,}[''"]' },
-          @{ Name = 'Potential Token'; Pattern = '(?i)(token|secret|bearer)\s*[=:]\s*[''"][a-zA-Z0-9_-]{20,}[''"]' },
-          @{ Name = 'Potential Connection String'; Pattern = '(?i)(connectionstring|connstr)\s*[=:]\s*[''"][^''"]+[''"]' }
-        )
 
         $secretFindings = @()
         foreach ($file in $psFiles) {

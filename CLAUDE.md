@@ -37,6 +37,8 @@ GA-AppLocker/
 │   ├── Build-AppLocker.ps1          # Full build orchestrator
 │   ├── Build-Executable.ps1         # CLI executable compilation
 │   ├── Build-GUI.ps1                # GUI executable compilation
+│   ├── Build-Distribution.ps1       # Distribution package creation
+│   ├── CodeReviewRules.psd1         # Centralized PSScriptAnalyzer rules
 │   ├── Invoke-LocalValidation.ps1   # Pre-commit validation
 │   └── Publish-ToGallery.ps1        # PowerShell Gallery publishing
 ├── src/
@@ -153,7 +155,24 @@ The toolkit includes advanced software list features for curated allowlists:
 - **Folder Scan**: Scan local folders for executables
 
 **Publisher Categories:**
-- Microsoft, Productivity, Browser/Cloud, Development, Security, Communication, Remote Access
+- Microsoft, Productivity, Browser/Cloud, Development, Security, Communication, Remote Access, Browser
+
+**Publisher Search Feature:**
+- `Search-CommonPublishers`: Search publishers by name, description, or category with wildcards
+- `Show-CommonPublishersSearch`: Interactive CLI for browsing and selecting publishers
+- Interactive import with search option: Press `S` when importing common publishers
+
+```powershell
+# Search for publishers
+Search-CommonPublishers -SearchTerm "adobe"
+Search-CommonPublishers -SearchTerm "vpn" -Category "Remote Access"
+
+# Interactive search interface
+$selected = Show-CommonPublishersSearch
+
+# Import with search option (press S at the prompt)
+Import-CommonPublishersToSoftwareList -ListPath .\list.json
+```
 
 ## Common Commands
 
@@ -476,9 +495,25 @@ Initialize-GAAppLockerScript -RequireAdmin -RequireModules @('ActiveDirectory')
 - `HealthCheck` - Rule health checking thresholds
 
 ### Manage-SoftwareLists.ps1 Key Features
-- `$Script:CommonPublishers` - Pre-defined trusted publishers by category
-- Categories: Microsoft, Productivity, Browser/Cloud, Development, Security, Communication, Remote Access
-- Functions: `New-SoftwareList`, `Import-ScanDataToSoftwareList`, `Import-CommonPublishersToSoftwareList`
+- `$Script:CommonPublishers` - Pre-defined trusted publishers by category (50+ vendors)
+- Categories: Microsoft, Productivity, Browser/Cloud, Development, Security, Communication, Remote Access, Browser
+- Core Functions: `New-SoftwareList`, `Import-ScanDataToSoftwareList`, `Import-CommonPublishersToSoftwareList`
+- Search Functions: `Search-CommonPublishers`, `Show-CommonPublishersSearch`, `Get-CommonPublisherCategories`
+
+### CodeReviewRules.psd1 (Centralized Linting)
+The `build/CodeReviewRules.psd1` file centralizes PSScriptAnalyzer rules for consistency across:
+- GitHub Actions workflows
+- Local validation scripts
+- Build orchestrator
+
+```powershell
+# Load rules in scripts
+$rules = Import-PowerShellDataFile -Path "./build/CodeReviewRules.psd1"
+$rules.ExcludedRules      # Rules to skip (e.g., PSAvoidUsingWriteHost)
+$rules.SecurityRules      # Security-focused rules to always check
+$rules.SecretPatterns     # Regex patterns for detecting hardcoded secrets
+$rules.ExcludePaths       # Paths to exclude from analysis
+```
 
 ### Testing Changes
 ```powershell
