@@ -280,8 +280,8 @@ jobs:
           if ($content -match '\[xml\]\s*\$\w+\s*=\s*@[''"]') {
             Write-Host "Checking XAML in: $($file.Name)"
 
-            # Extract XAML content
-            $xamlMatches = [regex]::Matches($content, '@[''"][\s\S]*?<Window[\s\S]*?</Window>[\s\S]*?[''"]@')
+            # Extract XAML content - match here-strings that start immediately with <Window
+            $xamlMatches = [regex]::Matches($content, '@[''"]\s*<Window[\s\S]*?</Window>\s*[''"]@')
 
             foreach ($match in $xamlMatches) {
               try {
