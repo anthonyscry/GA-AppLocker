@@ -1,0 +1,43 @@
+# Codacy Configuration for GA-AppLocker
+# https://docs.codacy.com/repositories-configure/codacy-configuration-file/
+
+---
+engines:
+  psscriptanalyzer:
+    enabled: true
+    exclude_paths:
+      - "Tests/**"
+      - ".git/**"
+      - "node_modules/**"
+
+exclude_paths:
+  - "Tests/**"
+  - ".git/**"
+  - "dist/**"
+  - "publish/**"
+
+# PSScriptAnalyzer rules to exclude
+# These are code style preferences, not security issues
+engines_override:
+  psscriptanalyzer:
+    rules:
+      # OutputType is optional - functions have dynamic/multiple return types
+      PSUseOutputTypeCorrectly:
+        enabled: false
+      # Positional parameters are acceptable for readability
+      PSAvoidUsingPositionalParameters:
+        enabled: false
+      # CLI tools use Write-Host intentionally
+      PSAvoidUsingWriteHost:
+        enabled: false
+      # Project indentation style
+      PSUseConsistentIndentation:
+        enabled: false
+      PSUseConsistentWhitespace:
+        enabled: false
+      # BOM not required
+      PSUseBOMForUnicodeEncodedFile:
+        enabled: false
+      # ShouldProcess not needed for read-only functions
+      PSUseShouldProcessForStateChangingFunctions:
+        enabled: false

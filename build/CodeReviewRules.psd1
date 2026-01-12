@@ -24,6 +24,17 @@
 
         # BOM not required for UTF-8 in modern systems
         'PSUseBOMForUnicodeEncodedFile'
+
+        # OutputType attributes are optional - many functions return dynamic types
+        # or have multiple return paths making OutputType impractical
+        'PSUseOutputTypeCorrectly'
+
+        # Positional parameters are acceptable for common cmdlets and internal functions
+        # This improves readability for simple calls like Write-Host, Write-Output
+        'PSAvoidUsingPositionalParameters'
+
+        # Should process is not needed for read-only functions in this toolkit
+        'PSUseShouldProcessForStateChangingFunctions'
     )
 
     # Security-focused rules to always include
