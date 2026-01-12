@@ -288,6 +288,7 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
         <KeyBinding x:Name="KeyMerge" Key="D6" Modifiers="Control" />
         <KeyBinding x:Name="KeySoftware" Key="D7" Modifiers="Control" />
         <KeyBinding x:Name="KeyCORA" Key="D8" Modifiers="Control" />
+        <KeyBinding x:Name="KeySimulation" Key="D9" Modifiers="Control" />
 
         <!-- Quick Actions -->
         <KeyBinding x:Name="KeyQuickWorkflow" Key="Q" Modifiers="Control" />
@@ -619,6 +620,12 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
 
                         <Button x:Name="NavCompare" Style="{StaticResource NavButton}" Content="Compare Inventory" ToolTip="Ctrl+3"/>
                         <Button x:Name="NavValidate" Style="{StaticResource NavButton}" Content="Validate Policy" ToolTip="Ctrl+4"/>
+
+                        <TextBlock Text="SIMULATION" FontSize="10" FontWeight="Bold"
+                                   Foreground="{StaticResource AccentOrangeBrush}"
+                                   Margin="14,14,0,6"/>
+
+                        <Button x:Name="NavSimulation" Style="{StaticResource NavButton}" Content="Simulation" ToolTip="Ctrl+9"/>
 
                         <TextBlock Text="COMPLIANCE" FontSize="10" FontWeight="Bold"
                                    Foreground="{StaticResource AccentPurpleBrush}"
@@ -1445,6 +1452,93 @@ $Script:ScriptsAvailable = Test-Path (Join-Path $Script:AppRoot "Start-AppLocker
 
                         <Button x:Name="StartCompare" Content="Compare Inventories" Style="{StaticResource PrimaryButton}"
                                 HorizontalAlignment="Left" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- Simulation Page -->
+                <ScrollViewer x:Name="PageSimulation" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                    <StackPanel Margin="24,20,24,24">
+                        <TextBlock Text="Simulation" Style="{StaticResource PageTitle}"/>
+                        <TextBlock Text="Simulate policy impact against audit events"
+                                   Style="{StaticResource PageSubtitle}"/>
+
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Policy File" Style="{StaticResource CardTitle}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="SimPolicyPath" Grid.Column="0"/>
+                                    <Button x:Name="BrowseSimPolicy" Grid.Column="1" Content="Browse"
+                                            Style="{StaticResource SecondaryButton}" Margin="8,0,0,0"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Event Data (CSV or Folder)" Style="{StaticResource CardTitle}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="SimEventPath" Grid.Column="0"/>
+                                    <Button x:Name="BrowseSimEventsFile" Grid.Column="1" Content="CSV"
+                                            Style="{StaticResource SecondaryButton}" Margin="8,0,0,0"/>
+                                    <Button x:Name="BrowseSimEventsFolder" Grid.Column="2" Content="Folder"
+                                            Style="{StaticResource SecondaryButton}" Margin="8,0,0,0"/>
+                                </Grid>
+                                <TextBlock Text="Supports UniqueBlockedApps.csv, BlockedEvents.csv, or any CSV with FilePath"
+                                           Style="{StaticResource HintText}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <Button x:Name="StartSimulation" Content="Run Simulation" Style="{StaticResource PrimaryButton}"/>
+                            <Button x:Name="SimExportCsv" Content="Export CSV" Style="{StaticResource SecondaryButton}" Margin="12,0,0,0"/>
+                            <Button x:Name="SimExportReport" Content="Export Report" Style="{StaticResource SecondaryButton}" Margin="12,0,0,0"/>
+                        </StackPanel>
+
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Summary" Style="{StaticResource CardTitle}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock x:Name="SimSummaryTotal" Grid.Column="0" Text="Total: 0" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <TextBlock x:Name="SimSummaryAllowed" Grid.Column="1" Text="Allowed: 0" Foreground="{StaticResource AccentGreenBrush}"/>
+                                    <TextBlock x:Name="SimSummaryBlocked" Grid.Column="2" Text="Blocked: 0" Foreground="{StaticResource AccentRedBrush}"/>
+                                    <TextBlock x:Name="SimSummaryNoMatch" Grid.Column="3" Text="No Match: 0" Foreground="{StaticResource AccentOrangeBrush}"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Simulation Results" Style="{StaticResource CardTitle}"/>
+                                <DataGrid x:Name="SimResultsGrid" AutoGenerateColumns="False" Height="300"
+                                          HeadersVisibility="Column" CanUserAddRows="False"
+                                          Background="#0D1117" Foreground="{StaticResource TextPrimaryBrush}"
+                                          RowBackground="#161B22" AlternatingRowBackground="#0D1117"
+                                          GridLinesVisibility="None">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="File Path" Binding="{Binding FilePath}" Width="3*"/>
+                                        <DataGridTextColumn Header="Publisher" Binding="{Binding Publisher}" Width="2*"/>
+                                        <DataGridTextColumn Header="Result" Binding="{Binding Result}" Width="*"/>
+                                        <DataGridTextColumn Header="Matched Rule" Binding="{Binding MatchedRule}" Width="2*"/>
+                                        <DataGridTextColumn Header="Times Seen" Binding="{Binding TimesSeen}" Width="*"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </ScrollViewer>
 
@@ -2464,7 +2558,7 @@ function Test-ComputerListForDCs {
 # Track operation state for button management
 $Script:OperationRunning = $false
 $Script:CancellationRequested = $false
-$Script:OperationButtons = @('StartScan', 'StartEvents', 'StartGenerate', 'StartMerge', 'StartCompare', 'StartValidate', 'StartCORA', 'StartDiagnostic', 'RunWorkflow')
+$Script:OperationButtons = @('StartScan', 'StartEvents', 'StartGenerate', 'StartMerge', 'StartCompare', 'StartValidate', 'StartCORA', 'StartDiagnostic', 'RunWorkflow', 'StartSimulation')
 
 function Set-OperationButtonsEnabled {
     param([bool]$Enabled)
@@ -2542,7 +2636,7 @@ function Invoke-Script {
 }
 
 # Navigation
-$Script:Pages = @("Scan","Generate","Merge","Validate","Clone","Events","Compare","Software","CORA","AD","Diagnostics","WinRM","Settings","Help","About")
+$Script:Pages = @("Scan","Generate","Merge","Validate","Clone","Events","Compare","Simulation","Software","CORA","AD","Diagnostics","WinRM","Settings","Help","About")
 
 function Switch-Page {
     param([string]$PageName)
@@ -3085,6 +3179,7 @@ $controls['NavValidate'].Add_Click({ Switch-Page "Validate" })
 $controls['NavClone'].Add_Click({ Switch-Page "Clone" })
 $controls['NavEvents'].Add_Click({ Switch-Page "Events" })
 $controls['NavCompare'].Add_Click({ Switch-Page "Compare" })
+$controls['NavSimulation'].Add_Click({ Switch-Page "Simulation" })
 $controls['NavSoftware'].Add_Click({ Switch-Page "Software" })
 $controls['NavCORA'].Add_Click({ Switch-Page "CORA" })
 $controls['NavAD'].Add_Click({ Switch-Page "AD" })
@@ -4133,6 +4228,9 @@ $controls['BrowseEventsOutput'].Add_Click({ $f = Get-FolderDialog; if ($f) { $co
 $controls['BrowseCompareReference'].Add_Click({ $f = Get-OpenFileDialog -Filter "CSV (*.csv)|*.csv"; if ($f) { $controls['CompareReferencePath'].Text = $f } })
 $controls['BrowseCompareTarget'].Add_Click({ $f = Get-OpenFileDialog -Filter "CSV (*.csv)|*.csv"; if ($f) { $controls['CompareTargetPath'].Text = $f } })
 $controls['BrowseCompareOutput'].Add_Click({ $f = Get-FolderDialog; if ($f) { $controls['CompareOutputPath'].Text = $f } })
+$controls['BrowseSimPolicy'].Add_Click({ $f = Get-OpenFileDialog -Title "Select Policy" -Filter "XML (*.xml)|*.xml"; if ($f) { $controls['SimPolicyPath'].Text = $f } })
+$controls['BrowseSimEventsFile'].Add_Click({ $f = Get-OpenFileDialog -Title "Select Event CSV" -Filter "CSV (*.csv)|*.csv"; if ($f) { $controls['SimEventPath'].Text = $f } })
+$controls['BrowseSimEventsFolder'].Add_Click({ $f = Get-FolderDialog -Description "Select Event Folder"; if ($f) { $controls['SimEventPath'].Text = $f } })
 $controls['BrowseCORAOutput'].Add_Click({ $f = Get-FolderDialog; if ($f) { $controls['CORAOutputPath'].Text = $f } })
 $controls['BrowseCORAPolicy'].Add_Click({ $f = Get-OpenFileDialog -Title "Select Policy" -Filter "XML (*.xml)|*.xml"; if ($f) { $controls['CORAPolicyPath'].Text = $f } })
 $controls['BrowseScriptsPath'].Add_Click({ $f = Get-FolderDialog -Description "Select GA-AppLocker folder"; if ($f) { $controls['SettingsScriptsPath'].Text = $f; $Script:AppRoot = $f; $Script:ScriptsAvailable = Test-Path (Join-Path $f "Start-AppLockerWorkflow.ps1"); $controls['ScriptsStatusText'].Text = if ($Script:ScriptsAvailable) { "Scripts found!" } else { "Scripts not found" } } })
@@ -4568,6 +4666,70 @@ $controls['StartCompare'].Add_Click({
     Write-Log "Comparing inventories..." -Level Info
     Invoke-Script -ScriptName "utilities\Compare-SoftwareInventory.ps1" -Parameters @{ ReferencePath = $ref; ComparePath = $target; CompareBy = $method; OutputPath = $controls['CompareOutputPath'].Text }
     Write-Log "Comparison completed." -Level Success
+})
+
+$controls['StartSimulation'].Add_Click({
+    if ($Script:OperationRunning) { Write-Log "An operation is already running. Please wait." -Level Warning; return }
+
+    $policyPath = $controls['SimPolicyPath'].Text
+    $eventPath = $controls['SimEventPath'].Text
+    if (-not $policyPath -or -not (Test-Path $policyPath)) { Write-Log "Select a valid policy XML file." -Level Error; return }
+    if (-not $eventPath -or -not (Test-Path $eventPath)) { Write-Log "Select a valid event CSV or folder." -Level Error; return }
+
+    $modulePath = Join-Path $Script:AppRoot "src\Utilities\AppLockerSimulation.psm1"
+    if (-not (Test-Path $modulePath)) {
+        $modulePath = Join-Path (Split-Path -Parent $Script:AppRoot) "src\Utilities\AppLockerSimulation.psm1"
+    }
+    if (-not (Test-Path $modulePath)) {
+        Write-Log "Simulation module not found: $modulePath" -Level Error
+        return
+    }
+
+    $Script:OperationRunning = $true
+    Set-OperationButtonsEnabled -Enabled $false
+    Set-Status -State 'Running'
+    try {
+        Import-Module $modulePath -Force
+        Write-Log "Running simulation..." -Level Info
+        $simResult = Invoke-AppLockerSimulation -PolicyPath $policyPath -EventPath $eventPath
+
+        $Script:SimulationResults = $simResult.Results
+        $Script:SimulationSummary = $simResult.Summary
+
+        $controls['SimResultsGrid'].ItemsSource = $Script:SimulationResults
+        $controls['SimSummaryTotal'].Text = "Total: $($Script:SimulationSummary.TotalApps)"
+        $controls['SimSummaryAllowed'].Text = "Allowed: $($Script:SimulationSummary.Allowed)"
+        $controls['SimSummaryBlocked'].Text = "Blocked: $($Script:SimulationSummary.Blocked)"
+        $controls['SimSummaryNoMatch'].Text = "No Match: $($Script:SimulationSummary.NoMatch)"
+
+        $controls['SimExportCsv'].IsEnabled = $true
+        $controls['SimExportReport'].IsEnabled = $true
+
+        Write-Log "Simulation completed." -Level Success
+        Set-Status -State 'Success'
+    } catch {
+        Write-Log "Simulation failed: $_" -Level Error
+        Set-Status -State 'Error'
+    } finally {
+        $Script:OperationRunning = $false
+        Set-OperationButtonsEnabled -Enabled $true
+    }
+})
+
+$controls['SimExportCsv'].Add_Click({
+    if (-not $Script:SimulationResults) { Write-Log "Run a simulation first." -Level Warning; return }
+    $path = Get-SaveFileDialog -Title "Save Simulation CSV" -Filter "CSV (*.csv)|*.csv" -DefaultExt ".csv"
+    if (-not $path) { return }
+    Export-AppLockerSimulationReport -Results $Script:SimulationResults -Summary $Script:SimulationSummary -OutputPath $path -Format Csv
+    Write-Log "Simulation CSV exported to $path" -Level Success
+})
+
+$controls['SimExportReport'].Add_Click({
+    if (-not $Script:SimulationResults) { Write-Log "Run a simulation first." -Level Warning; return }
+    $path = Get-SaveFileDialog -Title "Save Simulation Report" -Filter "Text (*.txt)|*.txt" -DefaultExt ".txt"
+    if (-not $path) { return }
+    Export-AppLockerSimulationReport -Results $Script:SimulationResults -Summary $Script:SimulationSummary -OutputPath $path -Format Text
+    Write-Log "Simulation report exported to $path" -Level Success
 })
 #endregion
 
@@ -5227,6 +5389,8 @@ $controls['GenerateOutputPath'].Text = Join-Path $Script:AppRoot "Outputs"
 $controls['MergeOutputPath'].Text = Join-Path $Script:AppRoot "Outputs"
 $controls['EventsOutputPath'].Text = Join-Path $Script:AppRoot "Events"
 $controls['CompareOutputPath'].Text = Join-Path $Script:AppRoot "Outputs"
+$controls['SimExportCsv'].IsEnabled = $false
+$controls['SimExportReport'].IsEnabled = $false
 
 Update-SoftwareLists
 
@@ -5288,6 +5452,7 @@ $window.Add_KeyDown({
             'D6' { Switch-Page -PageName 'Merge'; $e.Handled = $true }     # Policy
             'D7' { Switch-Page -PageName 'Software'; $e.Handled = $true }  # Policy
             'D8' { Switch-Page -PageName 'CORA'; $e.Handled = $true }      # Compliance
+            'D9' { Switch-Page -PageName 'Simulation'; $e.Handled = $true } # Simulation
             'Q' {
                 # Quick workflow - show workflow dialog
                 $result = Show-WorkflowDialog -WorkflowType "Create Baseline"

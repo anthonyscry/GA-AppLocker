@@ -222,6 +222,112 @@ if (Test-Path $softwareListModule) {
     . $softwareListModule
 }
 
+$normalizeExecutableRecord = {
+    param($row)
+    $path = $row.Path
+    if (-not $path) { $path = $row.FilePath }
+    if (-not $path) { $path = $row.ExecutablePath }
+    if (-not $path) { $path = $row.'File Path' }
+
+    $name = $row.Name
+    if (-not $name) { $name = $row.FileName }
+    if (-not $name -and $path) { $name = Split-Path $path -Leaf }
+
+    $publisher = $row.Publisher
+    if (-not $publisher) { $publisher = $row.SignerName }
+    if (-not $publisher) { $publisher = $row.PublisherName }
+
+    $isSigned = $row.IsSigned
+    if (-not $isSigned) { $isSigned = $row.Signed }
+    if (-not $isSigned) { $isSigned = $row.SignatureStatus }
+    if (-not $isSigned) { $isSigned = if ($publisher) { "True" } else { "False" } }
+    if ($isSigned -is [bool]) { $isSigned = if ($isSigned) { "True" } else { "False" } }
+
+    if (-not $path) { return $null }
+
+    return [PSCustomObject]@{
+        Path = $path
+        Name = $name
+        Publisher = $publisher
+        IsSigned = $isSigned
+    }
+}
+
+$loadEventRecords = {
+    param([string]$path)
+
+    if (-not $path -or -not (Test-Path $path)) { return @() }
+
+    $candidate = Join-Path $path "UniqueBlockedApps.csv"
+    if (-not (Test-Path $candidate)) {
+        $eventSubfolders = Get-ChildItem -Path $path -Directory -Filter "Events-*" | Sort-Object Name -Descending
+        if ($eventSubfolders.Count -gt 0) {
+            $candidate = Join-Path $eventSubfolders[0].FullName "UniqueBlockedApps.csv"
+        }
+    }
+
+    if (Test-Path $candidate) {
+        return @(Import-Csv -Path $candidate)
+    }
+
+    $csvFiles = @()
+    if ((Get-Item $path).PSIsContainer) {
+        $csvFiles = Get-ChildItem -Path $path -Filter "*.csv" | Sort-Object LastWriteTime -Descending
+    } else {
+        $csvFiles = @($path)
+    }
+
+    foreach ($file in $csvFiles) {
+        try {
+            $rows = Import-Csv -Path $file
+            if ($rows -and $rows[0].PSObject.Properties.Name -contains "FilePath") {
+                return @($rows)
+            }
+        } catch {
+            continue
+        }
+    }
+
+    return @()
+}
+
+$normalizeEventRecord = {
+    param($row)
+    $filePath = $row.FilePath
+    if (-not $filePath) { $filePath = $row.Path }
+    if (-not $filePath) { $filePath = $row.ExecutablePath }
+    if (-not $filePath) { $filePath = $row.'File Path' }
+
+    if (-not $filePath) { return $null }
+
+    $publisher = $row.Publisher
+    if (-not $publisher) { $publisher = $row.SignerName }
+    if (-not $publisher) { $publisher = $row.PublisherName }
+
+    $productName = $row.ProductName
+    if (-not $productName) { $productName = $row.Product }
+
+    $fileHash = $row.FileHash
+    if (-not $fileHash) { $fileHash = $row.Hash }
+    if (-not $fileHash) { $fileHash = $row.SHA256 }
+    if (-not $fileHash) { $fileHash = $row.Sha256 }
+    $eventId = $row.EventId
+    if (-not $eventId) { $eventId = $row.Id }
+    $eventType = $row.EventType
+    if (-not $eventType) { $eventType = $row.Result }
+
+    return [PSCustomObject]@{
+        FilePath = $filePath
+        FileName = if ($row.FileName) { $row.FileName } else { Split-Path $filePath -Leaf }
+        Publisher = $publisher
+        ProductName = $productName
+        FileHash = $fileHash
+        OccurrenceCount = $row.OccurrenceCount
+        EventId = $eventId
+        EventType = $eventType
+    }
+}
+
 $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
 New-Item -ItemType Directory -Path $OutputPath -Force | Out-Null
 
@@ -313,7 +419,11 @@ if ($Simplified) {
             foreach ($folder in $computerFolders) {
                 $exePath = Join-Path $folder.FullName "Executables.csv"
                 if (Test-Path $exePath) {
-                    $allExecutables += Import-Csv -Path $exePath
+                    $rawExecutables = Import-Csv -Path $exePath
+                    foreach ($row in $rawExecutables) {
+                        $normalized = & $normalizeExecutableRecord $row
+                        if ($normalized) { $allExecutables += $normalized }
+                    }
                 }
                 $writablePath = Join-Path $folder.FullName "WritableDirectories.csv"
                 if (Test-Path $writablePath) {
@@ -343,14 +453,30 @@ if ($Simplified) {
 
         if (Test-Path $uniqueBlockedPath) {
             $eventApps = @(Import-Csv -Path $uniqueBlockedPath)
-            Write-Host "  Unique blocked apps: $($eventApps.Count)" -ForegroundColor Gray
+        }
+        else {
+            $eventApps = & $loadEventRecords $EventPath
+        }
+
+        if ($eventApps.Count -gt 0) {
+            $eventApps = $eventApps | ForEach-Object { & $normalizeEventRecord $_ } | Where-Object { $_ }
+        }
+
+        if ($eventApps.Count -gt 0) {
+            $blockedIds = @(8004, 8006, 8008)
+            if ($eventApps[0].EventId) {
+                $eventApps = $eventApps | Where-Object { $_.EventId -in $blockedIds }
+            } elseif ($eventApps[0].EventType) {
+                $eventApps = $eventApps | Where-Object { $_.EventType -match 'Blocked' }
+            }
+
+            Write-Host "  Event records loaded: $($eventApps.Count)" -ForegroundColor Gray
             $signedEvents = @($eventApps | Where-Object { $_.Publisher -and $_.Publisher -ne "" })
             $unsignedEvents = @($eventApps | Where-Object { -not $_.Publisher -or $_.Publisher -eq "" })
             Write-Host "  With publisher info: $($signedEvents.Count)" -ForegroundColor Gray
             Write-Host "  Without publisher (hash only): $($unsignedEvents.Count)" -ForegroundColor Gray
-        }
-        else {
-            Write-Warning "No UniqueBlockedApps.csv found in $EventPath"
+        } else {
+            Write-Warning "No event CSV files with FilePath found in $EventPath"
         }
     }
     #endregion
