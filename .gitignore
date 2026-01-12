@@ -22,3 +22,8 @@ node_modules/
 # Temporary files
 *.tmp
 *.log
+tmpclaude-*
+
+# Extra build folders (keep only /dist and /build/Build-*.ps1)
+/build/Build/
+/build/dist/
