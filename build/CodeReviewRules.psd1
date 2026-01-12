@@ -35,6 +35,17 @@
 
         # Should process is not needed for read-only functions in this toolkit
         'PSUseShouldProcessForStateChangingFunctions'
+
+        # Plural nouns are appropriate when functions operate on collections
+        # e.g., Get-LogFiles, Clear-OldLogs, Compare-AppLockerPolicies
+        'PSUseSingularNouns'
+
+        # Write-Log is a common custom logging pattern that intentionally replaces
+        # the rarely-used PowerShell Core built-in cmdlet
+        'PSAvoidOverwritingBuiltInCmdlets'
+
+        # Some parameters are intentionally reserved for future use or debugging
+        'PSReviewUnusedParameter'
     )
 
     # Security-focused rules to always include

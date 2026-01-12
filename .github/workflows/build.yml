@@ -34,10 +34,11 @@ on:
         type: boolean
         default: false
 
-# Prevent concurrent runs - use head_ref for PRs to avoid duplicate runs on merge
-# When a PR is merged, both PR close and push events fire - this ensures only one runs
+# Prevent concurrent runs - group by target branch to avoid duplicate runs on merge
+# PRs use base_ref (target branch), pushes use ref_name (branch name)
+# This ensures PR merges and direct pushes to same branch share concurrency group
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  group: ${{ github.workflow }}-${{ github.base_ref || github.ref_name }}
   cancel-in-progress: true
 
 # Default permissions - least privilege principle

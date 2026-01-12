@@ -41,3 +41,12 @@ engines_override:
       # ShouldProcess not needed for read-only functions
       PSUseShouldProcessForStateChangingFunctions:
         enabled: false
+      # Plural nouns appropriate for functions working with collections
+      PSUseSingularNouns:
+        enabled: false
+      # Write-Log is a common custom logging pattern
+      PSAvoidOverwritingBuiltInCmdlets:
+        enabled: false
+      # Parameters may be reserved for future use
+      PSReviewUnusedParameter:
+        enabled: false
