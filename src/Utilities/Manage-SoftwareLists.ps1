@@ -1823,6 +1823,290 @@ function Get-CommonPublisherCategories {
 }
 
 
+function Search-CommonPublishers {
+    <#
+    .SYNOPSIS
+    Searches common publishers by name, description, or category.
+
+    .DESCRIPTION
+    Provides flexible search functionality for finding publishers in the
+    pre-defined common publishers list. Supports wildcards and multiple
+    search criteria.
+
+    .PARAMETER SearchTerm
+    Search term to find publishers. Supports wildcards (*).
+    Searches across: key name, description, publisher string, and product name.
+
+    .PARAMETER Category
+    Filter results by category.
+
+    .PARAMETER ExactMatch
+    Require exact match instead of wildcard/contains search.
+
+    .EXAMPLE
+    Search-CommonPublishers -SearchTerm "adobe"
+    # Finds all Adobe-related publishers
+
+    .EXAMPLE
+    Search-CommonPublishers -SearchTerm "security" -Category "Security"
+    # Finds security vendors in the Security category
+
+    .EXAMPLE
+    Search-CommonPublishers -SearchTerm "*vpn*"
+    # Finds all VPN-related publishers
+
+    .EXAMPLE
+    Search-CommonPublishers -SearchTerm "crowd"
+    # Finds CrowdStrike
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true, Position = 0)]
+        [string]$SearchTerm,
+
+        [string]$Category,
+
+        [switch]$ExactMatch
+    )
+
+    $results = @{}
+    $searchPattern = if ($ExactMatch) { "^$SearchTerm$" } else { "*$SearchTerm*" }
+
+    foreach ($key in $Script:CommonPublishers.Keys) {
+        $pub = $Script:CommonPublishers[$key]
+
+        # Skip if category filter doesn't match
+        if (-not [string]::IsNullOrWhiteSpace($Category) -and $pub.Category -ne $Category) {
+            continue
+        }
+
+        # Search across multiple fields
+        $matched = $false
+        if ($ExactMatch) {
+            $matched = ($key -eq $SearchTerm) -or
+                       ($pub.Description -eq $SearchTerm) -or
+                       ($pub.Publisher -eq $SearchTerm) -or
+                       ($pub.Category -eq $SearchTerm)
+        }
+        else {
+            $matched = ($key -like $searchPattern) -or
+                       ($pub.Description -like $searchPattern) -or
+                       ($pub.Publisher -like $searchPattern) -or
+                       ($pub.ProductName -like $searchPattern) -or
+                       ($pub.Category -like $searchPattern)
+        }
+
+        if ($matched) {
+            $results[$key] = $pub
+        }
+    }
+
+    return $results
+}
+
+
+function Show-CommonPublishersSearch {
+    <#
+    .SYNOPSIS
+    Interactive search interface for common publishers.
+
+    .DESCRIPTION
+    Provides an interactive CLI for searching and selecting publishers.
+    Returns an array of selected publisher keys.
+
+    .PARAMETER Category
+    Pre-filter by category.
+
+    .EXAMPLE
+    $selected = Show-CommonPublishersSearch
+    #>
+    [CmdletBinding()]
+    param(
+        [string]$Category
+    )
+
+    $done = $false
+    $selectedKeys = @()
+
+    while (-not $done) {
+        Write-Host ""
+        Write-Host "  ╔══════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
+        Write-Host "  ║           COMMON PUBLISHERS SEARCH                       ║" -ForegroundColor Cyan
+        Write-Host "  ╚══════════════════════════════════════════════════════════╝" -ForegroundColor Cyan
+        Write-Host ""
+
+        # Show available categories
+        $categories = Get-CommonPublisherCategories
+        Write-Host "  Categories: " -ForegroundColor Gray -NoNewline
+        Write-Host ($categories -join ", ") -ForegroundColor DarkGray
+        Write-Host ""
+
+        # Show current filter
+        if (-not [string]::IsNullOrWhiteSpace($Category)) {
+            Write-Host "  Current filter: " -ForegroundColor Gray -NoNewline
+            Write-Host $Category -ForegroundColor Yellow
+            Write-Host ""
+        }
+
+        # Show selected count
+        if ($selectedKeys.Count -gt 0) {
+            Write-Host "  Selected: " -ForegroundColor Gray -NoNewline
+            Write-Host "$($selectedKeys.Count) publisher(s)" -ForegroundColor Green
+            Write-Host ""
+        }
+
+        Write-Host "  Commands:" -ForegroundColor White
+        Write-Host "    [search term]  - Search publishers (e.g., 'adobe', 'vpn', 'security')" -ForegroundColor Gray
+        Write-Host "    [C]ategory     - Filter by category" -ForegroundColor Gray
+        Write-Host "    [L]ist         - Show all publishers" -ForegroundColor Gray
+        Write-Host "    [S]elected     - Show current selection" -ForegroundColor Gray
+        Write-Host "    [D]one         - Finish and return selection" -ForegroundColor Gray
+        Write-Host "    [Q]uit         - Cancel without selection" -ForegroundColor Gray
+        Write-Host ""
+
+        $input = Read-Host "  Search or command"
+
+        switch -Regex ($input.Trim()) {
+            "^[Qq](uit)?$" {
+                return @()
+            }
+            "^[Dd](one)?$" {
+                $done = $true
+                break
+            }
+            "^[Cc](ategory)?$" {
+                Write-Host ""
+                Write-Host "  Available categories:" -ForegroundColor Cyan
+                $i = 1
+                $catMap = @{}
+                foreach ($cat in $categories) {
+                    $count = ($Script:CommonPublishers.Values | Where-Object { $_.Category -eq $cat }).Count
+                    Write-Host "    [$i] $cat ($count)" -ForegroundColor White
+                    $catMap[$i] = $cat
+                    $i++
+                }
+                Write-Host "    [0] Clear filter" -ForegroundColor Gray
+                Write-Host ""
+                $catInput = Read-Host "  Select category"
+                if ($catInput -eq "0") {
+                    $Category = ""
+                    Write-Host "  [+] Category filter cleared" -ForegroundColor Green
+                }
+                elseif ($catInput -match "^\d+$" -and $catMap.ContainsKey([int]$catInput)) {
+                    $Category = $catMap[[int]$catInput]
+                    Write-Host "  [+] Filtering by: $Category" -ForegroundColor Green
+                }
+            }
+            "^[Ll](ist)?$" {
+                Write-Host ""
+                Write-Host "  All Publishers:" -ForegroundColor Cyan
+                $publishers = if ($Category) { Get-CommonPublishers -Category $Category } else { Get-CommonPublishers }
+                $i = 1
+                $indexMap = @{}
+                foreach ($key in ($publishers.Keys | Sort-Object)) {
+                    $pub = $publishers[$key]
+                    $selected = if ($selectedKeys -contains $key) { "[X]" } else { "[ ]" }
+                    $selectedColor = if ($selectedKeys -contains $key) { "Green" } else { "Gray" }
+                    Write-Host "    $selected " -ForegroundColor $selectedColor -NoNewline
+                    Write-Host "[$i] " -ForegroundColor Yellow -NoNewline
+                    Write-Host "$key" -ForegroundColor White -NoNewline
+                    Write-Host " ($($pub.Category))" -ForegroundColor DarkGray
+                    $indexMap[$i] = $key
+                    $i++
+                }
+                Write-Host ""
+                $addInput = Read-Host "  Add by number (comma-separated) or press Enter to continue"
+                if ($addInput -match "^\d+(,\s*\d+)*$") {
+                    $indices = $addInput -split "," | ForEach-Object { [int]$_.Trim() }
+                    foreach ($idx in $indices) {
+                        if ($indexMap.ContainsKey($idx) -and $selectedKeys -notcontains $indexMap[$idx]) {
+                            $selectedKeys += $indexMap[$idx]
+                            Write-Host "  [+] Added: $($indexMap[$idx])" -ForegroundColor Green
+                        }
+                    }
+                }
+            }
+            "^[Ss](elected)?$" {
+                Write-Host ""
+                if ($selectedKeys.Count -eq 0) {
+                    Write-Host "  No publishers selected yet" -ForegroundColor Yellow
+                }
+                else {
+                    Write-Host "  Selected Publishers:" -ForegroundColor Cyan
+                    $i = 1
+                    foreach ($key in $selectedKeys) {
+                        $pub = $Script:CommonPublishers[$key]
+                        Write-Host "    [$i] $key - $($pub.Description)" -ForegroundColor White
+                        $i++
+                    }
+                    Write-Host ""
+                    $removeInput = Read-Host "  Remove by number (comma-separated) or press Enter to continue"
+                    if ($removeInput -match "^\d+(,\s*\d+)*$") {
+                        $indices = $removeInput -split "," | ForEach-Object { [int]$_.Trim() - 1 }
+                        $toRemove = $indices | Where-Object { $_ -ge 0 -and $_ -lt $selectedKeys.Count } | ForEach-Object { $selectedKeys[$_] }
+                        foreach ($key in $toRemove) {
+                            $selectedKeys = $selectedKeys | Where-Object { $_ -ne $key }
+                            Write-Host "  [-] Removed: $key" -ForegroundColor Yellow
+                        }
+                    }
+                }
+            }
+            default {
+                # Treat as search term
+                if (-not [string]::IsNullOrWhiteSpace($input)) {
+                    $searchResults = Search-CommonPublishers -SearchTerm $input -Category $Category
+                    if ($searchResults.Count -eq 0) {
+                        Write-Host ""
+                        Write-Host "  No results found for: $input" -ForegroundColor Yellow
+                    }
+                    else {
+                        Write-Host ""
+                        Write-Host "  Search Results for '$input':" -ForegroundColor Cyan
+                        $i = 1
+                        $indexMap = @{}
+                        foreach ($key in ($searchResults.Keys | Sort-Object)) {
+                            $pub = $searchResults[$key]
+                            $selected = if ($selectedKeys -contains $key) { "[X]" } else { "[ ]" }
+                            $selectedColor = if ($selectedKeys -contains $key) { "Green" } else { "Gray" }
+                            Write-Host "    $selected " -ForegroundColor $selectedColor -NoNewline
+                            Write-Host "[$i] " -ForegroundColor Yellow -NoNewline
+                            Write-Host "$key" -ForegroundColor White -NoNewline
+                            Write-Host " - $($pub.Description)" -ForegroundColor Gray -NoNewline
+                            Write-Host " ($($pub.Category))" -ForegroundColor DarkGray
+                            $indexMap[$i] = $key
+                            $i++
+                        }
+                        Write-Host ""
+                        Write-Host "    [A] Add all $($searchResults.Count) results" -ForegroundColor Green
+                        Write-Host ""
+                        $addInput = Read-Host "  Add by number (comma-separated), A for all, or Enter to continue"
+                        if ($addInput -eq "A" -or $addInput -eq "a") {
+                            foreach ($key in $searchResults.Keys) {
+                                if ($selectedKeys -notcontains $key) {
+                                    $selectedKeys += $key
+                                }
+                            }
+                            Write-Host "  [+] Added $($searchResults.Count) publishers" -ForegroundColor Green
+                        }
+                        elseif ($addInput -match "^\d+(,\s*\d+)*$") {
+                            $indices = $addInput -split "," | ForEach-Object { [int]$_.Trim() }
+                            foreach ($idx in $indices) {
+                                if ($indexMap.ContainsKey($idx) -and $selectedKeys -notcontains $indexMap[$idx]) {
+                                    $selectedKeys += $indexMap[$idx]
+                                    Write-Host "  [+] Added: $($indexMap[$idx])" -ForegroundColor Green
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return $selectedKeys
+}
+
+
 function Import-CommonPublishersToSoftwareList {
     <#
     .SYNOPSIS
@@ -1896,15 +2180,18 @@ function Import-CommonPublishersToSoftwareList {
             }
         }
         else {
-            # Interactive selection
+            # Interactive selection with search support
             Write-Host "`n  Available Common Publishers:" -ForegroundColor Cyan
             Write-Host "  (Select by number, comma-separated for multiple)" -ForegroundColor Gray
             Write-Host ""
 
-            # Show "All" option first
+            # Show special options first
             Write-Host "    [A] " -ForegroundColor Green -NoNewline
             Write-Host "ALL PUBLISHERS" -ForegroundColor White -NoNewline
             Write-Host " - Import all $($availablePublishers.Count) publishers at once" -ForegroundColor Gray
+            Write-Host "    [S] " -ForegroundColor Cyan -NoNewline
+            Write-Host "SEARCH" -ForegroundColor White -NoNewline
+            Write-Host " - Interactive search to find and select publishers" -ForegroundColor Gray
             Write-Host ""
 
             $i = 1
@@ -1920,10 +2207,18 @@ function Import-CommonPublishersToSoftwareList {
             }
 
             Write-Host ""
-            $selection = Read-Host "  Enter selection (e.g., 1,2,3 or A for all)"
+            $selection = Read-Host "  Enter selection (e.g., 1,2,3 or A for all, S for search)"
 
             if ($selection -eq "all" -or $selection -eq "a" -or $selection -eq "A") {
                 $toImport = $availablePublishers.Keys
+            }
+            elseif ($selection -eq "search" -or $selection -eq "s" -or $selection -eq "S") {
+                # Launch interactive search
+                $toImport = Show-CommonPublishersSearch -Category $Category
+                if ($toImport.Count -eq 0) {
+                    Write-Host "[-] No publishers selected from search" -ForegroundColor Yellow
+                    return $null
+                }
             }
             elseif ($selection -match "^\d+(,\s*\d+)*$") {
                 $indices = $selection -split "," | ForEach-Object { [int]$_.Trim() }
