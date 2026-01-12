@@ -36,18 +36,18 @@ Describe 'Test-RuleHealth.ps1' {
         }
 
         It 'Runs without error' {
-            { & $script:ScriptPath -PolicyPath $script:ValidPolicy } | Should -Not -Throw
+            { & $script:ScriptPath -PolicyPath $script:ValidPolicy -Quiet } | Should -Not -Throw
         }
 
         It 'Returns a result object' {
-            $result = & $script:ScriptPath -PolicyPath $script:ValidPolicy
+            $result = & $script:ScriptPath -PolicyPath $script:ValidPolicy -Quiet
             $result | Should -Not -BeNullOrEmpty
             $result.PSObject.Properties.Name | Should -Contain 'HealthScore'
             $result.PSObject.Properties.Name | Should -Contain 'TotalRules'
         }
 
         It 'Has HealthScore between 0 and 100' {
-            $result = & $script:ScriptPath -PolicyPath $script:ValidPolicy
+            $result = & $script:ScriptPath -PolicyPath $script:ValidPolicy -Quiet
             $result.HealthScore | Should -BeGreaterOrEqual 0
             $result.HealthScore | Should -BeLessOrEqual 100
         }
@@ -59,30 +59,30 @@ Describe 'Test-RuleHealth.ps1' {
         }
 
         It 'Detects overly permissive path rules' {
-            $result = & $script:ScriptPath -PolicyPath $script:IssuePolicy
+            $result = & $script:ScriptPath -PolicyPath $script:IssuePolicy -Quiet
             $criticalIssues = $result.Issues | Where-Object { $_.IssueType -eq 'OverlyPermissive' }
             $criticalIssues | Should -Not -BeNullOrEmpty
         }
 
         It 'Detects wildcard publisher rules' {
-            $result = & $script:ScriptPath -PolicyPath $script:IssuePolicy
+            $result = & $script:ScriptPath -PolicyPath $script:IssuePolicy -Quiet
             $wildcardIssues = $result.Issues | Where-Object { $_.IssueType -eq 'WildcardPublisher' }
             $wildcardIssues | Should -Not -BeNullOrEmpty
         }
 
         It 'Detects conflicting allow/deny rules' {
-            $result = & $script:ScriptPath -PolicyPath $script:IssuePolicy
+            $result = & $script:ScriptPath -PolicyPath $script:IssuePolicy -Quiet
             $conflictIssues = $result.Issues | Where-Object { $_.IssueType -eq 'ConflictingRules' }
             $conflictIssues | Should -Not -BeNullOrEmpty
         }
 
         It 'Reports critical issues correctly' {
-            $result = & $script:ScriptPath -PolicyPath $script:IssuePolicy
+            $result = & $script:ScriptPath -PolicyPath $script:IssuePolicy -Quiet
             $result.CriticalCount | Should -BeGreaterThan 0
         }
 
         It 'Has reduced health score for problematic policy' {
-            $result = & $script:ScriptPath -PolicyPath $script:IssuePolicy
+            $result = & $script:ScriptPath -PolicyPath $script:IssuePolicy -Quiet
             $result.HealthScore | Should -BeLessThan 100
         }
     }
@@ -106,7 +106,7 @@ Describe 'Test-RuleHealth.ps1' {
         }
 
         It 'Detects paths that do not exist' {
-            $result = & $script:ScriptPath -PolicyPath $script:BadPathPolicy
+            $result = & $script:ScriptPath -PolicyPath $script:BadPathPolicy -Quiet
             $pathIssues = $result.Issues | Where-Object { $_.IssueType -eq 'PathNotFound' }
             $pathIssues | Should -Not -BeNullOrEmpty
         }
@@ -118,7 +118,7 @@ Describe 'Test-RuleHealth.ps1' {
             $outputDir = Join-Path $script:TestRoot 'reports'
             New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
 
-            & $script:ScriptPath -PolicyPath $validPolicy -OutputPath $outputDir
+            & $script:ScriptPath -PolicyPath $validPolicy -OutputPath $outputDir -Quiet
 
             $reports = Get-ChildItem -Path $outputDir -Filter 'health-report-*.json'
             $reports | Should -Not -BeNullOrEmpty
@@ -129,7 +129,7 @@ Describe 'Test-RuleHealth.ps1' {
             $outputDir = Join-Path $script:TestRoot 'reports2'
             New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
 
-            & $script:ScriptPath -PolicyPath $validPolicy -OutputPath $outputDir
+            & $script:ScriptPath -PolicyPath $validPolicy -OutputPath $outputDir -Quiet
 
             $report = Get-ChildItem -Path $outputDir -Filter 'health-report-*.json' | Select-Object -First 1
             { Get-Content $report.FullName -Raw | ConvertFrom-Json } | Should -Not -Throw
@@ -144,7 +144,7 @@ Describe 'Test-RuleHealth.ps1' {
 
     Context 'Health score calculation' {
         It 'Deducts 20 points per critical issue' {
-            $result = & $script:ScriptPath -PolicyPath (Join-Path $script:FixturesPath 'PolicyWithIssues.xml')
+            $result = & $script:ScriptPath -PolicyPath (Join-Path $script:FixturesPath 'PolicyWithIssues.xml') -Quiet
             # PolicyWithIssues.xml has at least 2 critical issues (OverlyPermissive, WildcardPublisher)
             # Score should be <= 60 (100 - 20 - 20)
             $result.HealthScore | Should -BeLessOrEqual 60
@@ -181,7 +181,7 @@ Describe 'Test-RuleHealth Internal Functions' {
     Context 'Rule counting' {
         It 'Correctly counts rules in policy' {
             $validPolicy = Join-Path $script:FixturesPath 'SamplePolicy1.xml'
-            $result = & $script:ScriptPath -PolicyPath $validPolicy
+            $result = & $script:ScriptPath -PolicyPath $validPolicy -Quiet
             $result.TotalRules | Should -BeGreaterThan 0
         }
     }
