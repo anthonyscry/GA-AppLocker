@@ -115,15 +115,12 @@ Describe 'Merge-AppLockerPolicies' {
             @($msftRules).Count | Should -Be 1
         }
 
-        It 'Keeps duplicate rules when RemoveDuplicates is disabled' -Skip {
-            # Skip this test - the -RemoveDuplicates parameter defaults to $true as a [switch],
-            # and -RemoveDuplicates:$false doesn't work as expected due to PowerShell switch semantics.
-            # When a switch defaults to $true, passing :$false still treats it as present.
-            # This is a known PowerShell limitation with switch parameters that default to $true.
+        It 'Keeps duplicate rules when RemoveDuplicates is disabled' {
+            # RemoveDuplicates is now a [bool] parameter, so we can pass $false directly
             $inputPath = Join-Path $PSScriptRoot 'Fixtures'
             $outputPath = Join-Path $script:tempOutputPath 'NoDedupPublisher.xml'
 
-            & $scriptPath -InputPath $inputPath -OutputPath $outputPath -IncludePattern 'SamplePolicy*.xml' -RemoveDuplicates:$false 2>$null
+            & $scriptPath -InputPath $inputPath -OutputPath $outputPath -IncludePattern 'SamplePolicy*.xml' -RemoveDuplicates $false 2>$null
 
             [xml]$policy = Get-Content -Path $outputPath -Raw
             $exeCollection = $policy.AppLockerPolicy.RuleCollection | Where-Object { $_.Type -eq 'Exe' }
@@ -176,9 +173,8 @@ Describe 'Merge-AppLockerPolicies' {
     }
 
     Context 'Default Rule Handling' {
-        It 'Removes default rules when RemoveDefaultRules is specified' -Skip:$true {
-            # Skip: This test has timing/environment issues in CI. The RemoveDefaultRules
-            # functionality works but test assertions are flaky.
+        It 'Removes default rules when RemoveDefaultRules is specified' {
+            # Test has graceful handling for environment-specific issues
             $inputPath = Join-Path $PSScriptRoot 'Fixtures'
             $outputPath = Join-Path $script:tempOutputPath 'NoDefaultRules.xml'
 
