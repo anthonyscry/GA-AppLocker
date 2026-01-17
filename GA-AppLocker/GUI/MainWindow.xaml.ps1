@@ -11,6 +11,16 @@
     the XAML window is created.
 #>
 
+#region ===== SAFE LOGGING WRAPPER =====
+# Wrapper to safely call module functions from code-behind scope
+function script:Write-Log {
+    param([string]$Message, [string]$Level = 'Info')
+    if (Get-Command -Name 'Write-AppLockerLog' -ErrorAction SilentlyContinue) {
+        Write-AppLockerLog -Message $Message -Level $Level -NoConsole
+    }
+}
+#endregion
+
 #region ===== SCRIPT-LEVEL VARIABLES =====
 # Store window reference for event handlers
 $script:MainWindow = $null
@@ -76,9 +86,7 @@ function script:Set-ActivePanel {
     }
 
     # Log navigation
-    if (Get-Command -Name 'Write-AppLockerLog' -ErrorAction SilentlyContinue) {
-        Write-AppLockerLog -Message "Navigated to: $PanelName" -NoConsole
-    }
+    Write-Log -Message "Navigated to: $PanelName"
 }
 
 # Wire up navigation event handlers
@@ -610,6 +618,6 @@ function Initialize-MainWindow {
         $settingsPath.Text = Get-AppLockerDataPath
     }
 
-    Write-AppLockerLog -Message 'Main window initialized'
+    Write-Log -Message 'Main window initialized'
 }
 #endregion
