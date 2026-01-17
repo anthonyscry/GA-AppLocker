@@ -103,12 +103,15 @@ function Initialize-Navigation {
         @{ Name = 'NavSettings';  Panel = 'PanelSettings' }
     )
 
+    # Store function reference for closures
+    $setPanel = ${function:Set-ActivePanel}
+
     foreach ($nav in $navButtons) {
         $navButton = $Window.FindName($nav.Name)
         if ($navButton) {
             $panelName = $nav.Panel
             $navButton.Add_Click({
-                Set-ActivePanel -PanelName $panelName
+                & $setPanel -PanelName $panelName
             }.GetNewClosure())
         }
     }
