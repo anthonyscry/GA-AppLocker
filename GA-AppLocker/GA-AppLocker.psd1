@@ -50,9 +50,9 @@ Features:
         'Modules\GA-AppLocker.Core\GA-AppLocker.Core.psd1',
         'Modules\GA-AppLocker.Discovery\GA-AppLocker.Discovery.psd1',
         'Modules\GA-AppLocker.Credentials\GA-AppLocker.Credentials.psd1',
-        'Modules\GA-AppLocker.Scanning\GA-AppLocker.Scanning.psd1'
+        'Modules\GA-AppLocker.Scanning\GA-AppLocker.Scanning.psd1',
+        'Modules\GA-AppLocker.Rules\GA-AppLocker.Rules.psd1'
         # Future modules will be added here:
-        # 'Modules\GA-AppLocker.Rules\GA-AppLocker.Rules.psd1'
         # 'Modules\GA-AppLocker.Policy\GA-AppLocker.Policy.psd1'
     )
 
@@ -84,6 +84,16 @@ Features:
         'Start-ArtifactScan',
         'Get-ScanResults',
         'Export-ScanResults',
+        # Rules module
+        'New-PublisherRule',
+        'New-HashRule',
+        'New-PathRule',
+        'ConvertFrom-Artifact',
+        'Get-Rule',
+        'Get-AllRules',
+        'Remove-Rule',
+        'Export-RulesToXml',
+        'Set-RuleStatus',
         # Main module
         'Start-AppLockerDashboard'
     )

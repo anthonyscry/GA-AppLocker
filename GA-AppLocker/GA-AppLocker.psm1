@@ -219,6 +219,16 @@ Export-ModuleMember -Function @(
     'Get-AppLockerEventLogs',
     'Start-ArtifactScan',
     'Get-ScanResults',
-    'Export-ScanResults'
+    'Export-ScanResults',
+    # Rules module
+    'New-PublisherRule',
+    'New-HashRule',
+    'New-PathRule',
+    'ConvertFrom-Artifact',
+    'Get-Rule',
+    'Get-AllRules',
+    'Remove-Rule',
+    'Export-RulesToXml',
+    'Set-RuleStatus'
 )
 #endregion

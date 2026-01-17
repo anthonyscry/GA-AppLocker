@@ -342,6 +342,75 @@ catch {
 }
 
 # ============================================================
+# RULES MODULE TESTS
+# ============================================================
+Write-Section "RULES MODULE TESTS"
+
+# Test: New-PublisherRule
+try {
+    $pubRule = New-PublisherRule -PublisherName 'O=MICROSOFT CORPORATION' -ProductName '*' -Action Allow
+    $hasResult = $pubRule.Success -and ($pubRule.Data.RuleType -eq 'Publisher')
+    Write-TestResult -TestName "New-PublisherRule" -Passed $hasResult -Message "Creates publisher rule" -Details "ID: $($pubRule.Data.Id)"
+}
+catch {
+    Write-TestResult -TestName "New-PublisherRule" -Passed $false -Message "Exception" -Details $_.Exception.Message
+}
+
+# Test: New-HashRule
+try {
+    $testHash = 'A' * 64
+    $hashRule = New-HashRule -Hash $testHash -SourceFileName 'test.exe' -SourceFileLength 1024
+    $hasResult = $hashRule.Success -and ($hashRule.Data.RuleType -eq 'Hash')
+    Write-TestResult -TestName "New-HashRule" -Passed $hasResult -Message "Creates hash rule" -Details "ID: $($hashRule.Data.Id)"
+}
+catch {
+    Write-TestResult -TestName "New-HashRule" -Passed $false -Message "Exception" -Details $_.Exception.Message
+}
+
+# Test: New-PathRule
+try {
+    $pathRule = New-PathRule -Path '%PROGRAMFILES%\*' -Action Allow -CollectionType Exe
+    $hasResult = $pathRule.Success -and ($pathRule.Data.RuleType -eq 'Path')
+    Write-TestResult -TestName "New-PathRule" -Passed $hasResult -Message "Creates path rule" -Details "Path: $($pathRule.Data.Path)"
+}
+catch {
+    Write-TestResult -TestName "New-PathRule" -Passed $false -Message "Exception" -Details $_.Exception.Message
+}
+
+# Test: ConvertFrom-Artifact (with mock artifact)
+try {
+    $testHash2 = 'B' * 64
+    $mockArtifact = [PSCustomObject]@{
+        FilePath        = 'C:\Program Files\Test\test.exe'
+        FileName        = 'test.exe'
+        Extension       = '.exe'
+        SHA256Hash      = $testHash2
+        IsSigned        = $false
+        SignerCertificate = $null
+        Publisher       = $null
+        ProductName     = 'Test Product'
+        ProductVersion  = '1.0.0'
+        SizeBytes       = 2048
+    }
+    $convertResult = ConvertFrom-Artifact -Artifact $mockArtifact
+    $hasResult = $convertResult.Success -and ($convertResult.Data.Count -gt 0)
+    Write-TestResult -TestName "ConvertFrom-Artifact" -Passed $hasResult -Message "Converts artifact to rule" -Details "Rules created: $($convertResult.Data.Count)"
+}
+catch {
+    Write-TestResult -TestName "ConvertFrom-Artifact" -Passed $false -Message "Exception" -Details $_.Exception.Message
+}
+
+# Test: Get-AllRules
+try {
+    $allRules = Get-AllRules
+    $hasResult = ($allRules -ne $null) -and ($allRules.PSObject.Properties.Name -contains 'Success')
+    Write-TestResult -TestName "Get-AllRules" -Passed $hasResult -Message "Lists all rules" -Details "Count: $($allRules.Data.Count)"
+}
+catch {
+    Write-TestResult -TestName "Get-AllRules" -Passed $false -Message "Exception" -Details $_.Exception.Message
+}
+
+# ============================================================
 # GUI TESTS
 # ============================================================
 Write-Section "GUI TESTS"
