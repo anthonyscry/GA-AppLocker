@@ -1,0 +1,126 @@
+#
+# Module manifest for module 'GA-AppLocker'
+# GA-AppLocker Dashboard - Enterprise AppLocker Policy Management
+# Generated: 2026-01-17
+#
+
+@{
+    # Script module file associated with this manifest
+    RootModule = 'GA-AppLocker.psm1'
+
+    # Version number of this module
+    ModuleVersion = '1.0.0'
+
+    # ID used to uniquely identify this module
+    GUID = 'f1e2d3c4-b5a6-7890-1234-567890abcdef'
+
+    # Author of this module
+    Author = 'GA-AppLocker Team'
+
+    # Company or vendor of this module
+    CompanyName = 'GA-AppLocker'
+
+    # Copyright statement for this module
+    Copyright = '(c) 2026 GA-AppLocker Team. All rights reserved.'
+
+    # Description of the functionality provided by this module
+    Description = @'
+GA-AppLocker Dashboard - Enterprise AppLocker Policy Management for Air-Gapped Environments
+
+Features:
+- Scan Active Directory for hosts by OU
+- Collect AppLocker artifacts via WinRM with tiered credential support
+- Auto-generate rules using best practices (Publisher > Hash > Path)
+- Create and merge policies by machine type (Workstation/Server/DC)
+- Deploy to GPOs with phase-based enforcement (Audit -> Enforce)
+- WPF GUI with MVVM architecture
+'@
+
+    # Minimum version of the PowerShell engine required by this module
+    PowerShellVersion = '5.1'
+
+    # Minimum version of the common language runtime (CLR) required by this module
+    CLRVersion = '4.0'
+
+    # Minimum version of Microsoft .NET Framework required by this module
+    DotNetFrameworkVersion = '4.7.2'
+
+    # Nested modules to load
+    NestedModules = @(
+        'Modules\GA-AppLocker.Core\GA-AppLocker.Core.psd1'
+        # Future modules will be added here:
+        # 'Modules\GA-AppLocker.Discovery\GA-AppLocker.Discovery.psd1'
+        # 'Modules\GA-AppLocker.Scanning\GA-AppLocker.Scanning.psd1'
+        # 'Modules\GA-AppLocker.Rules\GA-AppLocker.Rules.psd1'
+        # 'Modules\GA-AppLocker.Policy\GA-AppLocker.Policy.psd1'
+        # 'Modules\GA-AppLocker.Credentials\GA-AppLocker.Credentials.psd1'
+    )
+
+    # Functions to export from this module (re-export from nested modules + GUI)
+    FunctionsToExport = @(
+        # Core module
+        'Write-AppLockerLog',
+        'Get-AppLockerConfig',
+        'Set-AppLockerConfig',
+        'Test-Prerequisites',
+        'Get-AppLockerDataPath',
+        # Main module
+        'Start-AppLockerDashboard'
+    )
+
+    # Cmdlets to export from this module
+    CmdletsToExport = @()
+
+    # Variables to export from this module
+    VariablesToExport = @()
+
+    # Aliases to export from this module
+    AliasesToExport = @()
+
+    # Required modules
+    RequiredModules = @()
+
+    # Files to package with this module
+    FileList = @()
+
+    # Private data to pass to the module specified in RootModule
+    PrivateData = @{
+        PSData = @{
+            # Tags applied to this module
+            Tags = @(
+                'AppLocker',
+                'Security',
+                'PolicyManagement',
+                'Windows',
+                'ActiveDirectory',
+                'GPO',
+                'WPF',
+                'Enterprise'
+            )
+
+            # A URL to the license for this module
+            LicenseUri = ''
+
+            # A URL to the main website for this project
+            ProjectUri = ''
+
+            # ReleaseNotes of this module
+            ReleaseNotes = @'
+Version 1.0.0 - Initial Release
+================================
+Phase 1: Foundation
+- Core module with logging, configuration, and prerequisites check
+- Basic WPF window shell with navigation
+- Session context persistence
+
+Planned:
+- Phase 2: AD Discovery
+- Phase 3: Credential Management
+- Phase 4: Artifact Scanning
+- Phase 5: Rule Generation
+- Phase 6: Policy & Deployment
+- Phase 7: Polish & Testing
+'@
+        }
+    }
+}
