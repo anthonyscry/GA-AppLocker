@@ -622,17 +622,21 @@ function Initialize-MainWindow {
     # Store window reference for script-level and global access
     $script:MainWindow = $Window
     $global:GA_MainWindow = $Window
-    Write-Log -Message 'Window references stored'
+
+    # DEBUG: Log to console to verify function is running
+    Write-Host "[DEBUG] Initialize-MainWindow starting..." -ForegroundColor Yellow
 
     # Set up navigation
     try {
         Initialize-Navigation -Window $Window
-        Write-Log -Message 'Navigation initialized'
+        Write-Host "[DEBUG] Navigation initialized" -ForegroundColor Green
     }
     catch {
-        Write-Log -Level Error -Message "Navigation init failed: $($_.Exception.Message)"
+        Write-Host "[DEBUG] Navigation init failed: $($_.Exception.Message)" -ForegroundColor Red
     }
 
+    # TEMPORARILY DISABLED - testing if this causes the close
+    <#
     # Initialize Discovery panel
     try {
         Initialize-DiscoveryPanel -Window $Window
@@ -650,6 +654,9 @@ function Initialize-MainWindow {
     catch {
         Write-Log -Level Error -Message "Credentials panel init failed: $($_.Exception.Message)"
     }
+    #>
+
+    Write-Host "[DEBUG] Initialize-MainWindow completed" -ForegroundColor Yellow
 
     # Update domain info in status bar
     try {
