@@ -355,9 +355,9 @@
                             <Border Background="{StaticResource SidebarBrush}"
                                     CornerRadius="8"
                                     Padding="20"
-                                    Margin="0,0,0,15"
+                                    Margin="0,0,15,15"
                                     MaxHeight="200"
-                                    Width="615"
+                                    Width="645"
                                     HorizontalAlignment="Left">
                                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                                     <TextBlock x:Name="RecentActivityText"

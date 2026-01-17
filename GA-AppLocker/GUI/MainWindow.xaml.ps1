@@ -93,25 +93,41 @@ function Set-ActivePanel {
 function Initialize-Navigation {
     param([System.Windows.Window]$Window)
 
-    $navButtons = @(
-        @{ Name = 'NavDashboard'; Panel = 'PanelDashboard' },
-        @{ Name = 'NavDiscovery'; Panel = 'PanelDiscovery' },
-        @{ Name = 'NavScanner';   Panel = 'PanelScanner' },
-        @{ Name = 'NavRules';     Panel = 'PanelRules' },
-        @{ Name = 'NavPolicy';    Panel = 'PanelPolicy' },
-        @{ Name = 'NavDeploy';    Panel = 'PanelDeploy' },
-        @{ Name = 'NavSettings';  Panel = 'PanelSettings' }
-    )
+    # Store window reference for use in closures
+    $win = $Window
+    $script:MainWindow = $Window
 
-    # Store function reference for closures
-    $setPanel = ${function:Set-ActivePanel}
+    # All panel and nav button names
+    $allPanels = @('PanelDashboard', 'PanelDiscovery', 'PanelScanner', 'PanelRules', 'PanelPolicy', 'PanelDeploy', 'PanelSettings')
+    $navMap = @{
+        'NavDashboard' = 'PanelDashboard'
+        'NavDiscovery' = 'PanelDiscovery'
+        'NavScanner'   = 'PanelScanner'
+        'NavRules'     = 'PanelRules'
+        'NavPolicy'    = 'PanelPolicy'
+        'NavDeploy'    = 'PanelDeploy'
+        'NavSettings'  = 'PanelSettings'
+    }
 
-    foreach ($nav in $navButtons) {
-        $navButton = $Window.FindName($nav.Name)
+    foreach ($navName in $navMap.Keys) {
+        $navButton = $Window.FindName($navName)
         if ($navButton) {
-            $panelName = $nav.Panel
+            $targetPanel = $navMap[$navName]
             $navButton.Add_Click({
-                & $setPanel -PanelName $panelName
+                # Inline panel switching to avoid closure scope issues
+                foreach ($p in $allPanels) {
+                    $el = $win.FindName($p)
+                    if ($el) { $el.Visibility = 'Collapsed' }
+                }
+                $target = $win.FindName($targetPanel)
+                if ($target) { $target.Visibility = 'Visible' }
+                # Update nav button states
+                foreach ($n in $navMap.Keys) {
+                    $btn = $win.FindName($n)
+                    if ($btn) {
+                        $btn.Tag = if ($navMap[$n] -eq $targetPanel) { 'Active' } else { $null }
+                    }
+                }
             }.GetNewClosure())
         }
     }
