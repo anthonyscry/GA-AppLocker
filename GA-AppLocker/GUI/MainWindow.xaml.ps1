@@ -139,19 +139,24 @@ function Initialize-Navigation {
 function Initialize-DiscoveryPanel {
     param([System.Windows.Window]$Window)
 
+    # Store window and function refs for closures
+    $win = $Window
+
     # Wire up Refresh Domain button
     $btnRefresh = $Window.FindName('BtnRefreshDomain')
     if ($btnRefresh) {
+        $refreshFn = ${function:Invoke-DomainRefresh}
         $btnRefresh.Add_Click({
-            Invoke-DomainRefresh -Window $Window
+            & $refreshFn -Window $win
         }.GetNewClosure())
     }
 
     # Wire up Test Connectivity button
     $btnTest = $Window.FindName('BtnTestConnectivity')
     if ($btnTest) {
+        $testFn = ${function:Invoke-ConnectivityTest}
         $btnTest.Add_Click({
-            Invoke-ConnectivityTest -Window $Window
+            & $testFn -Window $win
         }.GetNewClosure())
     }
 }
@@ -317,11 +322,19 @@ function Invoke-ConnectivityTest {
 function Initialize-CredentialsPanel {
     param([System.Windows.Window]$Window)
 
+    # Store window and function refs for closures
+    $win = $Window
+    $saveFn = ${function:Invoke-SaveCredential}
+    $refreshFn = ${function:Update-CredentialsDataGrid}
+    $testFn = ${function:Invoke-TestSelectedCredential}
+    $deleteFn = ${function:Invoke-DeleteSelectedCredential}
+    $defaultFn = ${function:Invoke-SetDefaultCredential}
+
     # Wire up Save Credential button
     $btnSave = $Window.FindName('BtnSaveCredential')
     if ($btnSave) {
         $btnSave.Add_Click({
-            Invoke-SaveCredential -Window $Window
+            & $saveFn -Window $win
         }.GetNewClosure())
     }
 
@@ -329,7 +342,7 @@ function Initialize-CredentialsPanel {
     $btnRefresh = $Window.FindName('BtnRefreshCredentials')
     if ($btnRefresh) {
         $btnRefresh.Add_Click({
-            Update-CredentialsDataGrid -Window $Window
+            & $refreshFn -Window $win
         }.GetNewClosure())
     }
 
@@ -337,7 +350,7 @@ function Initialize-CredentialsPanel {
     $btnTest = $Window.FindName('BtnTestCredential')
     if ($btnTest) {
         $btnTest.Add_Click({
-            Invoke-TestSelectedCredential -Window $Window
+            & $testFn -Window $win
         }.GetNewClosure())
     }
 
@@ -345,7 +358,7 @@ function Initialize-CredentialsPanel {
     $btnDelete = $Window.FindName('BtnDeleteCredential')
     if ($btnDelete) {
         $btnDelete.Add_Click({
-            Invoke-DeleteSelectedCredential -Window $Window
+            & $deleteFn -Window $win
         }.GetNewClosure())
     }
 
@@ -353,7 +366,7 @@ function Initialize-CredentialsPanel {
     $btnSetDefault = $Window.FindName('BtnSetDefaultCredential')
     if ($btnSetDefault) {
         $btnSetDefault.Add_Click({
-            Invoke-SetDefaultCredential -Window $Window
+            & $defaultFn -Window $win
         }.GetNewClosure())
     }
 
