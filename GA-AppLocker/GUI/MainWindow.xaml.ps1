@@ -31,6 +31,14 @@ function global:Invoke-ButtonAction {
     if (-not $win) { return }
 
     switch ($Action) {
+        # Navigation
+        'NavDashboard' { Set-ActivePanel -PanelName 'PanelDashboard' }
+        'NavDiscovery' { Set-ActivePanel -PanelName 'PanelDiscovery' }
+        'NavScanner' { Set-ActivePanel -PanelName 'PanelScanner' }
+        'NavRules' { Set-ActivePanel -PanelName 'PanelRules' }
+        'NavPolicy' { Set-ActivePanel -PanelName 'PanelPolicy' }
+        'NavDeploy' { Set-ActivePanel -PanelName 'PanelDeploy' }
+        'NavSettings' { Set-ActivePanel -PanelName 'PanelSettings' }
         # Discovery panel
         'RefreshDomain' { Invoke-DomainRefresh -Window $win }
         'TestConnectivity' { Invoke-ConnectivityTest -Window $win }
@@ -57,7 +65,9 @@ $script:DiscoveredMachines = @()
 function Set-ActivePanel {
     param([string]$PanelName)
 
+    # Try script scope first, fall back to global
     $Window = $script:MainWindow
+    if (-not $Window) { $Window = $global:GA_MainWindow }
     if (-not $Window) { return }
 
     # All panel names
@@ -117,45 +127,31 @@ function Set-ActivePanel {
 function Initialize-Navigation {
     param([System.Windows.Window]$Window)
 
-    # Store window reference for use in closures
-    $win = $Window
+    # Store window reference
     $script:MainWindow = $Window
     $global:GA_MainWindow = $Window
 
-    # All panel and nav button names
-    $allPanels = @('PanelDashboard', 'PanelDiscovery', 'PanelScanner', 'PanelRules', 'PanelPolicy', 'PanelDeploy', 'PanelSettings')
-    $navMap = @{
-        'NavDashboard' = 'PanelDashboard'
-        'NavDiscovery' = 'PanelDiscovery'
-        'NavScanner'   = 'PanelScanner'
-        'NavRules'     = 'PanelRules'
-        'NavPolicy'    = 'PanelPolicy'
-        'NavDeploy'    = 'PanelDeploy'
-        'NavSettings'  = 'PanelSettings'
-    }
+    # Register each nav button directly - no closures needed
+    $btn = $Window.FindName('NavDashboard')
+    if ($btn) { $btn.Add_Click({ Invoke-ButtonAction -Action 'NavDashboard' }) }
 
-    foreach ($navName in $navMap.Keys) {
-        $navButton = $Window.FindName($navName)
-        if ($navButton) {
-            $targetPanel = $navMap[$navName]
-            $navButton.Add_Click({
-                # Inline panel switching to avoid closure scope issues
-                foreach ($p in $allPanels) {
-                    $el = $win.FindName($p)
-                    if ($el) { $el.Visibility = 'Collapsed' }
-                }
-                $target = $win.FindName($targetPanel)
-                if ($target) { $target.Visibility = 'Visible' }
-                # Update nav button states
-                foreach ($n in $navMap.Keys) {
-                    $btn = $win.FindName($n)
-                    if ($btn) {
-                        $btn.Tag = if ($navMap[$n] -eq $targetPanel) { 'Active' } else { $null }
-                    }
-                }
-            }.GetNewClosure())
-        }
-    }
+    $btn = $Window.FindName('NavDiscovery')
+    if ($btn) { $btn.Add_Click({ Invoke-ButtonAction -Action 'NavDiscovery' }) }
+
+    $btn = $Window.FindName('NavScanner')
+    if ($btn) { $btn.Add_Click({ Invoke-ButtonAction -Action 'NavScanner' }) }
+
+    $btn = $Window.FindName('NavRules')
+    if ($btn) { $btn.Add_Click({ Invoke-ButtonAction -Action 'NavRules' }) }
+
+    $btn = $Window.FindName('NavPolicy')
+    if ($btn) { $btn.Add_Click({ Invoke-ButtonAction -Action 'NavPolicy' }) }
+
+    $btn = $Window.FindName('NavDeploy')
+    if ($btn) { $btn.Add_Click({ Invoke-ButtonAction -Action 'NavDeploy' }) }
+
+    $btn = $Window.FindName('NavSettings')
+    if ($btn) { $btn.Add_Click({ Invoke-ButtonAction -Action 'NavSettings' }) }
 }
 #endregion
 
