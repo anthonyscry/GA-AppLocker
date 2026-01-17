@@ -98,7 +98,7 @@ function Get-MachineTypeFromComputer {
     param($Computer)
 
     $dnLower = $Computer.DistinguishedName.ToLower()
-    $osLower = ($Computer.OperatingSystem ?? '').ToLower()
+    $osLower = if ($Computer.OperatingSystem) { $Computer.OperatingSystem.ToLower() } else { '' }
 
     # Check OU path first
     if ($dnLower -match 'domain controllers') {
