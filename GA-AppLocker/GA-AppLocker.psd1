@@ -49,9 +49,9 @@ Features:
     NestedModules = @(
         'Modules\GA-AppLocker.Core\GA-AppLocker.Core.psd1',
         'Modules\GA-AppLocker.Discovery\GA-AppLocker.Discovery.psd1',
-        'Modules\GA-AppLocker.Credentials\GA-AppLocker.Credentials.psd1'
+        'Modules\GA-AppLocker.Credentials\GA-AppLocker.Credentials.psd1',
+        'Modules\GA-AppLocker.Scanning\GA-AppLocker.Scanning.psd1'
         # Future modules will be added here:
-        # 'Modules\GA-AppLocker.Scanning\GA-AppLocker.Scanning.psd1'
         # 'Modules\GA-AppLocker.Rules\GA-AppLocker.Rules.psd1'
         # 'Modules\GA-AppLocker.Policy\GA-AppLocker.Policy.psd1'
     )
@@ -77,6 +77,13 @@ Features:
         'Test-CredentialProfile',
         'Get-CredentialForTier',
         'Get-CredentialStoragePath',
+        # Scanning module
+        'Get-LocalArtifacts',
+        'Get-RemoteArtifacts',
+        'Get-AppLockerEventLogs',
+        'Start-ArtifactScan',
+        'Get-ScanResults',
+        'Export-ScanResults',
         # Main module
         'Start-AppLockerDashboard'
     )

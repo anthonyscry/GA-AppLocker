@@ -189,7 +189,36 @@ function Start-AppLockerDashboard {
 #endregion
 
 #region ===== EXPORTS =====
+# Export all functions from this module and nested modules
+# The FunctionsToExport in .psd1 filters what's actually visible
 Export-ModuleMember -Function @(
-    'Start-AppLockerDashboard'
+    # Main module
+    'Start-AppLockerDashboard',
+    # Core module
+    'Write-AppLockerLog',
+    'Get-AppLockerConfig',
+    'Set-AppLockerConfig',
+    'Test-Prerequisites',
+    'Get-AppLockerDataPath',
+    # Discovery module
+    'Get-DomainInfo',
+    'Get-OUTree',
+    'Get-ComputersByOU',
+    'Test-MachineConnectivity',
+    # Credentials module
+    'New-CredentialProfile',
+    'Get-CredentialProfile',
+    'Get-AllCredentialProfiles',
+    'Remove-CredentialProfile',
+    'Test-CredentialProfile',
+    'Get-CredentialForTier',
+    'Get-CredentialStoragePath',
+    # Scanning module
+    'Get-LocalArtifacts',
+    'Get-RemoteArtifacts',
+    'Get-AppLockerEventLogs',
+    'Start-ArtifactScan',
+    'Get-ScanResults',
+    'Export-ScanResults'
 )
 #endregion

@@ -4,39 +4,53 @@
 
 ---
 
-## Immediate Next Steps (Phase 2: Discovery)
+## Immediate Next Steps (Phase 4: Scanning)
 
-### Priority 1: GA-AppLocker.Discovery Module
+### Priority 1: GA-AppLocker.Scanning Module
 1. Create module manifest and loader
-2. Implement `Get-DomainInfo` - Auto-detect domain
-3. Implement `Get-OUTree` - Build OU hierarchy
-4. Implement `Get-ComputersByOU` - Discover machines
-5. Implement `Test-MachineConnectivity` - Ping/WinRM check
+2. Implement `Get-LocalArtifacts` - Collect from local machine
+3. Implement `Get-RemoteArtifacts` - Collect via WinRM
+4. Implement `Get-AppLockerEventLogs` - Collect 8001-8025 events
+5. Implement `Start-ArtifactScan` - Orchestrate multi-machine scanning
 
-### Priority 2: AD Discovery Panel UI
-1. Create OU TreeView with checkboxes
-2. Add machine list DataGrid
-3. Implement online/offline status indicators
-4. Add "Refresh" and "Select All" buttons
-5. Wire up panel to Discovery module
+### Priority 2: Artifact Scanner Panel UI
+1. Build scan configuration UI (machine selection, artifact types)
+2. Add progress bar and status indicators
+3. Create artifact results DataGrid
+4. Implement artifact detail view
+5. Add export functionality (CSV/JSON)
 
-### Priority 3: Machine Type Detection
-1. Implement OU path analysis for machine type
-2. Add icons for Workstation/Server/DC
-3. Store machine type with discovered machines
+### Priority 3: Artifact Data Model
+1. Define artifact object structure (path, hash, publisher, etc.)
+2. Implement artifact storage (JSON files per scan)
+3. Add artifact deduplication logic
+4. Create artifact summary statistics
+
+---
+
+## Completed Phases
+
+### Phase 1: Foundation - COMPLETE
+- [x] Core module with logging, config, prerequisites
+- [x] WPF shell with navigation
+
+### Phase 2: Discovery - COMPLETE
+- [x] Domain info retrieval
+- [x] OU tree discovery
+- [x] Machine enumeration
+- [x] Connectivity testing
+
+### Phase 3: Credentials - COMPLETE
+- [x] Tiered credential model (T0/T1/T2)
+- [x] DPAPI-encrypted storage
+- [x] Credential testing
+- [x] Settings panel UI
 
 ---
 
 ## Upcoming Phases
 
-### Phase 3: Credentials
-- [ ] Create GA-AppLocker.Credentials module
-- [ ] Implement credential profiles (Tier 0/1/2)
-- [ ] Add DPAPI encryption for password storage
-- [ ] Build credential management UI
-- [ ] Add pre-scan validation
-
-### Phase 4: Scanning
+### Phase 5: Rules
 - [ ] Create GA-AppLocker.Scanning module
 - [ ] Implement local artifact collection
 - [ ] Implement remote WinRM scanning
@@ -48,9 +62,10 @@
 - [ ] Create GA-AppLocker.Rules module
 - [ ] Implement publisher rule generation
 - [ ] Implement hash rule generation
-- [ ] Add traffic light review system
+- [ ] Implement path rule generation
+- [ ] Add traffic light review system (Green/Yellow/Red)
 - [ ] Build Rule Generator panel UI
-- [ ] Implement bulk operations
+- [ ] Implement bulk approve/reject operations
 
 ### Phase 6: Policy & Deployment
 - [ ] Create GA-AppLocker.Policy module
