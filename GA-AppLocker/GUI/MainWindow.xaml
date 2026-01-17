@@ -356,7 +356,9 @@
                                     CornerRadius="8"
                                     Padding="20"
                                     Margin="0,0,0,15"
-                                    MaxHeight="200">
+                                    MaxHeight="200"
+                                    Width="630"
+                                    HorizontalAlignment="Left">
                                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                                     <TextBlock x:Name="RecentActivityText"
                                                Text="No recent activity&#x0a;Start by running a scan or importing artifacts"
