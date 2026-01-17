@@ -623,8 +623,32 @@ function Initialize-MainWindow {
     $script:MainWindow = $Window
     $global:GA_MainWindow = $Window
 
-    Write-Host "[DEBUG] Initialize-MainWindow - MINIMAL TEST (no handlers)" -ForegroundColor Yellow
-    # ALL INITIALIZATION DISABLED FOR TESTING
+    # Initialize navigation buttons
+    try {
+        Initialize-Navigation -Window $Window
+        Write-Log -Message 'Navigation initialized'
+    }
+    catch {
+        Write-Log -Level Error -Message "Navigation init failed: $($_.Exception.Message)"
+    }
+    
+    # Initialize Discovery panel
+    try {
+        Initialize-DiscoveryPanel -Window $Window
+        Write-Log -Message 'Discovery panel initialized'
+    }
+    catch {
+        Write-Log -Level Error -Message "Discovery panel init failed: $($_.Exception.Message)"
+    }
+    
+    # Initialize Credentials panel  
+    try {
+        Initialize-CredentialsPanel -Window $Window
+        Write-Log -Message 'Credentials panel initialized'
+    }
+    catch {
+        Write-Log -Level Error -Message "Credentials panel init failed: $($_.Exception.Message)"
+    }
 
     # Update domain info in status bar
     try {

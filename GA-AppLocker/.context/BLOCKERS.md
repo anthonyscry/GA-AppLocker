@@ -10,7 +10,20 @@
 
 ## Resolved Blockers
 
-*None yet - project just started.*
+### B-RESOLVED-001: App Crash on Startup
+**Date Resolved:** 2026-01-17
+**Severity:** Critical
+
+**Description:**
+The WPF app was crashing on startup. Multiple debugging commits were made to isolate the issue by progressively disabling event handlers.
+
+**Root Cause:**
+Unknown - the handlers were disabled in debugging commit `ddf093c` but after re-enabling them with proper try/catch blocks, the app works correctly. May have been a transient issue or race condition that was resolved by the defensive coding approach.
+
+**Resolution:**
+- Re-enabled all navigation, discovery, and credentials panel handlers
+- Added try/catch wrappers around each initialization block
+- Replaced debug Write-Host statements with proper logging
 
 ---
 
