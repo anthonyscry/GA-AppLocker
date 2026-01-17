@@ -11,13 +11,20 @@
     the XAML window is created.
 #>
 
+#region ===== SCRIPT-LEVEL VARIABLES =====
+# Store window reference for event handlers
+$script:MainWindow = $null
+$script:DiscoveredOUs = @()
+$script:DiscoveredMachines = @()
+#endregion
+
 #region ===== NAVIGATION HANDLERS =====
-# Panel visibility management
-function Set-ActivePanel {
-    param(
-        [System.Windows.Window]$Window,
-        [string]$PanelName
-    )
+# Panel visibility management (script scope for event handler access)
+function script:Set-ActivePanel {
+    param([string]$PanelName)
+
+    if (-not $script:MainWindow) { return }
+    $Window = $script:MainWindow
 
     # All panel names
     $panels = @(
@@ -69,33 +76,31 @@ function Set-ActivePanel {
     }
 
     # Log navigation
-    Write-AppLockerLog -Message "Navigated to: $PanelName" -NoConsole
+    if (Get-Command -Name 'Write-AppLockerLog' -ErrorAction SilentlyContinue) {
+        Write-AppLockerLog -Message "Navigated to: $PanelName" -NoConsole
+    }
 }
 
 # Wire up navigation event handlers
 function Initialize-Navigation {
-    param(
-        [System.Windows.Window]$Window
+    param([System.Windows.Window]$Window)
+
+    $navButtons = @(
+        @{ Name = 'NavDashboard'; Panel = 'PanelDashboard' },
+        @{ Name = 'NavDiscovery'; Panel = 'PanelDiscovery' },
+        @{ Name = 'NavScanner';   Panel = 'PanelScanner' },
+        @{ Name = 'NavRules';     Panel = 'PanelRules' },
+        @{ Name = 'NavPolicy';    Panel = 'PanelPolicy' },
+        @{ Name = 'NavDeploy';    Panel = 'PanelDeploy' },
+        @{ Name = 'NavSettings';  Panel = 'PanelSettings' }
     )
 
-    $navMap = @{
-        'NavDashboard' = 'PanelDashboard'
-        'NavDiscovery' = 'PanelDiscovery'
-        'NavScanner'   = 'PanelScanner'
-        'NavRules'     = 'PanelRules'
-        'NavPolicy'    = 'PanelPolicy'
-        'NavDeploy'    = 'PanelDeploy'
-        'NavSettings'  = 'PanelSettings'
-    }
-
-    foreach ($navName in $navMap.Keys) {
-        $navButton = $Window.FindName($navName)
+    foreach ($nav in $navButtons) {
+        $navButton = $Window.FindName($nav.Name)
         if ($navButton) {
-            $targetPanel = $navMap[$navName]
+            $panelName = $nav.Panel
             $navButton.Add_Click({
-                param($sender, $e)
-                $panelName = $navMap[$sender.Name]
-                Set-ActivePanel -Window $Window -PanelName $panelName
+                script:Set-ActivePanel -PanelName $panelName
             }.GetNewClosure())
         }
     }
@@ -103,9 +108,6 @@ function Initialize-Navigation {
 #endregion
 
 #region ===== DISCOVERY PANEL HANDLERS =====
-# Store discovered data in script scope
-$script:DiscoveredOUs = @()
-$script:DiscoveredMachines = @()
 
 function Initialize-DiscoveryPanel {
     param([System.Windows.Window]$Window)
@@ -288,6 +290,9 @@ function Initialize-MainWindow {
     param(
         [System.Windows.Window]$Window
     )
+
+    # Store window reference for script-level access
+    $script:MainWindow = $Window
 
     # Set up navigation
     Initialize-Navigation -Window $Window
