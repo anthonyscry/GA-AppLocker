@@ -153,7 +153,25 @@ function Start-AppLockerDashboard {
 
         # Show window
         Write-AppLockerLog -Message 'Showing dialog...'
-        $window.ShowDialog() | Out-Null
+
+        # Add handler for unhandled dispatcher exceptions
+        [System.Windows.Threading.Dispatcher]::CurrentDispatcher.add_UnhandledException({
+            param($sender, $e)
+            Write-AppLockerLog -Level Error -Message "WPF Dispatcher exception: $($e.Exception.Message)"
+            $e.Handled = $true
+        })
+
+        # Add loaded event to verify window renders
+        $window.add_Loaded({
+            Write-AppLockerLog -Message 'Window Loaded event fired'
+        })
+
+        # Ensure window is activated and visible
+        $window.Activate() | Out-Null
+        $window.Focus() | Out-Null
+
+        $result = $window.ShowDialog()
+        Write-AppLockerLog -Message "ShowDialog returned: $result"
 
         Write-AppLockerLog -Message 'Application closed'
     }
