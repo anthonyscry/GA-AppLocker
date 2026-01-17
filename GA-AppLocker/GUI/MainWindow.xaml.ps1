@@ -29,12 +29,12 @@ $script:DiscoveredMachines = @()
 #endregion
 
 #region ===== NAVIGATION HANDLERS =====
-# Panel visibility management (script scope for event handler access)
-function script:Set-ActivePanel {
+# Panel visibility management
+function Set-ActivePanel {
     param([string]$PanelName)
 
-    if (-not $script:MainWindow) { return }
     $Window = $script:MainWindow
+    if (-not $Window) { return }
 
     # All panel names
     $panels = @(
@@ -108,7 +108,7 @@ function Initialize-Navigation {
         if ($navButton) {
             $panelName = $nav.Panel
             $navButton.Add_Click({
-                script:Set-ActivePanel -PanelName $panelName
+                Set-ActivePanel -PanelName $panelName
             }.GetNewClosure())
         }
     }
