@@ -22,10 +22,7 @@ function Start-Deployment {
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory = $true)]
-        [string]$JobId,
-
-        [Parameter(Mandatory = $false)]
-        [switch]$WhatIf
+        [string]$JobId
     )
 
     try {
@@ -99,7 +96,8 @@ function Start-Deployment {
             }
         }
 
-        if ($WhatIf) {
+        # SupportsShouldProcess provides -WhatIf automatically via [CmdletBinding]
+        if ($WhatIfPreference) {
             $job.Status = 'Completed'
             $job.Progress = 100
             $job.Message = "WhatIf: Would deploy to GPO '$($job.GPOName)'"

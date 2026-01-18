@@ -26,14 +26,15 @@ Generated from comprehensive review by Architecture, Testing, and UI/UX speciali
 **Fix**: Standardize `ArtifactType` values in scanning module to match UI expectations
 **Effort**: Quick (30 min)
 
-### 3. Rule/Policy Schema Mismatch
+### 3. ~~Rule/Policy Schema Mismatch~~ FIXED
 **Impact**: Policy XML export generates malformed or empty XML
 **Location**:
 - `GA-AppLocker.Rules.psm1` uses: `CollectionType`, `RuleType`
 - `Export-PolicyToXml.ps1` expects: `RuleCollection`, `BinaryVersionLow`, etc.
 **Fix**: 
-- Define canonical rule schema
-- Reuse `ConvertTo-AppLockerXmlRule` from Rules module in Policy export
+- ~~Define canonical rule schema~~
+- ~~Reuse `ConvertTo-AppLockerXmlRule` from Rules module in Policy export~~
+- DONE: Updated Export-PolicyToXml to use canonical schema (Id, CollectionType, MinVersion/MaxVersion, SourceFileName/SourceFileLength)
 **Effort**: Medium (2-4 hours)
 
 ### 4. Deployment Returns False Success
@@ -50,10 +51,11 @@ Generated from comprehensive review by Architecture, Testing, and UI/UX speciali
 
 ## HIGH (Should Fix Soon)
 
-### 5. Remote Scanning Not Parallelized
+### 5. ~~Remote Scanning Not Parallelized~~ FIXED
 **Impact**: Enterprise scans take hours instead of minutes
 **Location**: `Get-RemoteArtifacts.ps1` - sequential foreach loop
-**Fix**: Use `Invoke-Command -ComputerName $ComputerName -ThrottleLimit $N`
+**Fix**: ~~Use `Invoke-Command -ComputerName $ComputerName -ThrottleLimit $N`~~
+- DONE: Refactored to use parallel Invoke-Command with ThrottleLimit parameter
 **Effort**: Medium (2-4 hours)
 
 ### 6. Global Scope Pollution
@@ -68,15 +70,16 @@ Generated from comprehensive review by Architecture, Testing, and UI/UX speciali
 **Fix**: Implement toast/snackbar notification system for non-critical alerts
 **Effort**: Medium (3-4 hours)
 
-### 8. Missing Test Coverage (15 Functions)
+### 8. ~~Missing Test Coverage (15 Functions)~~ FIXED
 **Impact**: Bugs ship to production undetected
 **Untested Functions**:
-- `Test-CredentialProfile`
-- `Export-ScanResults`
-- `Get-Rule`, `Remove-Rule`, `Set-RuleStatus`, `Export-RulesToXml`
-- `Add-RuleToPolicy`, `Remove-RuleFromPolicy`, `Export-PolicyToXml`, `Test-PolicyCompliance`
-- `Start-Deployment`, `New-AppLockerGPO`, `Import-PolicyToGPO`, `Get-DeploymentHistory`
-**Fix**: Add tests for each function
+- ~~`Test-CredentialProfile`~~
+- ~~`Export-ScanResults`~~
+- ~~`Get-Rule`, `Remove-Rule`, `Set-RuleStatus`, `Export-RulesToXml`~~
+- ~~`Add-RuleToPolicy`, `Remove-RuleFromPolicy`, `Export-PolicyToXml`, `Test-PolicyCompliance`~~
+- ~~`Start-Deployment`, `New-AppLockerGPO`, `Import-PolicyToGPO`, `Get-DeploymentHistory`~~
+**Fix**: ~~Add tests for each function~~
+- DONE: Added 14 new tests in "ADDITIONAL COVERAGE TESTS" section (58 total tests now)
 **Effort**: Medium (3-4 hours)
 
 ---

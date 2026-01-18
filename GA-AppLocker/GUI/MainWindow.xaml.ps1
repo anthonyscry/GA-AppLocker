@@ -1513,11 +1513,11 @@ function Set-SelectedRuleStatus {
     $errors = @()
     foreach ($item in $selectedItems) {
         try {
-            $result = Set-RuleStatus -RuleId $item.RuleId -Status $Status
+            $result = Set-RuleStatus -Id $item.Id -Status $Status
             if ($result.Success) { $updated++ }
         }
         catch { 
-            $errors += "Rule $($item.RuleId): $($_.Exception.Message)"
+            $errors += "Rule $($item.Id): $($_.Exception.Message)"
         }
     }
     if ($errors.Count -gt 0) {
@@ -1557,11 +1557,11 @@ function Invoke-DeleteSelectedRules {
     $errors = @()
     foreach ($item in $selectedItems) {
         try {
-            $result = Remove-Rule -RuleId $item.RuleId
+            $result = Remove-Rule -Id $item.Id
             if ($result.Success) { $deleted++ }
         }
         catch { 
-            $errors += "Rule $($item.RuleId): $($_.Exception.Message)"
+            $errors += "Rule $($item.Id): $($_.Exception.Message)"
         }
     }
     if ($errors.Count -gt 0) {

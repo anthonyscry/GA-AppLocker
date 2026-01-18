@@ -5,7 +5,8 @@ function Export-PolicyToXml {
 
     .DESCRIPTION
         Generates a complete AppLocker policy XML that can be
-        imported into Group Policy.
+        imported into Group Policy. Uses the canonical rule schema
+        from GA-AppLocker.Rules module.
 
     .PARAMETER PolicyId
         The unique identifier of the policy.
@@ -65,11 +66,12 @@ function Export-PolicyToXml {
             }
         }
 
-        # Group rules by collection type
-        $exeRules = $rules | Where-Object { $_.RuleCollection -eq 'Exe' }
-        $dllRules = $rules | Where-Object { $_.RuleCollection -eq 'Dll' }
-        $msiRules = $rules | Where-Object { $_.RuleCollection -eq 'Msi' }
-        $scriptRules = $rules | Where-Object { $_.RuleCollection -eq 'Script' }
+        # Group rules by collection type (use CollectionType from Rules schema)
+        $exeRules = $rules | Where-Object { $_.CollectionType -eq 'Exe' }
+        $dllRules = $rules | Where-Object { $_.CollectionType -eq 'Dll' }
+        $msiRules = $rules | Where-Object { $_.CollectionType -eq 'Msi' }
+        $scriptRules = $rules | Where-Object { $_.CollectionType -eq 'Script' }
+        $appxRules = $rules | Where-Object { $_.CollectionType -eq 'Appx' }
 
         # Determine enforcement mode
         $enforcementValue = switch ($policy.EnforcementMode) {
@@ -83,16 +85,19 @@ function Export-PolicyToXml {
 <?xml version="1.0" encoding="utf-8"?>
 <AppLockerPolicy Version="1">
   <RuleCollection Type="Exe" EnforcementMode="$enforcementValue">
-$(Build-RuleCollectionXml -Rules $exeRules)
+$(Build-PolicyRuleCollectionXml -Rules $exeRules)
   </RuleCollection>
   <RuleCollection Type="Dll" EnforcementMode="$enforcementValue">
-$(Build-RuleCollectionXml -Rules $dllRules)
+$(Build-PolicyRuleCollectionXml -Rules $dllRules)
   </RuleCollection>
   <RuleCollection Type="Msi" EnforcementMode="$enforcementValue">
-$(Build-RuleCollectionXml -Rules $msiRules)
+$(Build-PolicyRuleCollectionXml -Rules $msiRules)
   </RuleCollection>
   <RuleCollection Type="Script" EnforcementMode="$enforcementValue">
-$(Build-RuleCollectionXml -Rules $scriptRules)
+$(Build-PolicyRuleCollectionXml -Rules $scriptRules)
+  </RuleCollection>
+  <RuleCollection Type="Appx" EnforcementMode="$enforcementValue">
+$(Build-PolicyRuleCollectionXml -Rules $appxRules)
   </RuleCollection>
 </AppLockerPolicy>
 "@
@@ -123,7 +128,17 @@ $(Build-RuleCollectionXml -Rules $scriptRules)
     }
 }
 
-function Build-RuleCollectionXml {
+function Build-PolicyRuleCollectionXml {
+    <#
+    .SYNOPSIS
+        Converts rules to AppLocker XML format using canonical rule schema.
+    .DESCRIPTION
+        Uses the correct property names from GA-AppLocker.Rules module:
+        - Id (not RuleId)
+        - CollectionType (not RuleCollection)
+        - MinVersion/MaxVersion (not BinaryVersionLow/BinaryVersionHigh)
+        - SourceFileName/SourceFileLength (not FileName/FileLength)
+    #>
     param([array]$Rules)
 
     if (-not $Rules -or $Rules.Count -eq 0) {
@@ -134,21 +149,24 @@ function Build-RuleCollectionXml {
     foreach ($rule in $Rules) {
         $action = $rule.Action
         $name = [System.Security.SecurityElement]::Escape($rule.Name)
-        $description = [System.Security.SecurityElement]::Escape($rule.Description)
-        $id = $rule.RuleId
+        $description = if ($rule.Description) { [System.Security.SecurityElement]::Escape($rule.Description) } else { '' }
+        $id = $rule.Id  # Canonical: Id (not RuleId)
+        $userSid = if ($rule.UserOrGroupSid) { $rule.UserOrGroupSid } else { 'S-1-1-0' }
 
         switch ($rule.RuleType) {
             'Publisher' {
                 $publisher = [System.Security.SecurityElement]::Escape($rule.PublisherName)
-                $product = [System.Security.SecurityElement]::Escape($rule.ProductName)
+                $product = if ($rule.ProductName) { [System.Security.SecurityElement]::Escape($rule.ProductName) } else { '*' }
                 $binaryName = if ($rule.BinaryName) { [System.Security.SecurityElement]::Escape($rule.BinaryName) } else { '*' }
-                $binaryVersion = if ($rule.BinaryVersionLow) { $rule.BinaryVersionLow } else { '*' }
+                # Canonical: MinVersion/MaxVersion (not BinaryVersionLow/BinaryVersionHigh)
+                $minVersion = if ($rule.MinVersion) { $rule.MinVersion } else { '*' }
+                $maxVersion = if ($rule.MaxVersion) { $rule.MaxVersion } else { '*' }
 
                 $xml += @"
-    <FilePublisherRule Id="$id" Name="$name" Description="$description" UserOrGroupSid="S-1-1-0" Action="$action">
+    <FilePublisherRule Id="$id" Name="$name" Description="$description" UserOrGroupSid="$userSid" Action="$action">
       <Conditions>
         <FilePublisherCondition PublisherName="$publisher" ProductName="$product" BinaryName="$binaryName">
-          <BinaryVersionRange LowSection="$binaryVersion" HighSection="*" />
+          <BinaryVersionRange LowSection="$minVersion" HighSection="$maxVersion" />
         </FilePublisherCondition>
       </Conditions>
     </FilePublisherRule>
@@ -156,12 +174,13 @@ function Build-RuleCollectionXml {
 "@
             }
             'Hash' {
-                $hash = $rule.Hash
-                $fileName = [System.Security.SecurityElement]::Escape($rule.FileName)
-                $fileLength = if ($rule.FileLength) { $rule.FileLength } else { '0' }
+                # Canonical: Hash, SourceFileName, SourceFileLength
+                $hash = if ($rule.Hash) { "0x$($rule.Hash)" } else { '' }
+                $fileName = if ($rule.SourceFileName) { [System.Security.SecurityElement]::Escape($rule.SourceFileName) } else { '' }
+                $fileLength = if ($rule.SourceFileLength) { $rule.SourceFileLength } else { '0' }
 
                 $xml += @"
-    <FileHashRule Id="$id" Name="$name" Description="$description" UserOrGroupSid="S-1-1-0" Action="$action">
+    <FileHashRule Id="$id" Name="$name" Description="$description" UserOrGroupSid="$userSid" Action="$action">
       <Conditions>
         <FileHashCondition>
           <FileHash Type="SHA256" Data="$hash" SourceFileName="$fileName" SourceFileLength="$fileLength" />
@@ -175,7 +194,7 @@ function Build-RuleCollectionXml {
                 $path = [System.Security.SecurityElement]::Escape($rule.Path)
 
                 $xml += @"
-    <FilePathRule Id="$id" Name="$name" Description="$description" UserOrGroupSid="S-1-1-0" Action="$action">
+    <FilePathRule Id="$id" Name="$name" Description="$description" UserOrGroupSid="$userSid" Action="$action">
       <Conditions>
         <FilePathCondition Path="$path" />
       </Conditions>

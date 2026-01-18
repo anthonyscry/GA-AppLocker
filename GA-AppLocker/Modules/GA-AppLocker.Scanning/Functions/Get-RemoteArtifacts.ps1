@@ -180,48 +180,76 @@ function Get-RemoteArtifacts {
         }
         #endregion
 
-        #region --- Execute on each machine ---
+        #region --- Execute on machines in parallel ---
+        Write-ScanLog -Message "Scanning $($ComputerName.Count) machines in parallel (ThrottleLimit: $ThrottleLimit)"
+
+        # Build Invoke-Command parameters for parallel execution
+        $invokeParams = @{
+            ComputerName  = $ComputerName
+            ScriptBlock   = $remoteScriptBlock
+            ArgumentList  = @($Paths, $Extensions, $Recurse.IsPresent)
+            ThrottleLimit = $ThrottleLimit
+            ErrorAction   = 'SilentlyContinue'
+            ErrorVariable = 'remoteErrors'
+        }
+
+        if ($Credential) {
+            $invokeParams.Credential = $Credential
+        }
+
+        # Execute in parallel - Invoke-Command handles multiple computers natively
+        $remoteResults = Invoke-Command @invokeParams
+
+        # Process results - group by PSComputerName
+        if ($remoteResults) {
+            $allArtifacts = @($remoteResults)
+            
+            # Build per-machine results from successful returns
+            $remoteResults | Group-Object PSComputerName | ForEach-Object {
+                $computerName = $_.Name
+                $machineArtifacts = $_.Group
+                $machineResults[$computerName] = @{
+                    Success       = $true
+                    ArtifactCount = $machineArtifacts.Count
+                    Error         = $null
+                }
+                Write-ScanLog -Message "Collected $($machineArtifacts.Count) artifacts from $computerName"
+            }
+        }
+
+        # Process errors - machines that failed
+        if ($remoteErrors) {
+            foreach ($err in $remoteErrors) {
+                # Extract computer name from error
+                $failedComputer = if ($err.TargetObject) { 
+                    $err.TargetObject.ToString() 
+                } elseif ($err.Exception.Message -match '(\S+)') {
+                    # Try to extract from message
+                    $ComputerName | Where-Object { $err.Exception.Message -match [regex]::Escape($_) } | Select-Object -First 1
+                } else {
+                    'Unknown'
+                }
+                
+                if ($failedComputer -and -not $machineResults.ContainsKey($failedComputer)) {
+                    $machineResults[$failedComputer] = @{
+                        Success       = $false
+                        ArtifactCount = 0
+                        Error         = $err.Exception.Message
+                    }
+                    Write-ScanLog -Level Warning -Message "Failed to scan $failedComputer`: $($err.Exception.Message)"
+                }
+            }
+        }
+
+        # Mark machines with no results and no errors as having 0 artifacts
         foreach ($computer in $ComputerName) {
-            Write-ScanLog -Message "Scanning remote machine: $computer"
-
-            $machineResult = @{
-                Success     = $false
-                ArtifactCount = 0
-                Error       = $null
+            if (-not $machineResults.ContainsKey($computer)) {
+                $machineResults[$computer] = @{
+                    Success       = $true
+                    ArtifactCount = 0
+                    Error         = $null
+                }
             }
-
-            try {
-                $invokeParams = @{
-                    ComputerName = $computer
-                    ScriptBlock  = $remoteScriptBlock
-                    ArgumentList = @($Paths, $Extensions, $Recurse.IsPresent)
-                    ErrorAction  = 'Stop'
-                }
-
-                if ($Credential) {
-                    $invokeParams.Credential = $Credential
-                }
-
-                $remoteArtifacts = Invoke-Command @invokeParams
-
-                if ($remoteArtifacts) {
-                    $allArtifacts += $remoteArtifacts
-                    $machineResult.Success = $true
-                    $machineResult.ArtifactCount = $remoteArtifacts.Count
-                }
-                else {
-                    $machineResult.Success = $true
-                    $machineResult.ArtifactCount = 0
-                }
-
-                Write-ScanLog -Message "Collected $($machineResult.ArtifactCount) artifacts from $computer"
-            }
-            catch {
-                $machineResult.Error = $_.Exception.Message
-                Write-ScanLog -Level Warning -Message "Failed to scan $computer`: $($_.Exception.Message)"
-            }
-
-            $machineResults[$computer] = $machineResult
         }
         #endregion
 

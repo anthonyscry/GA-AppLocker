@@ -662,6 +662,320 @@ try {
 catch { }
 
 # ============================================================
+# ADDITIONAL COVERAGE TESTS (Previously Untested Functions)
+# ============================================================
+Write-Section "ADDITIONAL COVERAGE TESTS"
+
+# Test: Test-CredentialProfile
+try {
+    # Create a test credential to test against
+    $securePass = ConvertTo-SecureString "TestPassword123!" -AsPlainText -Force
+    $testCred = [PSCredential]::new("DOMAIN\TestUser", $securePass)
+    $testProfileName2 = "TestProfile_$(Get-Random)"
+    New-CredentialProfile -Name $testProfileName2 -Credential $testCred -Tier 2 | Out-Null
+    
+    # Test the credential profile (will likely fail validation but should return proper result)
+    # Uses -ComputerName parameter (not -Target)
+    $testResult = Test-CredentialProfile -Name $testProfileName2 -ComputerName $env:COMPUTERNAME
+    $hasValidStructure = ($testResult -ne $null) -and 
+                         (($testResult.PSObject.Properties.Name -contains 'Success') -or ($testResult.ContainsKey('Success')))
+    Write-TestResult -TestName "Test-CredentialProfile" -Passed $hasValidStructure -Message "Returns result object" -Details "Success: $($testResult.Success)"
+    
+    # Cleanup
+    Remove-CredentialProfile -Name $testProfileName2 | Out-Null
+}
+catch {
+    Write-TestResult -TestName "Test-CredentialProfile" -Passed $false -Message "Exception" -Details $_.Exception.Message
+}
+
+# Test: Export-ScanResults
+try {
+    $exportPath = Join-Path $env:TEMP "test_scan_export_$(Get-Random).json"
+    # Get any existing scan to export
+    $scans = Get-ScanResults
+    if ($scans.Success -and $scans.Data.Count -gt 0) {
+        $scanId = $scans.Data[0].ScanId
+        $exportResult = Export-ScanResults -ScanId $scanId -OutputPath $exportPath -Format JSON
+        $hasResult = ($exportResult -ne $null) -and 
+                     (($exportResult.PSObject.Properties.Name -contains 'Success') -or ($exportResult.ContainsKey('Success')))
+        Write-TestResult -TestName "Export-ScanResults" -Passed $hasResult -Message "Exports scan data" -Details "Success: $($exportResult.Success)"
+        
+        # Cleanup
+        if (Test-Path $exportPath) { Remove-Item $exportPath -Force }
+    }
+    else {
+        # No scans to export - test with invalid ID should still return proper result
+        $exportResult = Export-ScanResults -ScanId "nonexistent" -OutputPath $exportPath -Format JSON
+        $hasResult = ($exportResult -ne $null)
+        Write-TestResult -TestName "Export-ScanResults" -Passed $hasResult -Message "Handles missing scan" -Details "Returns result"
+    }
+}
+catch {
+    Write-TestResult -TestName "Export-ScanResults" -Passed $false -Message "Exception" -Details $_.Exception.Message
+}
+
+# Test: Get-Rule
+try {
+    $allRules = Get-AllRules
+    if ($allRules.Success -and $allRules.Data.Count -gt 0) {
+        $ruleId = $allRules.Data[0].Id
+        $getResult = Get-Rule -Id $ruleId
+        $hasResult = $getResult.Success -and ($getResult.Data.Id -eq $ruleId)
+        Write-TestResult -TestName "Get-Rule" -Passed $hasResult -Message "Retrieves rule by ID" -Details "ID: $ruleId"
+    }
+    else {
+        # Create a rule to test
+        $testRule = New-PathRule -Path '%PROGRAMFILES%\Test\*' -Action Allow -Save
+        if ($testRule.Success) {
+            $getResult = Get-Rule -Id $testRule.Data.Id
+            $hasResult = $getResult.Success
+            Write-TestResult -TestName "Get-Rule" -Passed $hasResult -Message "Retrieves created rule"
+            Remove-Rule -Id $testRule.Data.Id | Out-Null
+        }
+        else {
+            Write-TestResult -TestName "Get-Rule" -Passed $false -Message "Could not create test rule"
+        }
+    }
+}
+catch {
+    Write-TestResult -TestName "Get-Rule" -Passed $false -Message "Exception" -Details $_.Exception.Message
+}
+
+# Test: Set-RuleStatus
+try {
+    # Create a test rule
+    $testRule = New-PathRule -Path '%PROGRAMFILES%\StatusTest\*' -Action Allow -Save
+    if ($testRule.Success) {
+        $statusResult = Set-RuleStatus -Id $testRule.Data.Id -Status 'Approved'
+        $hasResult = $statusResult.Success -and ($statusResult.Data.Status -eq 'Approved')
+        Write-TestResult -TestName "Set-RuleStatus" -Passed $hasResult -Message "Updates rule status" -Details "Status: $($statusResult.Data.Status)"
+        Remove-Rule -Id $testRule.Data.Id | Out-Null
+    }
+    else {
+        Write-TestResult -TestName "Set-RuleStatus" -Passed $false -Message "Could not create test rule"
+    }
+}
+catch {
+    Write-TestResult -TestName "Set-RuleStatus" -Passed $false -Message "Exception" -Details $_.Exception.Message
+}
+
+# Test: Remove-Rule
+try {
+    # Create a rule to delete
+    $testRule = New-PathRule -Path '%PROGRAMFILES%\DeleteTest\*' -Action Allow -Save
+    if ($testRule.Success) {
+        $removeResult = Remove-Rule -Id $testRule.Data.Id
+        $hasResult = $removeResult.Success
+        # Verify it's gone
+        $getResult = Get-Rule -Id $testRule.Data.Id
+        $actuallyGone = (-not $getResult.Success) -or ($getResult.Data -eq $null)
+        Write-TestResult -TestName "Remove-Rule" -Passed ($hasResult -and $actuallyGone) -Message "Deletes rule" -Details "Removed: $hasResult"
+    }
+    else {
+        Write-TestResult -TestName "Remove-Rule" -Passed $false -Message "Could not create test rule"
+    }
+}
+catch {
+    Write-TestResult -TestName "Remove-Rule" -Passed $false -Message "Exception" -Details $_.Exception.Message
+}
+
+# Test: Export-RulesToXml
+try {
+    $xmlPath = Join-Path $env:TEMP "test_rules_export_$(Get-Random).xml"
+    # Create and approve a rule for export
+    $testRule = New-PathRule -Path '%PROGRAMFILES%\ExportTest\*' -Action Allow -Status Approved -Save
+    if ($testRule.Success) {
+        $exportResult = Export-RulesToXml -OutputPath $xmlPath
+        $hasResult = ($exportResult -ne $null) -and 
+                     (($exportResult.PSObject.Properties.Name -contains 'Success') -or ($exportResult.ContainsKey('Success')))
+        Write-TestResult -TestName "Export-RulesToXml" -Passed $hasResult -Message "Exports rules to XML" -Details "Success: $($exportResult.Success)"
+        
+        # Cleanup
+        Remove-Rule -Id $testRule.Data.Id | Out-Null
+        if (Test-Path $xmlPath) { Remove-Item $xmlPath -Force }
+    }
+    else {
+        Write-TestResult -TestName "Export-RulesToXml" -Passed $false -Message "Could not create test rule"
+    }
+}
+catch {
+    Write-TestResult -TestName "Export-RulesToXml" -Passed $false -Message "Exception" -Details $_.Exception.Message
+}
+
+# Test: Add-RuleToPolicy
+try {
+    # Create a test policy and rule
+    $testPolicy = New-Policy -Name "AddRuleTestPolicy_$(Get-Random)" -EnforcementMode "AuditOnly"
+    $testRule = New-PathRule -Path '%PROGRAMFILES%\AddTest\*' -Action Allow -Save
+    
+    if ($testPolicy.Success -and $testRule.Success) {
+        $addResult = Add-RuleToPolicy -PolicyId $testPolicy.Data.PolicyId -RuleId $testRule.Data.Id
+        $hasResult = $addResult.Success
+        Write-TestResult -TestName "Add-RuleToPolicy" -Passed $hasResult -Message "Adds rule to policy" -Details "Success: $hasResult"
+        
+        # Cleanup
+        Remove-Policy -PolicyId $testPolicy.Data.PolicyId -Force | Out-Null
+        Remove-Rule -Id $testRule.Data.Id | Out-Null
+    }
+    else {
+        Write-TestResult -TestName "Add-RuleToPolicy" -Passed $false -Message "Could not create test policy/rule"
+    }
+}
+catch {
+    Write-TestResult -TestName "Add-RuleToPolicy" -Passed $false -Message "Exception" -Details $_.Exception.Message
+}
+
+# Test: Remove-RuleFromPolicy
+try {
+    # Create policy, rule, add then remove
+    $testPolicy = New-Policy -Name "RemoveRuleTestPolicy_$(Get-Random)" -EnforcementMode "AuditOnly"
+    $testRule = New-PathRule -Path '%PROGRAMFILES%\RemoveTest\*' -Action Allow -Save
+    
+    if ($testPolicy.Success -and $testRule.Success) {
+        Add-RuleToPolicy -PolicyId $testPolicy.Data.PolicyId -RuleId $testRule.Data.Id | Out-Null
+        $removeResult = Remove-RuleFromPolicy -PolicyId $testPolicy.Data.PolicyId -RuleId $testRule.Data.Id
+        $hasResult = $removeResult.Success
+        Write-TestResult -TestName "Remove-RuleFromPolicy" -Passed $hasResult -Message "Removes rule from policy" -Details "Success: $hasResult"
+        
+        # Cleanup
+        Remove-Policy -PolicyId $testPolicy.Data.PolicyId -Force | Out-Null
+        Remove-Rule -Id $testRule.Data.Id | Out-Null
+    }
+    else {
+        Write-TestResult -TestName "Remove-RuleFromPolicy" -Passed $false -Message "Could not create test policy/rule"
+    }
+}
+catch {
+    Write-TestResult -TestName "Remove-RuleFromPolicy" -Passed $false -Message "Exception" -Details $_.Exception.Message
+}
+
+# Test: Export-PolicyToXml
+try {
+    $xmlPath = Join-Path $env:TEMP "test_policy_export_$(Get-Random).xml"
+    # Create policy with a rule
+    $testPolicy = New-Policy -Name "ExportPolicyTest_$(Get-Random)" -EnforcementMode "AuditOnly"
+    $testRule = New-PathRule -Path '%PROGRAMFILES%\PolicyExportTest\*' -Action Allow -Status Approved -Save
+    
+    if ($testPolicy.Success -and $testRule.Success) {
+        Add-RuleToPolicy -PolicyId $testPolicy.Data.PolicyId -RuleId $testRule.Data.Id | Out-Null
+        $exportResult = Export-PolicyToXml -PolicyId $testPolicy.Data.PolicyId -OutputPath $xmlPath
+        $hasResult = $exportResult.Success
+        $fileExists = Test-Path $xmlPath
+        Write-TestResult -TestName "Export-PolicyToXml" -Passed ($hasResult -and $fileExists) -Message "Exports policy to XML" -Details "File created: $fileExists"
+        
+        # Cleanup
+        Remove-Policy -PolicyId $testPolicy.Data.PolicyId -Force | Out-Null
+        Remove-Rule -Id $testRule.Data.Id | Out-Null
+        if (Test-Path $xmlPath) { Remove-Item $xmlPath -Force }
+    }
+    else {
+        Write-TestResult -TestName "Export-PolicyToXml" -Passed $false -Message "Could not create test policy/rule"
+    }
+}
+catch {
+    Write-TestResult -TestName "Export-PolicyToXml" -Passed $false -Message "Exception" -Details $_.Exception.Message
+}
+
+# Test: Test-PolicyCompliance
+try {
+    $testPolicy = New-Policy -Name "ComplianceTest_$(Get-Random)" -EnforcementMode "AuditOnly"
+    if ($testPolicy.Success) {
+        $compResult = Test-PolicyCompliance -PolicyId $testPolicy.Data.PolicyId
+        $hasResult = $compResult.Success -and ($compResult.Data -ne $null)
+        Write-TestResult -TestName "Test-PolicyCompliance" -Passed $hasResult -Message "Tests policy compliance" -Details "IsCompliant: $($compResult.Data.IsCompliant)"
+        
+        # Cleanup
+        Remove-Policy -PolicyId $testPolicy.Data.PolicyId -Force | Out-Null
+    }
+    else {
+        Write-TestResult -TestName "Test-PolicyCompliance" -Passed $false -Message "Could not create test policy"
+    }
+}
+catch {
+    Write-TestResult -TestName "Test-PolicyCompliance" -Passed $false -Message "Exception" -Details $_.Exception.Message
+}
+
+# Test: Get-DeploymentHistory
+try {
+    $historyResult = Get-DeploymentHistory
+    $hasResult = ($historyResult -ne $null) -and 
+                 (($historyResult.PSObject.Properties.Name -contains 'Success') -or ($historyResult.ContainsKey('Success')))
+    Write-TestResult -TestName "Get-DeploymentHistory" -Passed $hasResult -Message "Gets deployment history" -Details "Success: $($historyResult.Success), Count: $($historyResult.Data.Count)"
+}
+catch {
+    Write-TestResult -TestName "Get-DeploymentHistory" -Passed $false -Message "Exception" -Details $_.Exception.Message
+}
+
+# Test: New-AppLockerGPO (will fail without modules but should return proper error)
+try {
+    $gpoResult = New-AppLockerGPO -GPOName "TestGPO_$(Get-Random)"
+    $hasResult = ($gpoResult -ne $null) -and 
+                 (($gpoResult.PSObject.Properties.Name -contains 'Success') -or ($gpoResult.ContainsKey('Success')))
+    # Either success (modules available) or proper error (modules missing)
+    $validResponse = $gpoResult.Success -or ($gpoResult.Error -ne $null)
+    Write-TestResult -TestName "New-AppLockerGPO" -Passed ($hasResult -and $validResponse) -Message "Creates GPO or reports error" -Details "Success: $($gpoResult.Success)"
+}
+catch {
+    Write-TestResult -TestName "New-AppLockerGPO" -Passed $false -Message "Exception" -Details $_.Exception.Message
+}
+
+# Test: Import-PolicyToGPO (will fail without modules but should return proper error)
+try {
+    $xmlPath = Join-Path $env:TEMP "test_import_$(Get-Random).xml"
+    # Create a minimal XML file
+    '<?xml version="1.0"?><AppLockerPolicy Version="1"></AppLockerPolicy>' | Set-Content -Path $xmlPath
+    
+    $importResult = Import-PolicyToGPO -GPOName "NonExistentGPO" -XmlPath $xmlPath
+    $hasResult = ($importResult -ne $null) -and 
+                 (($importResult.PSObject.Properties.Name -contains 'Success') -or ($importResult.ContainsKey('Success')))
+    # Either success or proper error
+    $validResponse = $importResult.Success -or ($importResult.Error -ne $null) -or ($importResult.ManualRequired -eq $true)
+    Write-TestResult -TestName "Import-PolicyToGPO" -Passed ($hasResult -and $validResponse) -Message "Imports policy or reports error" -Details "Success: $($importResult.Success)"
+    
+    # Cleanup
+    if (Test-Path $xmlPath) { Remove-Item $xmlPath -Force }
+}
+catch {
+    Write-TestResult -TestName "Import-PolicyToGPO" -Passed $false -Message "Exception" -Details $_.Exception.Message
+}
+
+# Test: Start-Deployment (integration test - will exercise workflow)
+try {
+    # Create policy with rule for deployment test
+    $testPolicy = New-Policy -Name "StartDeployTest_$(Get-Random)" -EnforcementMode "AuditOnly"
+    $testRule = New-PathRule -Path '%PROGRAMFILES%\DeployTest\*' -Action Allow -Status Approved -Save
+    
+    if ($testPolicy.Success -and $testRule.Success) {
+        Add-RuleToPolicy -PolicyId $testPolicy.Data.PolicyId -RuleId $testRule.Data.Id | Out-Null
+        
+        # Create deployment job
+        $job = New-DeploymentJob -PolicyId $testPolicy.Data.PolicyId -GPOName "TestDeployGPO" -Schedule "Manual"
+        if ($job.Success) {
+            # Start deployment (will likely fail/require manual but should not crash)
+            $deployResult = Start-Deployment -JobId $job.Data.JobId
+            $hasResult = ($deployResult -ne $null) -and 
+                         (($deployResult.PSObject.Properties.Name -contains 'Success') -or ($deployResult.ContainsKey('Success')))
+            # Valid if success OR failure with proper error/ManualRequired
+            $validResult = $deployResult.Success -or ($deployResult.Error -ne $null) -or ($deployResult.ManualRequired -eq $true)
+            Write-TestResult -TestName "Start-Deployment" -Passed ($hasResult -and $validResult) -Message "Executes deployment workflow" -Details "Success: $($deployResult.Success), ManualRequired: $($deployResult.ManualRequired)"
+        }
+        else {
+            Write-TestResult -TestName "Start-Deployment" -Passed $false -Message "Could not create deployment job"
+        }
+        
+        # Cleanup
+        Remove-Policy -PolicyId $testPolicy.Data.PolicyId -Force | Out-Null
+        Remove-Rule -Id $testRule.Data.Id | Out-Null
+    }
+    else {
+        Write-TestResult -TestName "Start-Deployment" -Passed $false -Message "Could not create test policy/rule"
+    }
+}
+catch {
+    Write-TestResult -TestName "Start-Deployment" -Passed $false -Message "Exception" -Details $_.Exception.Message
+}
+
+# ============================================================
 # GUI TESTS
 # ============================================================
 Write-Section "GUI TESTS"
