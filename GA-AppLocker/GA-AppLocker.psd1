@@ -53,7 +53,8 @@ Features:
         'Modules\GA-AppLocker.Scanning\GA-AppLocker.Scanning.psd1',
         'Modules\GA-AppLocker.Rules\GA-AppLocker.Rules.psd1',
         'Modules\GA-AppLocker.Policy\GA-AppLocker.Policy.psd1',
-        'Modules\GA-AppLocker.Deployment\GA-AppLocker.Deployment.psd1'
+        'Modules\GA-AppLocker.Deployment\GA-AppLocker.Deployment.psd1',
+        'Modules\GA-AppLocker.Setup\GA-AppLocker.Setup.psm1'
     )
 
     # Functions to export from this module (re-export from nested modules + GUI)
@@ -116,6 +117,14 @@ Features:
         'New-AppLockerGPO',
         'Import-PolicyToGPO',
         'Get-DeploymentHistory',
+        # Setup module
+        'Initialize-WinRMGPO',
+        'Initialize-AppLockerGPOs',
+        'Initialize-ADStructure',
+        'Initialize-AppLockerEnvironment',
+        'Get-SetupStatus',
+        'Enable-WinRMGPO',
+        'Disable-WinRMGPO',
         # Main module
         'Start-AppLockerDashboard'
     )

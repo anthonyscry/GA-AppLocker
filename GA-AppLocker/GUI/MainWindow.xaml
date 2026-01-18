@@ -7,21 +7,29 @@
     MinHeight="600"
     MinWidth="900"
     WindowStartupLocation="CenterScreen"
-    Background="#1E1E1E">
+    Background="#000000">
 
     <Window.Resources>
-        <!-- Color Palette -->
+        <!-- Color Palette - Maximum Contrast Dark Theme -->
         <SolidColorBrush x:Key="PrimaryBrush" Color="#0078D4"/>
         <SolidColorBrush x:Key="SecondaryBrush" Color="#106EBE"/>
-        <SolidColorBrush x:Key="BackgroundBrush" Color="#1E1E1E"/>
-        <SolidColorBrush x:Key="SidebarBrush" Color="#252526"/>
-        <SolidColorBrush x:Key="ContentBrush" Color="#2D2D30"/>
+        <SolidColorBrush x:Key="BackgroundBrush" Color="#000000"/>
+        <SolidColorBrush x:Key="SidebarBrush" Color="#121212"/>
+        <SolidColorBrush x:Key="ContentBrush" Color="#1E1E1E"/>
         <SolidColorBrush x:Key="ForegroundBrush" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="MutedBrush" Color="#9E9E9E"/>
-        <SolidColorBrush x:Key="BorderBrush" Color="#3E3E42"/>
-        <SolidColorBrush x:Key="SuccessBrush" Color="#4CAF50"/>
-        <SolidColorBrush x:Key="WarningBrush" Color="#FF9800"/>
-        <SolidColorBrush x:Key="ErrorBrush" Color="#F44336"/>
+        <SolidColorBrush x:Key="MutedBrush" Color="#CCCCCC"/>
+        <SolidColorBrush x:Key="BorderBrush" Color="#555555"/>
+        <SolidColorBrush x:Key="SuccessBrush" Color="#107C10"/>
+        <SolidColorBrush x:Key="WarningBrush" Color="#FF8C00"/>
+        <SolidColorBrush x:Key="ErrorBrush" Color="#D13438"/>
+        <!-- Additional UI Brushes -->
+        <SolidColorBrush x:Key="HoverBrush" Color="#2D2D2D"/>
+        <SolidColorBrush x:Key="PendingBrush" Color="#FF8C00"/>
+        <SolidColorBrush x:Key="ApprovedBrush" Color="#107C10"/>
+        <SolidColorBrush x:Key="ActiveBrush" Color="#0078D4"/>
+        <SolidColorBrush x:Key="ArchivedBrush" Color="#90A4AE"/>
+        <SolidColorBrush x:Key="RejectedBrush" Color="#D13438"/>
+        <SolidColorBrush x:Key="PurpleBrush" Color="#8764B8"/>
 
         <!-- Navigation Button Style -->
         <Style x:Key="NavButtonStyle" TargetType="Button">
@@ -77,7 +85,9 @@
         <!-- Action Button Style (for Quick Action cards) -->
         <Style x:Key="ActionButtonStyle" TargetType="Button">
             <Setter Property="Foreground" Value="White"/>
-            <Setter Property="Padding" Value="15,10"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="15,12"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="HorizontalAlignment" Value="Stretch"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -114,13 +124,114 @@
             <Setter Property="CaretBrush" Value="{StaticResource ForegroundBrush}"/>
         </Style>
 
+        <!-- ComboBox Toggle Button Template -->
+        <ControlTemplate x:Key="ComboBoxToggleButton" TargetType="ToggleButton">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition/>
+                    <ColumnDefinition Width="20"/>
+                </Grid.ColumnDefinitions>
+                <Border x:Name="Border" Grid.ColumnSpan="2" Background="#2D2D30" BorderBrush="#3E3E42" BorderThickness="1" CornerRadius="3"/>
+                <Path x:Name="Arrow" Grid.Column="1" Fill="#FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center" Data="M0,0 L4,4 L8,0 Z"/>
+            </Grid>
+        </ControlTemplate>
+
         <!-- ComboBox Style -->
         <Style x:Key="ComboBoxStyle" TargetType="ComboBox">
-            <Setter Property="Background" Value="#1E1E1E"/>
-            <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}"/>
+            <Setter Property="Background" Value="#2D2D30"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
             <Setter Property="BorderBrush" Value="#3E3E42"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="ItemContainerStyle">
+                <Setter.Value>
+                    <Style TargetType="ComboBoxItem">
+                        <Setter Property="Background" Value="#2D2D30"/>
+                        <Setter Property="Foreground" Value="#FFFFFF"/>
+                        <Setter Property="Padding" Value="8,6"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ComboBoxItem">
+                                    <Border x:Name="Bd" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsHighlighted" Value="True">
+                                            <Setter TargetName="Bd" Property="Background" Value="#0078D4"/>
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="Bd" Property="Background" Value="#0078D4"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton x:Name="ToggleButton" Template="{StaticResource ComboBoxToggleButton}" 
+                                          Focusable="False" IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" 
+                                          ClickMode="Press"/>
+                            <ContentPresenter x:Name="ContentSite" IsHitTestVisible="False" 
+                                              Content="{TemplateBinding SelectionBoxItem}" 
+                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                              Margin="10,6,25,6" VerticalAlignment="Center" HorizontalAlignment="Left">
+                                <ContentPresenter.Resources>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#FFFFFF"/>
+                                    </Style>
+                                </ContentPresenter.Resources>
+                            </ContentPresenter>
+                            <Popup x:Name="Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}" 
+                                   AllowsTransparency="True" Focusable="False" PopupAnimation="Slide">
+                                <Grid x:Name="DropDown" SnapsToDevicePixels="True" 
+                                      MinWidth="{TemplateBinding ActualWidth}" MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                    <Border x:Name="DropDownBorder" Background="#2D2D30" BorderBrush="#3E3E42" BorderThickness="1"/>
+                                    <ScrollViewer Margin="2" SnapsToDevicePixels="True">
+                                        <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained"/>
+                                    </ScrollViewer>
+                                </Grid>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <!-- Dark TabControl Style -->
+        <Style x:Key="DarkTabControl" TargetType="TabControl">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+        </Style>
+        
+        <Style x:Key="DarkTabItem" TargetType="TabItem">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
+            <Setter Property="Padding" Value="15,8"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border x:Name="Border" Background="{TemplateBinding Background}" 
+                                BorderThickness="0,0,0,2" BorderBrush="Transparent" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter x:Name="ContentSite" ContentSource="Header" HorizontalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}"/>
+                                <Setter TargetName="Border" Property="BorderBrush" Value="{StaticResource PrimaryBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <!-- Button Style -->
@@ -128,7 +239,7 @@
             <Setter Property="Background" Value="#3E3E42"/>
             <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="Padding" Value="15,8"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -188,62 +299,128 @@
             <Setter Property="RowBackground" Value="#1E1E1E"/>
             <Setter Property="AlternatingRowBackground" Value="#252526"/>
             <Setter Property="HeadersVisibility" Value="Column"/>
+            <Setter Property="ColumnHeaderStyle">
+                <Setter.Value>
+                    <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="Background" Value="#2D2D30"/>
+                        <Setter Property="Foreground" Value="#FFFFFF"/>
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                        <Setter Property="FontSize" Value="12"/>
+                        <Setter Property="Padding" Value="8,6"/>
+                        <Setter Property="BorderBrush" Value="#3E3E42"/>
+                        <Setter Property="BorderThickness" Value="0,0,1,1"/>
+                    </Style>
+                </Setter.Value>
+            </Setter>
         </Style>
     </Window.Resources>
 
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="220"/>
+            <ColumnDefinition x:Name="SidebarColumn" Width="220"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
         <!-- Sidebar Navigation -->
-        <Border Grid.Column="0" Background="{StaticResource SidebarBrush}">
+        <Border x:Name="SidebarBorder" Grid.Column="0" Background="{StaticResource SidebarBrush}">
             <DockPanel>
-                <!-- App Header -->
-                <StackPanel DockPanel.Dock="Top" Margin="15,20,15,30">
-                    <TextBlock Text="GA-AppLocker"
-                               FontSize="20"
-                               FontWeight="Bold"
-                               Foreground="{StaticResource ForegroundBrush}"/>
-                    <TextBlock Text="Dashboard v1.0.0"
-                               FontSize="11"
-                               Foreground="{StaticResource MutedBrush}"
-                               Margin="0,2,0,0"/>
-                </StackPanel>
+                <!-- App Header with Collapse Button -->
+                <Grid DockPanel.Dock="Top" Margin="15,20,15,30">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" x:Name="SidebarHeader">
+                        <TextBlock x:Name="SidebarTitle" Text="GA-AppLocker"
+                                   FontSize="20"
+                                   FontWeight="Bold"
+                                   Foreground="{StaticResource ForegroundBrush}"/>
+                        <TextBlock x:Name="SidebarSubtitle" Text="Dashboard v1.0.0"
+                                   FontSize="11"
+                                   Foreground="{StaticResource MutedBrush}"
+                                   Margin="0,2,0,0"/>
+                    </StackPanel>
+                    <Button x:Name="BtnCollapseSidebar" Grid.Column="1" 
+                            Content="&lt;&lt;" FontSize="12"
+                            Background="Transparent" Foreground="{StaticResource MutedBrush}"
+                            BorderThickness="0" Padding="5" Cursor="Hand"
+                            VerticalAlignment="Top" ToolTip="Collapse Sidebar"/>
+                </Grid>
 
                 <!-- Navigation Buttons -->
-                <StackPanel DockPanel.Dock="Top">
+                <StackPanel DockPanel.Dock="Top" x:Name="NavButtonsPanel">
                     <Button x:Name="NavDashboard"
                             Style="{StaticResource NavButtonStyle}"
-                            Tag="Active"
-                            Content="&#x1F4CA;  Dashboard"/>
+                            Tag="Active">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#x1F4CA;" FontSize="16" Width="24"/>
+                            <TextBlock x:Name="NavDashboardText" Text="Dashboard" Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </Button>
                     <Button x:Name="NavDiscovery"
-                            Style="{StaticResource NavButtonStyle}"
-                            Content="&#x1F50D;  AD Discovery"/>
+                            Style="{StaticResource NavButtonStyle}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#x1F50D;" FontSize="16" Width="24"/>
+                            <TextBlock x:Name="NavDiscoveryText" Text="AD Discovery" Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </Button>
                     <Button x:Name="NavScanner"
-                            Style="{StaticResource NavButtonStyle}"
-                            Content="&#x1F4C1;  Artifact Scanner"/>
+                            Style="{StaticResource NavButtonStyle}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#x1F4C1;" FontSize="16" Width="24"/>
+                            <TextBlock x:Name="NavScannerText" Text="Artifact Scanner" Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </Button>
                     <Button x:Name="NavRules"
-                            Style="{StaticResource NavButtonStyle}"
-                            Content="&#x1F4DD;  Rule Generator"/>
+                            Style="{StaticResource NavButtonStyle}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#x1F4DD;" FontSize="16" Width="24"/>
+                            <TextBlock x:Name="NavRulesText" Text="Rule Generator" Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </Button>
                     <Button x:Name="NavPolicy"
-                            Style="{StaticResource NavButtonStyle}"
-                            Content="&#x1F4CB;  Policy Builder"/>
+                            Style="{StaticResource NavButtonStyle}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#x1F4CB;" FontSize="16" Width="24"/>
+                            <TextBlock x:Name="NavPolicyText" Text="Policy Builder" Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </Button>
                     <Button x:Name="NavDeploy"
-                            Style="{StaticResource NavButtonStyle}"
-                            Content="&#x1F680;  Deployment"/>
+                            Style="{StaticResource NavButtonStyle}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#x1F680;" FontSize="16" Width="24"/>
+                            <TextBlock x:Name="NavDeployText" Text="Deployment" Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </Button>
 
-                    <Separator Margin="15,20" Background="#3E3E42"/>
+                    <Separator x:Name="NavSeparator" Margin="15,20" Background="#3E3E42"/>
 
                     <Button x:Name="NavSettings"
-                            Style="{StaticResource NavButtonStyle}"
-                            Content="&#x2699;  Settings"/>
+                            Style="{StaticResource NavButtonStyle}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#x2699;" FontSize="16" Width="24"/>
+                            <TextBlock x:Name="NavSettingsText" Text="Settings" Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="NavSetup"
+                            Style="{StaticResource NavButtonStyle}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#x1F527;" FontSize="16" Width="24"/>
+                            <TextBlock x:Name="NavSetupText" Text="Setup" Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="NavAbout"
+                            Style="{StaticResource NavButtonStyle}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#x2139;" FontSize="16" Width="24"/>
+                            <TextBlock x:Name="NavAboutText" Text="About" Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </Button>
                 </StackPanel>
 
                 <!-- Footer -->
-                <StackPanel DockPanel.Dock="Bottom" Margin="15,0,15,15" VerticalAlignment="Bottom">
-                    <Border Background="#333337" CornerRadius="6" Padding="10">
+                <StackPanel x:Name="SidebarFooter" DockPanel.Dock="Bottom" Margin="15,0,15,15" VerticalAlignment="Bottom">
+                    <Border Background="{StaticResource HoverBrush}" CornerRadius="6" Padding="10">
                         <StackPanel>
                             <TextBlock x:Name="StatusText"
                                        Text="Ready"
@@ -267,198 +444,238 @@
                 <Grid x:Name="PanelDashboard" Visibility="Visible">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     
-                    <!-- Header -->
-                    <TextBlock Grid.Row="0" Text="Dashboard" Style="{StaticResource HeaderStyle}"/>
-                    
-                    <!-- Main Content - Two Column Layout -->
-                    <Grid Grid.Row="1">
+                    <!-- Row 0: Header with System Info -->
+                    <Grid Grid.Row="0" Margin="0,0,0,20">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="20"/>
+                            <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="*"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
-                        
-                        <!-- Row 0: Section Headers -->
-                        <TextBlock Grid.Row="0" Grid.Column="0" Text="QUICK ACTIONS"
-                                   FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,15"/>
-                        <TextBlock Grid.Row="0" Grid.Column="2" Text="CURRENT STATUS"
-                                   FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,15"/>
-                        
-                        <!-- Row 1: Quick Actions (left) / Stats (right) -->
-                        <!-- Left: Quick Actions with colored icon boxes -->
-                        <Border Grid.Row="1" Grid.Column="0" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="20">
-                            <Grid VerticalAlignment="Stretch">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="*"/>
-                                    <RowDefinition Height="*"/>
-                                    <RowDefinition Height="*"/>
-                                </Grid.RowDefinitions>
-                                
-                                <!-- Full Scan -->
-                                <Grid Grid.Row="0" VerticalAlignment="Center">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <Border Grid.Column="0" Background="{StaticResource PrimaryBrush}" CornerRadius="6" Width="44" Height="44" Margin="0,0,15,0">
-                                        <TextBlock Text="S" FontSize="22" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                    </Border>
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                        <TextBlock Text="Full Scan" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource ForegroundBrush}"/>
-                                        <TextBlock Text="Scan all machines with auto-credentials" FontSize="11" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
-                                    </StackPanel>
-                                    <Button Grid.Column="2" Content="Start" Style="{StaticResource ActionButtonStyle}" Background="{StaticResource PrimaryBrush}" Width="75" VerticalAlignment="Center"/>
-                                </Grid>
-                                
-                                <!-- Import -->
-                                <Grid Grid.Row="1" VerticalAlignment="Center">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <Border Grid.Column="0" Background="{StaticResource SecondaryBrush}" CornerRadius="6" Width="44" Height="44" Margin="0,0,15,0">
-                                        <TextBlock Text="I" FontSize="22" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                    </Border>
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                        <TextBlock Text="Import &amp; Generate" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource ForegroundBrush}"/>
-                                        <TextBlock Text="Import artifacts and generate rules" FontSize="11" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
-                                    </StackPanel>
-                                    <Button Grid.Column="2" Content="Browse" Style="{StaticResource ActionButtonStyle}" Background="{StaticResource SecondaryBrush}" Width="75" VerticalAlignment="Center"/>
-                                </Grid>
-                                
-                                <!-- Deploy -->
-                                <Grid Grid.Row="2" VerticalAlignment="Center">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <Border Grid.Column="0" Background="{StaticResource SuccessBrush}" CornerRadius="6" Width="44" Height="44" Margin="0,0,15,0">
-                                        <TextBlock Text="D" FontSize="22" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                    </Border>
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                        <TextBlock Text="Deploy Policies" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource ForegroundBrush}"/>
-                                        <TextBlock Text="Deploy pending policies to OUs" FontSize="11" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap"/>
-                                    </StackPanel>
-                                    <Button Grid.Column="2" Content="Deploy" Style="{StaticResource ActionButtonStyle}" Background="{StaticResource SuccessBrush}" Width="75" VerticalAlignment="Center"/>
-                                </Grid>
-                            </Grid>
-                        </Border>
-                        
-                        <!-- Right: Stats Grid -->
-                        <Border Grid.Row="1" Grid.Column="2" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="20">
-                            <Grid VerticalAlignment="Stretch">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="15"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="*"/>
-                                    <RowDefinition Height="15"/>
-                                    <RowDefinition Height="*"/>
-                                </Grid.RowDefinitions>
-                                
-                                <!-- Machines -->
-                                <Border Grid.Row="0" Grid.Column="0" Background="{StaticResource ContentBrush}" CornerRadius="8" Padding="15">
-                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                        <TextBlock x:Name="StatMachines" Text="0" FontSize="36" FontWeight="Light" Foreground="{StaticResource PrimaryBrush}" HorizontalAlignment="Center"/>
-                                        <TextBlock Text="Machines" FontSize="13" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Center"/>
-                                    </StackPanel>
-                                </Border>
-                                
-                                <!-- Artifacts -->
-                                <Border Grid.Row="0" Grid.Column="2" Background="{StaticResource ContentBrush}" CornerRadius="8" Padding="15">
-                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                        <TextBlock x:Name="StatArtifacts" Text="0" FontSize="36" FontWeight="Light" Foreground="{StaticResource WarningBrush}" HorizontalAlignment="Center"/>
-                                        <TextBlock Text="Artifacts" FontSize="13" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Center"/>
-                                    </StackPanel>
-                                </Border>
-                                
-                                <!-- Rules -->
-                                <Border Grid.Row="2" Grid.Column="0" Background="{StaticResource ContentBrush}" CornerRadius="8" Padding="15">
-                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                        <TextBlock x:Name="StatRules" Text="0" FontSize="36" FontWeight="Light" Foreground="{StaticResource SuccessBrush}" HorizontalAlignment="Center"/>
-                                        <TextBlock Text="Rules" FontSize="13" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Center"/>
-                                    </StackPanel>
-                                </Border>
-                                
-                                <!-- Policies -->
-                                <Border Grid.Row="2" Grid.Column="2" Background="{StaticResource ContentBrush}" CornerRadius="8" Padding="15">
-                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                        <TextBlock x:Name="StatPolicies" Text="0" FontSize="36" FontWeight="Light" Foreground="#9C27B0" HorizontalAlignment="Center"/>
-                                        <TextBlock Text="Policies" FontSize="13" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Center"/>
-                                    </StackPanel>
-                                </Border>
-                            </Grid>
-                        </Border>
-                        
-                        <!-- Row 2: System Info bar (spans both columns) -->
-                        <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="20,15" Margin="0,20,0,0">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="40"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="40"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="40"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                
-                                <StackPanel Grid.Column="0" Orientation="Horizontal">
-                                    <TextBlock Text="Computer:" Foreground="{StaticResource MutedBrush}" Margin="0,0,8,0"/>
-                                    <TextBlock x:Name="SysInfoComputer" Text="Loading..." Foreground="{StaticResource ForegroundBrush}"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="2" Orientation="Horizontal">
-                                    <TextBlock Text="Domain:" Foreground="{StaticResource MutedBrush}" Margin="0,0,8,0"/>
-                                    <TextBlock x:Name="SysInfoDomain" Text="Loading..." Foreground="{StaticResource ForegroundBrush}"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="4" Orientation="Horizontal">
-                                    <TextBlock Text="User:" Foreground="{StaticResource MutedBrush}" Margin="0,0,8,0"/>
-                                    <TextBlock x:Name="SysInfoUser" Text="Loading..." Foreground="{StaticResource ForegroundBrush}"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="6" Orientation="Horizontal">
-                                    <TextBlock Text="Version:" Foreground="{StaticResource MutedBrush}" Margin="0,0,8,0"/>
-                                    <TextBlock Text="1.0.0" Foreground="{StaticResource ForegroundBrush}"/>
-                                </StackPanel>
-                            </Grid>
-                        </Border>
-                        
-                        <!-- Hidden data path for reference -->
-                        <TextBlock x:Name="SysInfoDataPath" Grid.Row="3" Visibility="Collapsed"/>
+                        <TextBlock Grid.Column="0" Text="Dashboard" Style="{StaticResource HeaderStyle}"/>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <TextBlock Text="Domain:" Foreground="{StaticResource MutedBrush}" Margin="0,0,5,0"/>
+                            <TextBlock x:Name="SysInfoDomain" Text="Loading..." Foreground="{StaticResource ForegroundBrush}" Margin="0,0,20,0"/>
+                            <TextBlock Text="User:" Foreground="{StaticResource MutedBrush}" Margin="0,0,5,0"/>
+                            <TextBlock x:Name="SysInfoUser" Text="Loading..." Foreground="{StaticResource ForegroundBrush}"/>
+                        </StackPanel>
+                        <TextBlock x:Name="SysInfoComputer" Visibility="Collapsed"/>
+                        <TextBlock x:Name="SysInfoDataPath" Visibility="Collapsed"/>
                     </Grid>
                     
-                    <!-- Bottom: Recent Activity (spans full width) -->
-                    <StackPanel Grid.Row="2" Margin="0,20,0,0">
-                        <TextBlock Text="RECENT ACTIVITY"
-                                   FontSize="12"
-                                   FontWeight="SemiBold"
-                                   Foreground="{StaticResource MutedBrush}"
-                                   Margin="0,0,0,10"/>
+                    <!-- Row 1: Stats Row - 5 cards across -->
+                    <Grid Grid.Row="1" Margin="0,0,0,20">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="10"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="10"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="10"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="10"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
                         
-                        <Border Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="15" MaxHeight="100">
-                            <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                <TextBlock x:Name="RecentActivityText"
-                                           Text="No recent activity. Start by navigating to AD Discovery to scan your domain for machines."
-                                           Foreground="{StaticResource MutedBrush}"
-                                           FontStyle="Italic"
-                                           TextWrapping="Wrap"/>
-                            </ScrollViewer>
+                        <!-- Machines -->
+                        <Border Grid.Column="0" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="15">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock x:Name="StatMachines" Text="0" FontSize="32" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Machines" FontSize="12" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Center"/>
+                            </StackPanel>
                         </Border>
-                    </StackPanel>
+                        
+                        <!-- Artifacts -->
+                        <Border Grid.Column="2" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="15">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock x:Name="StatArtifacts" Text="0" FontSize="32" FontWeight="Bold" Foreground="{StaticResource WarningBrush}" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Artifacts" FontSize="12" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                        
+                        <!-- Rules -->
+                        <Border Grid.Column="4" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="15">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock x:Name="StatRules" Text="0" FontSize="32" FontWeight="Bold" Foreground="{StaticResource SuccessBrush}" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Rules" FontSize="12" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                        
+                        <!-- Pending Approval -->
+                        <Border Grid.Column="6" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="15">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock x:Name="StatPending" Text="0" FontSize="32" FontWeight="Bold" Foreground="{StaticResource PendingBrush}" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Pending" FontSize="12" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                        
+                        <!-- Policies -->
+                        <Border Grid.Column="8" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="15">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock x:Name="StatPolicies" Text="0" FontSize="32" FontWeight="Bold" Foreground="{StaticResource PurpleBrush}" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Policies" FontSize="12" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                    
+                    <!-- Row 2: Main Content - 3 columns -->
+                    <Grid Grid.Row="2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="15"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="15"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <!-- Column 1: Recent Scans -->
+                        <Border Grid.Column="0" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="15">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                
+                                <TextBlock Grid.Row="0" Text="RECENT SCANS" FontSize="11" FontWeight="SemiBold" 
+                                           Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
+                                
+                                <ListBox x:Name="DashRecentScans" Grid.Row="1" 
+                                         Background="Transparent" BorderThickness="0"
+                                         Foreground="{StaticResource ForegroundBrush}"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                         HorizontalContentAlignment="Stretch">
+                                    <ListBox.ItemContainerStyle>
+                                        <Style TargetType="ListBoxItem">
+                                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                            <Setter Property="Padding" Value="0"/>
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{StaticResource ContentBrush}" CornerRadius="4" Padding="10,8" Margin="0,0,0,5">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel Grid.Column="0">
+                                                        <TextBlock Text="{Binding Name}" Foreground="{StaticResource ForegroundBrush}" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="{Binding Date}" Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+                                                    </StackPanel>
+                                                    <TextBlock Grid.Column="1" Text="{Binding Count}" Foreground="{StaticResource PrimaryBrush}" 
+                                                               FontWeight="Bold" VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                                
+                                <Button x:Name="BtnDashGoToScanner" Grid.Row="2" Content="Go to Scanner" 
+                                        Style="{StaticResource ActionButtonStyle}" Background="{StaticResource PrimaryBrush}"
+                                        HorizontalAlignment="Stretch" Margin="0,10,0,0"/>
+                            </Grid>
+                        </Border>
+                        
+                        <!-- Column 2: Pending Rules -->
+                        <Border Grid.Column="2" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="15">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                
+                                <TextBlock Grid.Row="0" Text="PENDING APPROVAL" FontSize="11" FontWeight="SemiBold" 
+                                           Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
+                                
+                                <ListBox x:Name="DashPendingRules" Grid.Row="1" 
+                                         Background="Transparent" BorderThickness="0"
+                                         Foreground="{StaticResource ForegroundBrush}"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                         HorizontalContentAlignment="Stretch">
+                                    <ListBox.ItemContainerStyle>
+                                        <Style TargetType="ListBoxItem">
+                                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                            <Setter Property="Padding" Value="0"/>
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{StaticResource ContentBrush}" CornerRadius="4" Padding="10,8" Margin="0,0,0,5">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <Border Grid.Column="0" Background="{StaticResource PendingBrush}" CornerRadius="3" Padding="5,2" Margin="0,0,8,0">
+                                                        <TextBlock Text="{Binding Type}" Foreground="White" FontSize="10"/>
+                                                    </Border>
+                                                    <TextBlock Grid.Column="1" Text="{Binding Name}" Foreground="{StaticResource ForegroundBrush}" 
+                                                               TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                                
+                                <Button x:Name="BtnDashGoToRules" Grid.Row="2" Content="Review Rules" 
+                                        Style="{StaticResource ActionButtonStyle}" Background="{StaticResource PendingBrush}"
+                                        HorizontalAlignment="Stretch" Margin="0,10,0,0"/>
+                            </Grid>
+                        </Border>
+                        
+                        <!-- Column 3: Quick Actions + Activity -->
+                        <Grid Grid.Column="4">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            
+                            <!-- Quick Actions -->
+                            <Border Grid.Row="0" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="15" Margin="0,0,0,15">
+                                <StackPanel>
+                                    <TextBlock Text="QUICK ACTIONS" FontSize="11" FontWeight="SemiBold" 
+                                               Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
+                                    
+                                    <Button x:Name="BtnDashQuickScan" Content="Start New Scan" 
+                                            Style="{StaticResource ActionButtonStyle}" Background="{StaticResource PrimaryBrush}"
+                                            HorizontalAlignment="Stretch" Margin="0,0,0,8"/>
+                                    
+                                    <Button x:Name="BtnDashQuickImport" Content="Import Artifacts" 
+                                            Style="{StaticResource ActionButtonStyle}" Background="{StaticResource SecondaryBrush}"
+                                            HorizontalAlignment="Stretch" Margin="0,0,0,8"/>
+                                    
+                                    <Button x:Name="BtnDashQuickDeploy" Content="Deploy Policy" 
+                                            Style="{StaticResource ActionButtonStyle}" Background="{StaticResource SuccessBrush}"
+                                            HorizontalAlignment="Stretch"/>
+                                </StackPanel>
+                            </Border>
+                            
+                            <!-- Recent Activity -->
+                            <Border Grid.Row="1" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="15">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+                                    
+                                    <TextBlock Grid.Row="0" Text="RECENT ACTIVITY" FontSize="11" FontWeight="SemiBold" 
+                                               Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
+                                    
+                                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                        <TextBlock x:Name="RecentActivityText"
+                                                   Text="No recent activity.&#x0a;&#x0a;Get started:&#x0a;1. Go to AD Discovery&#x0a;2. Scan for machines&#x0a;3. Generate rules&#x0a;4. Build policies&#x0a;5. Deploy to GPOs"
+                                                   Foreground="{StaticResource MutedBrush}"
+                                                   TextWrapping="Wrap"
+                                                   LineHeight="20"/>
+                                    </ScrollViewer>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </Grid>
                 </Grid>
 
                 <!-- AD Discovery Panel -->
@@ -480,13 +697,13 @@
                                         Content="&#x1F504; Refresh Domain"
                                         Style="{StaticResource ActionButtonStyle}"
                                         Background="{StaticResource PrimaryBrush}"
-                                        Width="140"
+                                        MinWidth="140"
                                         Margin="0,0,10,0"/>
                                 <Button x:Name="BtnTestConnectivity"
                                         Content="&#x1F4F6; Test Connectivity"
                                         Style="{StaticResource ActionButtonStyle}"
                                         Background="{StaticResource SecondaryBrush}"
-                                        Width="150"
+                                        MinWidth="150"
                                         Margin="0,0,10,0"/>
                             </StackPanel>
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
@@ -506,13 +723,12 @@
                     <!-- Main Content: Split OU Tree and Machine List -->
                     <Grid Grid.Row="2">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="300"/>
-                            <ColumnDefinition Width="15"/>
+                            <ColumnDefinition Width="280"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
                         <!-- OU Tree Panel -->
-                        <Border Grid.Column="0" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="15">
+                        <Border Grid.Column="0" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="15" Margin="0,0,10,0">
                             <DockPanel>
                                 <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">
                                     <TextBlock Text="ORGANIZATIONAL UNITS"
@@ -557,11 +773,8 @@
                             </DockPanel>
                         </Border>
 
-                        <!-- Splitter -->
-                        <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="Transparent"/>
-
                         <!-- Machine List Panel -->
-                        <Border Grid.Column="2" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="15">
+                        <Border Grid.Column="1" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="15">
                             <DockPanel>
                                 <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">
                                     <DockPanel>
@@ -664,30 +877,30 @@
                                         Content="&#x25B6; Start Scan"
                                         Style="{StaticResource ActionButtonStyle}"
                                         Background="{StaticResource SuccessBrush}"
-                                        Width="120"
+                                        MinWidth="130"
                                         Margin="0,0,10,0"/>
                                 <Button x:Name="BtnStopScan"
                                         Content="&#x25A0; Stop"
                                         Style="{StaticResource ActionButtonStyle}"
                                         Background="{StaticResource ErrorBrush}"
-                                        Width="80"
+                                        MinWidth="130"
                                         Margin="0,0,10,0"
                                         IsEnabled="False"/>
-                                <Rectangle Width="1" Fill="#3E3E42" Margin="10,0"/>
-                                <Button x:Name="BtnImportArtifacts"
-                                        Content="&#x1F4E5; Import"
-                                        Style="{StaticResource ActionButtonStyle}"
-                                        Background="{StaticResource SecondaryBrush}"
-                                        Width="100"
-                                        Margin="10,0,10,0"/>
-                                <Button x:Name="BtnExportArtifacts"
-                                        Content="&#x1F4E4; Export"
-                                        Style="{StaticResource ActionButtonStyle}"
-                                        Background="{StaticResource PrimaryBrush}"
-                                        Width="100"
-                                        Margin="0,0,10,0"/>
                             </StackPanel>
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button x:Name="BtnImportArtifacts"
+                                        Content="Import"
+                                        Style="{StaticResource ActionButtonStyle}"
+                                        Background="{StaticResource SecondaryBrush}"
+                                        MinWidth="100"
+                                        Margin="0,0,10,0"/>
+                                <Button x:Name="BtnExportArtifacts"
+                                        Content="Export"
+                                        Style="{StaticResource ActionButtonStyle}"
+                                        Background="{StaticResource PrimaryBrush}"
+                                        MinWidth="100"
+                                        Margin="0,0,10,0"/>
+                                <Rectangle Width="1" Fill="{StaticResource BorderBrush}" Margin="10,0,15,0"/>
                                 <TextBlock x:Name="ScanStatusLabel"
                                            Text="Ready"
                                            Foreground="{StaticResource SuccessBrush}"
@@ -704,14 +917,13 @@
                     <!-- Main Content: Tabbed Configuration + Results -->
                     <Grid Grid.Row="2">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="300"/>
-                            <ColumnDefinition Width="15"/>
+                            <ColumnDefinition Width="280"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
                         <!-- Left: Tabbed Configuration -->
-                        <Border Grid.Column="0" Background="{StaticResource SidebarBrush}" CornerRadius="8">
-                            <TabControl Background="Transparent" BorderThickness="0" Padding="0">
+                        <Border Grid.Column="0" Background="{StaticResource SidebarBrush}" CornerRadius="8" Margin="0,0,10,0" VerticalAlignment="Stretch">
+                            <TabControl Background="Transparent" BorderThickness="0" Padding="0" VerticalAlignment="Stretch">
                                 <TabControl.Resources>
                                     <Style TargetType="TabItem">
                                         <Setter Property="Background" Value="Transparent"/>
@@ -754,7 +966,7 @@
                                         
                                         <!-- Scan Paths -->
                                         <TextBlock Text="SCAN PATHS" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,6"/>
-                                        <TextBox x:Name="TxtScanPaths" Background="#1E1E1E" Foreground="{StaticResource ForegroundBrush}" BorderBrush="#3E3E42" Padding="8,6" AcceptsReturn="True" TextWrapping="Wrap" Height="60" VerticalScrollBarVisibility="Auto"/>
+                                        <TextBox x:Name="TxtScanPaths" Background="#1E1E1E" Foreground="{StaticResource ForegroundBrush}" BorderBrush="#3E3E42" Padding="8,6" AcceptsReturn="True" TextWrapping="Wrap" Height="120" VerticalScrollBarVisibility="Auto"/>
                                         <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
                                             <Button x:Name="BtnBrowsePath" Content="Browse" Background="Transparent" Foreground="{StaticResource PrimaryBrush}" BorderThickness="0" Padding="0" Cursor="Hand" Margin="0,0,12,0"/>
                                             <Button x:Name="BtnResetPaths" Content="Reset" Background="Transparent" Foreground="{StaticResource MutedBrush}" BorderThickness="0" Padding="0" Cursor="Hand"/>
@@ -815,11 +1027,8 @@
                             </TabControl>
                         </Border>
 
-                        <!-- Splitter -->
-                        <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="Transparent"/>
-
                         <!-- Right: Artifact Results -->
-                        <Border Grid.Column="2" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="15">
+                        <Border Grid.Column="1" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="15">
                             <DockPanel>
                                 <!-- Header with filters -->
                                 <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">
@@ -918,7 +1127,7 @@
                                 </DockPanel>
                                 <ProgressBar x:Name="ScanProgressBar"
                                              Height="8"
-                                             Background="#1E1E1E"
+                                             Background="{StaticResource BackgroundBrush}"
                                              Foreground="{StaticResource PrimaryBrush}"
                                              Value="0"
                                              Maximum="100"/>
@@ -958,19 +1167,43 @@
                     <!-- Main Content -->
                     <Grid Grid.Row="1">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="320"/>
+                            <ColumnDefinition Width="280"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
-                        <!-- Left: Rule Generation Options -->
-                        <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" Margin="0,0,10,0">
-                            <StackPanel>
-                                <!-- Generate from Artifacts -->
-                                <Border Style="{StaticResource CardStyle}">
-                                    <StackPanel>
-                                        <TextBlock Text="GENERATE FROM ARTIFACTS" 
-                                                   FontSize="11" FontWeight="SemiBold" 
-                                                   Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
+                        <!-- Left: Tabbed Rule Generation Options -->
+                        <Border Grid.Column="0" Background="{StaticResource SidebarBrush}" CornerRadius="8" Margin="0,0,10,0" VerticalAlignment="Stretch">
+                            <TabControl Background="Transparent" BorderThickness="0" Padding="0" VerticalAlignment="Stretch">
+                                <TabControl.Resources>
+                                    <Style TargetType="TabItem">
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
+                                        <Setter Property="Padding" Value="12,8"/>
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="TabItem">
+                                                    <Border x:Name="border" Background="Transparent" Padding="{TemplateBinding Padding}" BorderThickness="0,0,0,2" BorderBrush="Transparent">
+                                                        <ContentPresenter ContentSource="Header"/>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsSelected" Value="True">
+                                                            <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource PrimaryBrush}"/>
+                                                            <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}"/>
+                                                        </Trigger>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </TabControl.Resources>
+                                
+                                <!-- Tab 1: Generate from Artifacts -->
+                                <TabItem Header="Generate">
+                                    <StackPanel Margin="15">
+                                        <TextBlock Text="GENERATE FROM ARTIFACTS" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
                                         
                                         <TextBlock Text="Collection Name:" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,5"/>
                                         <TextBox x:Name="TxtRuleCollectionName" 
@@ -993,19 +1226,27 @@
                                                          Foreground="{StaticResource ForegroundBrush}"/>
                                         </StackPanel>
 
+                                        <TextBlock Text="Apply To:" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,5"/>
+                                        <ComboBox x:Name="CboRuleTargetGroup" Style="{StaticResource ComboBoxStyle}" Margin="0,0,0,15">
+                                            <ComboBoxItem Content="Everyone" IsSelected="True" Tag="S-1-1-0"/>
+                                            <ComboBoxItem Content="Administrators" Tag="S-1-5-32-544"/>
+                                            <ComboBoxItem Content="Users" Tag="S-1-5-32-545"/>
+                                            <ComboBoxItem Content="Authenticated Users" Tag="S-1-5-11"/>
+                                            <ComboBoxItem Content="Domain Users" Tag="S-1-5-21-*-513"/>
+                                            <ComboBoxItem Content="Domain Admins" Tag="S-1-5-21-*-512"/>
+                                        </ComboBox>
+
                                         <Button x:Name="BtnGenerateFromArtifacts" 
                                                 Content="Generate Rules from Current Scan"
                                                 Style="{StaticResource PrimaryButtonStyle}"
                                                 Tag="GenerateFromArtifacts"/>
                                     </StackPanel>
-                                </Border>
-
-                                <!-- Manual Rule Creation -->
-                                <Border Style="{StaticResource CardStyle}">
-                                    <StackPanel>
-                                        <TextBlock Text="MANUAL RULE CREATION" 
-                                                   FontSize="11" FontWeight="SemiBold" 
-                                                   Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
+                                </TabItem>
+                                
+                                <!-- Tab 2: Manual Rule Creation -->
+                                <TabItem Header="Manual">
+                                    <StackPanel Margin="15">
+                                        <TextBlock Text="MANUAL RULE CREATION" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
 
                                         <TextBlock Text="Rule Type:" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,5"/>
                                         <ComboBox x:Name="CboManualRuleType" Style="{StaticResource ComboBoxStyle}" Margin="0,0,0,10">
@@ -1017,43 +1258,56 @@
                                         <TextBlock Text="Path / Hash / Publisher:" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,5"/>
                                         <TextBox x:Name="TxtManualRuleValue" 
                                                  Style="{StaticResource TextBoxStyle}"
-                                                 Height="60" TextWrapping="Wrap" AcceptsReturn="True"
+                                                 Height="80" TextWrapping="Wrap" AcceptsReturn="True"
                                                  VerticalContentAlignment="Top" Margin="0,0,0,10"/>
 
                                         <TextBlock Text="Description:" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,5"/>
                                         <TextBox x:Name="TxtManualRuleDesc" 
                                                  Style="{StaticResource TextBoxStyle}" Margin="0,0,0,10"/>
 
+                                        <TextBlock Text="Apply To:" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,5"/>
+                                        <ComboBox x:Name="CboManualRuleTargetGroup" Style="{StaticResource ComboBoxStyle}" Margin="0,0,0,15">
+                                            <ComboBoxItem Content="Everyone" IsSelected="True" Tag="S-1-1-0"/>
+                                            <ComboBoxItem Content="Administrators" Tag="S-1-5-32-544"/>
+                                            <ComboBoxItem Content="Users" Tag="S-1-5-32-545"/>
+                                            <ComboBoxItem Content="Authenticated Users" Tag="S-1-5-11"/>
+                                            <ComboBoxItem Content="Domain Users" Tag="S-1-5-21-*-513"/>
+                                            <ComboBoxItem Content="Domain Admins" Tag="S-1-5-21-*-512"/>
+                                        </ComboBox>
+
                                         <Button x:Name="BtnCreateManualRule" 
                                                 Content="Create Rule"
                                                 Style="{StaticResource ButtonStyle}"
                                                 Tag="CreateManualRule"/>
                                     </StackPanel>
-                                </Border>
-
-                                <!-- Export Options -->
-                                <Border Style="{StaticResource CardStyle}">
-                                    <StackPanel>
-                                        <TextBlock Text="EXPORT" 
-                                                   FontSize="11" FontWeight="SemiBold" 
-                                                   Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
+                                </TabItem>
+                                
+                                <!-- Tab 3: Export Options -->
+                                <TabItem Header="Export">
+                                    <StackPanel Margin="15">
+                                        <TextBlock Text="EXPORT OPTIONS" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
 
                                         <CheckBox x:Name="ChkExportApprovedOnly" 
                                                   Content="Export approved rules only"
                                                   IsChecked="True"
-                                                  Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,10"/>
+                                                  Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,15"/>
 
                                         <Button x:Name="BtnExportRulesXml" 
                                                 Content="Export to AppLocker XML"
                                                 Style="{StaticResource PrimaryButtonStyle}"
-                                                Tag="ExportRulesXml"/>
+                                                Tag="ExportRulesXml" Margin="0,0,0,10"/>
+                                        
+                                        <Button x:Name="BtnExportRulesCsv" 
+                                                Content="Export to CSV"
+                                                Style="{StaticResource ButtonStyle}"
+                                                Tag="ExportRulesCsv"/>
                                     </StackPanel>
-                                </Border>
-                            </StackPanel>
-                        </ScrollViewer>
+                                </TabItem>
+                            </TabControl>
+                        </Border>
 
                         <!-- Right: Rules DataGrid -->
-                        <Border Grid.Column="1" Style="{StaticResource CardStyle}">
+                        <Border Grid.Column="1" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="15">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
@@ -1075,29 +1329,29 @@
 
                                     <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="10,0,0,0">
                                         <Button x:Name="BtnRefreshRules" Content="Refresh" 
-                                                Style="{StaticResource ButtonStyle}" Width="70" Tag="RefreshRules"/>
+                                                Style="{StaticResource ButtonStyle}" MinWidth="70" Tag="RefreshRules"/>
                                     </StackPanel>
                                 </Grid>
 
                                 <!-- Type/Status Filter Buttons -->
                                 <WrapPanel Grid.Row="1" Margin="0,0,0,10">
                                     <Button x:Name="BtnFilterAllRules" Content="All" 
-                                            Style="{StaticResource ButtonStyle}" Width="50" Margin="0,0,5,5" Tag="FilterRulesAll"/>
+                                            Style="{StaticResource ButtonStyle}" MinWidth="50" Margin="0,0,5,5" Tag="FilterRulesAll"/>
                                     <Button x:Name="BtnFilterPublisher" Content="Publisher" 
-                                            Style="{StaticResource ButtonStyle}" Width="70" Margin="0,0,5,5" Tag="FilterRulesPublisher"/>
+                                            Style="{StaticResource ButtonStyle}" MinWidth="70" Margin="0,0,5,5" Tag="FilterRulesPublisher"/>
                                     <Button x:Name="BtnFilterHash" Content="Hash" 
-                                            Style="{StaticResource ButtonStyle}" Width="50" Margin="0,0,5,5" Tag="FilterRulesHash"/>
+                                            Style="{StaticResource ButtonStyle}" MinWidth="50" Margin="0,0,5,5" Tag="FilterRulesHash"/>
                                     <Button x:Name="BtnFilterPath" Content="Path" 
-                                            Style="{StaticResource ButtonStyle}" Width="50" Margin="0,0,5,5" Tag="FilterRulesPath"/>
+                                            Style="{StaticResource ButtonStyle}" MinWidth="50" Margin="0,0,5,5" Tag="FilterRulesPath"/>
                                     <Border Width="1" Background="{StaticResource BorderBrush}" Margin="5,0,10,5"/>
                                     <Button x:Name="BtnFilterPending" Content="Pending" 
-                                            Style="{StaticResource ButtonStyle}" Width="60" Margin="0,0,5,5" 
-                                            Background="#7D5A00" Tag="FilterRulesPending"/>
+                                            Style="{StaticResource ButtonStyle}" MinWidth="60" Margin="0,0,5,5" 
+                                            Background="{StaticResource PendingBrush}" Tag="FilterRulesPending"/>
                                     <Button x:Name="BtnFilterApproved" Content="Approved" 
-                                            Style="{StaticResource ButtonStyle}" Width="70" Margin="0,0,5,5" 
-                                            Background="#1B5E20" Tag="FilterRulesApproved"/>
+                                            Style="{StaticResource ButtonStyle}" MinWidth="70" Margin="0,0,5,5" 
+                                            Background="{StaticResource ApprovedBrush}" Tag="FilterRulesApproved"/>
                                     <Button x:Name="BtnFilterRejected" Content="Rejected" 
-                                            Style="{StaticResource ButtonStyle}" Width="65" Margin="0,0,5,5" 
+                                            Style="{StaticResource ButtonStyle}" MinWidth="65" Margin="0,0,5,5" 
                                             Background="#8B0000" Tag="FilterRulesRejected"/>
                                 </WrapPanel>
 
@@ -1146,20 +1400,20 @@
                                 <!-- Action Buttons -->
                                 <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,10,0,0">
                                     <Button x:Name="BtnApproveRule" Content="Approve" 
-                                            Style="{StaticResource ButtonStyle}" Width="75" Margin="0,0,5,0"
-                                            Background="#1B5E20" Tag="ApproveRule"/>
+                                            Style="{StaticResource ButtonStyle}" MinWidth="75" Margin="0,0,5,0"
+                                            Background="{StaticResource ApprovedBrush}" Tag="ApproveRule"/>
                                     <Button x:Name="BtnRejectRule" Content="Reject" 
-                                            Style="{StaticResource ButtonStyle}" Width="75" Margin="0,0,5,0"
+                                            Style="{StaticResource ButtonStyle}" MinWidth="75" Margin="0,0,5,0"
                                             Background="#8B0000" Tag="RejectRule"/>
                                     <Button x:Name="BtnReviewRule" Content="Review" 
-                                            Style="{StaticResource ButtonStyle}" Width="75" Margin="0,0,5,0"
-                                            Background="#1565C0" Tag="ReviewRule"/>
+                                            Style="{StaticResource ButtonStyle}" MinWidth="75" Margin="0,0,5,0"
+                                            Background="{StaticResource ActiveBrush}" Tag="ReviewRule"/>
                                     <Border Width="1" Background="{StaticResource BorderBrush}" Margin="5,0,10,0"/>
                                     <Button x:Name="BtnDeleteRule" Content="Delete" 
-                                            Style="{StaticResource ButtonStyle}" Width="75" Margin="0,0,5,0"
+                                            Style="{StaticResource ButtonStyle}" MinWidth="75" Margin="0,0,5,0"
                                             Tag="DeleteRule"/>
                                     <Button x:Name="BtnViewRuleDetails" Content="Details" 
-                                            Style="{StaticResource ButtonStyle}" Width="75"
+                                            Style="{StaticResource ButtonStyle}" MinWidth="75"
                                             Tag="ViewRuleDetails"/>
                                 </StackPanel>
                             </Grid>
@@ -1167,33 +1421,17 @@
                     </Grid>
 
                     <!-- Status Bar -->
-                    <Border Grid.Row="2" Background="{StaticResource SidebarBrush}" Padding="10,8" Margin="0,10,0,0" CornerRadius="4">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-
-                            <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,0,20,0">
-                                <TextBlock Text="Total:" Foreground="{StaticResource MutedBrush}" Margin="0,0,5,0"/>
-                                <TextBlock x:Name="TxtRuleTotalCount" Text="0" Foreground="{StaticResource ForegroundBrush}" FontWeight="SemiBold"/>
-                            </StackPanel>
-                            <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,20,0">
-                                <TextBlock Text="Pending:" Foreground="#FFD54F" Margin="0,0,5,0"/>
-                                <TextBlock x:Name="TxtRulePendingCount" Text="0" Foreground="#FFD54F" FontWeight="SemiBold"/>
-                            </StackPanel>
-                            <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,20,0">
-                                <TextBlock Text="Approved:" Foreground="#81C784" Margin="0,0,5,0"/>
-                                <TextBlock x:Name="TxtRuleApprovedCount" Text="0" Foreground="#81C784" FontWeight="SemiBold"/>
-                            </StackPanel>
-                            <StackPanel Grid.Column="3" Orientation="Horizontal">
-                                <TextBlock Text="Rejected:" Foreground="#E57373" Margin="0,0,5,0"/>
-                                <TextBlock x:Name="TxtRuleRejectedCount" Text="0" Foreground="#E57373" FontWeight="SemiBold"/>
-                            </StackPanel>
-                        </Grid>
+                    <Border Grid.Row="2" Background="{StaticResource SidebarBrush}" Padding="15,10" Margin="0,10,0,0" CornerRadius="4">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Total:" Foreground="{StaticResource MutedBrush}" FontSize="13" Margin="0,0,5,0"/>
+                            <TextBlock x:Name="TxtRuleTotalCount" Text="0" Foreground="{StaticResource ForegroundBrush}" FontSize="13" FontWeight="Bold" Margin="0,0,25,0"/>
+                            <TextBlock Text="Pending:" Foreground="{StaticResource PendingBrush}" FontSize="13" Margin="0,0,5,0"/>
+                            <TextBlock x:Name="TxtRulePendingCount" Text="0" Foreground="{StaticResource PendingBrush}" FontSize="13" FontWeight="Bold" Margin="0,0,25,0"/>
+                            <TextBlock Text="Approved:" Foreground="{StaticResource ApprovedBrush}" FontSize="13" Margin="0,0,5,0"/>
+                            <TextBlock x:Name="TxtRuleApprovedCount" Text="0" Foreground="{StaticResource ApprovedBrush}" FontSize="13" FontWeight="Bold" Margin="0,0,25,0"/>
+                            <TextBlock Text="Rejected:" Foreground="{StaticResource RejectedBrush}" FontSize="13" Margin="0,0,5,0"/>
+                            <TextBlock x:Name="TxtRuleRejectedCount" Text="0" Foreground="{StaticResource RejectedBrush}" FontSize="13" FontWeight="Bold"/>
+                        </StackPanel>
                     </Border>
                 </Grid>
 
@@ -1211,19 +1449,43 @@
                     <!-- Main Content -->
                     <Grid Grid.Row="1">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="320"/>
+                            <ColumnDefinition Width="280"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
-                        <!-- Left: Policy Creation/Edit -->
-                        <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" Margin="0,0,10,0">
-                            <StackPanel>
-                                <!-- New Policy -->
-                                <Border Style="{StaticResource CardStyle}">
-                                    <StackPanel>
-                                        <TextBlock Text="CREATE POLICY" 
-                                                   FontSize="11" FontWeight="SemiBold" 
-                                                   Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
+                        <!-- Left: Tabbed Policy Options -->
+                        <Border Grid.Column="0" Background="{StaticResource SidebarBrush}" CornerRadius="8" Margin="0,0,10,0" VerticalAlignment="Stretch">
+                            <TabControl Background="Transparent" BorderThickness="0" Padding="0" VerticalAlignment="Stretch">
+                                <TabControl.Resources>
+                                    <Style TargetType="TabItem">
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
+                                        <Setter Property="Padding" Value="12,8"/>
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="TabItem">
+                                                    <Border x:Name="border" Background="Transparent" Padding="{TemplateBinding Padding}" BorderThickness="0,0,0,2" BorderBrush="Transparent">
+                                                        <ContentPresenter ContentSource="Header"/>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsSelected" Value="True">
+                                                            <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource PrimaryBrush}"/>
+                                                            <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}"/>
+                                                        </Trigger>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </TabControl.Resources>
+                                
+                                <!-- Tab 1: Create Policy -->
+                                <TabItem Header="Create">
+                                    <StackPanel Margin="15">
+                                        <TextBlock Text="CREATE POLICY" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
 
                                         <TextBlock Text="Policy Name:" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,5"/>
                                         <TextBox x:Name="TxtPolicyName" 
@@ -1232,7 +1494,7 @@
                                         <TextBlock Text="Description:" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,5"/>
                                         <TextBox x:Name="TxtPolicyDescription" 
                                                  Style="{StaticResource TextBoxStyle}"
-                                                 Height="50" TextWrapping="Wrap" AcceptsReturn="True"
+                                                 Height="60" TextWrapping="Wrap" AcceptsReturn="True"
                                                  VerticalContentAlignment="Top" Margin="0,0,0,10"/>
 
                                         <TextBlock Text="Enforcement Mode:" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,5"/>
@@ -1247,14 +1509,12 @@
                                                 Style="{StaticResource PrimaryButtonStyle}"
                                                 Tag="CreatePolicy"/>
                                     </StackPanel>
-                                </Border>
-
-                                <!-- Policy Rules -->
-                                <Border Style="{StaticResource CardStyle}">
-                                    <StackPanel>
-                                        <TextBlock Text="POLICY RULES" 
-                                                   FontSize="11" FontWeight="SemiBold" 
-                                                   Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
+                                </TabItem>
+                                
+                                <!-- Tab 2: Policy Rules -->
+                                <TabItem Header="Rules">
+                                    <StackPanel Margin="15">
+                                        <TextBlock Text="POLICY RULES" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
 
                                         <TextBlock Text="Selected Policy:" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,5"/>
                                         <TextBlock x:Name="TxtSelectedPolicyName" 
@@ -1265,56 +1525,44 @@
                                         <TextBlock Text="Rules in Policy:" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,5"/>
                                         <TextBlock x:Name="TxtPolicyRuleCount" 
                                                    Text="0 rules" 
-                                                   Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
+                                                   Foreground="{StaticResource MutedBrush}" Margin="0,0,0,15"/>
 
-                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                                        <StackPanel Orientation="Horizontal">
                                             <Button x:Name="BtnAddRulesToPolicy" Content="Add Rules" 
-                                                    Style="{StaticResource ButtonStyle}" Width="90" Margin="0,0,5,0"
+                                                    Style="{StaticResource ButtonStyle}" MinWidth="90" Margin="0,0,5,0"
                                                     Tag="AddRulesToPolicy"/>
                                             <Button x:Name="BtnRemoveRulesFromPolicy" Content="Remove" 
-                                                    Style="{StaticResource ButtonStyle}" Width="70"
+                                                    Style="{StaticResource ButtonStyle}" MinWidth="70"
                                                     Tag="RemoveRulesFromPolicy"/>
                                         </StackPanel>
                                     </StackPanel>
-                                </Border>
+                                </TabItem>
+                                
+                                <!-- Tab 3: Export -->
+                                <TabItem Header="Export">
+                                    <StackPanel Margin="15">
+                                        <TextBlock Text="EXPORT POLICY" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
 
-                                <!-- Policy Targets -->
-                                <Border Style="{StaticResource CardStyle}">
-                                    <StackPanel>
-                                        <TextBlock Text="DEPLOYMENT TARGETS" 
-                                                   FontSize="11" FontWeight="SemiBold" 
-                                                   Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
+                                        <TextBlock Text="Selected Policy:" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,5"/>
+                                        <TextBlock x:Name="TxtExportPolicyName" 
+                                                   Text="(Select a policy)" 
+                                                   Foreground="{StaticResource MutedBrush}" 
+                                                   FontStyle="Italic" Margin="0,0,0,15"/>
 
-                                        <TextBlock Text="Target GPO Name:" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,5"/>
-                                        <TextBox x:Name="TxtTargetGPO" 
-                                                 Style="{StaticResource TextBoxStyle}" Margin="0,0,0,10"/>
-
-                                        <TextBlock Text="Target OUs:" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,5"/>
-                                        <ListBox x:Name="PolicyTargetOUsList" 
-                                                 Background="#1E1E1E" Foreground="{StaticResource ForegroundBrush}"
-                                                 BorderBrush="#3E3E42" Height="80" Margin="0,0,0,10"/>
-
-                                        <StackPanel Orientation="Horizontal">
-                                            <Button x:Name="BtnSelectTargetOUs" Content="Select OUs" 
-                                                    Style="{StaticResource ButtonStyle}" Width="90" Margin="0,0,5,0"
-                                                    Tag="SelectTargetOUs"/>
-                                            <Button x:Name="BtnSaveTargets" Content="Save Targets" 
-                                                    Style="{StaticResource PrimaryButtonStyle}" Width="90"
-                                                    Tag="SavePolicyTargets"/>
-                                        </StackPanel>
+                                        <Button x:Name="BtnExportPolicyXml" Content="Export to AppLocker XML" 
+                                                Style="{StaticResource PrimaryButtonStyle}" Margin="0,0,0,10"
+                                                Tag="ExportPolicyXml"/>
+                                        
+                                        <Button x:Name="BtnExportPolicyCsv" Content="Export to CSV" 
+                                                Style="{StaticResource ButtonStyle}"
+                                                Tag="ExportPolicyCsv"/>
                                     </StackPanel>
-                                </Border>
-                            </StackPanel>
-                        </ScrollViewer>
+                                </TabItem>
+                            </TabControl>
+                        </Border>
 
                         <!-- Right: Policies List and Details -->
-                        <Grid Grid.Column="1">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="*"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-
-                            <Border Grid.Row="0" Style="{StaticResource CardStyle}">
+                        <Border Grid.Column="1" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="15">
                                 <Grid>
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto"/>
@@ -1335,26 +1583,26 @@
                                                  Tag="Filter policies..."/>
 
                                         <Button Grid.Column="1" x:Name="BtnRefreshPolicies" Content="Refresh" 
-                                                Style="{StaticResource ButtonStyle}" Width="70" Margin="10,0,0,0"
+                                                Style="{StaticResource ButtonStyle}" MinWidth="70" Margin="10,0,0,0"
                                                 Tag="RefreshPolicies"/>
                                     </Grid>
 
                                     <!-- Status Filter -->
                                     <WrapPanel Grid.Row="1" Margin="0,0,0,10">
                                         <Button x:Name="BtnFilterAllPolicies" Content="All" 
-                                                Style="{StaticResource ButtonStyle}" Width="50" Margin="0,0,5,0" Tag="FilterPoliciesAll"/>
+                                                Style="{StaticResource ButtonStyle}" MinWidth="50" Margin="0,0,5,0" Tag="FilterPoliciesAll"/>
                                         <Button x:Name="BtnFilterDraft" Content="Draft" 
-                                                Style="{StaticResource ButtonStyle}" Width="55" Margin="0,0,5,0" 
-                                                Background="#7D5A00" Tag="FilterPoliciesDraft"/>
+                                                Style="{StaticResource ButtonStyle}" MinWidth="55" Margin="0,0,5,0" 
+                                                Background="{StaticResource PendingBrush}" Tag="FilterPoliciesDraft"/>
                                         <Button x:Name="BtnFilterActive" Content="Active" 
-                                                Style="{StaticResource ButtonStyle}" Width="55" Margin="0,0,5,0" 
-                                                Background="#1565C0" Tag="FilterPoliciesActive"/>
+                                                Style="{StaticResource ButtonStyle}" MinWidth="55" Margin="0,0,5,0" 
+                                                Background="{StaticResource ActiveBrush}" Tag="FilterPoliciesActive"/>
                                         <Button x:Name="BtnFilterDeployed" Content="Deployed" 
-                                                Style="{StaticResource ButtonStyle}" Width="70" Margin="0,0,5,0" 
-                                                Background="#1B5E20" Tag="FilterPoliciesDeployed"/>
+                                                Style="{StaticResource ButtonStyle}" MinWidth="70" Margin="0,0,5,0" 
+                                                Background="{StaticResource ApprovedBrush}" Tag="FilterPoliciesDeployed"/>
                                         <Button x:Name="BtnFilterArchived" Content="Archived" 
-                                                Style="{StaticResource ButtonStyle}" Width="65" 
-                                                Background="#616161" Tag="FilterPoliciesArchived"/>
+                                                Style="{StaticResource ButtonStyle}" MinWidth="65" 
+                                                Background="{StaticResource ArchivedBrush}" Tag="FilterPoliciesArchived"/>
                                     </WrapPanel>
 
                                     <!-- Policies DataGrid -->
@@ -1402,56 +1650,39 @@
                                     <!-- Action Buttons -->
                                     <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,10,0,0">
                                         <Button x:Name="BtnActivatePolicy" Content="Activate" 
-                                                Style="{StaticResource ButtonStyle}" Width="70" Margin="0,0,5,0"
-                                                Background="#1565C0" Tag="ActivatePolicy"/>
+                                                Style="{StaticResource ButtonStyle}" MinWidth="70" Margin="0,0,5,0"
+                                                Background="{StaticResource ActiveBrush}" Tag="ActivatePolicy"/>
                                         <Button x:Name="BtnArchivePolicy" Content="Archive" 
-                                                Style="{StaticResource ButtonStyle}" Width="65" Margin="0,0,5,0"
-                                                Background="#616161" Tag="ArchivePolicy"/>
+                                                Style="{StaticResource ButtonStyle}" MinWidth="65" Margin="0,0,5,0"
+                                                Background="{StaticResource ArchivedBrush}" Tag="ArchivePolicy"/>
                                         <Border Width="1" Background="{StaticResource BorderBrush}" Margin="5,0,10,0"/>
                                         <Button x:Name="BtnExportPolicy" Content="Export XML" 
-                                                Style="{StaticResource ButtonStyle}" Width="80" Margin="0,0,5,0"
+                                                Style="{StaticResource ButtonStyle}" MinWidth="80" Margin="0,0,5,0"
                                                 Tag="ExportPolicy"/>
                                         <Button x:Name="BtnDeletePolicy" Content="Delete" 
-                                                Style="{StaticResource ButtonStyle}" Width="60" Margin="0,0,5,0"
+                                                Style="{StaticResource ButtonStyle}" MinWidth="60" Margin="0,0,5,0"
                                                 Tag="DeletePolicy"/>
                                         <Button x:Name="BtnDeployPolicy" Content="Deploy" 
-                                                Style="{StaticResource PrimaryButtonStyle}" Width="70"
+                                                Style="{StaticResource PrimaryButtonStyle}" MinWidth="70"
                                                 Tag="DeployPolicy"/>
                                     </StackPanel>
                                 </Grid>
                             </Border>
-
-                            <!-- Policy Details Footer -->
-                            <Border Grid.Row="1" Background="{StaticResource SidebarBrush}" Padding="10,8" Margin="0,10,0,0" CornerRadius="4">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-
-                                    <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,0,20,0">
-                                        <TextBlock Text="Total:" Foreground="{StaticResource MutedBrush}" Margin="0,0,5,0"/>
-                                        <TextBlock x:Name="TxtPolicyTotalCount" Text="0" Foreground="{StaticResource ForegroundBrush}" FontWeight="SemiBold"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,20,0">
-                                        <TextBlock Text="Draft:" Foreground="#FFD54F" Margin="0,0,5,0"/>
-                                        <TextBlock x:Name="TxtPolicyDraftCount" Text="0" Foreground="#FFD54F" FontWeight="SemiBold"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,20,0">
-                                        <TextBlock Text="Active:" Foreground="#64B5F6" Margin="0,0,5,0"/>
-                                        <TextBlock x:Name="TxtPolicyActiveCount" Text="0" Foreground="#64B5F6" FontWeight="SemiBold"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="3" Orientation="Horizontal">
-                                        <TextBlock Text="Deployed:" Foreground="#81C784" Margin="0,0,5,0"/>
-                                        <TextBlock x:Name="TxtPolicyDeployedCount" Text="0" Foreground="#81C784" FontWeight="SemiBold"/>
-                                    </StackPanel>
-                                </Grid>
-                            </Border>
-                        </Grid>
                     </Grid>
+
+                    <!-- Status Bar -->
+                    <Border Grid.Row="2" Background="{StaticResource SidebarBrush}" Padding="15,10" Margin="0,10,0,0" CornerRadius="4">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Total:" Foreground="{StaticResource MutedBrush}" FontSize="13" Margin="0,0,5,0"/>
+                            <TextBlock x:Name="TxtPolicyTotalCount" Text="0" Foreground="{StaticResource ForegroundBrush}" FontSize="13" FontWeight="Bold" Margin="0,0,25,0"/>
+                            <TextBlock Text="Draft:" Foreground="{StaticResource PendingBrush}" FontSize="13" Margin="0,0,5,0"/>
+                            <TextBlock x:Name="TxtPolicyDraftCount" Text="0" Foreground="{StaticResource PendingBrush}" FontSize="13" FontWeight="Bold" Margin="0,0,25,0"/>
+                            <TextBlock Text="Active:" Foreground="{StaticResource ActiveBrush}" FontSize="13" Margin="0,0,5,0"/>
+                            <TextBlock x:Name="TxtPolicyActiveCount" Text="0" Foreground="{StaticResource ActiveBrush}" FontSize="13" FontWeight="Bold" Margin="0,0,25,0"/>
+                            <TextBlock Text="Deployed:" Foreground="{StaticResource ApprovedBrush}" FontSize="13" Margin="0,0,5,0"/>
+                            <TextBlock x:Name="TxtPolicyDeployedCount" Text="0" Foreground="{StaticResource ApprovedBrush}" FontSize="13" FontWeight="Bold"/>
+                        </StackPanel>
+                    </Border>
                 </Grid>
 
                 <!-- Deployment Panel -->
@@ -1468,27 +1699,61 @@
                     <!-- Main Content -->
                     <Grid Grid.Row="1">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="320"/>
+                            <ColumnDefinition Width="280"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
-                        <!-- Left: New Deployment -->
-                        <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" Margin="0,0,10,0">
-                            <StackPanel>
-                                <!-- Create Deployment Job -->
-                                <Border Style="{StaticResource CardStyle}">
-                                    <StackPanel>
-                                        <TextBlock Text="NEW DEPLOYMENT" 
-                                                   FontSize="11" FontWeight="SemiBold" 
-                                                   Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
+                        <!-- Left: Tabbed Deployment Options -->
+                        <Border Grid.Column="0" Background="{StaticResource SidebarBrush}" CornerRadius="8" Margin="0,0,10,0" VerticalAlignment="Stretch">
+                            <TabControl Background="Transparent" BorderThickness="0" Padding="0" VerticalAlignment="Stretch">
+                                <TabControl.Resources>
+                                    <Style TargetType="TabItem">
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
+                                        <Setter Property="Padding" Value="12,8"/>
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="TabItem">
+                                                    <Border x:Name="border" Background="Transparent" Padding="{TemplateBinding Padding}" BorderThickness="0,0,0,2" BorderBrush="Transparent">
+                                                        <ContentPresenter ContentSource="Header"/>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsSelected" Value="True">
+                                                            <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource PrimaryBrush}"/>
+                                                            <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}"/>
+                                                        </Trigger>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </TabControl.Resources>
+                                
+                                <!-- Tab 1: New Deployment -->
+                                <TabItem Header="Create">
+                                    <StackPanel Margin="15">
+                                        <TextBlock Text="NEW DEPLOYMENT" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
 
                                         <TextBlock Text="Select Policy:" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,5"/>
                                         <ComboBox x:Name="CboDeployPolicy" Style="{StaticResource ComboBoxStyle}" Margin="0,0,0,10"
                                                   DisplayMemberPath="Name"/>
 
-                                        <TextBlock Text="Target GPO Name:" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,5"/>
-                                        <TextBox x:Name="TxtDeployGPOName" 
-                                                 Style="{StaticResource TextBoxStyle}" Margin="0,0,0,10"/>
+                                        <TextBlock Text="Target GPO:" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,5"/>
+                                        <ComboBox x:Name="CboDeployTargetGPO" Style="{StaticResource ComboBoxStyle}" Margin="0,0,0,5">
+                                            <ComboBoxItem Content="AppLocker-DC" Tag="AppLocker-DC"/>
+                                            <ComboBoxItem Content="AppLocker-Servers" Tag="AppLocker-Servers" IsSelected="True"/>
+                                            <ComboBoxItem Content="AppLocker-Workstations" Tag="AppLocker-Workstations"/>
+                                            <ComboBoxItem Content="Custom GPO..." Tag="Custom"/>
+                                        </ComboBox>
+                                        
+                                        <TextBox x:Name="TxtDeployCustomGPO" 
+                                                 Style="{StaticResource TextBoxStyle}" 
+                                                 Visibility="Collapsed"
+                                                 Tag="Enter custom GPO name..."
+                                                 Margin="0,0,0,10"/>
 
                                         <TextBlock Text="Schedule:" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,5"/>
                                         <ComboBox x:Name="CboDeploySchedule" Style="{StaticResource ComboBoxStyle}" Margin="0,0,0,15">
@@ -1502,14 +1767,12 @@
                                                 Style="{StaticResource PrimaryButtonStyle}"
                                                 Tag="CreateDeploymentJob"/>
                                     </StackPanel>
-                                </Border>
-
-                                <!-- Quick Deploy -->
-                                <Border Style="{StaticResource CardStyle}">
-                                    <StackPanel>
-                                        <TextBlock Text="QUICK ACTIONS" 
-                                                   FontSize="11" FontWeight="SemiBold" 
-                                                   Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
+                                </TabItem>
+                                
+                                <!-- Tab 2: Quick Actions -->
+                                <TabItem Header="Actions">
+                                    <StackPanel Margin="15">
+                                        <TextBlock Text="QUICK ACTIONS" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
 
                                         <Button x:Name="BtnDeploySelected" Content="Deploy Selected Job" 
                                                 Style="{StaticResource PrimaryButtonStyle}" Margin="0,0,0,5"
@@ -1521,16 +1784,14 @@
                                                 Style="{StaticResource ButtonStyle}"
                                                 Tag="ViewDeploymentLog"/>
                                     </StackPanel>
-                                </Border>
+                                </TabItem>
+                                
+                                <!-- Tab 3: GPO Status -->
+                                <TabItem Header="Status">
+                                    <StackPanel Margin="15">
+                                        <TextBlock Text="GPO STATUS" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,15"/>
 
-                                <!-- GPO Info -->
-                                <Border Style="{StaticResource CardStyle}">
-                                    <StackPanel>
-                                        <TextBlock Text="GPO STATUS" 
-                                                   FontSize="11" FontWeight="SemiBold" 
-                                                   Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
-
-                                        <Grid Margin="0,0,0,5">
+                                        <Grid Margin="0,0,0,10">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto"/>
                                                 <ColumnDefinition Width="*"/>
@@ -1550,12 +1811,12 @@
                                                        Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Right"/>
                                         </Grid>
                                     </StackPanel>
-                                </Border>
-                            </StackPanel>
-                        </ScrollViewer>
+                                </TabItem>
+                            </TabControl>
+                        </Border>
 
                         <!-- Right: Deployment Jobs List -->
-                        <Border Grid.Column="1" Style="{StaticResource CardStyle}">
+                        <Border Grid.Column="1" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="15">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
@@ -1576,25 +1837,25 @@
                                                Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center"/>
 
                                     <Button Grid.Column="1" x:Name="BtnRefreshDeployments" Content="Refresh" 
-                                            Style="{StaticResource ButtonStyle}" Width="70"
+                                            Style="{StaticResource ButtonStyle}" MinWidth="70"
                                             Tag="RefreshDeployments"/>
                                 </Grid>
 
                                 <!-- Status Filters -->
                                 <WrapPanel Grid.Row="1" Margin="0,0,0,10">
                                     <Button x:Name="BtnFilterAllJobs" Content="All" 
-                                            Style="{StaticResource ButtonStyle}" Width="50" Margin="0,0,5,0" Tag="FilterJobsAll"/>
+                                            Style="{StaticResource ButtonStyle}" MinWidth="50" Margin="0,0,5,0" Tag="FilterJobsAll"/>
                                     <Button x:Name="BtnFilterPendingJobs" Content="Pending" 
-                                            Style="{StaticResource ButtonStyle}" Width="65" Margin="0,0,5,0" 
-                                            Background="#7D5A00" Tag="FilterJobsPending"/>
+                                            Style="{StaticResource ButtonStyle}" MinWidth="65" Margin="0,0,5,0" 
+                                            Background="{StaticResource PendingBrush}" Tag="FilterJobsPending"/>
                                     <Button x:Name="BtnFilterRunningJobs" Content="Running" 
-                                            Style="{StaticResource ButtonStyle}" Width="65" Margin="0,0,5,0" 
-                                            Background="#1565C0" Tag="FilterJobsRunning"/>
+                                            Style="{StaticResource ButtonStyle}" MinWidth="65" Margin="0,0,5,0" 
+                                            Background="{StaticResource ActiveBrush}" Tag="FilterJobsRunning"/>
                                     <Button x:Name="BtnFilterCompletedJobs" Content="Completed" 
-                                            Style="{StaticResource ButtonStyle}" Width="75" Margin="0,0,5,0" 
-                                            Background="#1B5E20" Tag="FilterJobsCompleted"/>
+                                            Style="{StaticResource ButtonStyle}" MinWidth="75" Margin="0,0,5,0" 
+                                            Background="{StaticResource ApprovedBrush}" Tag="FilterJobsCompleted"/>
                                     <Button x:Name="BtnFilterFailedJobs" Content="Failed" 
-                                            Style="{StaticResource ButtonStyle}" Width="55" 
+                                            Style="{StaticResource ButtonStyle}" MinWidth="55" 
                                             Background="#8B0000" Tag="FilterJobsFailed"/>
                                 </WrapPanel>
 
@@ -1657,7 +1918,7 @@
                                         <Grid Grid.Row="1">
                                             <ProgressBar x:Name="DeploymentProgressBar" 
                                                          Height="6" Minimum="0" Maximum="100" Value="0"
-                                                         Background="#3E3E42" Foreground="{StaticResource PrimaryBrush}"/>
+                                                         Background="{StaticResource BorderBrush}" Foreground="{StaticResource PrimaryBrush}"/>
                                         </Grid>
                                     </Grid>
                                 </Border>
@@ -1666,327 +1927,460 @@
                     </Grid>
 
                     <!-- Footer Stats -->
-                    <Border Grid.Row="2" Background="{StaticResource SidebarBrush}" Padding="10,8" Margin="0,10,0,0" CornerRadius="4">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-
-                            <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,0,20,0">
-                                <TextBlock Text="Total Jobs:" Foreground="{StaticResource MutedBrush}" Margin="0,0,5,0"/>
-                                <TextBlock x:Name="TxtJobTotalCount" Text="0" Foreground="{StaticResource ForegroundBrush}" FontWeight="SemiBold"/>
-                            </StackPanel>
-                            <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,20,0">
-                                <TextBlock Text="Pending:" Foreground="#FFD54F" Margin="0,0,5,0"/>
-                                <TextBlock x:Name="TxtJobPendingCount" Text="0" Foreground="#FFD54F" FontWeight="SemiBold"/>
-                            </StackPanel>
-                            <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,20,0">
-                                <TextBlock Text="Running:" Foreground="#64B5F6" Margin="0,0,5,0"/>
-                                <TextBlock x:Name="TxtJobRunningCount" Text="0" Foreground="#64B5F6" FontWeight="SemiBold"/>
-                            </StackPanel>
-                            <StackPanel Grid.Column="3" Orientation="Horizontal">
-                                <TextBlock Text="Completed:" Foreground="#81C784" Margin="0,0,5,0"/>
-                                <TextBlock x:Name="TxtJobCompletedCount" Text="0" Foreground="#81C784" FontWeight="SemiBold"/>
-                            </StackPanel>
-                        </Grid>
+                    <Border Grid.Row="2" Background="{StaticResource SidebarBrush}" Padding="15,10" Margin="0,10,0,0" CornerRadius="4">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Total Jobs:" Foreground="{StaticResource MutedBrush}" FontSize="13" Margin="0,0,5,0"/>
+                            <TextBlock x:Name="TxtJobTotalCount" Text="0" Foreground="{StaticResource ForegroundBrush}" FontSize="13" FontWeight="Bold" Margin="0,0,25,0"/>
+                            <TextBlock Text="Pending:" Foreground="{StaticResource PendingBrush}" FontSize="13" Margin="0,0,5,0"/>
+                            <TextBlock x:Name="TxtJobPendingCount" Text="0" Foreground="{StaticResource PendingBrush}" FontSize="13" FontWeight="Bold" Margin="0,0,25,0"/>
+                            <TextBlock Text="Running:" Foreground="{StaticResource ActiveBrush}" FontSize="13" Margin="0,0,5,0"/>
+                            <TextBlock x:Name="TxtJobRunningCount" Text="0" Foreground="{StaticResource ActiveBrush}" FontSize="13" FontWeight="Bold" Margin="0,0,25,0"/>
+                            <TextBlock Text="Completed:" Foreground="{StaticResource ApprovedBrush}" FontSize="13" Margin="0,0,5,0"/>
+                            <TextBlock x:Name="TxtJobCompletedCount" Text="0" Foreground="{StaticResource ApprovedBrush}" FontSize="13" FontWeight="Bold"/>
+                        </StackPanel>
                     </Border>
                 </Grid>
 
-                <!-- Settings Panel -->
+                <!-- Settings Panel - Credentials Only -->
                 <Grid x:Name="PanelSettings" Visibility="Collapsed">
-                    <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <StackPanel>
-                            <TextBlock Text="Settings" Style="{StaticResource HeaderStyle}"/>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
 
-                            <!-- Credentials Management Section -->
-                            <TextBlock Text="CREDENTIAL PROFILES"
-                                       FontSize="12"
-                                       FontWeight="SemiBold"
-                                       Foreground="{StaticResource MutedBrush}"
-                                       Margin="0,0,0,15"/>
+                    <TextBlock Grid.Row="0" Text="Settings" Style="{StaticResource HeaderStyle}"/>
 
-                            <!-- Tier Legend -->
-                            <Border Background="{StaticResource SidebarBrush}" CornerRadius="6" Padding="15" Margin="0,0,0,15">
-                                <StackPanel Orientation="Horizontal">
-                                    <Border Background="#9C27B0" CornerRadius="4" Padding="10,5" Margin="0,0,10,0">
-                                        <TextBlock Text="Tier 0: Domain Controllers" Foreground="White" FontSize="11"/>
-                                    </Border>
-                                    <Border Background="{StaticResource WarningBrush}" CornerRadius="4" Padding="10,5" Margin="0,0,10,0">
-                                        <TextBlock Text="Tier 1: Servers" Foreground="White" FontSize="11"/>
-                                    </Border>
-                                    <Border Background="{StaticResource PrimaryBrush}" CornerRadius="4" Padding="10,5">
-                                        <TextBlock Text="Tier 2: Workstations" Foreground="White" FontSize="11"/>
-                                    </Border>
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="280"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Left Column: Add Credential Form -->
+                            <Border Grid.Column="0" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="15" Margin="0,0,15,0">
+                                <StackPanel>
+                                    <TextBlock Text="ADD CREDENTIAL"
+                                               FontSize="11"
+                                               FontWeight="SemiBold"
+                                               Foreground="{StaticResource MutedBrush}"
+                                               Margin="0,0,0,15"/>
+
+                                    <!-- Tier Legend -->
+                                    <StackPanel Margin="0,0,0,15">
+                                        <Border Background="#9C27B0" CornerRadius="3" Padding="8,4" Margin="0,0,0,5">
+                                            <TextBlock Text="Tier 0: Domain Controllers" Foreground="White" FontSize="10"/>
+                                        </Border>
+                                        <Border Background="{StaticResource WarningBrush}" CornerRadius="3" Padding="8,4" Margin="0,0,0,5">
+                                            <TextBlock Text="Tier 1: Servers" Foreground="White" FontSize="10"/>
+                                        </Border>
+                                        <Border Background="{StaticResource PrimaryBrush}" CornerRadius="3" Padding="8,4">
+                                            <TextBlock Text="Tier 2: Workstations" Foreground="White" FontSize="10"/>
+                                        </Border>
+                                    </StackPanel>
+
+                                    <!-- Profile Name -->
+                                    <TextBlock Text="Profile Name" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,0,0,5"/>
+                                    <TextBox x:Name="CredProfileName" Background="#1E1E1E" Foreground="{StaticResource ForegroundBrush}" BorderBrush="#3E3E42" Padding="8,6" Margin="0,0,0,10"/>
+
+                                    <!-- Tier Selection -->
+                                    <TextBlock Text="Tier Level" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,0,0,5"/>
+                                    <ComboBox x:Name="CredTierCombo" Style="{StaticResource ComboBoxStyle}" SelectedIndex="2" Margin="0,0,0,10">
+                                        <ComboBoxItem Content="Tier 0 - Domain Controllers" Tag="0"/>
+                                        <ComboBoxItem Content="Tier 1 - Servers" Tag="1"/>
+                                        <ComboBoxItem Content="Tier 2 - Workstations" Tag="2"/>
+                                    </ComboBox>
+
+                                    <!-- Username -->
+                                    <TextBlock Text="Username (DOMAIN\User)" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,0,0,5"/>
+                                    <TextBox x:Name="CredUsername" Background="#1E1E1E" Foreground="{StaticResource ForegroundBrush}" BorderBrush="#3E3E42" Padding="8,6" Margin="0,0,0,10"/>
+
+                                    <!-- Password -->
+                                    <TextBlock Text="Password" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,0,0,5"/>
+                                    <PasswordBox x:Name="CredPassword" Background="#1E1E1E" Foreground="{StaticResource ForegroundBrush}" BorderBrush="#3E3E42" Padding="8,6" Margin="0,0,0,10"/>
+
+                                    <!-- Description -->
+                                    <TextBlock Text="Description (optional)" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,0,0,5"/>
+                                    <TextBox x:Name="CredDescription" Background="#1E1E1E" Foreground="{StaticResource ForegroundBrush}" BorderBrush="#3E3E42" Padding="8,6" Margin="0,0,0,10"/>
+
+                                    <!-- Default Checkbox -->
+                                    <CheckBox x:Name="CredSetAsDefault" Content="Set as default for tier" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,15"/>
+
+                                    <!-- Save Button -->
+                                    <Button x:Name="BtnSaveCredential" Content="Save Credential" Style="{StaticResource ActionButtonStyle}" Background="{StaticResource SuccessBrush}" Padding="12,10"/>
                                 </StackPanel>
                             </Border>
 
-                            <!-- Add New Credential Form -->
-                            <Border Style="{StaticResource CardStyle}" Margin="0,0,0,15">
-                                <StackPanel>
-                                    <TextBlock Text="Add New Credential Profile"
-                                               FontSize="16"
-                                               FontWeight="SemiBold"
-                                               Foreground="{StaticResource ForegroundBrush}"
-                                               Margin="0,0,0,15"/>
+                            <!-- Right Column: Credentials List & Actions -->
+                            <Grid Grid.Column="1">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
 
+                                <!-- Credentials List -->
+                                <Border Grid.Row="0" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="15" Margin="0,0,0,15">
+                                    <DockPanel>
+                                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,10">
+                                            <TextBlock Text="CREDENTIAL PROFILES" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center"/>
+                                            <Button x:Name="BtnRefreshCredentials" Content="&#x1F504; Refresh" Background="Transparent" Foreground="{StaticResource PrimaryBrush}" BorderThickness="0" Padding="10,5" Cursor="Hand" Margin="15,0,0,0"/>
+                                        </StackPanel>
+
+                                        <Border Background="#1E1E1E" CornerRadius="4">
+                                            <DataGrid x:Name="CredentialsDataGrid"
+                                                      AutoGenerateColumns="False"
+                                                      Background="Transparent"
+                                                      BorderThickness="0"
+                                                      RowBackground="#252526"
+                                                      AlternatingRowBackground="#2D2D30"
+                                                      GridLinesVisibility="None"
+                                                      HeadersVisibility="Column"
+                                                      SelectionMode="Single"
+                                                      CanUserAddRows="False"
+                                                      IsReadOnly="True">
+                                                <DataGrid.ColumnHeaderStyle>
+                                                    <Style TargetType="DataGridColumnHeader">
+                                                        <Setter Property="Background" Value="#1E1E1E"/>
+                                                        <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
+                                                        <Setter Property="Padding" Value="10,8"/>
+                                                        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                                        <Setter Property="BorderBrush" Value="#3E3E42"/>
+                                                    </Style>
+                                                </DataGrid.ColumnHeaderStyle>
+                                                <DataGrid.CellStyle>
+                                                    <Style TargetType="DataGridCell">
+                                                        <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}"/>
+                                                        <Setter Property="BorderThickness" Value="0"/>
+                                                        <Setter Property="Padding" Value="10,8"/>
+                                                        <Style.Triggers>
+                                                            <Trigger Property="IsSelected" Value="True">
+                                                                <Setter Property="Background" Value="{StaticResource PrimaryBrush}"/>
+                                                            </Trigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </DataGrid.CellStyle>
+                                                <DataGrid.Columns>
+                                                    <DataGridTextColumn Header="Name" Width="140" Binding="{Binding Name}"/>
+                                                    <DataGridTextColumn Header="Tier" Width="50" Binding="{Binding Tier}"/>
+                                                    <DataGridTextColumn Header="Username" Width="160" Binding="{Binding Username}"/>
+                                                    <DataGridTextColumn Header="Default" Width="60" Binding="{Binding IsDefaultDisplay}"/>
+                                                    <DataGridTextColumn Header="Last Test" Width="130" Binding="{Binding LastTestDisplay}"/>
+                                                    <DataGridTextColumn Header="Description" Width="*" Binding="{Binding Description}"/>
+                                                </DataGrid.Columns>
+                                            </DataGrid>
+                                        </Border>
+                                    </DockPanel>
+                                </Border>
+
+                                <!-- Credential Actions -->
+                                <Border Grid.Row="1" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="15">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="15"/>
-                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="Auto"/>
-                                        </Grid.RowDefinitions>
 
-                                        <!-- Profile Name -->
-                                        <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,0,15">
-                                            <TextBlock Text="Profile Name"
-                                                       Foreground="{StaticResource MutedBrush}"
-                                                       FontSize="11"
-                                                       Margin="0,0,0,5"/>
-                                            <TextBox x:Name="CredProfileName"
-                                                     Background="#1E1E1E"
-                                                     Foreground="{StaticResource ForegroundBrush}"
-                                                     BorderBrush="#3E3E42"
-                                                     Padding="10,8"/>
+                                        <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                            <Button x:Name="BtnTestCredential" Content="&#x1F50D; Test" Style="{StaticResource ActionButtonStyle}" Background="{StaticResource SecondaryBrush}" Padding="15,10" Margin="0,0,10,0"/>
+                                            <Button x:Name="BtnSetDefaultCredential" Content="&#x2B50; Set Default" Style="{StaticResource ActionButtonStyle}" Background="{StaticResource WarningBrush}" Padding="15,10" Margin="0,0,10,0"/>
+                                            <Button x:Name="BtnDeleteCredential" Content="&#x1F5D1; Delete" Style="{StaticResource ActionButtonStyle}" Background="{StaticResource ErrorBrush}" Padding="15,10"/>
                                         </StackPanel>
 
-                                        <!-- Tier Selection -->
-                                        <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,0,15">
-                                            <TextBlock Text="Tier Level"
-                                                       Foreground="{StaticResource MutedBrush}"
-                                                       FontSize="11"
-                                                       Margin="0,0,0,5"/>
-                                            <ComboBox x:Name="CredTierCombo"
-                                                      Background="#1E1E1E"
-                                                      Foreground="{StaticResource ForegroundBrush}"
-                                                      BorderBrush="#3E3E42"
-                                                      Padding="10,8"
-                                                      SelectedIndex="2">
-                                                <ComboBoxItem Content="Tier 0 - Domain Controllers"/>
-                                                <ComboBoxItem Content="Tier 1 - Servers"/>
-                                                <ComboBoxItem Content="Tier 2 - Workstations"/>
-                                            </ComboBox>
-                                        </StackPanel>
-
-                                        <!-- Username -->
-                                        <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,0,15">
-                                            <TextBlock Text="Username (DOMAIN\User or UPN)"
-                                                       Foreground="{StaticResource MutedBrush}"
-                                                       FontSize="11"
-                                                       Margin="0,0,0,5"/>
-                                            <TextBox x:Name="CredUsername"
-                                                     Background="#1E1E1E"
-                                                     Foreground="{StaticResource ForegroundBrush}"
-                                                     BorderBrush="#3E3E42"
-                                                     Padding="10,8"/>
-                                        </StackPanel>
-
-                                        <!-- Password -->
-                                        <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,0,0,15">
-                                            <TextBlock Text="Password"
-                                                       Foreground="{StaticResource MutedBrush}"
-                                                       FontSize="11"
-                                                       Margin="0,0,0,5"/>
-                                            <PasswordBox x:Name="CredPassword"
-                                                         Background="#1E1E1E"
-                                                         Foreground="{StaticResource ForegroundBrush}"
-                                                         BorderBrush="#3E3E42"
-                                                         Padding="10,8"/>
-                                        </StackPanel>
-
-                                        <!-- Description -->
-                                        <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,0,0,15">
-                                            <TextBlock Text="Description (optional)"
-                                                       Foreground="{StaticResource MutedBrush}"
-                                                       FontSize="11"
-                                                       Margin="0,0,0,5"/>
-                                            <TextBox x:Name="CredDescription"
-                                                     Background="#1E1E1E"
-                                                     Foreground="{StaticResource ForegroundBrush}"
-                                                     BorderBrush="#3E3E42"
-                                                     Padding="10,8"/>
-                                        </StackPanel>
-
-                                        <!-- Buttons -->
-                                        <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal">
-                                            <Button x:Name="BtnSaveCredential"
-                                                    Content="&#x1F4BE; Save Credential"
-                                                    Style="{StaticResource ActionButtonStyle}"
-                                                    Background="{StaticResource SuccessBrush}"
-                                                    Padding="15,10"
-                                                    Margin="0,0,10,0"/>
-                                            <CheckBox x:Name="CredSetAsDefault"
-                                                      Content="Set as default for this tier"
-                                                      Foreground="{StaticResource ForegroundBrush}"
-                                                      VerticalAlignment="Center"
-                                                      Margin="10,0,0,0"/>
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                            <TextBlock Text="Test Target:" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                            <TextBox x:Name="CredTestTarget" Width="180" Background="#1E1E1E" Foreground="{StaticResource ForegroundBrush}" BorderBrush="#3E3E42" Padding="8,6" ToolTip="Hostname to test credential"/>
                                         </StackPanel>
                                     </Grid>
-                                </StackPanel>
-                            </Border>
+                                </Border>
 
-                            <!-- Saved Credentials List -->
-                            <Border Style="{StaticResource CardStyle}" Margin="0,0,0,15">
-                                <DockPanel>
-                                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,15">
-                                        <TextBlock Text="Saved Credential Profiles"
-                                                   FontSize="16"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="{StaticResource ForegroundBrush}"
-                                                   VerticalAlignment="Center"/>
-                                        <Button x:Name="BtnRefreshCredentials"
-                                                Content="&#x1F504; Refresh"
-                                                Background="Transparent"
-                                                Foreground="{StaticResource PrimaryBrush}"
-                                                BorderThickness="0"
-                                                Padding="10,5"
-                                                Cursor="Hand"
-                                                Margin="15,0,0,0"/>
-                                    </StackPanel>
+                                <!-- Test Result (shown when needed) -->
+                                <Border x:Name="CredTestResultBorder" Grid.Row="2" Background="#1E1E1E" CornerRadius="4" Padding="15" Margin="0,15,0,0" Visibility="Collapsed">
+                                    <TextBlock x:Name="CredTestResultText" Text="" Foreground="{StaticResource ForegroundBrush}" TextWrapping="Wrap"/>
+                                </Border>
+                            </Grid>
+                        </Grid>
+                    </ScrollViewer>
+                </Grid>
 
-                                    <!-- Credentials DataGrid -->
-                                    <Border Background="#1E1E1E" CornerRadius="4" Padding="0">
-                                        <DataGrid x:Name="CredentialsDataGrid"
-                                                  AutoGenerateColumns="False"
-                                                  Background="Transparent"
-                                                  BorderThickness="0"
-                                                  RowBackground="#252526"
-                                                  AlternatingRowBackground="#2D2D30"
-                                                  GridLinesVisibility="None"
-                                                  HeadersVisibility="Column"
-                                                  SelectionMode="Single"
-                                                  CanUserAddRows="False"
-                                                  IsReadOnly="True"
-                                                  MinHeight="150"
-                                                  MaxHeight="250">
-                                            <DataGrid.ColumnHeaderStyle>
-                                                <Style TargetType="DataGridColumnHeader">
-                                                    <Setter Property="Background" Value="#1E1E1E"/>
-                                                    <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
-                                                    <Setter Property="Padding" Value="10,8"/>
-                                                    <Setter Property="BorderThickness" Value="0,0,0,1"/>
-                                                    <Setter Property="BorderBrush" Value="#3E3E42"/>
-                                                </Style>
-                                            </DataGrid.ColumnHeaderStyle>
-                                            <DataGrid.CellStyle>
-                                                <Style TargetType="DataGridCell">
-                                                    <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}"/>
-                                                    <Setter Property="BorderThickness" Value="0"/>
-                                                    <Setter Property="Padding" Value="10,8"/>
-                                                    <Style.Triggers>
-                                                        <Trigger Property="IsSelected" Value="True">
-                                                            <Setter Property="Background" Value="{StaticResource PrimaryBrush}"/>
-                                                        </Trigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </DataGrid.CellStyle>
-                                            <DataGrid.Columns>
-                                                <DataGridTextColumn Header="Name" Width="150" Binding="{Binding Name}"/>
-                                                <DataGridTextColumn Header="Tier" Width="60" Binding="{Binding Tier}"/>
-                                                <DataGridTextColumn Header="Username" Width="180" Binding="{Binding Username}"/>
-                                                <DataGridTextColumn Header="Default" Width="70" Binding="{Binding IsDefaultDisplay}"/>
-                                                <DataGridTextColumn Header="Last Test" Width="150" Binding="{Binding LastTestDisplay}"/>
-                                                <DataGridTextColumn Header="Description" Width="*" Binding="{Binding Description}"/>
-                                            </DataGrid.Columns>
-                                        </DataGrid>
-                                    </Border>
-                                </DockPanel>
-                            </Border>
+                <!-- Setup Panel - NEW -->
+                <Grid x:Name="PanelSetup" Visibility="Collapsed">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
 
-                            <!-- Credential Actions -->
-                            <Border Style="{StaticResource CardStyle}" Margin="0,0,0,15">
+                    <TextBlock Grid.Row="0" Text="Setup" Style="{StaticResource HeaderStyle}"/>
+
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="15"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Card 1: WinRM Configuration -->
+                            <Border Grid.Row="0" Grid.Column="0" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="20" Margin="0,0,0,15">
                                 <StackPanel>
-                                    <TextBlock Text="Credential Actions"
-                                               FontSize="14"
-                                               FontWeight="SemiBold"
-                                               Foreground="{StaticResource ForegroundBrush}"
-                                               Margin="0,0,0,15"/>
+                                    <TextBlock Text="WINRM CONFIGURATION" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
+                                    <TextBlock Text="Enable WinRM across the domain for remote management via GPO." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,0,0,15"/>
+
+                                    <Grid Margin="0,0,0,15">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="Status:" Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+                                            <TextBlock x:Name="TxtWinRMStatus" Text="Not Configured" Foreground="{StaticResource WarningBrush}" FontWeight="SemiBold"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="GPO Name:" Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+                                            <TextBlock Text="AppLocker-EnableWinRM" Foreground="{StaticResource ForegroundBrush}"/>
+                                        </StackPanel>
+                                    </Grid>
 
                                     <StackPanel Orientation="Horizontal">
-                                        <Button x:Name="BtnTestCredential"
-                                                Content="&#x1F50D; Test Selected"
-                                                Style="{StaticResource ActionButtonStyle}"
-                                                Background="{StaticResource SecondaryBrush}"
-                                                Padding="15,10"
-                                                Margin="0,0,10,0"/>
-                                        <Button x:Name="BtnDeleteCredential"
-                                                Content="&#x1F5D1; Delete Selected"
-                                                Style="{StaticResource ActionButtonStyle}"
-                                                Background="{StaticResource ErrorBrush}"
-                                                Padding="15,10"
-                                                Margin="0,0,10,0"/>
-                                        <Button x:Name="BtnSetDefaultCredential"
-                                                Content="&#x2B50; Set as Default"
-                                                Style="{StaticResource ActionButtonStyle}"
-                                                Background="{StaticResource WarningBrush}"
-                                                Padding="15,10"/>
+                                        <Button x:Name="BtnInitializeWinRM" Content="Initialize" Style="{StaticResource PrimaryButtonStyle}" Padding="15,8" Margin="0,0,10,0"/>
+                                        <Button x:Name="BtnToggleWinRM" Content="Toggle Link" Style="{StaticResource ButtonStyle}" Padding="15,8"/>
                                     </StackPanel>
-
-                                    <!-- Test Target -->
-                                    <StackPanel Orientation="Horizontal" Margin="0,15,0,0">
-                                        <TextBlock Text="Test Target:"
-                                                   Foreground="{StaticResource MutedBrush}"
-                                                   VerticalAlignment="Center"
-                                                   Margin="0,0,10,0"/>
-                                        <TextBox x:Name="CredTestTarget"
-                                                 Width="250"
-                                                 Background="#1E1E1E"
-                                                 Foreground="{StaticResource ForegroundBrush}"
-                                                 BorderBrush="#3E3E42"
-                                                 Padding="10,8"
-                                                 ToolTip="Enter hostname to test credential against"/>
-                                    </StackPanel>
-
-                                    <!-- Test Result -->
-                                    <Border x:Name="CredTestResultBorder"
-                                            Background="#1E1E1E"
-                                            CornerRadius="4"
-                                            Padding="15"
-                                            Margin="0,15,0,0"
-                                            Visibility="Collapsed">
-                                        <TextBlock x:Name="CredTestResultText"
-                                                   Text=""
-                                                   Foreground="{StaticResource ForegroundBrush}"
-                                                   TextWrapping="Wrap"/>
-                                    </Border>
                                 </StackPanel>
                             </Border>
 
-                            <!-- Application Settings -->
-                            <TextBlock Text="APPLICATION SETTINGS"
-                                       FontSize="12"
-                                       FontWeight="SemiBold"
-                                       Foreground="{StaticResource MutedBrush}"
-                                       Margin="0,15,0,15"/>
-
-                            <Border Style="{StaticResource CardStyle}">
+                            <!-- Card 2: AD Structure -->
+                            <Border Grid.Row="0" Grid.Column="2" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="20" Margin="0,0,0,15">
                                 <StackPanel>
-                                    <TextBlock Text="Data Directory:"
-                                               Foreground="{StaticResource MutedBrush}"
-                                               Margin="0,0,0,5"/>
-                                    <TextBlock x:Name="SettingsDataPath"
-                                               Text="%LOCALAPPDATA%\GA-AppLocker"
-                                               Foreground="{StaticResource ForegroundBrush}"
-                                               Margin="0,0,0,20"/>
+                                    <TextBlock Text="AD STRUCTURE" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
+                                    <TextBlock Text="Create AppLocker OU and security groups in Active Directory." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,0,0,15"/>
 
-                                    <TextBlock Text="Version: 1.0.0"
-                                               Foreground="{StaticResource MutedBrush}"/>
-                                    <TextBlock Text="Phase: 3 - Credentials"
-                                               Foreground="{StaticResource MutedBrush}"
-                                               Margin="0,5,0,0"/>
+                                    <TextBlock Text="OU: OU=AppLocker (domain root)" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,10"/>
+
+                                    <TextBlock Text="Groups:" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,0,0,5"/>
+                                    <WrapPanel Margin="0,0,0,15">
+                                        <Border Background="#252526" CornerRadius="3" Padding="6,3" Margin="0,0,4,4"><TextBlock Text="Admins" Foreground="{StaticResource ForegroundBrush}" FontSize="10"/></Border>
+                                        <Border Background="#252526" CornerRadius="3" Padding="6,3" Margin="0,0,4,4"><TextBlock Text="Exempt" Foreground="{StaticResource ForegroundBrush}" FontSize="10"/></Border>
+                                        <Border Background="#252526" CornerRadius="3" Padding="6,3" Margin="0,0,4,4"><TextBlock Text="Audit" Foreground="{StaticResource ForegroundBrush}" FontSize="10"/></Border>
+                                        <Border Background="#252526" CornerRadius="3" Padding="6,3" Margin="0,0,4,4"><TextBlock Text="Users" Foreground="{StaticResource ForegroundBrush}" FontSize="10"/></Border>
+                                        <Border Background="#252526" CornerRadius="3" Padding="6,3" Margin="0,0,4,4"><TextBlock Text="Installers" Foreground="{StaticResource ForegroundBrush}" FontSize="10"/></Border>
+                                        <Border Background="#252526" CornerRadius="3" Padding="6,3" Margin="0,0,4,4"><TextBlock Text="Developers" Foreground="{StaticResource ForegroundBrush}" FontSize="10"/></Border>
+                                    </WrapPanel>
+
+                                    <Button x:Name="BtnInitializeADStructure" Content="Initialize AD Structure" Style="{StaticResource PrimaryButtonStyle}" Padding="15,8" HorizontalAlignment="Left"/>
                                 </StackPanel>
                             </Border>
-                        </StackPanel>
+
+                            <!-- Card 3: AppLocker GPOs -->
+                            <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="20" Margin="0,0,0,15">
+                                <StackPanel>
+                                    <TextBlock Text="APPLOCKER GPO CONFIGURATION" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
+                                    <TextBlock Text="Create default AppLocker GPOs for each tier (Domain Controllers, Servers, Workstations)." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,0,0,15"/>
+
+                                    <Grid Margin="0,0,0,15">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- DC -->
+                                        <Border Grid.Column="0" Background="#252526" CornerRadius="6" Padding="15" Margin="0,0,10,0">
+                                            <StackPanel>
+                                                <TextBlock Text="AppLocker-DC" FontWeight="SemiBold" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,5"/>
+                                                <TextBlock Text="Domain Controllers OU" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,0,0,8"/>
+                                                <TextBlock x:Name="TxtGPO_DC_Status" Text="Not Configured" Foreground="{StaticResource WarningBrush}" FontSize="11"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- Servers -->
+                                        <Border Grid.Column="1" Background="#252526" CornerRadius="6" Padding="15" Margin="0,0,10,0">
+                                            <StackPanel>
+                                                <TextBlock Text="AppLocker-Servers" FontWeight="SemiBold" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,5"/>
+                                                <TextBlock Text="Servers OU" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,0,0,8"/>
+                                                <TextBlock x:Name="TxtGPO_Servers_Status" Text="Not Configured" Foreground="{StaticResource WarningBrush}" FontSize="11"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- Workstations -->
+                                        <Border Grid.Column="2" Background="#252526" CornerRadius="6" Padding="15">
+                                            <StackPanel>
+                                                <TextBlock Text="AppLocker-Workstations" FontWeight="SemiBold" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,5"/>
+                                                <TextBlock Text="Computers OU" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,0,0,8"/>
+                                                <TextBlock x:Name="TxtGPO_Workstations_Status" Text="Not Configured" Foreground="{StaticResource WarningBrush}" FontSize="11"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+
+                                    <Button x:Name="BtnInitializeAppLockerGPOs" Content="Initialize All GPOs" Style="{StaticResource PrimaryButtonStyle}" Padding="15,8" HorizontalAlignment="Left"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Card 4: Full Initialization -->
+                            <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Background="#1A2A1A" CornerRadius="8" Padding="20" BorderBrush="{StaticResource SuccessBrush}" BorderThickness="1">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="FULL INITIALIZATION" FontSize="11" FontWeight="Bold" Foreground="{StaticResource SuccessBrush}" Margin="0,0,0,5"/>
+                                        <TextBlock Text="Run all initialization steps at once: WinRM GPO, AppLocker GPOs, and AD Structure." Foreground="{StaticResource ForegroundBrush}" TextWrapping="Wrap"/>
+                                    </StackPanel>
+
+                                    <Button Grid.Column="1" x:Name="BtnInitializeAll" Content="Initialize Everything" Style="{StaticResource ActionButtonStyle}" Background="{StaticResource SuccessBrush}" Padding="20,12" VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
+                        </Grid>
                     </ScrollViewer>
+                </Grid>
+
+                <!-- About Panel - NEW -->
+                <Grid x:Name="PanelAbout" Visibility="Collapsed">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="About" Style="{StaticResource HeaderStyle}"/>
+
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="15"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Card 1: Application Info -->
+                        <Border Grid.Row="0" Grid.Column="0" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="20" Margin="0,0,0,15">
+                            <StackPanel>
+                                <TextBlock Text="GA-APPLOCKER" FontSize="24" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,5"/>
+                                <TextBlock Text="Enterprise AppLocker Management Dashboard" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,20"/>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="100"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Version:" Foreground="{StaticResource MutedBrush}"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="1.0.0" Foreground="{StaticResource ForegroundBrush}" FontWeight="SemiBold"/>
+
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Platform:" Foreground="{StaticResource MutedBrush}" Margin="0,5,0,0"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="PowerShell 5.1 / WPF" Foreground="{StaticResource ForegroundBrush}" Margin="0,5,0,0"/>
+
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Environment:" Foreground="{StaticResource MutedBrush}" Margin="0,5,0,0"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="Air-Gapped Ready" Foreground="{StaticResource SuccessBrush}" Margin="0,5,0,0"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Card 2: Data Storage -->
+                        <Border Grid.Row="0" Grid.Column="2" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="20" Margin="0,0,0,15">
+                            <StackPanel>
+                                <TextBlock Text="DATA STORAGE" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,15"/>
+
+                                <TextBlock Text="Data Directory:" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,0,0,3"/>
+                                <TextBlock x:Name="SettingsDataPath" Text="%LOCALAPPDATA%\GA-AppLocker" Foreground="{StaticResource ForegroundBrush}" TextWrapping="Wrap" Margin="0,0,0,15"/>
+
+                                <TextBlock Text="Storage Locations:" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,0,0,8"/>
+                                <StackPanel Margin="10,0,0,0">
+                                    <TextBlock Text="• Config: config.json" Foreground="{StaticResource ForegroundBrush}" FontSize="12"/>
+                                    <TextBlock Text="• Credentials: Credentials\" Foreground="{StaticResource ForegroundBrush}" FontSize="12"/>
+                                    <TextBlock Text="• Scans: Scans\" Foreground="{StaticResource ForegroundBrush}" FontSize="12"/>
+                                    <TextBlock Text="• Rules: Rules\" Foreground="{StaticResource ForegroundBrush}" FontSize="12"/>
+                                    <TextBlock Text="• Policies: Policies\" Foreground="{StaticResource ForegroundBrush}" FontSize="12"/>
+                                    <TextBlock Text="• Deployments: Deployments\" Foreground="{StaticResource ForegroundBrush}" FontSize="12"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Card 3: Requirements -->
+                        <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="20" Margin="0,0,0,15">
+                            <StackPanel>
+                                <TextBlock Text="SYSTEM REQUIREMENTS" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,15"/>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel Grid.Column="0" Margin="0,0,15,0">
+                                        <TextBlock Text="Operating System" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,0,0,5"/>
+                                        <TextBlock Text="Windows 10+" Foreground="{StaticResource ForegroundBrush}"/>
+                                        <TextBlock Text="Server 2019+" Foreground="{StaticResource ForegroundBrush}"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="1" Margin="0,0,15,0">
+                                        <TextBlock Text="PowerShell" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,0,0,5"/>
+                                        <TextBlock Text="Version 5.1+" Foreground="{StaticResource ForegroundBrush}"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="2" Margin="0,0,15,0">
+                                        <TextBlock Text=".NET Framework" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,0,0,5"/>
+                                        <TextBlock Text="4.7.2+" Foreground="{StaticResource ForegroundBrush}"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="3">
+                                        <TextBlock Text="RSAT Tools" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,0,0,5"/>
+                                        <TextBlock Text="AD + GroupPolicy" Foreground="{StaticResource ForegroundBrush}"/>
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Card 4: Modules -->
+                        <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="20">
+                            <StackPanel>
+                                <TextBlock Text="MODULES" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,15"/>
+
+                                <WrapPanel>
+                                    <Border Background="{StaticResource PrimaryBrush}" CornerRadius="4" Padding="12,8" Margin="0,0,8,8">
+                                        <TextBlock Text="Core" Foreground="White" FontWeight="SemiBold"/>
+                                    </Border>
+                                    <Border Background="{StaticResource SecondaryBrush}" CornerRadius="4" Padding="12,8" Margin="0,0,8,8">
+                                        <TextBlock Text="Discovery" Foreground="White" FontWeight="SemiBold"/>
+                                    </Border>
+                                    <Border Background="#9C27B0" CornerRadius="4" Padding="12,8" Margin="0,0,8,8">
+                                        <TextBlock Text="Credentials" Foreground="White" FontWeight="SemiBold"/>
+                                    </Border>
+                                    <Border Background="{StaticResource WarningBrush}" CornerRadius="4" Padding="12,8" Margin="0,0,8,8">
+                                        <TextBlock Text="Scanning" Foreground="White" FontWeight="SemiBold"/>
+                                    </Border>
+                                    <Border Background="{StaticResource SuccessBrush}" CornerRadius="4" Padding="12,8" Margin="0,0,8,8">
+                                        <TextBlock Text="Rules" Foreground="White" FontWeight="SemiBold"/>
+                                    </Border>
+                                    <Border Background="{StaticResource PurpleBrush}" CornerRadius="4" Padding="12,8" Margin="0,0,8,8">
+                                        <TextBlock Text="Policy" Foreground="White" FontWeight="SemiBold"/>
+                                    </Border>
+                                    <Border Background="{StaticResource ErrorBrush}" CornerRadius="4" Padding="12,8" Margin="0,0,8,8">
+                                        <TextBlock Text="Deployment" Foreground="White" FontWeight="SemiBold"/>
+                                    </Border>
+                                    <Border Background="#607D8B" CornerRadius="4" Padding="12,8" Margin="0,0,8,8">
+                                        <TextBlock Text="Setup" Foreground="White" FontWeight="SemiBold"/>
+                                    </Border>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
                 </Grid>
             </Grid>
         </Border>

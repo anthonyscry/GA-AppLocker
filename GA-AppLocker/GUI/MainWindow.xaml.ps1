@@ -23,8 +23,8 @@ function script:Write-Log {
 
 #region ===== BUTTON ACTION DISPATCHER =====
 # Central dispatcher for button clicks - avoids closure scope issues
-# Using global scope so scriptblocks can access it
-function script:Invoke-ButtonAction {
+# Using global scope so WPF event scriptblocks can access it
+function global:Invoke-ButtonAction {
     param([string]$Action)
 
     $win = $script:MainWindow
@@ -39,6 +39,8 @@ function script:Invoke-ButtonAction {
         'NavPolicy' { Set-ActivePanel -PanelName 'PanelPolicy' }
         'NavDeploy' { Set-ActivePanel -PanelName 'PanelDeploy' }
         'NavSettings' { Set-ActivePanel -PanelName 'PanelSettings' }
+        'NavSetup' { Set-ActivePanel -PanelName 'PanelSetup' }
+        'NavAbout' { Set-ActivePanel -PanelName 'PanelAbout' }
         # Discovery panel
         'RefreshDomain' { Invoke-DomainRefresh -Window $win }
         'TestConnectivity' { Invoke-ConnectivityTest -Window $win }
@@ -62,6 +64,7 @@ function script:Invoke-ButtonAction {
         'GenerateFromArtifacts' { Invoke-GenerateRulesFromArtifacts -Window $win }
         'CreateManualRule' { Invoke-CreateManualRule -Window $win }
         'ExportRulesXml' { Invoke-ExportRulesToXml -Window $win }
+        'ExportRulesCsv' { Invoke-ExportRulesToCsv -Window $win }
         'RefreshRules' { Update-RulesDataGrid -Window $win }
         'ApproveRule' { Set-SelectedRuleStatus -Window $win -Status 'Approved' }
         'RejectRule' { Set-SelectedRuleStatus -Window $win -Status 'Rejected' }
@@ -86,6 +89,12 @@ function script:Invoke-ButtonAction {
         'DeploySelectedJob' { Invoke-DeploySelectedJob -Window $win }
         'CancelDeploymentJob' { Invoke-CancelDeploymentJob -Window $win }
         'ViewDeploymentLog' { Show-DeploymentLog -Window $win }
+        # Setup panel (Settings > Setup tab)
+        'InitializeWinRM' { Invoke-InitializeWinRM -Window $win }
+        'ToggleWinRM' { Invoke-ToggleWinRM -Window $win }
+        'InitializeAppLockerGPOs' { Invoke-InitializeAppLockerGPOs -Window $win }
+        'InitializeADStructure' { Invoke-InitializeADStructure -Window $win }
+        'InitializeAll' { Invoke-InitializeAll -Window $win }
     }
 }
 #endregion
@@ -124,7 +133,9 @@ function Set-ActivePanel {
         'PanelRules',
         'PanelPolicy',
         'PanelDeploy',
-        'PanelSettings'
+        'PanelSettings',
+        'PanelSetup',
+        'PanelAbout'
     )
 
     # Nav button names mapped to panels
@@ -136,6 +147,8 @@ function Set-ActivePanel {
         'NavPolicy'    = 'PanelPolicy'
         'NavDeploy'    = 'PanelDeploy'
         'NavSettings'  = 'PanelSettings'
+        'NavSetup'     = 'PanelSetup'
+        'NavAbout'     = 'PanelAbout'
     }
 
     # Hide all panels
@@ -169,6 +182,108 @@ function Set-ActivePanel {
     Write-Log -Message "Navigated to: $PanelName"
 }
 
+#region ===== DASHBOARD PANEL =====
+
+function Initialize-DashboardPanel {
+    param([System.Windows.Window]$Window)
+
+    # Wire up quick action buttons
+    $btnGoToScanner = $Window.FindName('BtnDashGoToScanner')
+    if ($btnGoToScanner) { $btnGoToScanner.Add_Click({ Invoke-ButtonAction -Action 'NavScanner' }) }
+
+    $btnGoToRules = $Window.FindName('BtnDashGoToRules')
+    if ($btnGoToRules) { $btnGoToRules.Add_Click({ Invoke-ButtonAction -Action 'NavRules' }) }
+
+    $btnQuickScan = $Window.FindName('BtnDashQuickScan')
+    if ($btnQuickScan) { $btnQuickScan.Add_Click({ Invoke-ButtonAction -Action 'NavScanner' }) }
+
+    $btnQuickImport = $Window.FindName('BtnDashQuickImport')
+    if ($btnQuickImport) { $btnQuickImport.Add_Click({ Invoke-ButtonAction -Action 'NavScanner' }) }
+
+    $btnQuickDeploy = $Window.FindName('BtnDashQuickDeploy')
+    if ($btnQuickDeploy) { $btnQuickDeploy.Add_Click({ Invoke-ButtonAction -Action 'NavDeploy' }) }
+
+    # Load dashboard data
+    Update-DashboardStats -Window $Window
+}
+
+function Update-DashboardStats {
+    param([System.Windows.Window]$Window)
+
+    # Update stats from actual data
+    try {
+        # Machines count
+        $statMachines = $Window.FindName('StatMachines')
+        if ($statMachines) { 
+            $statMachines.Text = $script:DiscoveredMachines.Count.ToString()
+        }
+
+        # Artifacts count
+        $statArtifacts = $Window.FindName('StatArtifacts')
+        if ($statArtifacts -and $script:CurrentScanArtifacts) { 
+            $statArtifacts.Text = $script:CurrentScanArtifacts.Count.ToString()
+        }
+
+        # Rules count
+        $statRules = $Window.FindName('StatRules')
+        $statPending = $Window.FindName('StatPending')
+        $rulesResult = Get-AllRules
+        if ($rulesResult.Success) {
+            $allRules = $rulesResult.Data
+            if ($statRules) { $statRules.Text = $allRules.Count.ToString() }
+            if ($statPending) {
+                $pendingCount = ($allRules | Where-Object { $_.Status -eq 'Pending' }).Count
+                $statPending.Text = $pendingCount.ToString()
+            }
+
+            # Populate pending rules list
+            $pendingList = $Window.FindName('DashPendingRules')
+            if ($pendingList) {
+                $pendingRules = @($allRules | Where-Object { $_.Status -eq 'Pending' } | Select-Object -First 10 | ForEach-Object {
+                    [PSCustomObject]@{
+                        Type = $_.RuleType
+                        Name = $_.Name
+                    }
+                })
+                $pendingList.ItemsSource = $pendingRules
+            }
+        }
+
+        # Policies count
+        $statPolicies = $Window.FindName('StatPolicies')
+        $policiesResult = Get-AllPolicies
+        if ($policiesResult.Success -and $statPolicies) {
+            $statPolicies.Text = $policiesResult.Data.Count.ToString()
+        }
+
+        # Recent scans
+        $scansList = $Window.FindName('DashRecentScans')
+        if ($scansList) {
+            $scansResult = Get-ScanResults
+            if ($scansResult.Success -and $scansResult.Data) {
+                # Ensure Data is always an array
+                $scanData = @($scansResult.Data)
+                $recentScans = @($scanData | Select-Object -First 5 | ForEach-Object {
+                    [PSCustomObject]@{
+                        Name = $_.ScanName
+                        Date = $_.Date.ToString('MM/dd HH:mm')
+                        Count = "$($_.Artifacts) items"
+                    }
+                })
+                $scansList.ItemsSource = $recentScans
+            }
+        }
+    }
+    catch {
+        Write-Log -Level Warning -Message "Failed to update dashboard stats: $($_.Exception.Message)"
+    }
+}
+
+#endregion
+
+# Sidebar collapsed state
+$script:SidebarCollapsed = $false
+
 # Wire up navigation event handlers
 function Initialize-Navigation {
     param([System.Windows.Window]$Window)
@@ -198,6 +313,82 @@ function Initialize-Navigation {
 
     $btn = $Window.FindName('NavSettings')
     if ($btn) { $btn.Add_Click({ Invoke-ButtonAction -Action 'NavSettings' }) }
+
+    $btn = $Window.FindName('NavSetup')
+    if ($btn) { $btn.Add_Click({ Invoke-ButtonAction -Action 'NavSetup' }) }
+
+    $btn = $Window.FindName('NavAbout')
+    if ($btn) { $btn.Add_Click({ Invoke-ButtonAction -Action 'NavAbout' }) }
+
+    # Sidebar collapse/expand toggle button
+    $script:SidebarCollapsed = $false
+    $btnCollapse = $Window.FindName('BtnCollapseSidebar')
+    if ($btnCollapse) {
+        $btnCollapse.Add_Click({
+            $win = $script:MainWindow
+            $sidebar = $win.FindName('SidebarBorder')
+            $parentGrid = $sidebar.Parent
+            
+            if (-not $script:SidebarCollapsed) {
+                # COLLAPSE
+                $script:SidebarCollapsed = $true
+                
+                # Shrink sidebar width
+                if ($parentGrid -and $parentGrid.ColumnDefinitions.Count -gt 0) {
+                    $parentGrid.ColumnDefinitions[0].Width = [System.Windows.GridLength]::new(60)
+                }
+                
+                # Hide text elements, keep icons
+                $win.FindName('SidebarTitle').Visibility = 'Collapsed'
+                $win.FindName('SidebarSubtitle').Visibility = 'Collapsed'
+                $win.FindName('NavDashboardText').Visibility = 'Collapsed'
+                $win.FindName('NavDiscoveryText').Visibility = 'Collapsed'
+                $win.FindName('NavScannerText').Visibility = 'Collapsed'
+                $win.FindName('NavRulesText').Visibility = 'Collapsed'
+                $win.FindName('NavPolicyText').Visibility = 'Collapsed'
+                $win.FindName('NavDeployText').Visibility = 'Collapsed'
+                $win.FindName('NavSettingsText').Visibility = 'Collapsed'
+                $win.FindName('NavSetupText').Visibility = 'Collapsed'
+                $win.FindName('NavAboutText').Visibility = 'Collapsed'
+                $win.FindName('SidebarFooter').Visibility = 'Collapsed'
+                $win.FindName('NavSeparator').Margin = [System.Windows.Thickness]::new(5, 20, 5, 20)
+                
+                # Change button to expand icon
+                $btn = $win.FindName('BtnCollapseSidebar')
+                $btn.Content = '>>'
+                $btn.ToolTip = 'Expand Sidebar'
+            }
+            else {
+                # EXPAND
+                $script:SidebarCollapsed = $false
+                
+                # Restore sidebar width
+                if ($parentGrid -and $parentGrid.ColumnDefinitions.Count -gt 0) {
+                    $parentGrid.ColumnDefinitions[0].Width = [System.Windows.GridLength]::new(220)
+                }
+                
+                # Show text elements
+                $win.FindName('SidebarTitle').Visibility = 'Visible'
+                $win.FindName('SidebarSubtitle').Visibility = 'Visible'
+                $win.FindName('NavDashboardText').Visibility = 'Visible'
+                $win.FindName('NavDiscoveryText').Visibility = 'Visible'
+                $win.FindName('NavScannerText').Visibility = 'Visible'
+                $win.FindName('NavRulesText').Visibility = 'Visible'
+                $win.FindName('NavPolicyText').Visibility = 'Visible'
+                $win.FindName('NavDeployText').Visibility = 'Visible'
+                $win.FindName('NavSettingsText').Visibility = 'Visible'
+                $win.FindName('NavSetupText').Visibility = 'Visible'
+                $win.FindName('NavAboutText').Visibility = 'Visible'
+                $win.FindName('SidebarFooter').Visibility = 'Visible'
+                $win.FindName('NavSeparator').Margin = [System.Windows.Thickness]::new(15, 20, 15, 20)
+                
+                # Change button to collapse icon
+                $btn = $win.FindName('BtnCollapseSidebar')
+                $btn.Content = '<<'
+                $btn.ToolTip = 'Collapse Sidebar'
+            }
+        })
+    }
 }
 #endregion
 
@@ -798,84 +989,193 @@ function Invoke-StartArtifactScan {
 
     # Update UI state
     $script:ScanInProgress = $true
+    $script:ScanCancelled = $false
     Update-ScanUIState -Window $Window -Scanning $true
-    Update-ScanProgress -Window $Window -Text "Starting scan: $scanName" -Percent 0
+    Update-ScanProgress -Window $Window -Text "Starting scan: $scanName" -Percent 5
 
-    try {
-        # Build scan parameters
-        $scanParams = @{
-            SaveResults = $saveResults
-            ScanName    = $scanName
-        }
-
-        if ($scanLocal) { $scanParams.ScanLocal = $true }
-        if ($includeEvents) { $scanParams.IncludeEventLogs = $true }
-        if ($paths.Count -gt 0) { $scanParams.Paths = $paths }
-        if ($scanRemote -and $script:SelectedScanMachines.Count -gt 0) {
-            $scanParams.Machines = $script:SelectedScanMachines
-        }
-
-        Update-ScanProgress -Window $Window -Text "Scanning..." -Percent 25
-
-        # Execute scan (synchronous for now - async would require background jobs)
-        $result = Start-ArtifactScan @scanParams
-
-        if ($result.Success) {
-            $script:CurrentScanArtifacts = $result.Data.Artifacts
-            Update-ArtifactDataGrid -Window $Window
-            Update-ScanProgress -Window $Window -Text "Scan complete: $($result.Summary.TotalArtifacts) artifacts" -Percent 100
-
-            # Update counters
-            $Window.FindName('ScanArtifactCount').Text = "$($result.Summary.TotalArtifacts) artifacts"
-            $Window.FindName('ScanSignedCount').Text = "$($result.Summary.SignedArtifacts)"
-            $Window.FindName('ScanUnsignedCount').Text = "$($result.Summary.UnsignedArtifacts)"
-            $Window.FindName('ScanStatusLabel').Text = "Complete"
-            $Window.FindName('ScanStatusLabel').Foreground = [System.Windows.Media.Brushes]::LightGreen
-
-            # Refresh saved scans list
-            Update-SavedScansList -Window $Window
-
-            [System.Windows.MessageBox]::Show(
-                "Scan completed successfully!`n`n" +
-                "Total Artifacts: $($result.Summary.TotalArtifacts)`n" +
-                "Signed: $($result.Summary.SignedArtifacts)`n" +
-                "Unsigned: $($result.Summary.UnsignedArtifacts)`n" +
-                "Machines: $($result.Summary.SuccessfulMachines)/$($result.Summary.TotalMachines)",
-                'Scan Complete',
-                'OK',
-                'Information'
-            )
-        }
-        else {
-            Update-ScanProgress -Window $Window -Text "Scan failed: $($result.Error)" -Percent 0
-            $Window.FindName('ScanStatusLabel').Text = "Failed"
-            $Window.FindName('ScanStatusLabel').Foreground = [System.Windows.Media.Brushes]::OrangeRed
-            
-            [System.Windows.MessageBox]::Show("Scan failed: $($result.Error)", 'Scan Error', 'OK', 'Error')
-        }
+    # Build scan parameters
+    $scanParams = @{
+        SaveResults = $saveResults
+        ScanName    = $scanName
     }
-    catch {
-        Update-ScanProgress -Window $Window -Text "Error: $($_.Exception.Message)" -Percent 0
-        $Window.FindName('ScanStatusLabel').Text = "Error"
-        $Window.FindName('ScanStatusLabel').Foreground = [System.Windows.Media.Brushes]::OrangeRed
+
+    if ($scanLocal) { $scanParams.ScanLocal = $true }
+    if ($includeEvents) { $scanParams.IncludeEventLogs = $true }
+    if ($paths.Count -gt 0) { $scanParams.Paths = $paths }
+    if ($scanRemote -and $script:SelectedScanMachines.Count -gt 0) {
+        $scanParams.Machines = $script:SelectedScanMachines
+    }
+
+    # Create a synchronized hashtable for cross-thread communication
+    $script:ScanSyncHash = [hashtable]::Synchronized(@{
+        Window = $Window
+        Params = $scanParams
+        Result = $null
+        Error = $null
+        IsComplete = $false
+        Progress = 10
+        StatusText = "Initializing scan..."
+    })
+
+    # Create and start the background runspace
+    $script:ScanRunspace = [runspacefactory]::CreateRunspace()
+    $script:ScanRunspace.ApartmentState = 'STA'
+    $script:ScanRunspace.ThreadOptions = 'ReuseThread'
+    $script:ScanRunspace.Open()
+    $script:ScanRunspace.SessionStateProxy.SetVariable('SyncHash', $script:ScanSyncHash)
+
+    # Import module path for the runspace
+    $modulePath = (Get-Module GA-AppLocker).ModuleBase
+    $script:ScanRunspace.SessionStateProxy.SetVariable('ModulePath', $modulePath)
+
+    $script:ScanPowerShell = [powershell]::Create()
+    $script:ScanPowerShell.Runspace = $script:ScanRunspace
+    
+    [void]$script:ScanPowerShell.AddScript({
+        param($SyncHash, $ModulePath)
         
-        [System.Windows.MessageBox]::Show("Scan error: $($_.Exception.Message)", 'Error', 'OK', 'Error')
-    }
-    finally {
-        $script:ScanInProgress = $false
-        Update-ScanUIState -Window $Window -Scanning $false
-    }
+        try {
+            # Import the module in this runspace
+            $SyncHash.StatusText = "Loading modules..."
+            $SyncHash.Progress = 15
+            
+            $manifestPath = Join-Path $ModulePath "GA-AppLocker.psd1"
+            if (Test-Path $manifestPath) {
+                Import-Module $manifestPath -Force -ErrorAction Stop
+            } else {
+                throw "Module not found at: $manifestPath"
+            }
+            
+            $SyncHash.StatusText = "Scanning files..."
+            $SyncHash.Progress = 25
+            
+            # Execute the scan - splat the params hashtable
+            $scanParams = $SyncHash.Params
+            $result = Start-ArtifactScan @scanParams
+            
+            $SyncHash.Progress = 90
+            $SyncHash.StatusText = "Processing results..."
+            $SyncHash.Result = $result
+        }
+        catch {
+            $SyncHash.Error = $_.Exception.Message
+        }
+        finally {
+            $SyncHash.IsComplete = $true
+            $SyncHash.Progress = 100
+        }
+    })
+    
+    [void]$script:ScanPowerShell.AddArgument($script:ScanSyncHash)
+    [void]$script:ScanPowerShell.AddArgument($modulePath)
+
+    # Start async execution
+    $script:ScanAsyncResult = $script:ScanPowerShell.BeginInvoke()
+
+    # Create a DispatcherTimer to poll for completion and update UI
+    $script:ScanTimer = New-Object System.Windows.Threading.DispatcherTimer
+    $script:ScanTimer.Interval = [TimeSpan]::FromMilliseconds(200)
+    
+    $script:ScanTimer.Add_Tick({
+        $syncHash = $script:ScanSyncHash
+        $win = $syncHash.Window
+        
+        # Update progress
+        Update-ScanProgress -Window $win -Text $syncHash.StatusText -Percent $syncHash.Progress
+        
+        # Check if cancelled
+        if ($script:ScanCancelled) {
+            $script:ScanTimer.Stop()
+            
+            # Clean up runspace
+            if ($script:ScanPowerShell) {
+                $script:ScanPowerShell.Stop()
+                $script:ScanPowerShell.Dispose()
+            }
+            if ($script:ScanRunspace) {
+                $script:ScanRunspace.Close()
+                $script:ScanRunspace.Dispose()
+            }
+            
+            $script:ScanInProgress = $false
+            Update-ScanUIState -Window $win -Scanning $false
+            Update-ScanProgress -Window $win -Text "Scan cancelled" -Percent 0
+            $win.FindName('ScanStatusLabel').Text = "Cancelled"
+            $win.FindName('ScanStatusLabel').Foreground = [System.Windows.Media.Brushes]::Orange
+            return
+        }
+        
+        # Check if complete
+        if ($syncHash.IsComplete) {
+            $script:ScanTimer.Stop()
+            
+            # End the async operation
+            try {
+                $script:ScanPowerShell.EndInvoke($script:ScanAsyncResult)
+            } catch { }
+            
+            # Clean up runspace
+            if ($script:ScanPowerShell) { $script:ScanPowerShell.Dispose() }
+            if ($script:ScanRunspace) { 
+                $script:ScanRunspace.Close()
+                $script:ScanRunspace.Dispose() 
+            }
+            
+            $script:ScanInProgress = $false
+            Update-ScanUIState -Window $win -Scanning $false
+            
+            if ($syncHash.Error) {
+                Update-ScanProgress -Window $win -Text "Error: $($syncHash.Error)" -Percent 0
+                $win.FindName('ScanStatusLabel').Text = "Error"
+                $win.FindName('ScanStatusLabel').Foreground = [System.Windows.Media.Brushes]::OrangeRed
+                [System.Windows.MessageBox]::Show("Scan error: $($syncHash.Error)", 'Error', 'OK', 'Error')
+            }
+            elseif ($syncHash.Result -and $syncHash.Result.Success) {
+                $result = $syncHash.Result
+                $script:CurrentScanArtifacts = $result.Data.Artifacts
+                Update-ArtifactDataGrid -Window $win
+                Update-ScanProgress -Window $win -Text "Scan complete: $($result.Summary.TotalArtifacts) artifacts" -Percent 100
+
+                # Update counters
+                $win.FindName('ScanArtifactCount').Text = "$($result.Summary.TotalArtifacts) artifacts"
+                $win.FindName('ScanSignedCount').Text = "$($result.Summary.SignedArtifacts)"
+                $win.FindName('ScanUnsignedCount').Text = "$($result.Summary.UnsignedArtifacts)"
+                $win.FindName('ScanStatusLabel').Text = "Complete"
+                $win.FindName('ScanStatusLabel').Foreground = [System.Windows.Media.Brushes]::LightGreen
+
+                # Refresh saved scans list
+                Update-SavedScansList -Window $win
+
+                [System.Windows.MessageBox]::Show(
+                    "Scan completed successfully!`n`n" +
+                    "Total Artifacts: $($result.Summary.TotalArtifacts)`n" +
+                    "Signed: $($result.Summary.SignedArtifacts)`n" +
+                    "Unsigned: $($result.Summary.UnsignedArtifacts)`n" +
+                    "Machines: $($result.Summary.SuccessfulMachines)/$($result.Summary.TotalMachines)",
+                    'Scan Complete',
+                    'OK',
+                    'Information'
+                )
+            }
+            else {
+                $errorMsg = if ($syncHash.Result) { $syncHash.Result.Error } else { "Unknown error" }
+                Update-ScanProgress -Window $win -Text "Scan failed: $errorMsg" -Percent 0
+                $win.FindName('ScanStatusLabel').Text = "Failed"
+                $win.FindName('ScanStatusLabel').Foreground = [System.Windows.Media.Brushes]::OrangeRed
+                [System.Windows.MessageBox]::Show("Scan failed: $errorMsg", 'Scan Error', 'OK', 'Error')
+            }
+        }
+    })
+    
+    # Start the timer
+    $script:ScanTimer.Start()
 }
 
 function Invoke-StopArtifactScan {
     param([System.Windows.Window]$Window)
 
-    # For now, just flag to stop - actual cancellation would require CancellationToken
-    $script:ScanInProgress = $false
-    Update-ScanUIState -Window $Window -Scanning $false
-    Update-ScanProgress -Window $Window -Text "Scan cancelled" -Percent 0
-    $Window.FindName('ScanStatusLabel').Text = "Cancelled"
-    $Window.FindName('ScanStatusLabel').Foreground = [System.Windows.Media.Brushes]::Orange
+    # Signal cancellation - the timer tick handler will clean up
+    $script:ScanCancelled = $true
 }
 
 function Update-ScanUIState {
@@ -1257,7 +1557,7 @@ function Initialize-RulesPanel {
 
     # Wire up action buttons
     $actionButtons = @(
-        'BtnGenerateFromArtifacts', 'BtnCreateManualRule', 'BtnExportRulesXml',
+        'BtnGenerateFromArtifacts', 'BtnCreateManualRule', 'BtnExportRulesXml', 'BtnExportRulesCsv',
         'BtnRefreshRules', 'BtnApproveRule', 'BtnRejectRule', 'BtnReviewRule',
         'BtnDeleteRule', 'BtnViewRuleDetails'
     )
@@ -1321,17 +1621,22 @@ function script:Update-RulesDataGrid {
             $filterText = $filterBox.Text.ToLower()
             $rules = $rules | Where-Object {
                 $_.Name.ToLower().Contains($filterText) -or
-                $_.Collection.ToLower().Contains($filterText) -or
+                $_.CollectionType.ToLower().Contains($filterText) -or
                 ($_.Description -and $_.Description.ToLower().Contains($filterText))
             }
         }
 
-        # Add display property for dates
+        # Add display properties and map rule properties for UI
         $displayData = $rules | ForEach-Object {
             $rule = $_
             $props = @{}
             $_.PSObject.Properties | ForEach-Object { $props[$_.Name] = $_.Value }
-            $props['CreatedDisplay'] = if ($_.CreatedAt) { ([datetime]$_.CreatedAt).ToString('MM/dd HH:mm') } else { '' }
+            # Map properties for XAML bindings and UI compatibility
+            $props['RuleId'] = $_.Id
+            $props['Collection'] = $_.CollectionType
+            $props['CreatedAt'] = $_.CreatedDate
+            $props['ModifiedAt'] = $_.ModifiedDate
+            $props['CreatedDisplay'] = if ($_.CreatedDate) { ([datetime]$_.CreatedDate).ToString('MM/dd HH:mm') } else { '' }
             [PSCustomObject]$props
         }
 
@@ -1418,6 +1723,14 @@ function Invoke-GenerateRulesFromArtifacts {
 
     $action = if ($Window.FindName('RbRuleAllow').IsChecked) { 'Allow' } else { 'Deny' }
 
+    # Get target group SID
+    $targetGroupCombo = $Window.FindName('CboRuleTargetGroup')
+    $targetGroupSid = if ($targetGroupCombo -and $targetGroupCombo.SelectedItem) {
+        $targetGroupCombo.SelectedItem.Tag
+    } else {
+        'S-1-1-0'  # Everyone
+    }
+
     # Generate rules
     $generated = 0
     $failed = 0
@@ -1433,7 +1746,7 @@ function Invoke-GenerateRulesFromArtifacts {
 
             if (-not $ruleType) { continue }
 
-            $result = ConvertFrom-Artifact -Artifact $artifact -RuleType $ruleType -Collection $collection -Action $action
+            $result = ConvertFrom-Artifact -Artifact $artifact -PreferredRuleType $ruleType -Action $action -UserOrGroupSid $targetGroupSid -Save
             if ($result.Success) { $generated++ } else { $failed++ }
         }
         catch {
@@ -1457,15 +1770,20 @@ function Invoke-CreateManualRule {
     $typeCombo = $Window.FindName('CboManualRuleType')
     $value = $Window.FindName('TxtManualRuleValue').Text
     $desc = $Window.FindName('TxtManualRuleDesc').Text
-    $collection = $Window.FindName('TxtRuleCollectionName').Text
     $action = if ($Window.FindName('RbRuleAllow').IsChecked) { 'Allow' } else { 'Deny' }
+
+    # Get target group SID
+    $targetGroupCombo = $Window.FindName('CboManualRuleTargetGroup')
+    $targetGroupSid = if ($targetGroupCombo -and $targetGroupCombo.SelectedItem) {
+        $targetGroupCombo.SelectedItem.Tag
+    } else {
+        'S-1-1-0'  # Everyone
+    }
 
     if ([string]::IsNullOrWhiteSpace($value)) {
         [System.Windows.MessageBox]::Show('Please enter a path, hash, or publisher value.', 'Missing Value', 'OK', 'Warning')
         return
     }
-
-    if ([string]::IsNullOrWhiteSpace($collection)) { $collection = 'Default' }
 
     $ruleType = switch ($typeCombo.SelectedIndex) {
         0 { 'Path' }
@@ -1478,17 +1796,18 @@ function Invoke-CreateManualRule {
         $result = switch ($ruleType) {
             'Path' {
                 if (-not (Get-Command -Name 'New-PathRule' -ErrorAction SilentlyContinue)) { throw 'New-PathRule not available' }
-                New-PathRule -Path $value -Action $action -Collection $collection -Description $desc -RuleCollection 'Exe'
+                New-PathRule -Path $value -Action $action -Description $desc -CollectionType 'Exe' -UserOrGroupSid $targetGroupSid -Save
             }
             'Hash' {
                 if (-not (Get-Command -Name 'New-HashRule' -ErrorAction SilentlyContinue)) { throw 'New-HashRule not available' }
-                New-HashRule -Hash $value -FileName 'Manual' -Action $action -Collection $collection -Description $desc -RuleCollection 'Exe'
+                New-HashRule -Hash $value -SourceFileName 'Manual' -Action $action -Description $desc -CollectionType 'Exe' -UserOrGroupSid $targetGroupSid -Save
             }
             'Publisher' {
                 if (-not (Get-Command -Name 'New-PublisherRule' -ErrorAction SilentlyContinue)) { throw 'New-PublisherRule not available' }
                 $parts = $value -split ','
-                New-PublisherRule -Publisher ($parts[0].Trim()) -ProductName ($parts[1] | Select-Object -First 1) `
-                    -Action $action -Collection $collection -Description $desc -RuleCollection 'Exe'
+                $pubName = $parts[0].Trim()
+                $prodName = if ($parts.Count -gt 1) { $parts[1].Trim() } else { '*' }
+                New-PublisherRule -PublisherName $pubName -ProductName $prodName -Action $action -Description $desc -CollectionType 'Exe' -UserOrGroupSid $targetGroupSid -Save
             }
         }
 
@@ -1608,11 +1927,65 @@ function Invoke-ExportRulesToXml {
 
     if ($dialog.ShowDialog() -eq 'OK') {
         try {
-            $result = Export-RulesToXml -OutputPath $dialog.FileName -ApprovedOnly:$approvedOnly
+            # IncludeAllStatuses is the inverse of "approved only"
+            # If checkbox is checked (approved only), don't include all statuses
+            # If checkbox is unchecked, include all statuses
+            if ($approvedOnly) {
+                $result = Export-RulesToXml -OutputPath $dialog.FileName
+            } else {
+                $result = Export-RulesToXml -OutputPath $dialog.FileName -IncludeAllStatuses
+            }
             
             if ($result.Success) {
                 [System.Windows.MessageBox]::Show(
-                    "Exported rules to:`n$($dialog.FileName)`n`nRules exported: $($result.Data.Count)",
+                    "Exported rules to:`n$($dialog.FileName)`n`nRules exported: $($result.Data.RuleCount)",
+                    'Export Complete',
+                    'OK',
+                    'Information'
+                )
+            }
+            else {
+                [System.Windows.MessageBox]::Show("Export failed: $($result.Error)", 'Error', 'OK', 'Error')
+            }
+        }
+        catch {
+            [System.Windows.MessageBox]::Show("Export failed: $($_.Exception.Message)", 'Error', 'OK', 'Error')
+        }
+    }
+}
+
+function Invoke-ExportRulesToCsv {
+    param([System.Windows.Window]$Window)
+
+    if (-not (Get-Command -Name 'Get-AllRules' -ErrorAction SilentlyContinue)) {
+        [System.Windows.MessageBox]::Show('Get-AllRules function not available.', 'Error', 'OK', 'Error')
+        return
+    }
+
+    $approvedOnly = $Window.FindName('ChkExportApprovedOnly').IsChecked
+
+    Add-Type -AssemblyName System.Windows.Forms
+
+    $dialog = [System.Windows.Forms.SaveFileDialog]::new()
+    $dialog.Title = 'Export Rules to CSV'
+    $dialog.Filter = 'CSV Files (*.csv)|*.csv'
+    $dialog.FileName = "AppLockerRules_$(Get-Date -Format 'yyyyMMdd_HHmmss').csv"
+
+    if ($dialog.ShowDialog() -eq 'OK') {
+        try {
+            $result = Get-AllRules
+            
+            if ($result.Success) {
+                $rules = $result.Data
+                if ($approvedOnly) {
+                    $rules = $rules | Where-Object { $_.Status -eq 'Approved' }
+                }
+                
+                $rules | Select-Object Id, Name, RuleType, CollectionType, Action, Status, CreatedDate | 
+                    Export-Csv -Path $dialog.FileName -NoTypeInformation
+                
+                [System.Windows.MessageBox]::Show(
+                    "Exported rules to:`n$($dialog.FileName)`n`nRules exported: $($rules.Count)",
                     'Export Complete',
                     'OK',
                     'Information'
@@ -2024,7 +2397,7 @@ function Invoke-AddRulesToPolicy {
     if (-not $rulesResult.Success) { return }
 
     $availableRules = $rulesResult.Data | Where-Object { 
-        $_.Status -eq 'Approved' -and $_.RuleId -notin $currentRuleIds 
+        $_.Status -eq 'Approved' -and $_.Id -notin $currentRuleIds 
     }
 
     if ($availableRules.Count -eq 0) {
@@ -2041,7 +2414,7 @@ function Invoke-AddRulesToPolicy {
     )
 
     if ($confirm -eq 'Yes') {
-        $ruleIds = $availableRules | Select-Object -ExpandProperty RuleId
+        $ruleIds = $availableRules | Select-Object -ExpandProperty Id
         $result = Add-RuleToPolicy -PolicyId $script:SelectedPolicyId -RuleId $ruleIds
         
         if ($result.Success) {
@@ -2218,6 +2591,25 @@ function Initialize-DeploymentPanel {
         }
     }
 
+    # Wire up GPO dropdown to show/hide custom textbox
+    $gpoCombo = $Window.FindName('CboDeployTargetGPO')
+    $customGpoBox = $Window.FindName('TxtDeployCustomGPO')
+    if ($gpoCombo -and $customGpoBox) {
+        $gpoCombo.Add_SelectionChanged({
+            param($sender, $e)
+            $selectedItem = $sender.SelectedItem
+            $customBox = $script:MainWindow.FindName('TxtDeployCustomGPO')
+            if ($customBox) {
+                if ($selectedItem -and $selectedItem.Tag -eq 'Custom') {
+                    $customBox.Visibility = 'Visible'
+                }
+                else {
+                    $customBox.Visibility = 'Collapsed'
+                }
+            }
+        })
+    }
+
     # Check module status
     Update-ModuleStatus -Window $Window
 
@@ -2350,7 +2742,8 @@ function Invoke-CreateDeploymentJob {
     param([System.Windows.Window]$Window)
 
     $policyCombo = $Window.FindName('CboDeployPolicy')
-    $gpoName = $Window.FindName('TxtDeployGPOName').Text
+    $gpoCombo = $Window.FindName('CboDeployTargetGPO')
+    $customGpoBox = $Window.FindName('TxtDeployCustomGPO')
     $scheduleCombo = $Window.FindName('CboDeploySchedule')
 
     if (-not $policyCombo.SelectedItem) {
@@ -2358,8 +2751,18 @@ function Invoke-CreateDeploymentJob {
         return
     }
 
+    # Get GPO name from dropdown or custom textbox
+    $selectedGpo = $gpoCombo.SelectedItem
+    $gpoName = if ($selectedGpo -and $selectedGpo.Tag -eq 'Custom') {
+        $customGpoBox.Text
+    } elseif ($selectedGpo) {
+        $selectedGpo.Tag
+    } else {
+        $null
+    }
+
     if ([string]::IsNullOrWhiteSpace($gpoName)) {
-        [System.Windows.MessageBox]::Show('Please enter a target GPO name.', 'Missing GPO', 'OK', 'Warning')
+        [System.Windows.MessageBox]::Show('Please select or enter a target GPO name.', 'Missing GPO', 'OK', 'Warning')
         return
     }
 
@@ -2375,10 +2778,11 @@ function Invoke-CreateDeploymentJob {
         $result = New-DeploymentJob -PolicyId $policy.PolicyId -GPOName $gpoName -Schedule $schedule
 
         if ($result.Success) {
-            $Window.FindName('TxtDeployGPOName').Text = ''
+            # Reset custom GPO box if used
+            if ($customGpoBox) { $customGpoBox.Text = '' }
             Update-DeploymentJobsDataGrid -Window $Window
             [System.Windows.MessageBox]::Show(
-                "Deployment job created for policy '$($policy.Name)'.",
+                "Deployment job created for policy '$($policy.Name)'.`nTarget GPO: $gpoName",
                 'Success',
                 'OK',
                 'Information'
@@ -2494,6 +2898,285 @@ function Show-DeploymentLog {
 
 #endregion
 
+#region ===== SETUP PANEL HANDLERS =====
+
+function Initialize-SetupPanel {
+    param([System.Windows.Window]$Window)
+
+    # Wire up Setup tab buttons
+    $btnInitWinRM = $Window.FindName('BtnInitializeWinRM')
+    if ($btnInitWinRM) { $btnInitWinRM.Add_Click({ Invoke-ButtonAction -Action 'InitializeWinRM' }) }
+
+    $btnToggleWinRM = $Window.FindName('BtnToggleWinRM')
+    if ($btnToggleWinRM) { $btnToggleWinRM.Add_Click({ Invoke-ButtonAction -Action 'ToggleWinRM' }) }
+
+    $btnInitGPOs = $Window.FindName('BtnInitializeAppLockerGPOs')
+    if ($btnInitGPOs) { $btnInitGPOs.Add_Click({ Invoke-ButtonAction -Action 'InitializeAppLockerGPOs' }) }
+
+    $btnInitAD = $Window.FindName('BtnInitializeADStructure')
+    if ($btnInitAD) { $btnInitAD.Add_Click({ Invoke-ButtonAction -Action 'InitializeADStructure' }) }
+
+    $btnInitAll = $Window.FindName('BtnInitializeAll')
+    if ($btnInitAll) { $btnInitAll.Add_Click({ Invoke-ButtonAction -Action 'InitializeAll' }) }
+
+    # Update status on load
+    Update-SetupStatus -Window $Window
+}
+
+function Update-SetupStatus {
+    param([System.Windows.Window]$Window)
+
+    try {
+        if (-not (Get-Command -Name 'Get-SetupStatus' -ErrorAction SilentlyContinue)) {
+            return
+        }
+
+        $status = Get-SetupStatus
+
+        if ($status.Success -and $status.Data) {
+            # Update WinRM status
+            $winrmStatus = $Window.FindName('TxtWinRMStatus')
+            if ($winrmStatus -and $status.Data.WinRM) {
+                $winrmStatus.Text = $status.Data.WinRM.Status
+                $winrmStatus.Foreground = switch ($status.Data.WinRM.Status) {
+                    'Enabled' { [System.Windows.Media.Brushes]::LightGreen }
+                    'Disabled' { [System.Windows.Media.Brushes]::Orange }
+                    default { [System.Windows.Media.Brushes]::Gray }
+                }
+            }
+
+            # Update GPO statuses
+            foreach ($gpo in $status.Data.AppLockerGPOs) {
+                $statusControl = $Window.FindName("TxtGPO_$($gpo.Type)_Status")
+                if ($statusControl) {
+                    $statusControl.Text = $gpo.Status
+                    $statusControl.Foreground = if ($gpo.Exists) { 
+                        [System.Windows.Media.Brushes]::LightGreen 
+                    } else { 
+                        [System.Windows.Media.Brushes]::Gray 
+                    }
+                }
+            }
+        }
+    }
+    catch {
+        # Silently fail - status display is optional
+    }
+}
+
+function Invoke-InitializeWinRM {
+    param([System.Windows.Window]$Window)
+
+    try {
+        if (-not (Get-Command -Name 'Initialize-WinRMGPO' -ErrorAction SilentlyContinue)) {
+            [System.Windows.MessageBox]::Show('Setup module not available.', 'Error', 'OK', 'Error')
+            return
+        }
+
+        $confirm = [System.Windows.MessageBox]::Show(
+            "This will create the 'AppLocker-EnableWinRM' GPO and link it to the domain root.`n`nThis enables WinRM on ALL computers in the domain.`n`nContinue?",
+            'Initialize WinRM GPO',
+            'YesNo',
+            'Warning'
+        )
+
+        if ($confirm -ne 'Yes') { return }
+
+        $result = Initialize-WinRMGPO
+
+        if ($result.Success) {
+            [System.Windows.MessageBox]::Show(
+                "WinRM GPO created successfully!`n`nGPO: $($result.Data.GPOName)`nLinked to: $($result.Data.LinkedTo)",
+                'Success',
+                'OK',
+                'Information'
+            )
+            Update-SetupStatus -Window $Window
+        }
+        else {
+            [System.Windows.MessageBox]::Show("Failed: $($result.Error)", 'Error', 'OK', 'Error')
+        }
+    }
+    catch {
+        [System.Windows.MessageBox]::Show("Error: $($_.Exception.Message)", 'Error', 'OK', 'Error')
+    }
+}
+
+function Invoke-ToggleWinRM {
+    param([System.Windows.Window]$Window)
+
+    try {
+        $status = Get-SetupStatus
+        if (-not $status.Success -or -not $status.Data.WinRM.Exists) {
+            [System.Windows.MessageBox]::Show('WinRM GPO does not exist. Initialize it first.', 'Not Found', 'OK', 'Warning')
+            return
+        }
+
+        $isEnabled = $status.Data.WinRM.Status -eq 'Enabled'
+
+        if ($isEnabled) {
+            $result = Disable-WinRMGPO
+            $action = 'disabled'
+        }
+        else {
+            $result = Enable-WinRMGPO
+            $action = 'enabled'
+        }
+
+        if ($result.Success) {
+            [System.Windows.MessageBox]::Show("WinRM GPO link $action.", 'Success', 'OK', 'Information')
+            Update-SetupStatus -Window $Window
+        }
+        else {
+            [System.Windows.MessageBox]::Show("Failed: $($result.Error)", 'Error', 'OK', 'Error')
+        }
+    }
+    catch {
+        [System.Windows.MessageBox]::Show("Error: $($_.Exception.Message)", 'Error', 'OK', 'Error')
+    }
+}
+
+function Invoke-InitializeAppLockerGPOs {
+    param([System.Windows.Window]$Window)
+
+    try {
+        if (-not (Get-Command -Name 'Initialize-AppLockerGPOs' -ErrorAction SilentlyContinue)) {
+            [System.Windows.MessageBox]::Show('Setup module not available.', 'Error', 'OK', 'Error')
+            return
+        }
+
+        $confirm = [System.Windows.MessageBox]::Show(
+            "This will create three AppLocker GPOs:`n`n" +
+            "- AppLocker-DC (linked to Domain Controllers OU)`n" +
+            "- AppLocker-Servers (linked to Servers OU)`n" +
+            "- AppLocker-Workstations (linked to Computers OU)`n`n" +
+            "Continue?",
+            'Initialize AppLocker GPOs',
+            'YesNo',
+            'Question'
+        )
+
+        if ($confirm -ne 'Yes') { return }
+
+        $result = Initialize-AppLockerGPOs
+
+        if ($result.Success) {
+            $summary = $result.Data | ForEach-Object { "- $($_.Name): $($_.Status)" }
+            [System.Windows.MessageBox]::Show(
+                "AppLocker GPOs created!`n`n$($summary -join "`n")",
+                'Success',
+                'OK',
+                'Information'
+            )
+            Update-SetupStatus -Window $Window
+        }
+        else {
+            [System.Windows.MessageBox]::Show("Failed: $($result.Error)", 'Error', 'OK', 'Error')
+        }
+    }
+    catch {
+        [System.Windows.MessageBox]::Show("Error: $($_.Exception.Message)", 'Error', 'OK', 'Error')
+    }
+}
+
+function Invoke-InitializeADStructure {
+    param([System.Windows.Window]$Window)
+
+    try {
+        if (-not (Get-Command -Name 'Initialize-ADStructure' -ErrorAction SilentlyContinue)) {
+            [System.Windows.MessageBox]::Show('Setup module not available.', 'Error', 'OK', 'Error')
+            return
+        }
+
+        $confirm = [System.Windows.MessageBox]::Show(
+            "This will create the AppLocker OU and security groups:`n`n" +
+            "OU: AppLocker (at domain root)`n`n" +
+            "Groups:`n" +
+            "- AppLocker-Admins`n" +
+            "- AppLocker-Exempt`n" +
+            "- AppLocker-Audit`n" +
+            "- AppLocker-Users`n" +
+            "- AppLocker-Installers`n" +
+            "- AppLocker-Developers`n`n" +
+            "Continue?",
+            'Initialize AD Structure',
+            'YesNo',
+            'Question'
+        )
+
+        if ($confirm -ne 'Yes') { return }
+
+        $result = Initialize-ADStructure
+
+        if ($result.Success) {
+            $groupSummary = $result.Data.Groups | ForEach-Object { "- $($_.Name): $($_.Status)" }
+            [System.Windows.MessageBox]::Show(
+                "AD Structure created!`n`n" +
+                "OU: $($result.Data.OUPath)`n`n" +
+                "Groups:`n$($groupSummary -join "`n")",
+                'Success',
+                'OK',
+                'Information'
+            )
+            Update-SetupStatus -Window $Window
+        }
+        else {
+            [System.Windows.MessageBox]::Show("Failed: $($result.Error)", 'Error', 'OK', 'Error')
+        }
+    }
+    catch {
+        [System.Windows.MessageBox]::Show("Error: $($_.Exception.Message)", 'Error', 'OK', 'Error')
+    }
+}
+
+function Invoke-InitializeAll {
+    param([System.Windows.Window]$Window)
+
+    try {
+        if (-not (Get-Command -Name 'Initialize-AppLockerEnvironment' -ErrorAction SilentlyContinue)) {
+            [System.Windows.MessageBox]::Show('Setup module not available.', 'Error', 'OK', 'Error')
+            return
+        }
+
+        $confirm = [System.Windows.MessageBox]::Show(
+            "This will run ALL initialization steps:`n`n" +
+            "1. Create WinRM GPO (linked to domain root)`n" +
+            "2. Create AppLocker GPOs (DC, Servers, Workstations)`n" +
+            "3. Create AppLocker OU and security groups`n`n" +
+            "This requires Domain Admin permissions.`n`n" +
+            "Continue?",
+            'Full Initialization',
+            'YesNo',
+            'Warning'
+        )
+
+        if ($confirm -ne 'Yes') { return }
+
+        $result = Initialize-AppLockerEnvironment
+
+        if ($result.Success) {
+            [System.Windows.MessageBox]::Show(
+                "Full initialization complete!`n`n" +
+                "WinRM GPO: $(if ($result.Data.WinRM.Success) { 'Success' } else { 'Failed' })`n" +
+                "AppLocker GPOs: $(if ($result.Data.AppLockerGPOs.Success) { 'Success' } else { 'Failed' })`n" +
+                "AD Structure: $(if ($result.Data.ADStructure.Success) { 'Success' } else { 'Failed' })",
+                'Initialization Complete',
+                'OK',
+                'Information'
+            )
+            Update-SetupStatus -Window $Window
+        }
+        else {
+            [System.Windows.MessageBox]::Show("Failed: $($result.Error)", 'Error', 'OK', 'Error')
+        }
+    }
+    catch {
+        [System.Windows.MessageBox]::Show("Error: $($_.Exception.Message)", 'Error', 'OK', 'Error')
+    }
+}
+
+#endregion
+
 #region ===== WINDOW INITIALIZATION =====
 function Initialize-MainWindow {
     param(
@@ -2510,6 +3193,15 @@ function Initialize-MainWindow {
     }
     catch {
         Write-Log -Level Error -Message "Navigation init failed: $($_.Exception.Message)"
+    }
+    
+    # Initialize Dashboard panel
+    try {
+        Initialize-DashboardPanel -Window $Window
+        Write-Log -Message 'Dashboard panel initialized'
+    }
+    catch {
+        Write-Log -Level Error -Message "Dashboard panel init failed: $($_.Exception.Message)"
     }
     
     # Initialize Discovery panel
@@ -2564,6 +3256,15 @@ function Initialize-MainWindow {
     }
     catch {
         Write-Log -Level Error -Message "Deployment panel init failed: $($_.Exception.Message)"
+    }
+
+    # Initialize Setup panel (Settings > Setup tab)
+    try {
+        Initialize-SetupPanel -Window $Window
+        Write-Log -Message 'Setup panel initialized'
+    }
+    catch {
+        Write-Log -Level Error -Message "Setup panel init failed: $($_.Exception.Message)"
     }
 
     # Update domain info in status bar and dashboard

@@ -77,6 +77,9 @@ function ConvertFrom-Artifact {
         [string]$Status = 'Pending',
 
         [Parameter()]
+        [string]$UserOrGroupSid = 'S-1-1-0',
+
+        [Parameter()]
         [switch]$Save
     )
 
@@ -175,6 +178,7 @@ function ConvertFrom-Artifact {
                                 -Action $Action `
                                 -CollectionType $collectionType `
                                 -Status $Status `
+                                -UserOrGroupSid $UserOrGroupSid `
                                 -SourceArtifactId $art.SHA256Hash `
                                 -Save:$Save
 
@@ -196,6 +200,7 @@ function ConvertFrom-Artifact {
                             -Action $Action `
                             -CollectionType $collectionType `
                             -Status $Status `
+                            -UserOrGroupSid $UserOrGroupSid `
                             -SourceArtifactId $art.SHA256Hash `
                             -Save:$Save
 
@@ -209,6 +214,7 @@ function ConvertFrom-Artifact {
                             -Action $Action `
                             -CollectionType $collectionType `
                             -Status $Status `
+                            -UserOrGroupSid $UserOrGroupSid `
                             -SourceArtifactId $art.SHA256Hash `
                             -Save:$Save
 
@@ -239,6 +245,7 @@ function ConvertFrom-Artifact {
                             -Action $Action `
                             -CollectionType $group.Collection `
                             -Status $Status `
+                            -UserOrGroupSid $UserOrGroupSid `
                             -Description "Auto-generated from $($group.Artifacts.Count) artifacts" `
                             -Save:$Save
 
