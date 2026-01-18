@@ -18,22 +18,46 @@
     Skip AD tests: Invoke-Pester -ExcludeTag 'RequiresAD'
 #>
 
-BeforeAll {
-    # Import the module
-    $modulePath = Join-Path $PSScriptRoot '..\..\GA-AppLocker\GA-AppLocker.psd1'
-    Import-Module $modulePath -Force -ErrorAction Stop
-
+BeforeDiscovery {
     # Docker AD Configuration (using non-standard ports to avoid Windows conflicts)
     $script:adConfig = @{
         Server   = '127.0.0.1'  # Docker maps to localhost
         Domain   = 'YOURLAB.LOCAL'
         BaseDN   = 'DC=yourlab,DC=local'
         User     = 'Administrator'
-        Password = 'P@ssw0rd123!'
+        Password = 'Passw0rd!'  # Password set when container was created
         Port     = 10389  # Mapped from container's 389
     }
 
-    # Check if AD is available using simple TCP connect
+    # Check if AD is available using simple TCP connect (during discovery for -Skip evaluation)
+    $script:adAvailable = $false
+    try {
+        $tcpClient = New-Object System.Net.Sockets.TcpClient
+        $tcpClient.Connect($script:adConfig.Server, $script:adConfig.Port)
+        $tcpClient.Close()
+        $script:adAvailable = $true
+    }
+    catch {
+        # AD not available - tests will be skipped
+    }
+}
+
+BeforeAll {
+    # Import the module
+    $modulePath = Join-Path $PSScriptRoot '..\..\GA-AppLocker\GA-AppLocker.psd1'
+    Import-Module $modulePath -Force -ErrorAction Stop
+
+    # Docker AD Configuration - redefined for runtime scope (BeforeDiscovery scope doesn't persist)
+    $script:adConfig = @{
+        Server   = '127.0.0.1'
+        Domain   = 'YOURLAB.LOCAL'
+        BaseDN   = 'DC=yourlab,DC=local'
+        User     = 'Administrator'
+        Password = 'Passw0rd!'
+        Port     = 10389
+    }
+
+    # Re-check availability for runtime
     $script:adAvailable = $false
     try {
         $tcpClient = New-Object System.Net.Sockets.TcpClient
@@ -44,28 +68,21 @@ BeforeAll {
     }
     catch {
         Write-Warning "Docker AD not available at $($script:adConfig.Server):$($script:adConfig.Port)"
-        Write-Warning "Start with: cd docker && docker-compose up -d"
-        Write-Warning "Error: $($_.Exception.Message)"
+        Write-Warning "Start with: docker run -d --name ga-applocker-ad -e DOMAIN=YOURLAB.LOCAL -e DOMAINPASS=Passw0rd! -e INSECURELDAP=true -p 10389:389 nowsci/samba-domain"
     }
 }
 
 Describe 'AD Discovery Integration Tests' -Tag 'Integration', 'AD', 'RequiresAD' {
 
-    BeforeAll {
-        if (-not $script:adAvailable) {
-            Set-ItResult -Skipped -Because 'Docker AD DC not running'
-        }
-    }
-
     Context 'LDAP Connectivity' {
         
-        It 'Can connect to LDAP on port 389' -Skip:(-not $script:adAvailable) {
+        It 'Can connect to LDAP on mapped port' {
             $tcpClient = New-Object System.Net.Sockets.TcpClient
-            { $tcpClient.Connect($script:adConfig.Server, 389) } | Should -Not -Throw
+            { $tcpClient.Connect($script:adConfig.Server, $script:adConfig.Port) } | Should -Not -Throw
             $tcpClient.Close()
         }
 
-        It 'Can bind to LDAP with credentials' -Skip:(-not $script:adAvailable) {
+        It 'Can bind to LDAP with credentials' {
             $ldapPath = "LDAP://$($script:adConfig.Server):$($script:adConfig.Port)/$($script:adConfig.BaseDN)"
             $directoryEntry = $null
             
@@ -87,7 +104,7 @@ Describe 'AD Discovery Integration Tests' -Tag 'Integration', 'AD', 'RequiresAD'
 
     Context 'Get-OUTree via LDAP' {
         
-        It 'Can enumerate OUs using LDAP' -Skip:(-not $script:adAvailable) {
+        It 'Can enumerate OUs using LDAP' {
             $ldapPath = "LDAP://$($script:adConfig.Server):$($script:adConfig.Port)/$($script:adConfig.BaseDN)"
             
             $directoryEntry = New-Object System.DirectoryServices.DirectoryEntry(
@@ -131,7 +148,7 @@ Describe 'AD Discovery Integration Tests' -Tag 'Integration', 'AD', 'RequiresAD'
 
     Context 'Get-ComputersByOU via LDAP' {
         
-        It 'Can find computers in Development OU' -Skip:(-not $script:adAvailable) {
+        It 'Can find computers in Development OU' {
             $ouDN = "OU=Development,OU=Workstations,$($script:adConfig.BaseDN)"
             $ldapPath = "LDAP://$($script:adConfig.Server):$($script:adConfig.Port)/$ouDN"
             
@@ -164,7 +181,7 @@ Describe 'AD Discovery Integration Tests' -Tag 'Integration', 'AD', 'RequiresAD'
             }
         }
 
-        It 'Can find computers in Servers OU' -Skip:(-not $script:adAvailable) {
+        It 'Can find computers in Servers OU' {
             $ouDN = "OU=Servers,$($script:adConfig.BaseDN)"
             $ldapPath = "LDAP://$($script:adConfig.Server):$($script:adConfig.Port)/$ouDN"
             
@@ -200,7 +217,7 @@ Describe 'AD Discovery Integration Tests' -Tag 'Integration', 'AD', 'RequiresAD'
 
     Context 'Security Groups via LDAP' {
         
-        It 'Can find AppLocker security groups' -Skip:(-not $script:adAvailable) {
+        It 'Can find AppLocker security groups' {
             $ldapPath = "LDAP://$($script:adConfig.Server):$($script:adConfig.Port)/$($script:adConfig.BaseDN)"
             
             $directoryEntry = New-Object System.DirectoryServices.DirectoryEntry(
@@ -235,16 +252,10 @@ Describe 'AD Discovery Integration Tests' -Tag 'Integration', 'AD', 'RequiresAD'
 }
 
 Describe 'AD Discovery Module Functions' -Tag 'Integration', 'AD', 'RequiresAD' {
-    
-    BeforeAll {
-        if (-not $script:adAvailable) {
-            Set-ItResult -Skipped -Because 'Docker AD DC not running'
-        }
-    }
 
     Context 'Get-DomainInfo' {
         
-        It 'Returns domain information structure' -Skip:(-not $script:adAvailable) {
+        It 'Returns domain information structure' {
             # This test verifies the function returns proper structure
             # even if ActiveDirectory module isn't available
             $result = Get-DomainInfo
@@ -256,7 +267,7 @@ Describe 'AD Discovery Module Functions' -Tag 'Integration', 'AD', 'RequiresAD' 
 
     Context 'Module fallback to LDAP' {
         
-        It 'Should have LDAP fallback when AD module unavailable' -Skip:(-not $script:adAvailable) {
+        It 'Should have LDAP fallback when AD module unavailable' {
             # Verify the Discovery module can work without ActiveDirectory module
             # by using System.DirectoryServices directly
             
