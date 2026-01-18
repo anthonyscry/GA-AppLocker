@@ -43,7 +43,9 @@ function Get-LdapSearchResult {
     param(
         [Parameter(Mandatory)]
         [System.DirectoryServices.Protocols.LdapConnection]$Connection,
-        [Parameter(Mandatory)][string]$SearchBase,
+        [Parameter(Mandatory)]
+        [AllowEmptyString()]
+        [string]$SearchBase,
         [string]$Filter = "(objectClass=*)",
         [string[]]$Properties = @("*"),
         [System.DirectoryServices.Protocols.SearchScope]$Scope = "Subtree"

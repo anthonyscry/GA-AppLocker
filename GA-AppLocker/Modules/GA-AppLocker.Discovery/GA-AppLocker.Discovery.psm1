@@ -40,9 +40,18 @@ if (Test-Path $functionPath) {
 
 #region ===== EXPORTS =====
 Export-ModuleMember -Function @(
+    # Main discovery functions (with LDAP fallback)
     'Get-DomainInfo',
     'Get-OUTree',
     'Get-ComputersByOU',
-    'Test-MachineConnectivity'
+    'Test-MachineConnectivity',
+    # LDAP-specific functions
+    'Get-LdapConnection',
+    'Get-LdapSearchResult',
+    'Get-DomainInfoViaLdap',
+    'Get-OUTreeViaLdap',
+    'Get-ComputersByOUViaLdap',
+    'Set-LdapConfiguration',
+    'Test-LdapConnection'
 )
 #endregion
