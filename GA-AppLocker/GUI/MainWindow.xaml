@@ -1603,7 +1603,6 @@
                                                 Tag="ViewRuleDetails"/>
                                     </StackPanel>
                                 </Grid>
-                                </StackPanel>
                             </Grid>
                         </Border>
                     </Grid>
