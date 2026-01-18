@@ -82,6 +82,28 @@ function Get-RemoteArtifacts {
         $remoteScriptBlock = {
             param($ScanPaths, $FileExtensions, $DoRecurse)
 
+            # Helper function to determine artifact type (runs on remote machine)
+            function Get-RemoteArtifactType {
+                param([string]$Extension)
+                
+                # Return UI-compatible artifact type values
+                switch ($Extension.ToLower()) {
+                    '.exe' { 'EXE' }
+                    '.dll' { 'DLL' }
+                    '.msi' { 'MSI' }
+                    '.msp' { 'MSP' }
+                    '.ps1' { 'PS1' }
+                    '.psm1' { 'PS1' }
+                    '.psd1' { 'PS1' }
+                    '.bat' { 'BAT' }
+                    '.cmd' { 'CMD' }
+                    '.vbs' { 'VBS' }
+                    '.js' { 'JS' }
+                    '.wsf' { 'WSF' }
+                    default { 'Unknown' }
+                }
+            }
+
             function Get-RemoteFileArtifact {
                 param([string]$FilePath)
                 
@@ -93,7 +115,9 @@ function Get-RemoteArtifacts {
                     try {
                         $versionInfo = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($FilePath)
                     }
-                    catch { }
+                    catch { 
+                        # Version info not available for some files - acceptable, continue with null
+                    }
                     
                     $signature = Get-AuthenticodeSignature -FilePath $FilePath -ErrorAction SilentlyContinue
                     
@@ -117,6 +141,7 @@ function Get-RemoteArtifacts {
                         SignerCertificate = $signature.SignerCertificate.Subject
                         SignatureStatus  = $signature.Status.ToString()
                         CollectedDate    = Get-Date
+                        ArtifactType     = Get-RemoteArtifactType -Extension $file.Extension
                     }
                 }
                 catch {

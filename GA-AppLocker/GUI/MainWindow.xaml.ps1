@@ -889,8 +889,8 @@ function Update-ScanProgress {
     if ($progressBar) { $progressBar.Value = $Percent }
     if ($progressPercent) { $progressPercent.Text = if ($Percent -gt 0) { "$Percent%" } else { '' } }
 
-    # Force UI update
-    [System.Windows.Forms.Application]::DoEvents()
+    # Note: DoEvents() removed - anti-pattern that causes re-entrancy issues
+    # TODO: Implement proper async pattern with runspaces for long operations
 }
 
 function global:Update-ArtifactDataGrid {
@@ -1510,12 +1510,18 @@ function Set-SelectedRuleStatus {
     }
 
     $updated = 0
+    $errors = @()
     foreach ($item in $selectedItems) {
         try {
             $result = Set-RuleStatus -RuleId $item.RuleId -Status $Status
             if ($result.Success) { $updated++ }
         }
-        catch { }
+        catch { 
+            $errors += "Rule $($item.RuleId): $($_.Exception.Message)"
+        }
+    }
+    if ($errors.Count -gt 0) {
+        Write-AppLockerLog -Level Warning -Message "Errors updating rules: $($errors -join '; ')" -NoConsole
     }
 
     Update-RulesDataGrid -Window $Window
@@ -1548,12 +1554,18 @@ function Invoke-DeleteSelectedRules {
     }
 
     $deleted = 0
+    $errors = @()
     foreach ($item in $selectedItems) {
         try {
             $result = Remove-Rule -RuleId $item.RuleId
             if ($result.Success) { $deleted++ }
         }
-        catch { }
+        catch { 
+            $errors += "Rule $($item.RuleId): $($_.Exception.Message)"
+        }
+    }
+    if ($errors.Count -gt 0) {
+        Write-AppLockerLog -Level Warning -Message "Errors deleting rules: $($errors -join '; ')" -NoConsole
     }
 
     Update-RulesDataGrid -Window $Window
@@ -2387,7 +2399,7 @@ function Invoke-DeploySelectedJob {
 
         $messageBox.Text = 'Starting deployment...'
         $progressBar.Value = 10
-        [System.Windows.Forms.Application]::DoEvents()
+        # Note: DoEvents() removed - anti-pattern that causes re-entrancy issues
 
         $result = Start-Deployment -JobId $script:SelectedDeploymentJobId
 

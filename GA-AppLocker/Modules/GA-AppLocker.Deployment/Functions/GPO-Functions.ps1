@@ -19,9 +19,10 @@ function Test-GPOExists {
         # Check if GroupPolicy module is available
         if (-not (Get-Module -ListAvailable -Name GroupPolicy)) {
             return @{
-                Success = $true
-                Data    = $false
-                Message = 'GroupPolicy module not available - assuming GPO does not exist'
+                Success        = $false
+                Data           = $null
+                Error          = 'GroupPolicy module not available. Install RSAT-GPMC feature.'
+                ManualRequired = $true
             }
         }
 
@@ -36,11 +37,10 @@ function Test-GPOExists {
         }
     }
     catch {
-        # If we can't check, assume it doesn't exist
         return @{
-            Success = $true
-            Data    = $false
-            Message = "Could not verify GPO: $($_.Exception.Message)"
+            Success = $false
+            Data    = $null
+            Error   = "Could not verify GPO: $($_.Exception.Message)"
         }
     }
 }
@@ -176,18 +176,18 @@ function Import-PolicyToGPO {
             }
         }
         else {
-            # Fallback: Log that manual import is needed
+            # Set-AppLockerPolicy not available - cannot auto-import
             Write-AppLockerLog -Level Warning -Message "Set-AppLockerPolicy not available. Policy exported to: $XmlPath"
             Write-AppLockerLog -Message "Manual import required: Use GPMC to import the policy XML"
 
             return @{
-                Success = $true
-                Data    = @{
+                Success        = $false
+                Data           = @{
                     GPOName = $GPOName
                     XmlPath = $XmlPath
-                    Manual  = $true
                 }
-                Message = "Policy exported. Manual import required via GPMC."
+                Error          = 'Set-AppLockerPolicy cmdlet not available. Manual import required via GPMC.'
+                ManualRequired = $true
             }
         }
 

@@ -33,7 +33,7 @@ Features:
 - Auto-generate rules using best practices (Publisher > Hash > Path)
 - Create and merge policies by machine type (Workstation/Server/DC)
 - Deploy to GPOs with phase-based enforcement (Audit -> Enforce)
-- WPF GUI with MVVM architecture
+- WPF GUI with code-behind pattern and central button dispatcher
 '@
 
     # Minimum version of the PowerShell engine required by this module

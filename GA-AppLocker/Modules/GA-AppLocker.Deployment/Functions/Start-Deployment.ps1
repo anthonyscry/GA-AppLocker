@@ -73,6 +73,32 @@ function Start-Deployment {
 
         $gpoExists = Test-GPOExists -GPOName $job.GPOName
 
+        # Check if GPO verification failed due to missing modules
+        if (-not $gpoExists.Success) {
+            if ($gpoExists.ManualRequired) {
+                $job.Status = 'ManualRequired'
+                $job.Progress = 40
+                $job.Message = "Manual deployment required: $($gpoExists.Error)"
+                $job.ErrorDetails = $gpoExists.Error
+                $job.XmlExportPath = $tempPath
+                $job | ConvertTo-Json -Depth 5 | Set-Content -Path $jobFile -Encoding UTF8
+                return @{
+                    Success        = $false
+                    Error          = $gpoExists.Error
+                    ManualRequired = $true
+                    XmlPath        = $tempPath
+                }
+            }
+            $job.Status = 'Failed'
+            $job.Message = "GPO check failed: $($gpoExists.Error)"
+            $job.ErrorDetails = $gpoExists.Error
+            $job | ConvertTo-Json -Depth 5 | Set-Content -Path $jobFile -Encoding UTF8
+            return @{
+                Success = $false
+                Error   = $gpoExists.Error
+            }
+        }
+
         if ($WhatIf) {
             $job.Status = 'Completed'
             $job.Progress = 100
@@ -114,6 +140,27 @@ function Start-Deployment {
         $importResult = Import-PolicyToGPO -GPOName $job.GPOName -XmlPath $tempPath
 
         if (-not $importResult.Success) {
+            if ($importResult.ManualRequired) {
+                # Policy exported but manual import needed
+                $job.Status = 'ManualRequired'
+                $job.Progress = 70
+                $job.Message = "Policy exported. Manual import required via GPMC."
+                $job.ErrorDetails = $importResult.Error
+                $job.XmlExportPath = $tempPath
+                $job | ConvertTo-Json -Depth 5 | Set-Content -Path $jobFile -Encoding UTF8
+                
+                # Don't delete temp file since user needs it
+                Add-DeploymentHistory -JobId $JobId -Action 'ManualRequired' -Details "Policy exported to: $tempPath"
+                
+                return @{
+                    Success        = $false
+                    Error          = $importResult.Error
+                    ManualRequired = $true
+                    XmlPath        = $tempPath
+                    Message        = "Policy exported to '$tempPath'. Manual import required via GPMC."
+                }
+            }
+            
             $job.Status = 'Failed'
             $job.Message = "Import failed: $($importResult.Error)"
             $job.ErrorDetails = $importResult.Error
@@ -130,9 +177,21 @@ function Start-Deployment {
             $job.Message = 'Linking GPO to OUs...'
             $job | ConvertTo-Json -Depth 5 | Set-Content -Path $jobFile -Encoding UTF8
 
-            # Note: In real environment, would use New-GPLink
-            # For now, just log the action
-            Write-AppLockerLog -Message "Would link GPO '$($job.GPOName)' to $($job.TargetOUs.Count) OUs"
+            # Check if ActiveDirectory module is available for linking
+            if (Get-Module -ListAvailable -Name GroupPolicy) {
+                foreach ($ouDN in $job.TargetOUs) {
+                    try {
+                        New-GPLink -Name $job.GPOName -Target $ouDN -ErrorAction Stop | Out-Null
+                        Write-AppLockerLog -Message "Linked GPO '$($job.GPOName)' to OU: $ouDN"
+                    }
+                    catch {
+                        Write-AppLockerLog -Level Warning -Message "Failed to link GPO to $ouDN`: $($_.Exception.Message)"
+                    }
+                }
+            }
+            else {
+                Write-AppLockerLog -Level Warning -Message "GPO linking skipped - GroupPolicy module not available. Manual linking required for $($job.TargetOUs.Count) OUs."
+            }
         }
 
         # Cleanup temp file
@@ -174,7 +233,10 @@ function Start-Deployment {
                 $job | ConvertTo-Json -Depth 5 | Set-Content -Path $jobFile -Encoding UTF8
             }
         }
-        catch { }
+        catch { 
+            # Unable to update job file - log the secondary error
+            Write-AppLockerLog -Level Warning -Message "Failed to update job file after error: $($_.Exception.Message)"
+        }
 
         return @{
             Success = $false

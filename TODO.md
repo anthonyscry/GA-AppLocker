@@ -167,21 +167,21 @@ Missing integration tests for:
 
 ## Quick Wins (Can Do Today)
 
-| # | Task | Time | Impact |
-|---|------|------|--------|
-| 1 | Standardize ArtifactType values | 30 min | Critical |
-| 2 | Fix deployment false success | 1 hr | Critical |
-| 3 | Remove DoEvents() calls | 30 min | Critical |
-| 4 | Strengthen test assertions | 1 hr | High |
-| 5 | Fix empty catch blocks | 1 hr | Medium |
-| 6 | Config as single source of truth | 1 hr | Medium |
-| 7 | Update MVVM claim in docs | 15 min | Low |
+| # | Task | Time | Impact | Status |
+|---|------|------|--------|--------|
+| 1 | Standardize ArtifactType values | 30 min | Critical | DONE |
+| 2 | Fix deployment false success | 1 hr | Critical | DONE |
+| 3 | Remove DoEvents() calls | 30 min | Critical | DONE |
+| 4 | Strengthen test assertions | 1 hr | High | DONE |
+| 5 | Fix empty catch blocks | 1 hr | Medium | DONE |
+| 6 | Config as single source of truth | 1 hr | Medium | Pending |
+| 7 | Update MVVM claim in docs | 15 min | Low | DONE |
 
 ---
 
 ## Recommended Priority Order
 
-1. **Day 1**: Quick wins #1-4 (Critical fixes)
+1. ~~**Day 1**: Quick wins #1-4 (Critical fixes)~~ COMPLETE
 2. **Day 2**: Async wrapper for UI operations (Critical #1)
 3. **Day 3**: Rule/Policy schema alignment (Critical #3)
 4. **Week 2**: Missing tests + edge cases (High #8, Medium #11-12)

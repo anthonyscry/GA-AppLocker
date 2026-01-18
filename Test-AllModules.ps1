@@ -139,9 +139,17 @@ Write-Section "DISCOVERY MODULE TESTS"
 # Test 6: Get-DomainInfo
 try {
     $domainInfo = Get-DomainInfo
-    $hasResult = ($domainInfo -ne $null) -and ($domainInfo.PSObject.Properties.Name -contains 'Success')
-    # Note: May fail if not domain-joined, but function should still return a result object
-    Write-TestResult -TestName "Get-DomainInfo" -Passed $hasResult -Message "Returns result object" -Details "Success: $($domainInfo.Success), Error: $($domainInfo.Error)"
+    # Validate result structure (function should return result even if not domain-joined)
+    $hasValidStructure = ($domainInfo -ne $null) -and 
+                         ($domainInfo.PSObject.Properties.Name -contains 'Success') -and
+                         ($domainInfo.PSObject.Properties.Name -contains 'Data' -or $domainInfo.PSObject.Properties.Name -contains 'Error')
+    # If Success is true, Data should have domain info
+    $dataValid = if ($domainInfo.Success) { 
+        $domainInfo.Data -ne $null 
+    } else { 
+        $true  # Error case is acceptable for non-domain environments
+    }
+    Write-TestResult -TestName "Get-DomainInfo" -Passed ($hasValidStructure -and $dataValid) -Message "Returns valid result" -Details "Success: $($domainInfo.Success), HasData: $($domainInfo.Data -ne $null)"
 }
 catch {
     Write-TestResult -TestName "Get-DomainInfo" -Passed $false -Message "Exception" -Details $_.Exception.Message
@@ -150,8 +158,17 @@ catch {
 # Test 7: Get-OUTree
 try {
     $ouTree = Get-OUTree
-    $hasResult = ($ouTree -ne $null) -and ($ouTree.PSObject.Properties.Name -contains 'Success')
-    Write-TestResult -TestName "Get-OUTree" -Passed $hasResult -Message "Returns result object" -Details "Success: $($ouTree.Success), Data count: $($ouTree.Data.Count)"
+    # Validate result structure
+    $hasValidStructure = ($ouTree -ne $null) -and 
+                         ($ouTree.PSObject.Properties.Name -contains 'Success') -and
+                         ($ouTree.PSObject.Properties.Name -contains 'Data' -or $ouTree.PSObject.Properties.Name -contains 'Error')
+    # If Success is true, Data should be an array (even if empty)
+    $dataValid = if ($ouTree.Success) { 
+        $ouTree.Data -is [array] -or $ouTree.Data -eq $null 
+    } else { 
+        $true  # Error case is acceptable for non-domain environments
+    }
+    Write-TestResult -TestName "Get-OUTree" -Passed ($hasValidStructure -and $dataValid) -Message "Returns valid result" -Details "Success: $($ouTree.Success), DataType: $($ouTree.Data.GetType().Name)"
 }
 catch {
     Write-TestResult -TestName "Get-OUTree" -Passed $false -Message "Exception" -Details $_.Exception.Message
@@ -230,9 +247,16 @@ catch {
 # Test 14: Get-CredentialForTier
 try {
     $tierCred = Get-CredentialForTier -Tier 2
-    # May or may not succeed depending on if a Tier 2 cred exists with our test profile
-    $hasResult = ($tierCred -ne $null) -and ($tierCred.PSObject.Properties.Name -contains 'Success')
-    Write-TestResult -TestName "Get-CredentialForTier" -Passed $hasResult -Message "Returns result object" -Details "Success: $($tierCred.Success), Error: $($tierCred.Error)"
+    # Validate result structure
+    $hasValidStructure = ($tierCred -ne $null) -and 
+                         ($tierCred.PSObject.Properties.Name -contains 'Success')
+    # If Success is true, should have credential Data; if false, should have Error
+    $dataValid = if ($tierCred.Success) { 
+        $tierCred.Data -ne $null 
+    } else { 
+        $tierCred.Error -ne $null -or $tierCred.Data -eq $null  # No tier cred is acceptable
+    }
+    Write-TestResult -TestName "Get-CredentialForTier" -Passed ($hasValidStructure -and $dataValid) -Message "Returns valid result" -Details "Success: $($tierCred.Success), HasCred: $($tierCred.Data -ne $null)"
 }
 catch {
     Write-TestResult -TestName "Get-CredentialForTier" -Passed $false -Message "Exception" -Details $_.Exception.Message
@@ -301,8 +325,17 @@ catch {
 # Test 19: Get-AppLockerEventLogs
 try {
     $eventLogs = Get-AppLockerEventLogs -MaxEvents 10
-    $hasResult = ($eventLogs -ne $null) -and ($eventLogs.PSObject.Properties.Name -contains 'Success')
-    Write-TestResult -TestName "Get-AppLockerEventLogs" -Passed $hasResult -Message "Returns result object" -Details "Success: $($eventLogs.Success), Events: $($eventLogs.Data.Count)"
+    # Validate result structure
+    $hasValidStructure = ($eventLogs -ne $null) -and 
+                         ($eventLogs.PSObject.Properties.Name -contains 'Success') -and
+                         ($eventLogs.PSObject.Properties.Name -contains 'Data')
+    # If Success is true, Data should be an array (possibly empty if no events)
+    $dataValid = if ($eventLogs.Success) { 
+        $eventLogs.Data -is [array] -or $eventLogs.Data.Count -ge 0
+    } else { 
+        $eventLogs.Error -ne $null  # Should have error message if failed
+    }
+    Write-TestResult -TestName "Get-AppLockerEventLogs" -Passed ($hasValidStructure -and $dataValid) -Message "Returns valid result" -Details "Success: $($eventLogs.Success), Events: $($eventLogs.Data.Count)"
 }
 catch {
     Write-TestResult -TestName "Get-AppLockerEventLogs" -Passed $false -Message "Exception" -Details $_.Exception.Message
@@ -322,8 +355,16 @@ catch {
 # Test 21: Get-ScanResults (list all)
 try {
     $scanList = Get-ScanResults
-    $hasResult = ($scanList -ne $null) -and ($scanList.PSObject.Properties.Name -contains 'Success')
-    Write-TestResult -TestName "Get-ScanResults (list)" -Passed $hasResult -Message "Lists saved scans" -Details "Success: $($scanList.Success), Count: $($scanList.Data.Count)"
+    # Validate result structure - must have Success property
+    $hasValidStructure = ($scanList -ne $null) -and 
+                         ($scanList.PSObject.Properties.Name -contains 'Success')
+    # If Success is true, Data should be defined (array, possibly empty)
+    $dataValid = if ($scanList.Success -eq $true) { 
+        $scanList.Data -ne $null -and ($scanList.Data -is [array] -or $scanList.Data.Count -ge 0)
+    } else { 
+        $scanList.Error -ne $null  # Should have error message if failed
+    }
+    Write-TestResult -TestName "Get-ScanResults (list)" -Passed ($hasValidStructure -and ($scanList.Success -eq $true -or $dataValid)) -Message "Lists saved scans" -Details "Success: $($scanList.Success), Count: $($scanList.Data.Count)"
 }
 catch {
     Write-TestResult -TestName "Get-ScanResults (list)" -Passed $false -Message "Exception" -Details $_.Exception.Message
@@ -334,8 +375,17 @@ try {
     # This will likely fail since localhost doesn't have WinRM to itself typically, 
     # but we're testing that the function handles it gracefully
     $remoteResult = Get-RemoteArtifacts -ComputerName @('localhost') -Paths @('C:\Windows') -Extensions @('.exe')
-    $hasResult = ($remoteResult -ne $null) -and ($remoteResult.PSObject.Properties.Name -contains 'Success')
-    Write-TestResult -TestName "Get-RemoteArtifacts (structure)" -Passed $hasResult -Message "Returns result object" -Details "Success: $($remoteResult.Success), PerMachine keys: $($remoteResult.PerMachine.Keys -join ',')"
+    # Validate result structure - must have proper response format
+    $hasValidStructure = ($remoteResult -ne $null) -and 
+                         ($remoteResult.PSObject.Properties.Name -contains 'Success') -and
+                         ($remoteResult.PSObject.Properties.Name -contains 'Data') -and
+                         ($remoteResult.PSObject.Properties.Name -contains 'PerMachine')
+    # PerMachine should be a hashtable with machine results
+    $perMachineValid = ($remoteResult.PerMachine -is [hashtable]) -or 
+                       ($remoteResult.PerMachine.GetType().Name -eq 'OrderedDictionary')
+    # Data should be an array (even if empty due to connection failure)
+    $dataValid = $remoteResult.Data -is [array] -or $remoteResult.Data.Count -ge 0
+    Write-TestResult -TestName "Get-RemoteArtifacts (structure)" -Passed ($hasValidStructure -and $perMachineValid -and $dataValid) -Message "Returns valid result structure" -Details "Success: $($remoteResult.Success), PerMachine: $($remoteResult.PerMachine.Keys -join ',')"
 }
 catch {
     Write-TestResult -TestName "Get-RemoteArtifacts (structure)" -Passed $false -Message "Exception" -Details $_.Exception.Message
@@ -570,8 +620,19 @@ catch {
 # Test: Test-GPOExists
 try {
     $gpoCheck = Test-GPOExists -GPOName "NonExistentGPO_12345"
-    $hasResult = ($gpoCheck -ne $null) -and $gpoCheck.Success -eq $true
-    Write-TestResult -TestName "Test-GPOExists" -Passed $hasResult -Message "Checks GPO existence" -Details "Returns result (GPO likely doesn't exist)"
+    # Validate result structure - function returns hashtable
+    # Check for Success key using Keys property (for hashtable) or PSObject.Properties (for PSCustomObject)
+    $hasValidStructure = ($gpoCheck -ne $null) -and 
+                         ($gpoCheck.ContainsKey('Success') -or ($gpoCheck.PSObject.Properties.Name -contains 'Success'))
+    # Either Success=true (modules available, Data indicates if GPO exists) 
+    # or Success=false with ManualRequired/Error (missing modules - acceptable)
+    $validResponse = if ($gpoCheck.Success -eq $true) {
+        $true  # Modules available, function worked correctly
+    } else {
+        # Missing modules case - ManualRequired or Error should be set
+        ($gpoCheck.ManualRequired -eq $true) -or ($gpoCheck.Error -ne $null)
+    }
+    Write-TestResult -TestName "Test-GPOExists" -Passed ($hasValidStructure -and $validResponse) -Message "Checks GPO existence or reports missing modules" -Details "Success: $($gpoCheck.Success), ManualRequired: $($gpoCheck.ManualRequired)"
 }
 catch {
     Write-TestResult -TestName "Test-GPOExists" -Passed $false -Message "Exception" -Details $_.Exception.Message

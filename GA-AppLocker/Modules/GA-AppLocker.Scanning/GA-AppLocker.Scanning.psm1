@@ -115,14 +115,21 @@ function script:Get-FileArtifact {
 function script:Get-ArtifactType {
     param([string]$Extension)
     
+    # Return UI-compatible artifact type values
+    # UI filters expect: EXE, DLL, MSI, PS1, BAT, CMD, VBS, JS
     switch ($Extension.ToLower()) {
-        '.exe' { 'Executable' }
-        '.dll' { 'Library' }
-        '.msi' { 'Installer' }
-        '.msp' { 'Patch' }
-        { $_ -in '.ps1', '.psm1', '.psd1' } { 'PowerShell' }
-        { $_ -in '.bat', '.cmd' } { 'BatchScript' }
-        { $_ -in '.vbs', '.js', '.wsf' } { 'Script' }
+        '.exe' { 'EXE' }
+        '.dll' { 'DLL' }
+        '.msi' { 'MSI' }
+        '.msp' { 'MSP' }
+        '.ps1' { 'PS1' }
+        '.psm1' { 'PS1' }
+        '.psd1' { 'PS1' }
+        '.bat' { 'BAT' }
+        '.cmd' { 'CMD' }
+        '.vbs' { 'VBS' }
+        '.js' { 'JS' }
+        '.wsf' { 'WSF' }
         default { 'Unknown' }
     }
 }
