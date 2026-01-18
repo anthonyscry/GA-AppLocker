@@ -119,6 +119,13 @@ function Start-AppLockerDashboard {
             try {
                 . $codeBehindPath
                 Write-AppLockerLog -Message 'Code-behind loaded successfully'
+                
+                # Load toast/loading helpers
+                $toastHelpersPath = Join-Path $PSScriptRoot 'GUI\ToastHelpers.ps1'
+                if (Test-Path $toastHelpersPath) {
+                    . $toastHelpersPath
+                    Write-AppLockerLog -Message 'Toast helpers loaded successfully'
+                }
             }
             catch {
                 Write-AppLockerLog -Level Error -Message "Code-behind load failed: $($_.Exception.Message)"
@@ -200,6 +207,10 @@ Export-ModuleMember -Function @(
     'Set-AppLockerConfig',
     'Test-Prerequisites',
     'Get-AppLockerDataPath',
+    'Invoke-WithRetry',
+    'Save-SessionState',
+    'Restore-SessionState',
+    'Clear-SessionState',
     # Discovery module
     'Get-DomainInfo',
     'Get-OUTree',
@@ -230,6 +241,8 @@ Export-ModuleMember -Function @(
     'Remove-Rule',
     'Export-RulesToXml',
     'Set-RuleStatus',
+    'Get-SuggestedGroup',
+    'Get-KnownVendors',
     # Policy module
     'New-Policy',
     'Get-Policy',

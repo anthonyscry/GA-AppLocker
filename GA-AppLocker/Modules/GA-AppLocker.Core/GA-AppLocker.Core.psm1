@@ -70,6 +70,10 @@ Export-ModuleMember -Function @(
     'Get-AppLockerConfig',
     'Set-AppLockerConfig',
     'Test-Prerequisites',
-    'Get-AppLockerDataPath'
+    'Get-AppLockerDataPath',
+    'Invoke-WithRetry',
+    'Save-SessionState',
+    'Restore-SessionState',
+    'Clear-SessionState'
 )
 #endregion

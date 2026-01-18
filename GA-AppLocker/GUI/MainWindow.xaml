@@ -17,7 +17,7 @@
         <SolidColorBrush x:Key="SidebarBrush" Color="#121212"/>
         <SolidColorBrush x:Key="ContentBrush" Color="#1E1E1E"/>
         <SolidColorBrush x:Key="ForegroundBrush" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="MutedBrush" Color="#CCCCCC"/>
+        <SolidColorBrush x:Key="MutedBrush" Color="#E0E0E0"/>
         <SolidColorBrush x:Key="BorderBrush" Color="#555555"/>
         <SolidColorBrush x:Key="SuccessBrush" Color="#107C10"/>
         <SolidColorBrush x:Key="WarningBrush" Color="#FF8C00"/>
@@ -55,6 +55,11 @@
                                 <Setter Property="Background" Value="#333337"/>
                                 <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}"/>
                             </Trigger>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter Property="Background" Value="#333337"/>
+                                <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource PrimaryBrush}"/>
+                            </Trigger>
                             <Trigger Property="Tag" Value="Active">
                                 <Setter Property="Background" Value="#333337"/>
                                 <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}"/>
@@ -62,6 +67,21 @@
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="FocusVisualStyle">
+                <Setter.Value>
+                    <Style>
+                        <Setter Property="Control.Template">
+                            <Setter.Value>
+                                <ControlTemplate>
+                                    <Rectangle Margin="2" StrokeThickness="1" 
+                                               Stroke="{StaticResource PrimaryBrush}" 
+                                               StrokeDashArray="1 2"/>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
                 </Setter.Value>
             </Setter>
         </Style>
@@ -299,6 +319,8 @@
             <Setter Property="RowBackground" Value="#1E1E1E"/>
             <Setter Property="AlternatingRowBackground" Value="#252526"/>
             <Setter Property="HeadersVisibility" Value="Column"/>
+            <Setter Property="CanUserSortColumns" Value="True"/>
+            <Setter Property="CanUserReorderColumns" Value="True"/>
             <Setter Property="ColumnHeaderStyle">
                 <Setter.Value>
                     <Style TargetType="DataGridColumnHeader">
@@ -310,6 +332,31 @@
                         <Setter Property="BorderBrush" Value="#3E3E42"/>
                         <Setter Property="BorderThickness" Value="0,0,1,1"/>
                     </Style>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Spinner Animation Style -->
+        <Style x:Key="SpinnerStyle" TargetType="Border">
+            <Setter Property="Width" Value="24"/>
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+            <Setter Property="RenderTransform">
+                <Setter.Value>
+                    <RotateTransform Angle="0"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Toast Container Style -->
+        <Style x:Key="ToastStyle" TargetType="Border">
+            <Setter Property="Background" Value="#2D2D30"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="16,12"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.3"/>
                 </Setter.Value>
             </Setter>
         </Style>
@@ -351,6 +398,7 @@
                 <StackPanel DockPanel.Dock="Top" x:Name="NavButtonsPanel">
                     <Button x:Name="NavDashboard"
                             Style="{StaticResource NavButtonStyle}"
+                            AutomationProperties.Name="Dashboard"
                             Tag="Active">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#x1F4CA;" FontSize="16" Width="24"/>
@@ -358,35 +406,40 @@
                         </StackPanel>
                     </Button>
                     <Button x:Name="NavDiscovery"
-                            Style="{StaticResource NavButtonStyle}">
+                            Style="{StaticResource NavButtonStyle}"
+                            AutomationProperties.Name="AD Discovery">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#x1F50D;" FontSize="16" Width="24"/>
                             <TextBlock x:Name="NavDiscoveryText" Text="AD Discovery" Margin="8,0,0,0"/>
                         </StackPanel>
                     </Button>
                     <Button x:Name="NavScanner"
-                            Style="{StaticResource NavButtonStyle}">
+                            Style="{StaticResource NavButtonStyle}"
+                            AutomationProperties.Name="Artifact Scanner">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#x1F4C1;" FontSize="16" Width="24"/>
                             <TextBlock x:Name="NavScannerText" Text="Artifact Scanner" Margin="8,0,0,0"/>
                         </StackPanel>
                     </Button>
                     <Button x:Name="NavRules"
-                            Style="{StaticResource NavButtonStyle}">
+                            Style="{StaticResource NavButtonStyle}"
+                            AutomationProperties.Name="Rule Generator">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#x1F4DD;" FontSize="16" Width="24"/>
                             <TextBlock x:Name="NavRulesText" Text="Rule Generator" Margin="8,0,0,0"/>
                         </StackPanel>
                     </Button>
                     <Button x:Name="NavPolicy"
-                            Style="{StaticResource NavButtonStyle}">
+                            Style="{StaticResource NavButtonStyle}"
+                            AutomationProperties.Name="Policy Builder">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#x1F4CB;" FontSize="16" Width="24"/>
                             <TextBlock x:Name="NavPolicyText" Text="Policy Builder" Margin="8,0,0,0"/>
                         </StackPanel>
                     </Button>
                     <Button x:Name="NavDeploy"
-                            Style="{StaticResource NavButtonStyle}">
+                            Style="{StaticResource NavButtonStyle}"
+                            AutomationProperties.Name="Deployment">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#x1F680;" FontSize="16" Width="24"/>
                             <TextBlock x:Name="NavDeployText" Text="Deployment" Margin="8,0,0,0"/>
@@ -396,27 +449,102 @@
                     <Separator x:Name="NavSeparator" Margin="15,20" Background="#3E3E42"/>
 
                     <Button x:Name="NavSettings"
-                            Style="{StaticResource NavButtonStyle}">
+                            Style="{StaticResource NavButtonStyle}"
+                            AutomationProperties.Name="Settings">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#x2699;" FontSize="16" Width="24"/>
                             <TextBlock x:Name="NavSettingsText" Text="Settings" Margin="8,0,0,0"/>
                         </StackPanel>
                     </Button>
                     <Button x:Name="NavSetup"
-                            Style="{StaticResource NavButtonStyle}">
+                            Style="{StaticResource NavButtonStyle}"
+                            AutomationProperties.Name="Setup">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#x1F527;" FontSize="16" Width="24"/>
                             <TextBlock x:Name="NavSetupText" Text="Setup" Margin="8,0,0,0"/>
                         </StackPanel>
                     </Button>
                     <Button x:Name="NavAbout"
-                            Style="{StaticResource NavButtonStyle}">
+                            Style="{StaticResource NavButtonStyle}"
+                            AutomationProperties.Name="About">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#x2139;" FontSize="16" Width="24"/>
                             <TextBlock x:Name="NavAboutText" Text="About" Margin="8,0,0,0"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>
+
+                <!-- Workflow Progress Indicator -->
+                <Border x:Name="WorkflowBreadcrumb" DockPanel.Dock="Top" 
+                        Background="#1A1A1A" CornerRadius="6" 
+                        Margin="10,20,10,0" Padding="8">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        
+                        <!-- Title -->
+                        <TextBlock Grid.Row="0" Text="WORKFLOW PROGRESS" 
+                                   FontSize="9" FontWeight="SemiBold"
+                                   Foreground="{StaticResource MutedBrush}" 
+                                   Margin="0,0,0,8"/>
+                        
+                        <!-- Progress Steps -->
+                        <Grid Grid.Row="1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <!-- Stage 1: Discovery -->
+                            <StackPanel Grid.Column="0" HorizontalAlignment="Center">
+                                <Ellipse x:Name="StageDiscovery" Width="16" Height="16" 
+                                         Fill="#555555" Stroke="#777777" StrokeThickness="1"/>
+                                <TextBlock x:Name="StageDiscoveryCount" Text="0" 
+                                           FontSize="9" Foreground="{StaticResource MutedBrush}" 
+                                           HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                <TextBlock Text="Disc" FontSize="8" 
+                                           Foreground="#888888" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                            
+                            <!-- Stage 2: Scanner -->
+                            <StackPanel Grid.Column="1" HorizontalAlignment="Center">
+                                <Ellipse x:Name="StageScanner" Width="16" Height="16" 
+                                         Fill="#555555" Stroke="#777777" StrokeThickness="1"/>
+                                <TextBlock x:Name="StageScannerCount" Text="0" 
+                                           FontSize="9" Foreground="{StaticResource MutedBrush}" 
+                                           HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                <TextBlock Text="Scan" FontSize="8" 
+                                           Foreground="#888888" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                            
+                            <!-- Stage 3: Rules -->
+                            <StackPanel Grid.Column="2" HorizontalAlignment="Center">
+                                <Ellipse x:Name="StageRules" Width="16" Height="16" 
+                                         Fill="#555555" Stroke="#777777" StrokeThickness="1"/>
+                                <TextBlock x:Name="StageRulesCount" Text="0" 
+                                           FontSize="9" Foreground="{StaticResource MutedBrush}" 
+                                           HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                <TextBlock Text="Rules" FontSize="8" 
+                                           Foreground="#888888" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                            
+                            <!-- Stage 4: Policy -->
+                            <StackPanel Grid.Column="3" HorizontalAlignment="Center">
+                                <Ellipse x:Name="StagePolicy" Width="16" Height="16" 
+                                         Fill="#555555" Stroke="#777777" StrokeThickness="1"/>
+                                <TextBlock x:Name="StagePolicyCount" Text="0" 
+                                           FontSize="9" Foreground="{StaticResource MutedBrush}" 
+                                           HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                <TextBlock Text="Policy" FontSize="8" 
+                                           Foreground="#888888" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
+                </Border>
 
                 <!-- Footer -->
                 <StackPanel x:Name="SidebarFooter" DockPanel.Dock="Bottom" Margin="15,0,15,15" VerticalAlignment="Bottom">
@@ -1364,6 +1492,34 @@
                                     <DataGrid.Columns>
                                         <DataGridTextColumn Header="Type" Binding="{Binding RuleType}" Width="70"/>
                                         <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*"/>
+                                        <DataGridTemplateColumn Header="Group" Width="120">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Ellipse Width="8" Height="8" Margin="0,0,5,0" VerticalAlignment="Center">
+                                                            <Ellipse.Style>
+                                                                <Style TargetType="Ellipse">
+                                                                    <Setter Property="Fill" Value="#888"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding GroupRiskLevel}" Value="Low">
+                                                                            <Setter Property="Fill" Value="#1B5E20"/>
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding GroupRiskLevel}" Value="Medium">
+                                                                            <Setter Property="Fill" Value="#E65100"/>
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding GroupRiskLevel}" Value="High">
+                                                                            <Setter Property="Fill" Value="#8B0000"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </Ellipse.Style>
+                                                        </Ellipse>
+                                                        <TextBlock Text="{Binding GroupName}" Foreground="{StaticResource ForegroundBrush}" FontSize="12"
+                                                                   ToolTip="{Binding GroupCategory}"/>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
                                         <DataGridTextColumn Header="Collection" Binding="{Binding Collection}" Width="90"/>
                                         <DataGridTextColumn Header="Action" Binding="{Binding Action}" Width="55"/>
                                         <DataGridTemplateColumn Header="Status" Width="75">
@@ -1374,7 +1530,7 @@
                                                             <Style TargetType="Border">
                                                                 <Style.Triggers>
                                                                     <DataTrigger Binding="{Binding Status}" Value="Pending">
-                                                                        <Setter Property="Background" Value="#7D5A00"/>
+                                                                        <Setter Property="Background" Value="#E65100"/>
                                                                     </DataTrigger>
                                                                     <DataTrigger Binding="{Binding Status}" Value="Approved">
                                                                         <Setter Property="Background" Value="#1B5E20"/>
@@ -1397,24 +1553,56 @@
                                     </DataGrid.Columns>
                                 </DataGrid>
 
-                                <!-- Action Buttons -->
-                                <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,10,0,0">
-                                    <Button x:Name="BtnApproveRule" Content="Approve" 
-                                            Style="{StaticResource ButtonStyle}" MinWidth="75" Margin="0,0,5,0"
-                                            Background="{StaticResource ApprovedBrush}" Tag="ApproveRule"/>
-                                    <Button x:Name="BtnRejectRule" Content="Reject" 
-                                            Style="{StaticResource ButtonStyle}" MinWidth="75" Margin="0,0,5,0"
-                                            Background="#8B0000" Tag="RejectRule"/>
-                                    <Button x:Name="BtnReviewRule" Content="Review" 
-                                            Style="{StaticResource ButtonStyle}" MinWidth="75" Margin="0,0,5,0"
-                                            Background="{StaticResource ActiveBrush}" Tag="ReviewRule"/>
-                                    <Border Width="1" Background="{StaticResource BorderBrush}" Margin="5,0,10,0"/>
-                                    <Button x:Name="BtnDeleteRule" Content="Delete" 
-                                            Style="{StaticResource ButtonStyle}" MinWidth="75" Margin="0,0,5,0"
-                                            Tag="DeleteRule"/>
-                                    <Button x:Name="BtnViewRuleDetails" Content="Details" 
-                                            Style="{StaticResource ButtonStyle}" MinWidth="75"
-                                            Tag="ViewRuleDetails"/>
+                                <!-- Action Buttons with Selection Info -->
+                                <Grid Grid.Row="3" Margin="0,10,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    
+                                    <!-- Left: Selection Info and Select All -->
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <CheckBox x:Name="ChkSelectAllRules" Content="Select All" 
+                                                  Foreground="{StaticResource ForegroundBrush}" 
+                                                  VerticalAlignment="Center" Margin="0,0,15,0"
+                                                  Tag="SelectAllRules"/>
+                                        <Border Background="{StaticResource SidebarBrush}" CornerRadius="4" Padding="8,4" Margin="0,0,10,0">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="Selected: " Foreground="{StaticResource MutedBrush}" FontSize="12"/>
+                                                <TextBlock x:Name="TxtSelectedRuleCount" Text="0" Foreground="{StaticResource PrimaryBrush}" FontWeight="Bold" FontSize="12"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+                                    
+                                    <!-- Center: Bulk Action Buttons -->
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <Button x:Name="BtnApproveRule" Content="✓ Approve" 
+                                                Style="{StaticResource ButtonStyle}" MinWidth="85" Margin="0,0,5,0"
+                                                Background="{StaticResource ApprovedBrush}" Tag="ApproveRule"/>
+                                        <Button x:Name="BtnRejectRule" Content="✗ Reject" 
+                                                Style="{StaticResource ButtonStyle}" MinWidth="80" Margin="0,0,5,0"
+                                                Background="#8B0000" Tag="RejectRule"/>
+                                        <Button x:Name="BtnReviewRule" Content="⟳ Review" 
+                                                Style="{StaticResource ButtonStyle}" MinWidth="80" Margin="0,0,5,0"
+                                                Background="{StaticResource ActiveBrush}" Tag="ReviewRule"/>
+                                        <Border Width="1" Background="{StaticResource BorderBrush}" Margin="5,0,10,0"/>
+                                        <Button x:Name="BtnAddRuleToPolicy" Content="+ Add to Policy" 
+                                                Style="{StaticResource ButtonStyle}" MinWidth="100" Margin="0,0,5,0"
+                                                Background="{StaticResource PrimaryBrush}" Tag="AddRuleToPolicy"/>
+                                        <Border Width="1" Background="{StaticResource BorderBrush}" Margin="5,0,10,0"/>
+                                        <Button x:Name="BtnDeleteRule" Content="🗑 Delete" 
+                                                Style="{StaticResource ButtonStyle}" MinWidth="80" Margin="0,0,5,0"
+                                                Tag="DeleteRule"/>
+                                    </StackPanel>
+                                    
+                                    <!-- Right: Details Button -->
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
+                                        <Button x:Name="BtnViewRuleDetails" Content="Details" 
+                                                Style="{StaticResource ButtonStyle}" MinWidth="75"
+                                                Tag="ViewRuleDetails"/>
+                                    </StackPanel>
+                                </Grid>
                                 </StackPanel>
                             </Grid>
                         </Border>
@@ -1503,6 +1691,17 @@
                                             <ComboBoxItem Content="Enabled (Enforce)"/>
                                             <ComboBoxItem Content="Not Configured"/>
                                         </ComboBox>
+
+                                        <TextBlock Text="Deployment Phase:" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,5"/>
+                                        <ComboBox x:Name="CboPolicyPhase" Style="{StaticResource ComboBoxStyle}" Margin="0,0,0,5">
+                                            <ComboBoxItem Content="Phase 1: EXE Only" IsSelected="True" Tag="1"/>
+                                            <ComboBoxItem Content="Phase 2: EXE + Script" Tag="2"/>
+                                            <ComboBoxItem Content="Phase 3: EXE + Script + MSI" Tag="3"/>
+                                            <ComboBoxItem Content="Phase 4: All (Full Enforcement)" Tag="4"/>
+                                        </ComboBox>
+                                        <TextBlock Text="Phases 1-3 always use Audit mode" 
+                                                   Foreground="{StaticResource MutedBrush}" 
+                                                   FontSize="10" FontStyle="Italic" Margin="0,0,0,15"/>
 
                                         <Button x:Name="BtnCreatePolicy" 
                                                 Content="Create New Policy"
@@ -1623,7 +1822,7 @@
                                                                 <Style TargetType="Border">
                                                                     <Style.Triggers>
                                                                         <DataTrigger Binding="{Binding Status}" Value="Draft">
-                                                                            <Setter Property="Background" Value="#7D5A00"/>
+                                                                            <Setter Property="Background" Value="#E65100"/>
                                                                         </DataTrigger>
                                                                         <DataTrigger Binding="{Binding Status}" Value="Active">
                                                                             <Setter Property="Background" Value="#1565C0"/>
@@ -1774,10 +1973,13 @@
                                     <StackPanel Margin="15">
                                         <TextBlock Text="QUICK ACTIONS" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
 
-                                        <Button x:Name="BtnDeploySelected" Content="Deploy Selected Job" 
+                                        <Button x:Name="BtnDeployJob" Content="▶ Deploy Selected Job" 
                                                 Style="{StaticResource PrimaryButtonStyle}" Margin="0,0,0,5"
                                                 Tag="DeploySelectedJob"/>
-                                        <Button x:Name="BtnCancelSelected" Content="Cancel Selected Job" 
+                                        <Button x:Name="BtnStopDeployment" Content="■ Stop Deployment" 
+                                                Style="{StaticResource ButtonStyle}" Margin="0,0,0,5"
+                                                Tag="StopDeployment" IsEnabled="False"/>
+                                        <Button x:Name="BtnCancelSelected" Content="✕ Cancel Selected Job" 
                                                 Style="{StaticResource ButtonStyle}" Margin="0,0,0,5"
                                                 Tag="CancelDeploymentJob"/>
                                         <Button x:Name="BtnViewDeployLog" Content="View Deployment Log" 
@@ -1876,7 +2078,7 @@
                                                             <Style TargetType="Border">
                                                                 <Style.Triggers>
                                                                     <DataTrigger Binding="{Binding Status}" Value="Pending">
-                                                                        <Setter Property="Background" Value="#7D5A00"/>
+                                                                        <Setter Property="Background" Value="#E65100"/>
                                                                     </DataTrigger>
                                                                     <DataTrigger Binding="{Binding Status}" Value="Running">
                                                                         <Setter Property="Background" Value="#1565C0"/>
@@ -2384,5 +2586,60 @@
                 </Grid>
             </Grid>
         </Border>
+
+        <!-- Toast Notification Container (Overlay) -->
+        <Border x:Name="ToastContainer"
+                Grid.Column="1"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Bottom"
+                Margin="0,0,30,30"
+                IsHitTestVisible="False">
+            <StackPanel x:Name="ToastStack" Width="350">
+                <!-- Toast items will be added here dynamically -->
+            </StackPanel>
+        </Border>
+
+        <!-- Loading Overlay -->
+        <Grid x:Name="LoadingOverlay"
+              Grid.ColumnSpan="2"
+              Background="#AA000000"
+              Visibility="Collapsed">
+            <Border Background="{StaticResource SidebarBrush}"
+                    CornerRadius="12"
+                    Padding="30"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    MinWidth="200">
+                <StackPanel HorizontalAlignment="Center">
+                    <!-- Animated Spinner -->
+                    <Border x:Name="LoadingSpinner"
+                            Style="{StaticResource SpinnerStyle}"
+                            Margin="0,0,0,15"
+                            HorizontalAlignment="Center">
+                        <Viewbox>
+                            <Canvas Width="24" Height="24">
+                                <Ellipse Width="24" Height="24" 
+                                         Stroke="{StaticResource PrimaryBrush}" 
+                                         StrokeThickness="3"
+                                         StrokeDashArray="3,2"
+                                         StrokeDashCap="Round"/>
+                            </Canvas>
+                        </Viewbox>
+                    </Border>
+                    <TextBlock x:Name="LoadingText"
+                               Text="Loading..."
+                               Foreground="{StaticResource ForegroundBrush}"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock x:Name="LoadingSubText"
+                               Text=""
+                               Foreground="{StaticResource MutedBrush}"
+                               FontSize="12"
+                               HorizontalAlignment="Center"
+                               Margin="0,5,0,0"/>
+                </StackPanel>
+            </Border>
+        </Grid>
     </Grid>
 </Window>

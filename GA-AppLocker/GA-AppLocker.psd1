@@ -65,6 +65,10 @@ Features:
         'Set-AppLockerConfig',
         'Test-Prerequisites',
         'Get-AppLockerDataPath',
+        'Invoke-WithRetry',
+        'Save-SessionState',
+        'Restore-SessionState',
+        'Clear-SessionState',
         # Discovery module
         'Get-DomainInfo',
         'Get-OUTree',
@@ -95,6 +99,8 @@ Features:
         'Remove-Rule',
         'Export-RulesToXml',
         'Set-RuleStatus',
+        'Get-SuggestedGroup',
+        'Get-KnownVendors',
         # Policy module
         'New-Policy',
         'Get-Policy',

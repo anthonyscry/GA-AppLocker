@@ -10,8 +10,10 @@ GA-AppLocker simplifies the complex process of maintaining AppLocker policies by
 - **Artifact Scanning**: Collect executable artifacts (EXE, MSI, DLL, Script, etc.) from local or remote machines using WinRM.
 - **Rule Generation**: Automatically generate Publisher, Hash, and Path rules with an approval workflow.
 - **Policy Builder**: Combine approved rules into comprehensive policies with various enforcement modes (Audit, Enforce).
-- **GPO Deployment**: Deploy generated policies directly to GPOs and link them to targeted OUs.
+- **GPO Deployment**: Deploy generated policies directly to GPOs and link them to targeted OUs (async, non-blocking).
 - **Tiered Credentials**: Manage administrative credentials securely using DPAPI encryption.
+- **Workflow Progress**: Visual breadcrumb indicator showing progress through Discovery → Scanner → Rules → Policy stages.
+- **Session Persistence**: Automatically saves and restores session state across application restarts (7-day expiry).
 
 ## Project Structure
 ```text
@@ -76,12 +78,15 @@ Start-AppLockerDashboard
 ## Module Reference
 
 ### Core
-Core utilities for logging, configuration, and environment validation.
+Core utilities for logging, configuration, environment validation, and session management.
 - `Write-AppLockerLog`: Standardized logging to file and console.
 - `Get-AppLockerConfig`: Retrieves application settings.
 - `Set-AppLockerConfig`: Updates application settings.
 - `Test-Prerequisites`: Validates environment requirements.
 - `Get-AppLockerDataPath`: Returns the data storage root path.
+- `Save-SessionState`: Persists application state to disk for session recovery.
+- `Restore-SessionState`: Loads previously saved session state (with 7-day expiry).
+- `Clear-SessionState`: Removes saved session state file.
 
 ### Discovery
 Discover Active Directory assets.
@@ -159,6 +164,7 @@ The suite runs over 40 tests to ensure functional correctness and API consistenc
 All application data is stored in: `%LOCALAPPDATA%\GA-AppLocker\`
 
 - **Config**: `config.json`
+- **Session**: `session.json` (auto-saved UI state, expires after 7 days)
 - **Credentials**: `Credentials\` (DPAPI encrypted)
 - **Scans**: `Scans\`
 - **Rules**: `Rules\`

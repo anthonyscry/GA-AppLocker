@@ -291,6 +291,7 @@ All data is stored in `%LOCALAPPDATA%\GA-AppLocker\`:
 | Directory | Purpose | Format |
 |-----------|---------|--------|
 | `/` | Root config | `config.json` |
+| `/` | Session state | `session.json` |
 | `Credentials/` | Encrypted credentials | `{name}.json` (DPAPI) |
 | `Scans/` | Scan results | `{guid}.json` |
 | `Rules/` | Generated rules | `{guid}.json` |
@@ -298,6 +299,76 @@ All data is stored in `%LOCALAPPDATA%\GA-AppLocker\`:
 | `Deployments/` | Deployment jobs | `{guid}.json` |
 | `DeploymentHistory/` | Deployment logs | `{guid}.json` |
 | `Logs/` | Application logs | `GA-AppLocker_{date}.log` |
+
+## Session State Management
+
+The application automatically saves and restores UI state across restarts.
+
+### How It Works
+
+1. **Auto-Save**: Session state is saved whenever the user navigates between panels
+2. **Auto-Restore**: On startup, previous session is restored if less than 7 days old
+3. **Expiry**: Sessions older than 7 days are automatically deleted
+
+### Session State Functions
+
+```powershell
+# Save current state
+Save-SessionState -State @{
+    discoveredMachines = @('PC001', 'PC002')
+    selectedMachines   = @('PC001')
+    currentPanel       = 'PanelScanner'
+    workflowStage      = 2
+}
+
+# Restore previous state
+$session = Restore-SessionState
+if ($session.Success) {
+    $machines = $session.Data.discoveredMachines
+}
+
+# Force restore expired session
+$session = Restore-SessionState -Force
+
+# Custom expiry window
+$session = Restore-SessionState -ExpiryDays 30
+
+# Clear saved session
+Clear-SessionState
+```
+
+### What Gets Saved
+
+| Data | Description |
+|------|-------------|
+| `discoveredMachines` | Array of machine names from AD discovery |
+| `selectedMachines` | Currently selected machines for scanning |
+| `scanArtifacts` | Collected artifacts from completed scans |
+| `generatedRules` | Rule IDs created from artifacts |
+| `approvedRules` | Rule IDs approved for policy inclusion |
+| `currentPanel` | Active UI panel name |
+| `workflowStage` | Progress indicator (1-4) |
+| `discoveryCount` | Number of discovered machines |
+| `scanCount` | Number of scanned artifacts |
+| `ruleCount` | Number of generated rules |
+| `policyCount` | Number of created policies |
+
+### Workflow Breadcrumbs
+
+The UI displays a visual progress indicator in the sidebar:
+
+```
+[●] Discovery  (3)    <- Green when complete with count
+[●] Scanner    (150)  <- Current stage highlighted
+[○] Rules      (0)    <- Gray when not yet reached
+[○] Policy     (0)
+```
+
+Stages progress automatically as work is completed:
+1. **Discovery**: Machines discovered via AD
+2. **Scanner**: Artifacts collected from machines
+3. **Rules**: Rules generated from artifacts
+4. **Policy**: Policies created from rules
 
 ## Debugging
 
