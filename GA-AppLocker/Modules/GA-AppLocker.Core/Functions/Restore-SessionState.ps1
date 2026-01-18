@@ -41,6 +41,11 @@ function Restore-SessionState {
     )
 
     try {
+        # Ensure required assembly is loaded
+        if (-not ('System.Security.Cryptography.ProtectedData' -as [type])) {
+            Add-Type -AssemblyName System.Security -ErrorAction SilentlyContinue
+        }
+
         $dataPath = Get-AppLockerDataPath
         $sessionPath = Join-Path $dataPath 'session.json'
 
@@ -53,8 +58,25 @@ function Restore-SessionState {
             }
         }
 
-        # Load session file
-        $json = Get-Content -Path $sessionPath -Raw -Encoding UTF8
+        # Load and decrypt session file
+        $encryptedJson = Get-Content -Path $sessionPath -Raw -Encoding UTF8
+
+        try {
+            $protectedBytes = [Convert]::FromBase64String($encryptedJson)
+            $decryptedBytes = [System.Security.Cryptography.ProtectedData]::Unprotect(
+                $protectedBytes,
+                $null,
+                [System.Security.Cryptography.DataProtectionScope]::CurrentUser
+            )
+            $json = [System.Text.Encoding]::UTF8.GetString($decryptedBytes)
+        }
+        catch {
+            # If decryption fails, the file may be in old unencrypted format
+            # Try loading as plain JSON for backward compatibility
+            Write-AppLockerLog -Level Warning -Message "Session file may be corrupted or in old format. Attempting recovery..."
+            $json = $encryptedJson
+        }
+
         $session = $json | ConvertFrom-Json
 
         # Check expiry
@@ -76,7 +98,7 @@ function Restore-SessionState {
             }
         }
 
-        Write-AppLockerLog -Message "Session state restored from: $sessionPath" -NoConsole
+        Write-AppLockerLog -Message "Session state restored (decrypted) from: $sessionPath" -NoConsole
 
         # Convert PSCustomObject to hashtable for easier use
         $stateHash = @{}

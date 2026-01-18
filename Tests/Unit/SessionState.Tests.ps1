@@ -68,9 +68,11 @@ Describe 'Save-SessionState Function' -Tag 'Unit', 'SessionState' {
 
             Save-SessionState -State $state | Out-Null
 
-            $saved = Get-Content $script:SessionPath | ConvertFrom-Json
-            $saved.lastSaved | Should -Not -BeNullOrEmpty
-            $saved.version | Should -Be '1.0'
+            # Use Restore-SessionState to read encrypted data
+            $restored = Restore-SessionState
+            $restored.Success | Should -BeTrue
+            $restored.Data.lastSaved | Should -Not -BeNullOrEmpty
+            $restored.Data.version | Should -Be '1.0'
         }
 
         It 'Saves complex nested state structures' {
@@ -95,11 +97,12 @@ Describe 'Save-SessionState Function' -Tag 'Unit', 'SessionState' {
 
             $result.Success | Should -BeTrue
 
-            # Verify structure preserved
-            $saved = Get-Content $script:SessionPath | ConvertFrom-Json
-            $saved.machines.Count | Should -Be 2
-            $saved.scanResults.TotalFiles | Should -Be 500
-            $saved.uiState.ActivePanel | Should -Be 'PanelScanner'
+            # Use Restore-SessionState to read encrypted data
+            $restored = Restore-SessionState
+            $restored.Success | Should -BeTrue
+            $restored.Data.machines.Count | Should -Be 2
+            $restored.Data.scanResults.TotalFiles | Should -Be 500
+            $restored.Data.uiState.ActivePanel | Should -Be 'PanelScanner'
         }
 
         It 'Overwrites existing session file' {
@@ -109,9 +112,11 @@ Describe 'Save-SessionState Function' -Tag 'Unit', 'SessionState' {
             Save-SessionState -State $state1 | Out-Null
             Save-SessionState -State $state2 | Out-Null
 
-            $saved = Get-Content $script:SessionPath | ConvertFrom-Json
-            $saved.version1 | Should -BeNullOrEmpty
-            $saved.version2 | Should -Be 'second'
+            # Use Restore-SessionState to read encrypted data
+            $restored = Restore-SessionState
+            $restored.Success | Should -BeTrue
+            $restored.Data.version1 | Should -BeNullOrEmpty
+            $restored.Data.version2 | Should -Be 'second'
         }
     }
 
@@ -124,8 +129,11 @@ Describe 'Save-SessionState Function' -Tag 'Unit', 'SessionState' {
             $result = Save-SessionState -State @{}
 
             $result.Success | Should -BeTrue
-            $saved = Get-Content $script:SessionPath | ConvertFrom-Json
-            $saved.lastSaved | Should -Not -BeNullOrEmpty
+
+            # Use Restore-SessionState to read encrypted data
+            $restored = Restore-SessionState
+            $restored.Success | Should -BeTrue
+            $restored.Data.lastSaved | Should -Not -BeNullOrEmpty
         }
     }
 }
