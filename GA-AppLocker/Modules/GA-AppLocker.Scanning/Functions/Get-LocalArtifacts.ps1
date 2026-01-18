@@ -36,7 +36,7 @@ function Get-LocalArtifacts {
     [OutputType([PSCustomObject])]
     param(
         [Parameter()]
-        [string[]]$Paths = $script:DefaultScanPaths,
+        [string[]]$Paths = (Get-DefaultScanPaths),
 
         [Parameter()]
         [string[]]$Extensions = $script:ArtifactExtensions,

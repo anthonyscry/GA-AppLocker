@@ -664,6 +664,20 @@ function Invoke-SetDefaultCredential {
 function Initialize-ScannerPanel {
     param([System.Windows.Window]$Window)
 
+    # Initialize scan paths from config
+    $txtPaths = $Window.FindName('TxtScanPaths')
+    if ($txtPaths) {
+        try {
+            $config = Get-AppLockerConfig
+            if ($config.DefaultScanPaths) {
+                $txtPaths.Text = $config.DefaultScanPaths -join "`n"
+            }
+        }
+        catch {
+            # Keep XAML default if config unavailable
+        }
+    }
+
     # Wire up main action buttons
     $btnStart = $Window.FindName('BtnStartScan')
     if ($btnStart) { $btnStart.Add_Click({ Invoke-ButtonAction -Action 'StartScan' }) }
@@ -687,7 +701,11 @@ function Initialize-ScannerPanel {
     $btnResetPaths = $Window.FindName('BtnResetPaths')
     if ($btnResetPaths) { $btnResetPaths.Add_Click({ 
         $txtPaths = $script:MainWindow.FindName('TxtScanPaths')
-        if ($txtPaths) { $txtPaths.Text = "C:\Program Files`nC:\Program Files (x86)" }
+        if ($txtPaths) { 
+            $config = Get-AppLockerConfig
+            $defaultPaths = if ($config.DefaultScanPaths) { $config.DefaultScanPaths -join "`n" } else { "C:\Program Files`nC:\Program Files (x86)" }
+            $txtPaths.Text = $defaultPaths
+        }
     }) }
 
     # Wire up saved scans buttons

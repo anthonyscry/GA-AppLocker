@@ -64,7 +64,8 @@ function Write-AppLockerLog {
         New-Item -Path $logsPath -ItemType Directory -Force | Out-Null
     }
 
-    # Append to log file (thread-safe with mutex for concurrent access)
+    # Append to log file
+    # Note: Add-Content uses file locking but is not fully thread-safe for high-concurrency scenarios
     try {
         Add-Content -Path $logFile -Value $logEntry -ErrorAction Stop
     }

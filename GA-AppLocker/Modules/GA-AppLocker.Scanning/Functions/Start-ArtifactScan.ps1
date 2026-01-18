@@ -110,13 +110,21 @@ function Start-ArtifactScan {
 
         #region --- Remote Scans ---
         if ($Machines.Count -gt 0) {
+            # Load tier mapping from config
+            $machineTypeTiers = @{ DomainController = 0; Server = 1; Workstation = 2; Unknown = 2 }
+            try {
+                $config = Get-AppLockerConfig
+                if ($config.MachineTypeTiers) {
+                    $machineTypeTiers = @{}
+                    $config.MachineTypeTiers.PSObject.Properties | ForEach-Object { $machineTypeTiers[$_.Name] = $_.Value }
+                }
+            }
+            catch { }
+
             # Group machines by tier for credential selection
             $machinesByTier = $Machines | Group-Object { 
-                switch ($_.MachineType) {
-                    'DomainController' { 0 }
-                    'Server' { 1 }
-                    default { 2 }
-                }
+                $type = $_.MachineType
+                if ($machineTypeTiers.ContainsKey($type)) { $machineTypeTiers[$type] } else { 2 }
             }
 
             foreach ($tierGroup in $machinesByTier) {

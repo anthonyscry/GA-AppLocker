@@ -84,6 +84,28 @@ function Get-AppLockerConfig {
             DeployConfirmation   = $false
             DeleteConfirmation   = $true
         }
+
+        # AD Tier Classification Mapping
+        # Maps machine types to administrative tiers (0 = highest privilege)
+        TierMapping           = @{
+            # Tier 0: Domain Controllers, critical infrastructure
+            Tier0Patterns     = @('domain controllers', 'ou=tier0', 'ou=t0')
+            Tier0OSPatterns   = @()
+            # Tier 1: Servers
+            Tier1Patterns     = @('ou=server', 'ou=srv', 'ou=tier1', 'ou=t1')
+            Tier1OSPatterns   = @('server')
+            # Tier 2: Workstations (default for unmatched)
+            Tier2Patterns     = @('ou=workstation', 'ou=desktop', 'ou=laptop', 'ou=tier2', 'ou=t2')
+            Tier2OSPatterns   = @('windows 10', 'windows 11')
+        }
+
+        # Machine type to tier number mapping
+        MachineTypeTiers      = @{
+            DomainController = 0
+            Server           = 1
+            Workstation      = 2
+            Unknown          = 2
+        }
     }
     #endregion
 

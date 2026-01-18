@@ -31,12 +31,31 @@ $script:ArtifactExtensions = @(
     '.vbs', '.js', '.wsf'                # Scripts
 )
 
-$script:DefaultScanPaths = @(
-    'C:\Program Files',
-    'C:\Program Files (x86)',
-    'C:\Windows\System32',
-    'C:\Windows\SysWOW64'
-)
+# Default paths loaded from config; fallback if config unavailable
+$script:DefaultScanPaths = $null
+
+function script:Get-DefaultScanPaths {
+    if ($null -eq $script:DefaultScanPaths) {
+        try {
+            $config = Get-AppLockerConfig
+            if ($config.DefaultScanPaths) {
+                $script:DefaultScanPaths = @($config.DefaultScanPaths)
+            }
+        }
+        catch { }
+        
+        # Fallback if config unavailable
+        if ($null -eq $script:DefaultScanPaths -or $script:DefaultScanPaths.Count -eq 0) {
+            $script:DefaultScanPaths = @(
+                'C:\Program Files',
+                'C:\Program Files (x86)',
+                'C:\Windows\System32',
+                'C:\Windows\SysWOW64'
+            )
+        }
+    }
+    return $script:DefaultScanPaths
+}
 
 $script:AppLockerEventIds = @(8001, 8002, 8003, 8004, 8005, 8006, 8007, 8020, 8021, 8022, 8023, 8024, 8025)
 #endregion

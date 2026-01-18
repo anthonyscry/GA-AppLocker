@@ -108,28 +108,44 @@ function Get-MachineTypeFromComputer {
     $dnLower = $Computer.DistinguishedName.ToLower()
     $osLower = if ($Computer.OperatingSystem) { $Computer.OperatingSystem.ToLower() } else { '' }
 
-    # Check OU path first
-    if ($dnLower -match 'domain controllers') {
-        return 'DomainController'
+    # Load tier mapping from config
+    $tierMapping = $null
+    try {
+        $config = Get-AppLockerConfig
+        $tierMapping = $config.TierMapping
+    }
+    catch { }
+
+    # Use configurable patterns or fallback to defaults
+    $tier0Patterns = if ($tierMapping.Tier0Patterns) { $tierMapping.Tier0Patterns } else { @('domain controllers') }
+    $tier0OSPatterns = if ($tierMapping.Tier0OSPatterns) { $tierMapping.Tier0OSPatterns } else { @() }
+    $tier1Patterns = if ($tierMapping.Tier1Patterns) { $tierMapping.Tier1Patterns } else { @('ou=server', 'ou=srv') }
+    $tier1OSPatterns = if ($tierMapping.Tier1OSPatterns) { $tierMapping.Tier1OSPatterns } else { @('server') }
+    $tier2Patterns = if ($tierMapping.Tier2Patterns) { $tierMapping.Tier2Patterns } else { @('ou=workstation', 'ou=desktop', 'ou=laptop') }
+    $tier2OSPatterns = if ($tierMapping.Tier2OSPatterns) { $tierMapping.Tier2OSPatterns } else { @('windows 10', 'windows 11') }
+
+    # Check Tier 0 (Domain Controllers)
+    foreach ($pattern in $tier0Patterns) {
+        if ($dnLower -match [regex]::Escape($pattern)) { return 'DomainController' }
+    }
+    foreach ($pattern in $tier0OSPatterns) {
+        if ($osLower -match [regex]::Escape($pattern)) { return 'DomainController' }
     }
 
-    # Check OS for server
-    if ($osLower -match 'server') {
-        return 'Server'
+    # Check Tier 1 (Servers) - OS first, then OU
+    foreach ($pattern in $tier1OSPatterns) {
+        if ($osLower -match [regex]::Escape($pattern)) { return 'Server' }
+    }
+    foreach ($pattern in $tier1Patterns) {
+        if ($dnLower -match [regex]::Escape($pattern)) { return 'Server' }
     }
 
-    # Check OU naming
-    if ($dnLower -match 'ou=server|ou=srv') {
-        return 'Server'
+    # Check Tier 2 (Workstations)
+    foreach ($pattern in $tier2Patterns) {
+        if ($dnLower -match [regex]::Escape($pattern)) { return 'Workstation' }
     }
-
-    if ($dnLower -match 'ou=workstation|ou=desktop|ou=laptop') {
-        return 'Workstation'
-    }
-
-    # Default based on OS
-    if ($osLower -match 'windows 10|windows 11') {
-        return 'Workstation'
+    foreach ($pattern in $tier2OSPatterns) {
+        if ($osLower -match [regex]::Escape($pattern)) { return 'Workstation' }
     }
 
     return 'Unknown'

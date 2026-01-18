@@ -49,10 +49,7 @@ function Get-RemoteArtifacts {
         [System.Management.Automation.PSCredential]$Credential,
 
         [Parameter()]
-        [string[]]$Paths = @(
-            'C:\Program Files',
-            'C:\Program Files (x86)'
-        ),
+        [string[]]$Paths = (Get-DefaultScanPaths),
 
         [Parameter()]
         [string[]]$Extensions = @('.exe', '.dll', '.msi', '.ps1'),
