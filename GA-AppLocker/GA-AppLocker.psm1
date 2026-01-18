@@ -240,6 +240,17 @@ Export-ModuleMember -Function @(
     'Remove-RuleFromPolicy',
     'Set-PolicyTarget',
     'Export-PolicyToXml',
-    'Test-PolicyCompliance'
+    'Test-PolicyCompliance',
+    # Deployment module
+    'New-DeploymentJob',
+    'Get-DeploymentJob',
+    'Get-AllDeploymentJobs',
+    'Start-Deployment',
+    'Stop-Deployment',
+    'Get-DeploymentStatus',
+    'Test-GPOExists',
+    'New-AppLockerGPO',
+    'Import-PolicyToGPO',
+    'Get-DeploymentHistory'
 )
 #endregion

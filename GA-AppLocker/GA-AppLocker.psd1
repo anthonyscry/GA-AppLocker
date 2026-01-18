@@ -52,7 +52,8 @@ Features:
         'Modules\GA-AppLocker.Credentials\GA-AppLocker.Credentials.psd1',
         'Modules\GA-AppLocker.Scanning\GA-AppLocker.Scanning.psd1',
         'Modules\GA-AppLocker.Rules\GA-AppLocker.Rules.psd1',
-        'Modules\GA-AppLocker.Policy\GA-AppLocker.Policy.psd1'
+        'Modules\GA-AppLocker.Policy\GA-AppLocker.Policy.psd1',
+        'Modules\GA-AppLocker.Deployment\GA-AppLocker.Deployment.psd1'
     )
 
     # Functions to export from this module (re-export from nested modules + GUI)
@@ -104,6 +105,17 @@ Features:
         'Set-PolicyTarget',
         'Export-PolicyToXml',
         'Test-PolicyCompliance',
+        # Deployment module
+        'New-DeploymentJob',
+        'Get-DeploymentJob',
+        'Get-AllDeploymentJobs',
+        'Start-Deployment',
+        'Stop-Deployment',
+        'Get-DeploymentStatus',
+        'Test-GPOExists',
+        'New-AppLockerGPO',
+        'Import-PolicyToGPO',
+        'Get-DeploymentHistory',
         # Main module
         'Start-AppLockerDashboard'
     )

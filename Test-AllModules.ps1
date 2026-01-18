@@ -411,6 +411,196 @@ catch {
 }
 
 # ============================================================
+# POLICY MODULE TESTS
+# ============================================================
+Write-Section "POLICY MODULE TESTS"
+
+# Test: New-Policy
+$testPolicyId = $null
+try {
+    $policy = New-Policy -Name "TestPolicy_$(Get-Date -Format 'HHmmss')" -Description "Test policy" -EnforcementMode "AuditOnly"
+    $hasResult = $policy.Success -and ($policy.Data.PolicyId -ne $null)
+    if ($hasResult) { $testPolicyId = $policy.Data.PolicyId }
+    Write-TestResult -TestName "New-Policy" -Passed $hasResult -Message "Creates policy" -Details "ID: $($policy.Data.PolicyId)"
+}
+catch {
+    Write-TestResult -TestName "New-Policy" -Passed $false -Message "Exception" -Details $_.Exception.Message
+}
+
+# Test: Get-Policy
+try {
+    if ($testPolicyId) {
+        $getResult = Get-Policy -PolicyId $testPolicyId
+        $hasResult = $getResult.Success -and ($getResult.Data.Name -match "TestPolicy")
+        Write-TestResult -TestName "Get-Policy" -Passed $hasResult -Message "Retrieves policy by ID"
+    }
+    else {
+        Write-TestResult -TestName "Get-Policy" -Passed $false -Message "Skipped - no test policy"
+    }
+}
+catch {
+    Write-TestResult -TestName "Get-Policy" -Passed $false -Message "Exception" -Details $_.Exception.Message
+}
+
+# Test: Get-AllPolicies
+try {
+    $allPolicies = Get-AllPolicies
+    $hasResult = ($allPolicies -ne $null) -and $allPolicies.Success -eq $true
+    Write-TestResult -TestName "Get-AllPolicies" -Passed $hasResult -Message "Lists all policies" -Details "Success: $($allPolicies.Success)"
+}
+catch {
+    Write-TestResult -TestName "Get-AllPolicies" -Passed $false -Message "Exception" -Details $_.Exception.Message
+}
+
+# Test: Set-PolicyStatus
+try {
+    if ($testPolicyId) {
+        $statusResult = Set-PolicyStatus -PolicyId $testPolicyId -Status "Active"
+        $hasResult = $statusResult.Success -and ($statusResult.Data.Status -eq "Active")
+        Write-TestResult -TestName "Set-PolicyStatus" -Passed $hasResult -Message "Updates policy status"
+    }
+    else {
+        Write-TestResult -TestName "Set-PolicyStatus" -Passed $false -Message "Skipped - no test policy"
+    }
+}
+catch {
+    Write-TestResult -TestName "Set-PolicyStatus" -Passed $false -Message "Exception" -Details $_.Exception.Message
+}
+
+# Test: Set-PolicyTarget
+try {
+    if ($testPolicyId) {
+        $targetResult = Set-PolicyTarget -PolicyId $testPolicyId -TargetGPO "TestGPO" -TargetOUs @("OU=Test,DC=domain,DC=com")
+        $hasResult = $targetResult.Success -and ($targetResult.Data.TargetGPO -eq "TestGPO")
+        Write-TestResult -TestName "Set-PolicyTarget" -Passed $hasResult -Message "Sets policy targets"
+    }
+    else {
+        Write-TestResult -TestName "Set-PolicyTarget" -Passed $false -Message "Skipped - no test policy"
+    }
+}
+catch {
+    Write-TestResult -TestName "Set-PolicyTarget" -Passed $false -Message "Exception" -Details $_.Exception.Message
+}
+
+# Test: Remove-Policy (cleanup)
+try {
+    if ($testPolicyId) {
+        $removeResult = Remove-Policy -PolicyId $testPolicyId -Force
+        $hasResult = $removeResult.Success
+        Write-TestResult -TestName "Remove-Policy" -Passed $hasResult -Message "Removes policy"
+    }
+    else {
+        Write-TestResult -TestName "Remove-Policy" -Passed $false -Message "Skipped - no test policy"
+    }
+}
+catch {
+    Write-TestResult -TestName "Remove-Policy" -Passed $false -Message "Exception" -Details $_.Exception.Message
+}
+
+# ============================================================
+# DEPLOYMENT MODULE TESTS
+# ============================================================
+Write-Section "DEPLOYMENT MODULE TESTS"
+
+# Create a test policy for deployment tests
+$deployTestPolicyId = $null
+try {
+    $policy = New-Policy -Name "DeployTestPolicy_$(Get-Date -Format 'HHmmss')" -EnforcementMode "AuditOnly"
+    if ($policy.Success) { $deployTestPolicyId = $policy.Data.PolicyId }
+}
+catch { }
+
+# Test: New-DeploymentJob
+$testJobId = $null
+try {
+    if ($deployTestPolicyId) {
+        $job = New-DeploymentJob -PolicyId $deployTestPolicyId -GPOName "TestGPO" -Schedule "Manual"
+        $hasResult = $job.Success -and ($job.Data.JobId -ne $null)
+        if ($hasResult) { $testJobId = $job.Data.JobId }
+        Write-TestResult -TestName "New-DeploymentJob" -Passed $hasResult -Message "Creates deployment job" -Details "ID: $($job.Data.JobId)"
+    }
+    else {
+        Write-TestResult -TestName "New-DeploymentJob" -Passed $false -Message "Skipped - no test policy"
+    }
+}
+catch {
+    Write-TestResult -TestName "New-DeploymentJob" -Passed $false -Message "Exception" -Details $_.Exception.Message
+}
+
+# Test: Get-DeploymentJob
+try {
+    if ($testJobId) {
+        $getJob = Get-DeploymentJob -JobId $testJobId
+        $hasResult = $getJob.Success -and ($getJob.Data.Status -eq "Pending")
+        Write-TestResult -TestName "Get-DeploymentJob" -Passed $hasResult -Message "Retrieves job by ID"
+    }
+    else {
+        Write-TestResult -TestName "Get-DeploymentJob" -Passed $false -Message "Skipped - no test job"
+    }
+}
+catch {
+    Write-TestResult -TestName "Get-DeploymentJob" -Passed $false -Message "Exception" -Details $_.Exception.Message
+}
+
+# Test: Get-AllDeploymentJobs
+try {
+    $allJobs = Get-AllDeploymentJobs
+    $hasResult = ($allJobs -ne $null) -and $allJobs.Success -eq $true
+    Write-TestResult -TestName "Get-AllDeploymentJobs" -Passed $hasResult -Message "Lists all jobs" -Details "Success: $($allJobs.Success)"
+}
+catch {
+    Write-TestResult -TestName "Get-AllDeploymentJobs" -Passed $false -Message "Exception" -Details $_.Exception.Message
+}
+
+# Test: Get-DeploymentStatus
+try {
+    if ($testJobId) {
+        $status = Get-DeploymentStatus -JobId $testJobId
+        $hasResult = $status.Success -and ($status.Data.Status -ne $null)
+        Write-TestResult -TestName "Get-DeploymentStatus" -Passed $hasResult -Message "Gets job status" -Details "Status: $($status.Data.Status)"
+    }
+    else {
+        Write-TestResult -TestName "Get-DeploymentStatus" -Passed $false -Message "Skipped - no test job"
+    }
+}
+catch {
+    Write-TestResult -TestName "Get-DeploymentStatus" -Passed $false -Message "Exception" -Details $_.Exception.Message
+}
+
+# Test: Test-GPOExists
+try {
+    $gpoCheck = Test-GPOExists -GPOName "NonExistentGPO_12345"
+    $hasResult = ($gpoCheck -ne $null) -and $gpoCheck.Success -eq $true
+    Write-TestResult -TestName "Test-GPOExists" -Passed $hasResult -Message "Checks GPO existence" -Details "Returns result (GPO likely doesn't exist)"
+}
+catch {
+    Write-TestResult -TestName "Test-GPOExists" -Passed $false -Message "Exception" -Details $_.Exception.Message
+}
+
+# Test: Stop-Deployment (cancel job)
+try {
+    if ($testJobId) {
+        $cancelResult = Stop-Deployment -JobId $testJobId
+        $hasResult = $cancelResult.Success -and ($cancelResult.Data.Status -eq "Cancelled")
+        Write-TestResult -TestName "Stop-Deployment" -Passed $hasResult -Message "Cancels deployment job"
+    }
+    else {
+        Write-TestResult -TestName "Stop-Deployment" -Passed $false -Message "Skipped - no test job"
+    }
+}
+catch {
+    Write-TestResult -TestName "Stop-Deployment" -Passed $false -Message "Exception" -Details $_.Exception.Message
+}
+
+# Cleanup test policy
+try {
+    if ($deployTestPolicyId) {
+        Remove-Policy -PolicyId $deployTestPolicyId -Force | Out-Null
+    }
+}
+catch { }
+
+# ============================================================
 # GUI TESTS
 # ============================================================
 Write-Section "GUI TESTS"

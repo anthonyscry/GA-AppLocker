@@ -80,6 +80,12 @@ function global:Invoke-ButtonAction {
         'RemoveRulesFromPolicy' { Invoke-RemoveRulesFromPolicy -Window $win }
         'SelectTargetOUs' { Invoke-SelectTargetOUs -Window $win }
         'SavePolicyTargets' { Invoke-SavePolicyTargets -Window $win }
+        # Deployment panel
+        'CreateDeploymentJob' { Invoke-CreateDeploymentJob -Window $win }
+        'RefreshDeployments' { Update-DeploymentJobsDataGrid -Window $win }
+        'DeploySelectedJob' { Invoke-DeploySelectedJob -Window $win }
+        'CancelDeploymentJob' { Invoke-CancelDeploymentJob -Window $win }
+        'ViewDeploymentLog' { Show-DeploymentLog -Window $win }
     }
 }
 #endregion
@@ -97,6 +103,8 @@ $script:CurrentRulesFilter = 'All'
 $script:CurrentRulesTypeFilter = 'All'
 $script:CurrentPoliciesFilter = 'All'
 $script:SelectedPolicyId = $null
+$script:CurrentDeploymentFilter = 'All'
+$script:SelectedDeploymentJobId = $null
 #endregion
 
 #region ===== NAVIGATION HANDLERS =====
@@ -2122,6 +2130,341 @@ function Invoke-SavePolicyTargets {
 
 #endregion
 
+#region ===== DEPLOYMENT PANEL HANDLERS =====
+
+function Initialize-DeploymentPanel {
+    param([System.Windows.Window]$Window)
+
+    # Wire up filter buttons
+    $filterButtons = @(
+        'BtnFilterAllJobs', 'BtnFilterPendingJobs', 'BtnFilterRunningJobs',
+        'BtnFilterCompletedJobs', 'BtnFilterFailedJobs'
+    )
+
+    foreach ($btnName in $filterButtons) {
+        $btn = $Window.FindName($btnName)
+        if ($btn) {
+            $btn.Add_Click({
+                param($sender, $e)
+                $tag = $sender.Tag
+                if ($tag -match 'FilterJobs(.+)') {
+                    $filter = $Matches[1]
+                    Update-DeploymentFilter -Window $global:GA_MainWindow -Filter $filter
+                }
+            }.GetNewClosure())
+        }
+    }
+
+    # Wire up action buttons
+    $actionButtons = @(
+        'BtnCreateDeployment', 'BtnRefreshDeployments', 'BtnDeploySelected',
+        'BtnCancelSelected', 'BtnViewDeployLog'
+    )
+
+    foreach ($btnName in $actionButtons) {
+        $btn = $Window.FindName($btnName)
+        if ($btn -and $btn.Tag) {
+            $btn.Add_Click({
+                param($sender, $e)
+                Invoke-ButtonAction -Action $sender.Tag
+            }.GetNewClosure())
+        }
+    }
+
+    # Wire up DataGrid selection changed
+    $dataGrid = $Window.FindName('DeploymentJobsDataGrid')
+    if ($dataGrid) {
+        $dataGrid.Add_SelectionChanged({
+            param($sender, $e)
+            Update-SelectedJobInfo -Window $global:GA_MainWindow
+        })
+    }
+
+    # Load policies into combo box
+    $policyCombo = $Window.FindName('CboDeployPolicy')
+    if ($policyCombo -and (Get-Command -Name 'Get-AllPolicies' -ErrorAction SilentlyContinue)) {
+        $result = Get-AllPolicies -Status 'Active'
+        if ($result.Success -and $result.Data) {
+            $policyCombo.ItemsSource = $result.Data
+        }
+    }
+
+    # Check module status
+    Update-ModuleStatus -Window $Window
+
+    # Initial load
+    Update-DeploymentJobsDataGrid -Window $Window
+}
+
+function Update-ModuleStatus {
+    param([System.Windows.Window]$Window)
+
+    $gpStatus = $Window.FindName('TxtGPModuleStatus')
+    $alStatus = $Window.FindName('TxtALModuleStatus')
+
+    if ($gpStatus) {
+        $hasGP = Get-Module -ListAvailable -Name GroupPolicy
+        $gpStatus.Text = if ($hasGP) { 'Available' } else { 'Not Installed' }
+        $gpStatus.Foreground = if ($hasGP) { 
+            [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.Color]::FromRgb(129, 199, 132))
+        } else { 
+            [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.Color]::FromRgb(229, 115, 115))
+        }
+    }
+
+    if ($alStatus) {
+        $hasAL = Get-Command -Name 'Set-AppLockerPolicy' -ErrorAction SilentlyContinue
+        $alStatus.Text = if ($hasAL) { 'Available' } else { 'Not Available' }
+        $alStatus.Foreground = if ($hasAL) { 
+            [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.Color]::FromRgb(129, 199, 132))
+        } else { 
+            [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.Color]::FromRgb(255, 213, 79))
+        }
+    }
+}
+
+function global:Update-DeploymentJobsDataGrid {
+    param([System.Windows.Window]$Window)
+
+    $dataGrid = $Window.FindName('DeploymentJobsDataGrid')
+    if (-not $dataGrid) { return }
+
+    if (-not (Get-Command -Name 'Get-AllDeploymentJobs' -ErrorAction SilentlyContinue)) {
+        $dataGrid.ItemsSource = $null
+        return
+    }
+
+    try {
+        $result = Get-AllDeploymentJobs
+        if (-not $result.Success) {
+            $dataGrid.ItemsSource = $null
+            return
+        }
+
+        $jobs = $result.Data
+
+        # Apply filter
+        if ($script:CurrentDeploymentFilter -and $script:CurrentDeploymentFilter -ne 'All') {
+            $jobs = $jobs | Where-Object { $_.Status -eq $script:CurrentDeploymentFilter }
+        }
+
+        # Add display properties
+        $displayData = $jobs | ForEach-Object {
+            $job = $_
+            $props = @{}
+            $_.PSObject.Properties | ForEach-Object { $props[$_.Name] = $_.Value }
+            $props['ProgressDisplay'] = "$($_.Progress)%"
+            $props['CreatedDisplay'] = if ($_.CreatedAt) { ([datetime]$_.CreatedAt).ToString('MM/dd HH:mm') } else { '' }
+            [PSCustomObject]$props
+        }
+
+        $dataGrid.ItemsSource = @($displayData)
+
+        # Update counters
+        $allJobs = (Get-AllDeploymentJobs).Data
+        Update-JobCounters -Window $Window -Jobs $allJobs
+    }
+    catch {
+        Write-Log -Level Error -Message "Failed to update deployment grid: $($_.Exception.Message)"
+        $dataGrid.ItemsSource = $null
+    }
+}
+
+function Update-JobCounters {
+    param(
+        [System.Windows.Window]$Window,
+        [array]$Jobs
+    )
+
+    $total = if ($Jobs) { $Jobs.Count } else { 0 }
+    $pending = if ($Jobs) { ($Jobs | Where-Object { $_.Status -eq 'Pending' }).Count } else { 0 }
+    $running = if ($Jobs) { ($Jobs | Where-Object { $_.Status -eq 'Running' }).Count } else { 0 }
+    $completed = if ($Jobs) { ($Jobs | Where-Object { $_.Status -eq 'Completed' }).Count } else { 0 }
+
+    $Window.FindName('TxtJobTotalCount').Text = "$total"
+    $Window.FindName('TxtJobPendingCount').Text = "$pending"
+    $Window.FindName('TxtJobRunningCount').Text = "$running"
+    $Window.FindName('TxtJobCompletedCount').Text = "$completed"
+}
+
+function global:Update-DeploymentFilter {
+    param(
+        [System.Windows.Window]$Window,
+        [string]$Filter
+    )
+
+    $script:CurrentDeploymentFilter = $Filter
+    Update-DeploymentJobsDataGrid -Window $Window
+}
+
+function Update-SelectedJobInfo {
+    param([System.Windows.Window]$Window)
+
+    $dataGrid = $Window.FindName('DeploymentJobsDataGrid')
+    $selectedItem = $dataGrid.SelectedItem
+    $messageBox = $Window.FindName('TxtDeploymentMessage')
+    $progressBar = $Window.FindName('DeploymentProgressBar')
+
+    if ($selectedItem) {
+        $script:SelectedDeploymentJobId = $selectedItem.JobId
+        $messageBox.Text = $selectedItem.Message
+        $progressBar.Value = $selectedItem.Progress
+    }
+    else {
+        $script:SelectedDeploymentJobId = $null
+        $messageBox.Text = 'Select a deployment job to view details'
+        $progressBar.Value = 0
+    }
+}
+
+function Invoke-CreateDeploymentJob {
+    param([System.Windows.Window]$Window)
+
+    $policyCombo = $Window.FindName('CboDeployPolicy')
+    $gpoName = $Window.FindName('TxtDeployGPOName').Text
+    $scheduleCombo = $Window.FindName('CboDeploySchedule')
+
+    if (-not $policyCombo.SelectedItem) {
+        [System.Windows.MessageBox]::Show('Please select a policy to deploy.', 'Missing Policy', 'OK', 'Warning')
+        return
+    }
+
+    if ([string]::IsNullOrWhiteSpace($gpoName)) {
+        [System.Windows.MessageBox]::Show('Please enter a target GPO name.', 'Missing GPO', 'OK', 'Warning')
+        return
+    }
+
+    $schedule = switch ($scheduleCombo.SelectedIndex) {
+        0 { 'Manual' }
+        1 { 'Immediate' }
+        2 { 'Scheduled' }
+        default { 'Manual' }
+    }
+
+    try {
+        $policy = $policyCombo.SelectedItem
+        $result = New-DeploymentJob -PolicyId $policy.PolicyId -GPOName $gpoName -Schedule $schedule
+
+        if ($result.Success) {
+            $Window.FindName('TxtDeployGPOName').Text = ''
+            Update-DeploymentJobsDataGrid -Window $Window
+            [System.Windows.MessageBox]::Show(
+                "Deployment job created for policy '$($policy.Name)'.",
+                'Success',
+                'OK',
+                'Information'
+            )
+        }
+        else {
+            [System.Windows.MessageBox]::Show("Failed: $($result.Error)", 'Error', 'OK', 'Error')
+        }
+    }
+    catch {
+        [System.Windows.MessageBox]::Show("Error: $($_.Exception.Message)", 'Error', 'OK', 'Error')
+    }
+}
+
+function Invoke-DeploySelectedJob {
+    param([System.Windows.Window]$Window)
+
+    if (-not $script:SelectedDeploymentJobId) {
+        [System.Windows.MessageBox]::Show('Please select a deployment job.', 'No Selection', 'OK', 'Information')
+        return
+    }
+
+    $confirm = [System.Windows.MessageBox]::Show(
+        'Start deployment now? This will apply the policy to the target GPO.',
+        'Confirm Deployment',
+        'YesNo',
+        'Question'
+    )
+
+    if ($confirm -ne 'Yes') { return }
+
+    try {
+        $messageBox = $Window.FindName('TxtDeploymentMessage')
+        $progressBar = $Window.FindName('DeploymentProgressBar')
+
+        $messageBox.Text = 'Starting deployment...'
+        $progressBar.Value = 10
+        [System.Windows.Forms.Application]::DoEvents()
+
+        $result = Start-Deployment -JobId $script:SelectedDeploymentJobId
+
+        Update-DeploymentJobsDataGrid -Window $Window
+
+        if ($result.Success) {
+            [System.Windows.MessageBox]::Show($result.Message, 'Deployment Complete', 'OK', 'Information')
+        }
+        else {
+            [System.Windows.MessageBox]::Show("Deployment failed: $($result.Error)", 'Error', 'OK', 'Error')
+        }
+    }
+    catch {
+        [System.Windows.MessageBox]::Show("Error: $($_.Exception.Message)", 'Error', 'OK', 'Error')
+    }
+}
+
+function Invoke-CancelDeploymentJob {
+    param([System.Windows.Window]$Window)
+
+    if (-not $script:SelectedDeploymentJobId) {
+        [System.Windows.MessageBox]::Show('Please select a deployment job to cancel.', 'No Selection', 'OK', 'Information')
+        return
+    }
+
+    $confirm = [System.Windows.MessageBox]::Show(
+        'Cancel this deployment job?',
+        'Confirm Cancel',
+        'YesNo',
+        'Warning'
+    )
+
+    if ($confirm -ne 'Yes') { return }
+
+    try {
+        $result = Stop-Deployment -JobId $script:SelectedDeploymentJobId
+
+        if ($result.Success) {
+            Update-DeploymentJobsDataGrid -Window $Window
+            [System.Windows.MessageBox]::Show('Deployment cancelled.', 'Cancelled', 'OK', 'Information')
+        }
+        else {
+            [System.Windows.MessageBox]::Show("Failed: $($result.Error)", 'Error', 'OK', 'Error')
+        }
+    }
+    catch {
+        [System.Windows.MessageBox]::Show("Error: $($_.Exception.Message)", 'Error', 'OK', 'Error')
+    }
+}
+
+function Show-DeploymentLog {
+    param([System.Windows.Window]$Window)
+
+    try {
+        $result = Get-DeploymentHistory -Limit 50
+
+        if (-not $result.Success -or -not $result.Data -or $result.Data.Count -eq 0) {
+            [System.Windows.MessageBox]::Show('No deployment history available.', 'No History', 'OK', 'Information')
+            return
+        }
+
+        $log = $result.Data | ForEach-Object {
+            "$($_.Timestamp) | $($_.Action) | $($_.Details) | $($_.User)"
+        }
+
+        $logText = "DEPLOYMENT HISTORY (Last 50 entries)`n" + ('=' * 50) + "`n`n"
+        $logText += ($log -join "`n")
+
+        [System.Windows.MessageBox]::Show($logText, 'Deployment Log', 'OK', 'Information')
+    }
+    catch {
+        [System.Windows.MessageBox]::Show("Error: $($_.Exception.Message)", 'Error', 'OK', 'Error')
+    }
+}
+
+#endregion
+
 #region ===== WINDOW INITIALIZATION =====
 function Initialize-MainWindow {
     param(
@@ -2184,6 +2527,15 @@ function Initialize-MainWindow {
     }
     catch {
         Write-Log -Level Error -Message "Policy panel init failed: $($_.Exception.Message)"
+    }
+
+    # Initialize Deployment panel
+    try {
+        Initialize-DeploymentPanel -Window $Window
+        Write-Log -Message 'Deployment panel initialized'
+    }
+    catch {
+        Write-Log -Level Error -Message "Deployment panel init failed: $($_.Exception.Message)"
     }
 
     # Update domain info in status bar and dashboard
