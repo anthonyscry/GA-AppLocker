@@ -80,12 +80,15 @@ function Initialize-RulesPanel {
         if ($btn) { $btn.Opacity = 0.6 }
     }
 
-    # Initial load
-    Update-RulesDataGrid -Window $Window
+    # Initial load - use async to keep UI responsive
+    Update-RulesDataGrid -Window $Window -Async
 }
 
 function script:Update-RulesDataGrid {
-    param([System.Windows.Window]$Window)
+    param(
+        [System.Windows.Window]$Window,
+        [switch]$Async
+    )
 
     $dataGrid = $Window.FindName('RulesDataGrid')
     if (-not $dataGrid) { return }
@@ -96,29 +99,36 @@ function script:Update-RulesDataGrid {
         return
     }
 
-    try {
-        $result = Get-AllRules
-        if (-not $result.Success) {
-            $dataGrid.ItemsSource = $null
+    # Capture filter state for use in async callback
+    $typeFilter = $script:CurrentRulesTypeFilter
+    $statusFilter = $script:CurrentRulesFilter
+    $filterBox = $Window.FindName('TxtRuleFilter')
+    $textFilter = if ($filterBox) { $filterBox.Text } else { '' }
+
+    # Define the data processing logic
+    $processRulesData = {
+        param($Result, $TypeFilter, $StatusFilter, $TextFilter, $DataGrid, $Window)
+        
+        if (-not $Result.Success) {
+            $DataGrid.ItemsSource = $null
             return
         }
 
-        $rules = $result.Data
+        $rules = $Result.Data
 
         # Apply type filter
-        if ($script:CurrentRulesTypeFilter -and $script:CurrentRulesTypeFilter -ne 'All') {
-            $rules = $rules | Where-Object { $_.RuleType -eq $script:CurrentRulesTypeFilter }
+        if ($TypeFilter -and $TypeFilter -ne 'All') {
+            $rules = $rules | Where-Object { $_.RuleType -eq $TypeFilter }
         }
 
         # Apply status filter
-        if ($script:CurrentRulesFilter -and $script:CurrentRulesFilter -notin @('All', 'Publisher', 'Hash', 'Path')) {
-            $rules = $rules | Where-Object { $_.Status -eq $script:CurrentRulesFilter }
+        if ($StatusFilter -and $StatusFilter -notin @('All', 'Publisher', 'Hash', 'Path')) {
+            $rules = $rules | Where-Object { $_.Status -eq $StatusFilter }
         }
 
         # Apply text filter
-        $filterBox = $Window.FindName('TxtRuleFilter')
-        if ($filterBox -and -not [string]::IsNullOrWhiteSpace($filterBox.Text)) {
-            $filterText = $filterBox.Text.ToLower()
+        if (-not [string]::IsNullOrWhiteSpace($TextFilter)) {
+            $filterText = $TextFilter.ToLower()
             $rules = $rules | Where-Object {
                 $_.Name.ToLower().Contains($filterText) -or
                 $_.CollectionType.ToLower().Contains($filterText) -or
@@ -142,15 +152,33 @@ function script:Update-RulesDataGrid {
             [PSCustomObject]$props
         }
 
-        $dataGrid.ItemsSource = @($displayData)
+        $DataGrid.ItemsSource = @($displayData)
 
-        # Update counters
-        $allRules = (Get-AllRules).Data
-        Update-RuleCounters -Window $Window -Rules $allRules
+        # Update counters from the original result data
+        Update-RuleCounters -Window $Window -Rules $Result.Data
     }
-    catch {
-        Write-Log -Level Error -Message "Failed to update rules grid: $($_.Exception.Message)"
-        $dataGrid.ItemsSource = $null
+
+    # Use async for initial/refresh loads, sync for filter changes (already have data)
+    if ($Async -and (Get-Command -Name 'Invoke-AsyncOperation' -ErrorAction SilentlyContinue)) {
+        Invoke-AsyncOperation -ScriptBlock { Get-AllRules } -LoadingMessage 'Loading rules...' -OnComplete {
+            param($Result)
+            & $processRulesData $Result $typeFilter $statusFilter $textFilter $dataGrid $Window
+        }.GetNewClosure() -OnError {
+            param($ErrorMessage)
+            Write-Log -Level Error -Message "Failed to load rules: $ErrorMessage"
+            $dataGrid.ItemsSource = $null
+        }.GetNewClosure()
+    }
+    else {
+        # Synchronous fallback
+        try {
+            $result = Get-AllRules
+            & $processRulesData $result $typeFilter $statusFilter $textFilter $dataGrid $Window
+        }
+        catch {
+            Write-Log -Level Error -Message "Failed to update rules grid: $($_.Exception.Message)"
+            $dataGrid.ItemsSource = $null
+        }
     }
 }
 

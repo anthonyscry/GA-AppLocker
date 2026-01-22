@@ -18,7 +18,10 @@ function Initialize-DiscoveryPanel {
 }
 
 function Invoke-DomainRefresh {
-    param([System.Windows.Window]$Window)
+    param(
+        [System.Windows.Window]$Window,
+        [switch]$Async
+    )
 
     $domainLabel = $Window.FindName('DiscoveryDomainLabel')
     $machineCount = $Window.FindName('DiscoveryMachineCount')
@@ -27,46 +30,83 @@ function Invoke-DomainRefresh {
     # Update status
     if ($domainLabel) { $domainLabel.Text = 'Domain: Connecting...' }
 
-    try {
+    # Define the work to be done
+    $discoveryWork = {
+        $result = @{
+            DomainResult = $null
+            OUResult = $null
+            ComputerResult = $null
+        }
+        
         # Get domain info
-        $domainResult = Get-DomainInfo
-        if ($domainResult.Success) {
+        $result.DomainResult = Get-DomainInfo
+        if ($result.DomainResult.Success) {
+            # Get OU tree
+            $result.OUResult = Get-OUTree
+            
+            # Get all computers
+            $rootDN = $result.DomainResult.Data.DistinguishedName
+            $result.ComputerResult = Get-ComputersByOU -OUDistinguishedNames @($rootDN)
+        }
+        
+        return $result
+    }
+
+    # Define the completion handler
+    $onComplete = {
+        param($Result)
+        
+        if ($Result.DomainResult.Success) {
             if ($domainLabel) {
-                $domainLabel.Text = "Domain: $($domainResult.Data.DnsRoot)"
+                $domainLabel.Text = "Domain: $($Result.DomainResult.Data.DnsRoot)"
                 $domainLabel.Foreground = [System.Windows.Media.Brushes]::LightGreen
             }
 
-            # Get OU tree
-            $ouResult = Get-OUTree
-            if ($ouResult.Success -and $treeView) {
-                $script:DiscoveredOUs = $ouResult.Data
-                Update-OUTreeView -TreeView $treeView -OUs $ouResult.Data
+            # Update OU tree
+            if ($Result.OUResult.Success -and $treeView) {
+                $script:DiscoveredOUs = $Result.OUResult.Data
+                Update-OUTreeView -TreeView $treeView -OUs $Result.OUResult.Data
             }
 
-            # Get all computers
-            $rootDN = $domainResult.Data.DistinguishedName
-            $computerResult = Get-ComputersByOU -OUDistinguishedNames @($rootDN)
-            if ($computerResult.Success) {
-                $script:DiscoveredMachines = $computerResult.Data
-                Update-MachineDataGrid -Window $Window -Machines $computerResult.Data
+            # Update machine grid
+            if ($Result.ComputerResult.Success) {
+                $script:DiscoveredMachines = $Result.ComputerResult.Data
+                Update-MachineDataGrid -Window $Window -Machines $Result.ComputerResult.Data
                 Update-WorkflowBreadcrumb -Window $Window
 
                 if ($machineCount) {
-                    $machineCount.Text = "$($computerResult.Data.Count) machines discovered"
+                    $machineCount.Text = "$($Result.ComputerResult.Data.Count) machines discovered"
                 }
             }
         }
         else {
             if ($domainLabel) {
-                $domainLabel.Text = "Domain: Error - $($domainResult.Error)"
+                $domainLabel.Text = "Domain: Error - $($Result.DomainResult.Error)"
                 $domainLabel.Foreground = [System.Windows.Media.Brushes]::OrangeRed
             }
         }
-    }
-    catch {
+    }.GetNewClosure()
+
+    $onError = {
+        param($ErrorMessage)
         if ($domainLabel) {
-            $domainLabel.Text = "Domain: Error - $($_.Exception.Message)"
+            $domainLabel.Text = "Domain: Error - $ErrorMessage"
             $domainLabel.Foreground = [System.Windows.Media.Brushes]::OrangeRed
+        }
+    }.GetNewClosure()
+
+    # Use async if requested and available
+    if ($Async -and (Get-Command -Name 'Invoke-AsyncOperation' -ErrorAction SilentlyContinue)) {
+        Invoke-AsyncOperation -ScriptBlock $discoveryWork -LoadingMessage 'Discovering domain...' -LoadingSubMessage 'Querying Active Directory' -OnComplete $onComplete -OnError $onError
+    }
+    else {
+        # Synchronous fallback
+        try {
+            $result = & $discoveryWork
+            & $onComplete -Result $result
+        }
+        catch {
+            & $onError -ErrorMessage $_.Exception.Message
         }
     }
 }
@@ -146,7 +186,10 @@ function Update-MachineDataGrid {
 }
 
 function Invoke-ConnectivityTest {
-    param([System.Windows.Window]$Window)
+    param(
+        [System.Windows.Window]$Window,
+        [switch]$Async
+    )
 
     if ($script:DiscoveredMachines.Count -eq 0) {
         [System.Windows.MessageBox]::Show(
@@ -161,16 +204,33 @@ function Invoke-ConnectivityTest {
     $machineCount = $Window.FindName('DiscoveryMachineCount')
     if ($machineCount) { $machineCount.Text = 'Testing connectivity...' }
 
-    $testResult = Test-MachineConnectivity -Machines $script:DiscoveredMachines
-    if ($testResult.Success) {
-        $script:DiscoveredMachines = $testResult.Data
-        Update-MachineDataGrid -Window $Window -Machines $testResult.Data
-        Update-WorkflowBreadcrumb -Window $Window
+    $machines = $script:DiscoveredMachines
 
-        $summary = $testResult.Summary
-        if ($machineCount) {
-            $machineCount.Text = "$($summary.OnlineCount)/$($summary.TotalMachines) online, $($summary.WinRMAvailable) WinRM"
+    $onComplete = {
+        param($Result)
+        if ($Result.Success) {
+            $script:DiscoveredMachines = $Result.Data
+            Update-MachineDataGrid -Window $Window -Machines $Result.Data
+            Update-WorkflowBreadcrumb -Window $Window
+
+            $summary = $Result.Summary
+            if ($machineCount) {
+                $machineCount.Text = "$($summary.OnlineCount)/$($summary.TotalMachines) online, $($summary.WinRMAvailable) WinRM"
+            }
         }
+    }.GetNewClosure()
+
+    # Use async if requested and available
+    if ($Async -and (Get-Command -Name 'Invoke-AsyncOperation' -ErrorAction SilentlyContinue)) {
+        Invoke-AsyncOperation -ScriptBlock {
+            param($Machines)
+            Test-MachineConnectivity -Machines $Machines
+        } -Arguments @{ Machines = $machines } -LoadingMessage 'Testing connectivity...' -LoadingSubMessage "Checking $($machines.Count) machines" -OnComplete $onComplete
+    }
+    else {
+        # Synchronous fallback
+        $testResult = Test-MachineConnectivity -Machines $machines
+        & $onComplete -Result $testResult
     }
 }
 

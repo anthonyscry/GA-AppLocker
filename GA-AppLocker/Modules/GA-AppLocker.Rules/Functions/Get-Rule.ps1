@@ -63,49 +63,85 @@ function Get-Rule {
     }
 
     try {
-        $rulePath = Get-RuleStoragePath
-        $ruleFiles = Get-ChildItem -Path $rulePath -Filter '*.json' -ErrorAction SilentlyContinue
-
-        if ($Id) {
-            # Get specific rule by ID
-            $ruleFile = Join-Path $rulePath "$Id.json"
-            if (Test-Path $ruleFile) {
-                $result.Data = Get-Content -Path $ruleFile -Raw | ConvertFrom-Json
-                $result.Success = $true
+        # Try using Storage layer (fast indexed queries)
+        $useStorage = Get-Command -Name 'Get-RulesFromDatabase' -ErrorAction SilentlyContinue
+        
+        if ($useStorage) {
+            if ($Id) {
+                # Get specific rule by ID from Storage
+                $rule = Get-RuleFromDatabase -Id $Id
+                if ($rule) {
+                    $result.Data = $rule
+                    $result.Success = $true
+                } else {
+                    # Fallback to JSON file
+                    $rulePath = Get-RuleStoragePath
+                    $ruleFile = Join-Path $rulePath "$Id.json"
+                    if (Test-Path $ruleFile) {
+                        $result.Data = Get-Content -Path $ruleFile -Raw | ConvertFrom-Json
+                        $result.Success = $true
+                    } else {
+                        $result.Error = "Rule not found: $Id"
+                    }
+                }
             }
             else {
-                $result.Error = "Rule not found: $Id"
+                # Query from Storage with filters
+                $queryResult = Get-RulesFromDatabase -Status $Status -RuleType $RuleType -CollectionType $CollectionType -SearchText $Name -FullPayload
+                
+                if ($queryResult.Success) {
+                    $result.Data = $queryResult.Data
+                    $result.Success = $true
+                } else {
+                    $result.Error = $queryResult.Error
+                }
             }
         }
         else {
-            # Load all rules
-            $rules = @()
-            foreach ($file in $ruleFiles) {
-                try {
-                    $rule = Get-Content -Path $file.FullName -Raw | ConvertFrom-Json
-                    $rules += $rule
-                }
-                catch {
-                    Write-RuleLog -Level Warning -Message "Failed to load rule file: $($file.Name)"
-                }
-            }
+            # Fallback: Load from JSON files (slow path)
+            $rulePath = Get-RuleStoragePath
+            $ruleFiles = Get-ChildItem -Path $rulePath -Filter '*.json' -ErrorAction SilentlyContinue
 
-            # Apply filters
-            if ($Name) {
-                $rules = $rules | Where-Object { $_.Name -like $Name }
+            if ($Id) {
+                $ruleFile = Join-Path $rulePath "$Id.json"
+                if (Test-Path $ruleFile) {
+                    $result.Data = Get-Content -Path $ruleFile -Raw | ConvertFrom-Json
+                    $result.Success = $true
+                } else {
+                    $result.Error = "Rule not found: $Id"
+                }
             }
-            if ($RuleType) {
-                $rules = $rules | Where-Object { $_.RuleType -eq $RuleType }
-            }
-            if ($CollectionType) {
-                $rules = $rules | Where-Object { $_.CollectionType -eq $CollectionType }
-            }
-            if ($Status) {
-                $rules = $rules | Where-Object { $_.Status -eq $Status }
-            }
+            else {
+                # Load all rules using List for performance
+                $rules = [System.Collections.Generic.List[PSCustomObject]]::new()
+                foreach ($file in $ruleFiles) {
+                    try {
+                        $rule = Get-Content -Path $file.FullName -Raw | ConvertFrom-Json
+                        $rules.Add($rule)
+                    }
+                    catch {
+                        Write-RuleLog -Level Warning -Message "Failed to load rule file: $($file.Name)"
+                    }
+                }
 
-            $result.Data = $rules
-            $result.Success = $true
+                # Apply filters
+                $filtered = $rules.ToArray()
+                if ($Name) {
+                    $filtered = @($filtered | Where-Object { $_.Name -like $Name })
+                }
+                if ($RuleType) {
+                    $filtered = @($filtered | Where-Object { $_.RuleType -eq $RuleType })
+                }
+                if ($CollectionType) {
+                    $filtered = @($filtered | Where-Object { $_.CollectionType -eq $CollectionType })
+                }
+                if ($Status) {
+                    $filtered = @($filtered | Where-Object { $_.Status -eq $Status })
+                }
+
+                $result.Data = $filtered
+                $result.Success = $true
+            }
         }
     }
     catch {
@@ -141,10 +177,34 @@ function Get-AllRules {
     param(
         [Parameter()]
         [ValidateSet('RuleType', 'CollectionType', 'Status', 'Publisher')]
-        [string]$GroupBy
+        [string]$GroupBy,
+        
+        [Parameter()]
+        [int]$Take = 0,
+        
+        [Parameter()]
+        [int]$Skip = 0
     )
 
-    $result = Get-Rule
+    # Try using Storage layer for fast queries
+    $useStorage = Get-Command -Name 'Get-RulesFromDatabase' -ErrorAction SilentlyContinue
+    
+    if ($useStorage) {
+        # Use indexed storage for fast retrieval
+        $takeParam = if ($Take -gt 0) { $Take } else { 100000 }  # Large default to get all
+        $queryResult = Get-RulesFromDatabase -Take $takeParam -Skip $Skip -FullPayload
+        
+        $result = [PSCustomObject]@{
+            Success = $queryResult.Success
+            Data    = $queryResult.Data
+            Total   = $queryResult.Total
+            Error   = $queryResult.Error
+        }
+    }
+    else {
+        # Fallback to Get-Rule (slow path)
+        $result = Get-Rule
+    }
 
     if ($result.Success -and $GroupBy -and $result.Data) {
         $grouped = switch ($GroupBy) {

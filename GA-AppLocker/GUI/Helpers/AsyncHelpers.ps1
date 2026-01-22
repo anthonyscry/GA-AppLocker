@@ -1,0 +1,555 @@
+#region Async Helper Functions
+# AsyncHelpers.ps1 - Background runspace operations for non-blocking UI
+
+<#
+.SYNOPSIS
+    Executes a script block asynchronously in a background runspace.
+
+.DESCRIPTION
+    Runs long-running operations in a background thread to keep the UI responsive.
+    Shows a loading overlay during execution and invokes a completion callback on the UI thread.
+
+.PARAMETER ScriptBlock
+    The script block to execute in the background.
+
+.PARAMETER Arguments
+    Optional hashtable of arguments to pass to the script block.
+
+.PARAMETER LoadingMessage
+    Message to display in the loading overlay.
+
+.PARAMETER OnComplete
+    Script block to execute when the background operation completes.
+    Receives $Result parameter with the operation's return value.
+
+.PARAMETER OnError
+    Script block to execute if the background operation throws an exception.
+    Receives $ErrorMessage parameter.
+
+.EXAMPLE
+    Invoke-AsyncOperation -ScriptBlock { Get-AllRules } -LoadingMessage "Loading rules..." -OnComplete {
+        param($Result)
+        $dataGrid.ItemsSource = $Result.Data
+    }
+#>
+function Invoke-AsyncOperation {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [scriptblock]$ScriptBlock,
+
+        [Parameter()]
+        [hashtable]$Arguments = @{},
+
+        [Parameter()]
+        [string]$LoadingMessage = 'Processing...',
+
+        [Parameter()]
+        [string]$LoadingSubMessage = '',
+
+        [Parameter()]
+        [scriptblock]$OnComplete,
+
+        [Parameter()]
+        [scriptblock]$OnError,
+
+        [Parameter()]
+        [switch]$NoLoadingOverlay
+    )
+
+    $win = $script:MainWindow
+    if (-not $win) {
+        Write-Warning "MainWindow not available, running synchronously"
+        try {
+            $result = & $ScriptBlock
+            if ($OnComplete) { & $OnComplete -Result $result }
+        }
+        catch {
+            if ($OnError) { & $OnError -ErrorMessage $_.Exception.Message }
+        }
+        return
+    }
+
+    # Show loading overlay
+    if (-not $NoLoadingOverlay) {
+        Show-LoadingOverlay -Message $LoadingMessage -SubMessage $LoadingSubMessage
+    }
+
+    # Create runspace
+    $runspace = [runspacefactory]::CreateRunspace()
+    $runspace.ApartmentState = 'STA'
+    $runspace.ThreadOptions = 'ReuseThread'
+    $runspace.Open()
+
+    # Import required modules into runspace
+    $runspace.SessionStateProxy.SetVariable('ScriptBlock', $ScriptBlock)
+    $runspace.SessionStateProxy.SetVariable('Arguments', $Arguments)
+
+    # Create PowerShell instance
+    $powershell = [powershell]::Create()
+    $powershell.Runspace = $runspace
+
+    # The script that runs in background
+    [void]$powershell.AddScript({
+        param($ScriptBlock, $Arguments, $ModulePath)
+        
+        try {
+            # Import the main module in the runspace
+            if ($ModulePath -and (Test-Path $ModulePath)) {
+                Import-Module $ModulePath -Force -ErrorAction SilentlyContinue
+            }
+            
+            # Execute the script block with arguments
+            if ($Arguments -and $Arguments.Count -gt 0) {
+                $result = & $ScriptBlock @Arguments
+            }
+            else {
+                $result = & $ScriptBlock
+            }
+            
+            return @{
+                Success = $true
+                Result = $result
+                Error = $null
+            }
+        }
+        catch {
+            return @{
+                Success = $false
+                Result = $null
+                Error = $_.Exception.Message
+            }
+        }
+    })
+
+    # Get module path for the runspace
+    $modulePath = if (Get-Command -Name 'Get-AppLockerDataPath' -ErrorAction SilentlyContinue) {
+        $dataPath = Get-AppLockerDataPath
+        $basePath = Split-Path (Split-Path $dataPath -Parent) -Parent
+        Join-Path $basePath 'GA-AppLocker.psd1'
+    }
+    else {
+        $null
+    }
+
+    [void]$powershell.AddParameter('ScriptBlock', $ScriptBlock)
+    [void]$powershell.AddParameter('Arguments', $Arguments)
+    [void]$powershell.AddParameter('ModulePath', $modulePath)
+
+    # Start async execution
+    $asyncResult = $powershell.BeginInvoke()
+
+    # Create timer to check for completion
+    $timer = [System.Windows.Threading.DispatcherTimer]::new()
+    $timer.Interval = [TimeSpan]::FromMilliseconds(100)
+
+    # Store context for the timer handler
+    $context = @{
+        PowerShell = $powershell
+        Runspace = $runspace
+        AsyncResult = $asyncResult
+        Timer = $timer
+        Window = $win
+        OnComplete = $OnComplete
+        OnError = $OnError
+        NoLoadingOverlay = $NoLoadingOverlay
+    }
+
+    $timer.Add_Tick({
+        $ctx = $context
+        
+        if ($ctx.AsyncResult.IsCompleted) {
+            $ctx.Timer.Stop()
+            
+            try {
+                $output = $ctx.PowerShell.EndInvoke($ctx.AsyncResult)
+                
+                # Hide loading overlay
+                if (-not $ctx.NoLoadingOverlay) {
+                    Hide-LoadingOverlay
+                }
+                
+                if ($output -and $output.Count -gt 0) {
+                    $result = $output[0]
+                    
+                    if ($result.Success) {
+                        if ($ctx.OnComplete) {
+                            & $ctx.OnComplete -Result $result.Result
+                        }
+                    }
+                    else {
+                        if ($ctx.OnError) {
+                            & $ctx.OnError -ErrorMessage $result.Error
+                        }
+                        else {
+                            Show-Toast -Message "Operation failed: $($result.Error)" -Type 'Error'
+                        }
+                    }
+                }
+            }
+            catch {
+                if (-not $ctx.NoLoadingOverlay) {
+                    Hide-LoadingOverlay
+                }
+                
+                if ($ctx.OnError) {
+                    & $ctx.OnError -ErrorMessage $_.Exception.Message
+                }
+                else {
+                    Show-Toast -Message "Operation failed: $($_.Exception.Message)" -Type 'Error'
+                }
+            }
+            finally {
+                # Cleanup
+                $ctx.PowerShell.Dispose()
+                $ctx.Runspace.Close()
+                $ctx.Runspace.Dispose()
+            }
+        }
+    }.GetNewClosure())
+
+    $timer.Start()
+}
+
+<#
+.SYNOPSIS
+    Updates the UI from a background thread using the Dispatcher.
+
+.DESCRIPTION
+    Safely invokes UI updates from background operations by marshalling
+    the call to the UI thread via the Dispatcher.
+
+.PARAMETER Action
+    Script block containing UI updates to perform.
+
+.EXAMPLE
+    Invoke-UIUpdate { $dataGrid.ItemsSource = $newData }
+#>
+function Invoke-UIUpdate {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [scriptblock]$Action
+    )
+
+    $win = $script:MainWindow
+    if (-not $win) {
+        # No window, just execute directly
+        & $Action
+        return
+    }
+
+    # Check if we're on the UI thread
+    if ($win.Dispatcher.CheckAccess()) {
+        & $Action
+    }
+    else {
+        # Marshal to UI thread
+        $win.Dispatcher.Invoke([action]$Action, [System.Windows.Threading.DispatcherPriority]::Normal)
+    }
+}
+
+<#
+.SYNOPSIS
+    Runs a quick background task without loading overlay.
+
+.DESCRIPTION
+    For short operations that don't need visual feedback.
+    Useful for preloading data or updating caches.
+
+.PARAMETER ScriptBlock
+    The script block to execute.
+
+.PARAMETER OnComplete
+    Optional callback when complete.
+#>
+function Start-BackgroundTask {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [scriptblock]$ScriptBlock,
+
+        [Parameter()]
+        [scriptblock]$OnComplete
+    )
+
+    Invoke-AsyncOperation -ScriptBlock $ScriptBlock -OnComplete $OnComplete -NoLoadingOverlay
+}
+
+<#
+.SYNOPSIS
+    Updates loading overlay progress.
+
+.DESCRIPTION
+    Updates the loading overlay with progress information during long operations.
+
+.PARAMETER Current
+    Current item number.
+
+.PARAMETER Total
+    Total number of items.
+
+.PARAMETER Message
+    Optional message to display.
+#>
+function Update-AsyncProgress {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [int]$Current,
+
+        [Parameter(Mandatory)]
+        [int]$Total,
+
+        [Parameter()]
+        [string]$Message
+    )
+
+    $pct = if ($Total -gt 0) { [math]::Round(($Current / $Total) * 100) } else { 0 }
+    $subMsg = "$Current of $Total ($pct%)"
+    
+    Invoke-UIUpdate {
+        Update-LoadingText -Message $Message -SubMessage $subMsg
+    }
+}
+
+<#
+.SYNOPSIS
+    Executes a script block with progress reporting support.
+
+.DESCRIPTION
+    Runs a long operation in the background while providing progress updates to the UI.
+    The script block receives a synchronized hashtable ($Progress) that it can update
+    with Current, Total, and Message properties.
+
+.PARAMETER ScriptBlock
+    The script block to execute. Receives $Progress hashtable parameter.
+    Update $Progress.Current, $Progress.Total, and $Progress.Message from your script.
+
+.PARAMETER LoadingMessage
+    Initial message to display in the loading overlay.
+
+.PARAMETER OnComplete
+    Script block to execute when the background operation completes.
+
+.PARAMETER OnError
+    Script block to execute if the operation throws an exception.
+
+.EXAMPLE
+    Invoke-AsyncWithProgress -ScriptBlock {
+        param($Progress)
+        $items = 1..100
+        $Progress.Total = $items.Count
+        foreach ($i in $items) {
+            $Progress.Current = $i
+            $Progress.Message = "Processing item $i..."
+            Start-Sleep -Milliseconds 50
+        }
+        return "Done!"
+    } -LoadingMessage "Processing items..." -OnComplete {
+        param($Result)
+        Write-Host "Result: $Result"
+    }
+#>
+function Invoke-AsyncWithProgress {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [scriptblock]$ScriptBlock,
+
+        [Parameter()]
+        [string]$LoadingMessage = 'Processing...',
+
+        [Parameter()]
+        [scriptblock]$OnComplete,
+
+        [Parameter()]
+        [scriptblock]$OnError
+    )
+
+    $win = $script:MainWindow
+    if (-not $win) {
+        Write-Warning "MainWindow not available, running synchronously"
+        try {
+            $syncProgress = @{ Current = 0; Total = 0; Message = '' }
+            $result = & $ScriptBlock -Progress $syncProgress
+            if ($OnComplete) { & $OnComplete -Result $result }
+        }
+        catch {
+            if ($OnError) { & $OnError -ErrorMessage $_.Exception.Message }
+        }
+        return
+    }
+
+    # Show loading overlay
+    Show-LoadingOverlay -Message $LoadingMessage -SubMessage 'Starting...'
+
+    # Create synchronized hashtable for progress reporting
+    $syncHash = [hashtable]::Synchronized(@{
+        Current = 0
+        Total = 0
+        Message = ''
+        LastUpdate = [datetime]::MinValue
+    })
+
+    # Create runspace
+    $runspace = [runspacefactory]::CreateRunspace()
+    $runspace.ApartmentState = 'STA'
+    $runspace.ThreadOptions = 'ReuseThread'
+    $runspace.Open()
+
+    # Create PowerShell instance
+    $powershell = [powershell]::Create()
+    $powershell.Runspace = $runspace
+
+    # The script that runs in background
+    [void]$powershell.AddScript({
+        param($ScriptBlock, $Progress, $ModulePath)
+        
+        try {
+            # Import the main module in the runspace
+            if ($ModulePath -and (Test-Path $ModulePath)) {
+                Import-Module $ModulePath -Force -ErrorAction SilentlyContinue
+            }
+            
+            # Execute the script block with progress hashtable
+            $result = & $ScriptBlock -Progress $Progress
+            
+            return @{
+                Success = $true
+                Result = $result
+                Error = $null
+            }
+        }
+        catch {
+            return @{
+                Success = $false
+                Result = $null
+                Error = $_.Exception.Message
+            }
+        }
+    })
+
+    # Get module path for the runspace
+    $modulePath = if (Get-Command -Name 'Get-AppLockerDataPath' -ErrorAction SilentlyContinue) {
+        $dataPath = Get-AppLockerDataPath
+        $basePath = Split-Path (Split-Path $dataPath -Parent) -Parent
+        Join-Path $basePath 'GA-AppLocker.psd1'
+    }
+    else {
+        $null
+    }
+
+    [void]$powershell.AddParameter('ScriptBlock', $ScriptBlock)
+    [void]$powershell.AddParameter('Progress', $syncHash)
+    [void]$powershell.AddParameter('ModulePath', $modulePath)
+
+    # Start async execution
+    $asyncResult = $powershell.BeginInvoke()
+
+    # Create timer to check for completion and update progress
+    $timer = [System.Windows.Threading.DispatcherTimer]::new()
+    $timer.Interval = [TimeSpan]::FromMilliseconds(100)
+
+    # Store context for the timer handler
+    $context = @{
+        PowerShell = $powershell
+        Runspace = $runspace
+        AsyncResult = $asyncResult
+        Timer = $timer
+        Window = $win
+        OnComplete = $OnComplete
+        OnError = $OnError
+        Progress = $syncHash
+        LoadingMessage = $LoadingMessage
+    }
+
+    $timer.Add_Tick({
+        $ctx = $context
+        
+        # Update progress display
+        $pHash = $ctx.Progress
+        if ($pHash.Total -gt 0) {
+            $pct = [math]::Round(($pHash.Current / $pHash.Total) * 100)
+            $subMsg = "$($pHash.Current) of $($pHash.Total) ($pct%)"
+            $msg = if ($pHash.Message) { $pHash.Message } else { $ctx.LoadingMessage }
+            Update-LoadingText -Message $msg -SubMessage $subMsg
+        }
+        elseif ($pHash.Message) {
+            Update-LoadingText -Message $pHash.Message -SubMessage ''
+        }
+        
+        if ($ctx.AsyncResult.IsCompleted) {
+            $ctx.Timer.Stop()
+            
+            try {
+                $output = $ctx.PowerShell.EndInvoke($ctx.AsyncResult)
+                
+                # Hide loading overlay
+                Hide-LoadingOverlay
+                
+                if ($output -and $output.Count -gt 0) {
+                    $result = $output[0]
+                    
+                    if ($result.Success) {
+                        if ($ctx.OnComplete) {
+                            & $ctx.OnComplete -Result $result.Result
+                        }
+                    }
+                    else {
+                        if ($ctx.OnError) {
+                            & $ctx.OnError -ErrorMessage $result.Error
+                        }
+                        else {
+                            Show-Toast -Message "Operation failed: $($result.Error)" -Type 'Error'
+                        }
+                    }
+                }
+            }
+            catch {
+                Hide-LoadingOverlay
+                
+                if ($ctx.OnError) {
+                    & $ctx.OnError -ErrorMessage $_.Exception.Message
+                }
+                else {
+                    Show-Toast -Message "Operation failed: $($_.Exception.Message)" -Type 'Error'
+                }
+            }
+            finally {
+                # Cleanup
+                $ctx.PowerShell.Dispose()
+                $ctx.Runspace.Close()
+                $ctx.Runspace.Dispose()
+            }
+        }
+    }.GetNewClosure())
+
+    $timer.Start()
+}
+
+<#
+.SYNOPSIS
+    Creates a progress tracker for use with Invoke-AsyncWithProgress.
+
+.DESCRIPTION
+    Returns a synchronized hashtable that can be used to track progress
+    in async operations. Use this when you need to create the tracker
+    outside of Invoke-AsyncWithProgress.
+
+.OUTPUTS
+    [hashtable] A synchronized hashtable with Current, Total, Message properties.
+#>
+function New-ProgressTracker {
+    [CmdletBinding()]
+    [OutputType([hashtable])]
+    param()
+
+    return [hashtable]::Synchronized(@{
+        Current = 0
+        Total = 0
+        Message = ''
+    })
+}
+
+#endregion

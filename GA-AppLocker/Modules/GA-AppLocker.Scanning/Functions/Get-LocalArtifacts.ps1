@@ -61,7 +61,8 @@ function Get-LocalArtifacts {
     try {
         Write-ScanLog -Message "Starting local artifact scan on $env:COMPUTERNAME"
         
-        $artifacts = @()
+        # Use List<T> for O(n) performance instead of array += O(n²)
+        $artifacts = [System.Collections.Generic.List[PSCustomObject]]::new()
         $stats = @{
             PathsScanned   = 0
             FilesFound     = 0
@@ -69,6 +70,14 @@ function Get-LocalArtifacts {
             Errors         = 0
         }
 
+        #region --- Phase 1: Collect all files from all paths first ---
+        if ($SyncHash) {
+            $SyncHash.StatusText = "Discovering files..."
+            $SyncHash.Progress = 26
+        }
+        
+        $allFiles = [System.Collections.Generic.List[object]]::new()
+        
         foreach ($scanPath in $Paths) {
             if (-not (Test-Path $scanPath)) {
                 Write-ScanLog -Level Warning -Message "Scan path not found: $scanPath"
@@ -78,11 +87,8 @@ function Get-LocalArtifacts {
             $stats.PathsScanned++
             Write-ScanLog -Message "Scanning: $scanPath"
 
-            #region --- Get files ---
             # Note: -Include only works properly with -Recurse
             # For non-recursive scans, use -Filter with multiple calls or wildcard in path
-            $files = @()
-            
             if ($Recurse) {
                 $extensionFilter = $Extensions | ForEach-Object { "*$_" }
                 $getChildParams = @{
@@ -95,7 +101,10 @@ function Get-LocalArtifacts {
                 if ($MaxDepth -gt 0) {
                     $getChildParams.Depth = $MaxDepth
                 }
-                $files = Get-ChildItem @getChildParams
+                $foundFiles = Get-ChildItem @getChildParams
+                if ($foundFiles) {
+                    foreach ($f in $foundFiles) { $allFiles.Add($f) }
+                }
             }
             else {
                 # Non-recursive: use wildcard paths for each extension
@@ -103,45 +112,54 @@ function Get-LocalArtifacts {
                     $wildcardPath = Join-Path $scanPath "*$ext"
                     $extFiles = Get-ChildItem -Path $wildcardPath -File -ErrorAction SilentlyContinue
                     if ($extFiles) {
-                        $files += $extFiles
+                        foreach ($f in $extFiles) { $allFiles.Add($f) }
                     }
                 }
             }
-            $stats.FilesFound += $files.Count
             
-            # Update progress: found files
+            # Update progress during discovery phase
             if ($SyncHash) {
-                $SyncHash.StatusText = "Found $($stats.FilesFound) files to process..."
-                $SyncHash.Progress = 30
+                $SyncHash.StatusText = "Discovering files... ($($allFiles.Count) found in $($stats.PathsScanned) paths)"
+                $SyncHash.Progress = [math]::Min(35, 26 + $stats.PathsScanned)
             }
-            #endregion
-
-            #region --- Process each file ---
-            $fileIndex = 0
-            $totalFiles = $files.Count
-            foreach ($file in $files) {
-                try {
-                    $artifact = Get-FileArtifact -FilePath $file.FullName
-                    if ($artifact) {
-                        $artifacts += $artifact
-                        $stats.FilesProcessed++
-                    }
-                    
-                    # Update progress every 50 files or at end
-                    $fileIndex++
-                    if ($SyncHash -and (($fileIndex % 50 -eq 0) -or ($fileIndex -eq $totalFiles))) {
-                        $pct = [math]::Min(85, 30 + [int](55 * $fileIndex / [math]::Max(1, $totalFiles)))
-                        $SyncHash.Progress = $pct
-                        $SyncHash.StatusText = "Processing: $fileIndex / $totalFiles files ($($stats.FilesProcessed) artifacts)"
-                    }
-                }
-                catch {
-                    $stats.Errors++
-                    Write-ScanLog -Level Warning -Message "Error processing file: $($file.FullName)"
-                }
-            }
-            #endregion
         }
+        
+        $stats.FilesFound = $allFiles.Count
+        Write-ScanLog -Message "Discovery complete: $($stats.FilesFound) files found"
+        #endregion
+
+        #region --- Phase 2: Process all files with unified progress ---
+        if ($SyncHash) {
+            $SyncHash.StatusText = "Processing $($stats.FilesFound) files..."
+            $SyncHash.Progress = 36
+        }
+        
+        $totalFiles = $allFiles.Count
+        $fileIndex = 0
+        
+        foreach ($file in $allFiles) {
+            try {
+                $artifact = Get-FileArtifact -FilePath $file.FullName
+                if ($artifact) {
+                    $artifacts.Add($artifact)
+                    $stats.FilesProcessed++
+                }
+            }
+            catch {
+                $stats.Errors++
+                Write-ScanLog -Level Warning -Message "Error processing file: $($file.FullName)"
+            }
+            
+            # Update progress every 100 files or at end (unified across all paths)
+            $fileIndex++
+            if ($SyncHash -and (($fileIndex % 100 -eq 0) -or ($fileIndex -eq $totalFiles))) {
+                # Progress range: 36 to 88 (52% span for file processing)
+                $pct = [math]::Min(88, 36 + [int](52 * $fileIndex / [math]::Max(1, $totalFiles)))
+                $SyncHash.Progress = $pct
+                $SyncHash.StatusText = "Processing: $fileIndex / $totalFiles files ($($stats.FilesProcessed) artifacts)"
+            }
+        }
+        #endregion
 
         $result.Success = $true
         $result.Data = $artifacts

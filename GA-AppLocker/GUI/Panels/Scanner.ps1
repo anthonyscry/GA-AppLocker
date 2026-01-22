@@ -1,4 +1,4 @@
-﻿#region Scanner Panel Functions
+#region Scanner Panel Functions
 # Scanner.ps1 - Scanner panel handlers
 function Initialize-ScannerPanel {
     param([System.Windows.Window]$Window)
@@ -528,10 +528,18 @@ function Invoke-LoadSelectedScan {
 
     if ($result.Success) {
         if ($mergeMode) {
-            # Merge: add new artifacts, avoiding duplicates by hash
-            $existingHashes = @($script:CurrentScanArtifacts | ForEach-Object { $_.SHA256Hash })
-            $newArtifacts = @($result.Data.Artifacts | Where-Object { $_.SHA256Hash -notin $existingHashes })
-            $script:CurrentScanArtifacts = @($script:CurrentScanArtifacts) + $newArtifacts
+            # Merge: add new artifacts, avoiding duplicates by hash (O(n+m) with HashSet)
+            $existingHashes = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+            foreach ($a in $script:CurrentScanArtifacts) {
+                if ($a.SHA256Hash) { [void]$existingHashes.Add($a.SHA256Hash) }
+            }
+            $newArtifacts = [System.Collections.Generic.List[PSCustomObject]]::new()
+            foreach ($a in $result.Data.Artifacts) {
+                if ($a.SHA256Hash -and -not $existingHashes.Contains($a.SHA256Hash)) {
+                    $newArtifacts.Add($a)
+                }
+            }
+            $script:CurrentScanArtifacts = @($script:CurrentScanArtifacts) + $newArtifacts.ToArray()
             $statusText = "Merged (+$($newArtifacts.Count) new)"
         }
         else {
@@ -613,7 +621,7 @@ function Invoke-ImportArtifacts {
                 $mergeMode = ($response -eq 'Yes')
             }
 
-            $allArtifacts = @()
+            $allArtifacts = [System.Collections.Generic.List[PSCustomObject]]::new()
             $fileCount = 0
             
             foreach ($filePath in $dialog.FileNames) {
@@ -625,15 +633,23 @@ function Invoke-ImportArtifacts {
                     default { throw "Unsupported file format: $extension" }
                 }
                 
-                $allArtifacts += $artifacts
+                foreach ($a in $artifacts) { $allArtifacts.Add($a) }
                 $fileCount++
             }
 
             if ($mergeMode) {
-                # Merge: add new artifacts, avoiding duplicates by hash
-                $existingHashes = @($script:CurrentScanArtifacts | ForEach-Object { $_.SHA256Hash })
-                $newArtifacts = @($allArtifacts | Where-Object { $_.SHA256Hash -notin $existingHashes })
-                $script:CurrentScanArtifacts = @($script:CurrentScanArtifacts) + $newArtifacts
+                # Merge: add new artifacts, avoiding duplicates by hash (O(n+m) with HashSet)
+                $existingHashes = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+                foreach ($a in $script:CurrentScanArtifacts) {
+                    if ($a.SHA256Hash) { [void]$existingHashes.Add($a.SHA256Hash) }
+                }
+                $newArtifacts = [System.Collections.Generic.List[PSCustomObject]]::new()
+                foreach ($a in $allArtifacts) {
+                    if ($a.SHA256Hash -and -not $existingHashes.Contains($a.SHA256Hash)) {
+                        $newArtifacts.Add($a)
+                    }
+                }
+                $script:CurrentScanArtifacts = @($script:CurrentScanArtifacts) + $newArtifacts.ToArray()
                 $statusText = "Merged (+$($newArtifacts.Count) new)"
                 $messageText = "Merged $($newArtifacts.Count) new artifacts from $fileCount file(s).`nTotal: $($script:CurrentScanArtifacts.Count) artifacts"
             }

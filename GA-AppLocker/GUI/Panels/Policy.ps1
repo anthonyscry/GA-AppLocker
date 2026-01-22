@@ -1,4 +1,4 @@
-﻿#region Policy Panel Functions
+#region Policy Panel Functions
 # Policy.ps1 - Policy panel handlers
 function Initialize-PolicyPanel {
     param([System.Windows.Window]$Window)
@@ -50,12 +50,15 @@ function Initialize-PolicyPanel {
             })
     }
 
-    # Initial load
-    Update-PoliciesDataGrid -Window $Window
+    # Initial load - use async to keep UI responsive
+    Update-PoliciesDataGrid -Window $Window -Async
 }
 
 function script:Update-PoliciesDataGrid {
-    param([System.Windows.Window]$Window)
+    param(
+        [System.Windows.Window]$Window,
+        [switch]$Async
+    )
 
     $dataGrid = $Window.FindName('PoliciesDataGrid')
     if (-not $dataGrid) { return }
@@ -65,35 +68,41 @@ function script:Update-PoliciesDataGrid {
         return
     }
 
-    try {
-        $result = Get-AllPolicies
-        if (-not $result.Success) {
-            $dataGrid.ItemsSource = $null
+    # Capture filter state for use in callback
+    $statusFilter = $script:CurrentPoliciesFilter
+    $filterBox = $Window.FindName('TxtPolicyFilter')
+    $textFilter = if ($filterBox) { $filterBox.Text } else { '' }
+
+    # Define the data processing logic
+    $processPoliciesData = {
+        param($Result, $StatusFilter, $TextFilter, $DataGrid, $Window)
+        
+        if (-not $Result.Success) {
+            $DataGrid.ItemsSource = $null
             return
         }
 
-        $policies = $result.Data
+        $policies = $Result.Data
 
         # Apply status filter
-        if ($script:CurrentPoliciesFilter -and $script:CurrentPoliciesFilter -ne 'All') {
-            $policies = $policies | Where-Object { $_.Status -eq $script:CurrentPoliciesFilter }
+        if ($StatusFilter -and $StatusFilter -ne 'All') {
+            $policies = $policies | Where-Object { $_.Status -eq $StatusFilter }
         }
 
         # Apply text filter
-        $filterBox = $Window.FindName('TxtPolicyFilter')
-        if ($filterBox -and -not [string]::IsNullOrWhiteSpace($filterBox.Text)) {
-            $filterText = $filterBox.Text.ToLower()
+        if (-not [string]::IsNullOrWhiteSpace($TextFilter)) {
+            $filterText = $TextFilter.ToLower()
             $policies = $policies | Where-Object {
                 $_.Name.ToLower().Contains($filterText) -or
                 ($_.Description -and $_.Description.ToLower().Contains($filterText))
             }
         }
 
-        # Add display properties
-        $displayData = @()
+        # Add display properties using List<T> for O(n) performance
+        $displayData = [System.Collections.Generic.List[PSCustomObject]]::new()
         if ($policies) {
             foreach ($policy in $policies) {
-                $props = @{
+                $displayData.Add([PSCustomObject]@{
                     PolicyId        = $policy.PolicyId
                     Name            = $policy.Name
                     Description     = $policy.Description
@@ -107,19 +116,35 @@ function script:Update-PoliciesDataGrid {
                     ModifiedAt      = $policy.ModifiedAt
                     Version         = $policy.Version
                     RuleCount       = if ($policy.RuleIds) { @($policy.RuleIds).Count } else { 0 }
-                }
-                $displayData += [PSCustomObject]$props
+                })
             }
         }
 
-        $dataGrid.ItemsSource = $displayData
+        $DataGrid.ItemsSource = $displayData.ToArray()
 
         # Update counters using already-fetched data
-        Update-PolicyCounters -Window $Window -Policies $result.Data
+        Update-PolicyCounters -Window $Window -Policies $Result.Data
     }
-    catch {
-        Write-Log -Level Error -Message "Failed to update policies grid: $($_.Exception.Message)"
-        # Don't set to null - leave existing data
+
+    # Use async for initial/refresh loads
+    if ($Async -and (Get-Command -Name 'Invoke-AsyncOperation' -ErrorAction SilentlyContinue)) {
+        Invoke-AsyncOperation -ScriptBlock { Get-AllPolicies } -LoadingMessage 'Loading policies...' -OnComplete {
+            param($Result)
+            & $processPoliciesData $Result $statusFilter $textFilter $dataGrid $Window
+        }.GetNewClosure() -OnError {
+            param($ErrorMessage)
+            Write-Log -Level Error -Message "Failed to load policies: $ErrorMessage"
+        }.GetNewClosure()
+    }
+    else {
+        # Synchronous fallback
+        try {
+            $result = Get-AllPolicies
+            & $processPoliciesData $result $statusFilter $textFilter $dataGrid $Window
+        }
+        catch {
+            Write-Log -Level Error -Message "Failed to update policies grid: $($_.Exception.Message)"
+        }
     }
 }
 

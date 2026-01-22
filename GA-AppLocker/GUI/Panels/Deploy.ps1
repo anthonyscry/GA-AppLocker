@@ -1,4 +1,4 @@
-﻿#region Deploy Panel Functions
+#region Deploy Panel Functions
 # Deploy.ps1 - Deploy panel handlers
 function Initialize-DeploymentPanel {
     param([System.Windows.Window]$Window)
@@ -79,8 +79,8 @@ function Initialize-DeploymentPanel {
     # Check module status
     Update-ModuleStatus -Window $Window
 
-    # Initial load
-    Update-DeploymentJobsDataGrid -Window $Window
+    # Initial load - use async to keep UI responsive
+    Update-DeploymentJobsDataGrid -Window $Window -Async
 }
 
 function Update-ModuleStatus {
@@ -113,7 +113,10 @@ function Update-ModuleStatus {
 }
 
 function script:Update-DeploymentJobsDataGrid {
-    param([System.Windows.Window]$Window)
+    param(
+        [System.Windows.Window]$Window,
+        [switch]$Async
+    )
 
     $dataGrid = $Window.FindName('DeploymentJobsDataGrid')
     if (-not $dataGrid) { return }
@@ -123,18 +126,23 @@ function script:Update-DeploymentJobsDataGrid {
         return
     }
 
-    try {
-        $result = Get-AllDeploymentJobs
-        if (-not $result.Success) {
-            $dataGrid.ItemsSource = $null
+    # Capture filter state
+    $deployFilter = $script:CurrentDeploymentFilter
+
+    # Define the data processing logic
+    $processJobsData = {
+        param($Result, $DeployFilter, $DataGrid)
+        
+        if (-not $Result.Success) {
+            $DataGrid.ItemsSource = $null
             return
         }
 
-        $jobs = $result.Data
+        $jobs = $Result.Data
 
         # Apply filter
-        if ($script:CurrentDeploymentFilter -and $script:CurrentDeploymentFilter -ne 'All') {
-            $jobs = $jobs | Where-Object { $_.Status -eq $script:CurrentDeploymentFilter }
+        if ($DeployFilter -and $DeployFilter -ne 'All') {
+            $jobs = $jobs | Where-Object { $_.Status -eq $DeployFilter }
         }
 
         # Add display properties
@@ -147,15 +155,32 @@ function script:Update-DeploymentJobsDataGrid {
             [PSCustomObject]$props
         }
 
-        $dataGrid.ItemsSource = @($displayData)
-
+        $DataGrid.ItemsSource = @($displayData)
+        
         # Update counters
-        $allJobs = (Get-AllDeploymentJobs).Data
-        Update-JobCounters -Window $Window -Jobs $allJobs
+        Update-JobCounters -Window $Window -Jobs $Result.Data
     }
-    catch {
-        Write-Log -Level Error -Message "Failed to update deployment grid: $($_.Exception.Message)"
-        $dataGrid.ItemsSource = $null
+
+    # Use async for initial/refresh loads
+    if ($Async -and (Get-Command -Name 'Invoke-AsyncOperation' -ErrorAction SilentlyContinue)) {
+        Invoke-AsyncOperation -ScriptBlock { Get-AllDeploymentJobs } -LoadingMessage 'Loading deployment jobs...' -OnComplete {
+            param($Result)
+            & $processJobsData $Result $deployFilter $dataGrid
+        }.GetNewClosure() -OnError {
+            param($ErrorMessage)
+            Write-Log -Level Error -Message "Failed to load deployment jobs: $ErrorMessage"
+        }.GetNewClosure()
+    }
+    else {
+        # Synchronous fallback
+        try {
+            $result = Get-AllDeploymentJobs
+            & $processJobsData $result $deployFilter $dataGrid
+        }
+        catch {
+            Write-Log -Level Error -Message "Failed to update deployment grid: $($_.Exception.Message)"
+            $dataGrid.ItemsSource = $null
+        }
     }
 }
 

@@ -114,5 +114,11 @@ Export-ModuleMember -Function @(
     'Get-RuleCounts',
     'Find-RuleByHash',
     'Find-RuleByPublisher',
-    'Get-DuplicateRules'
+    'Get-DuplicateRules',
+    # Index watcher functions
+    'Start-RuleIndexWatcher',
+    'Stop-RuleIndexWatcher',
+    'Get-RuleIndexWatcherStatus',
+    'Set-RuleIndexWatcherDebounce',
+    'Invoke-RuleIndexRebuild'
 )

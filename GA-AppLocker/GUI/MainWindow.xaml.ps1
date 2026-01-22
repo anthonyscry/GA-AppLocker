@@ -16,6 +16,7 @@ $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 # Load helpers first
 . "$scriptPath\Helpers\UIHelpers.ps1"
+. "$scriptPath\Helpers\AsyncHelpers.ps1"
 
 # Load panel handlers
 . "$scriptPath\Panels\Dashboard.ps1"
@@ -97,8 +98,8 @@ function global:Invoke-ButtonAction {
         'NavSetup' { Set-ActivePanel -PanelName 'PanelSetup' }
         'NavAbout' { Set-ActivePanel -PanelName 'PanelAbout' }
         # Discovery panel
-        'RefreshDomain' { Invoke-DomainRefresh -Window $win }
-        'TestConnectivity' { Invoke-ConnectivityTest -Window $win }
+        'RefreshDomain' { Invoke-DomainRefresh -Window $win -Async }
+        'TestConnectivity' { Invoke-ConnectivityTest -Window $win -Async }
         # Credentials panel
         'SaveCredential' { Invoke-SaveCredential -Window $win }
         'RefreshCredentials' { Update-CredentialsDataGrid -Window $win }
@@ -120,7 +121,7 @@ function global:Invoke-ButtonAction {
         'CreateManualRule' { Invoke-CreateManualRule -Window $win }
         'ExportRulesXml' { Invoke-ExportRulesToXml -Window $win }
         'ExportRulesCsv' { Invoke-ExportRulesToCsv -Window $win }
-        'RefreshRules' { Update-RulesDataGrid -Window $win }
+        'RefreshRules' { Update-RulesDataGrid -Window $win -Async }
         'SelectAllRules' { Invoke-SelectAllRules -Window $win }
         'ApproveRule' { Set-SelectedRuleStatus -Window $win -Status 'Approved' }
         'RejectRule' { Set-SelectedRuleStatus -Window $win -Status 'Rejected' }
@@ -130,7 +131,7 @@ function global:Invoke-ButtonAction {
         'ViewRuleDetails' { Show-RuleDetails -Window $win }
         # Policy panel
         'CreatePolicy' { Invoke-CreatePolicy -Window $win }
-        'RefreshPolicies' { Update-PoliciesDataGrid -Window $win }
+        'RefreshPolicies' { Update-PoliciesDataGrid -Window $win -Async }
         'ActivatePolicy' { Set-SelectedPolicyStatus -Window $win -Status 'Active' }
         'ArchivePolicy' { Set-SelectedPolicyStatus -Window $win -Status 'Archived' }
         'DeletePolicy' { Invoke-DeleteSelectedPolicy -Window $win }
@@ -143,7 +144,7 @@ function global:Invoke-ButtonAction {
         'SavePolicyChanges' { Invoke-SavePolicyChanges -Window $win }
         # Deployment panel
         'CreateDeploymentJob' { Invoke-CreateDeploymentJob -Window $win }
-        'RefreshDeployments' { Update-DeploymentJobsDataGrid -Window $win }
+        'RefreshDeployments' { Update-DeploymentJobsDataGrid -Window $win -Async }
         'DeploySelectedJob' { Invoke-DeploySelectedJob -Window $win }
         'StopDeployment' { Invoke-StopDeployment -Window $win }
         'CancelDeploymentJob' { Invoke-CancelDeploymentJob -Window $win }
