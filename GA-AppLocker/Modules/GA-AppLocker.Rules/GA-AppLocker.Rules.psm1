@@ -233,6 +233,15 @@ Export-ModuleMember -Function @(
     # Rule Templates
     'Get-RuleTemplates',
     'New-RulesFromTemplate',
-    'Get-RuleTemplateCategories'
+    'Get-RuleTemplateCategories',
+    # Bulk Operations
+    'Set-BulkRuleStatus',
+    'Approve-TrustedVendorRules',
+    # Deduplication
+    'Remove-DuplicateRules',
+    'Find-DuplicateRules',
+    'Find-ExistingHashRule',
+    'Find-ExistingPublisherRule',
+    'Get-ExistingRuleIndex'
 )
 #endregion

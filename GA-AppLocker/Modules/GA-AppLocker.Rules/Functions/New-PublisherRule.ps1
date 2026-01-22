@@ -112,6 +112,18 @@ function New-PublisherRule {
     }
 
     try {
+        # Check for existing rule with same publisher/product (prevent duplicates)
+        if ($Save) {
+            $existingRule = Find-ExistingPublisherRule -PublisherName $PublisherName -ProductName $ProductName -CollectionType $CollectionType
+            if ($existingRule) {
+                Write-RuleLog -Level Warning -Message "Publisher rule already exists: $($existingRule.Name) (ID: $($existingRule.Id))"
+                $result.Success = $true
+                $result.Data = $existingRule
+                $result | Add-Member -NotePropertyName 'Warning' -NotePropertyValue 'Existing rule returned instead of creating duplicate' -Force
+                return $result
+            }
+        }
+
         # Generate rule name if not provided
         if ([string]::IsNullOrWhiteSpace($Name)) {
             $pubDisplay = Format-PublisherString -CertSubject $PublisherName

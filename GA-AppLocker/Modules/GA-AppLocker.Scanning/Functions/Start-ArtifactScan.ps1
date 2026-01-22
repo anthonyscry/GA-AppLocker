@@ -73,7 +73,10 @@ function Start-ArtifactScan {
         [int]$ThrottleLimit = 5,
 
         [Parameter()]
-        [int]$BatchSize = 50
+        [int]$BatchSize = 50,
+
+        [Parameter()]
+        [hashtable]$SyncHash = $null
     )
 
     $result = [PSCustomObject]@{
@@ -103,6 +106,7 @@ function Start-ArtifactScan {
             $localParams = @{}
             if ($Paths) { $localParams.Paths = $Paths }
             $localParams.Recurse = $true
+            if ($SyncHash) { $localParams.SyncHash = $SyncHash }
 
             $localResult = Get-LocalArtifacts @localParams
             if ($localResult.Success) {

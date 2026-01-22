@@ -316,6 +316,15 @@ Export-ModuleMember -Function @(
     'Get-RuleTemplates',
     'New-RulesFromTemplate',
     'Get-RuleTemplateCategories',
+    # Rules - Bulk Operations
+    'Set-BulkRuleStatus',
+    'Approve-TrustedVendorRules',
+    # Rules - Deduplication
+    'Remove-DuplicateRules',
+    'Find-DuplicateRules',
+    'Find-ExistingHashRule',
+    'Find-ExistingPublisherRule',
+    'Get-ExistingRuleIndex',
     # Policy module
     'New-Policy',
     'Get-Policy',

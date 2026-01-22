@@ -103,6 +103,18 @@ function New-HashRule {
             throw "Invalid SHA256 hash format. Expected 64 hex characters."
         }
 
+        # Check for existing rule with same hash (prevent duplicates)
+        if ($Save) {
+            $existingRule = Find-ExistingHashRule -Hash $cleanHash -CollectionType $CollectionType
+            if ($existingRule) {
+                Write-RuleLog -Level Warning -Message "Hash rule already exists: $($existingRule.Name) (ID: $($existingRule.Id))"
+                $result.Success = $true
+                $result.Data = $existingRule
+                $result | Add-Member -NotePropertyName 'Warning' -NotePropertyValue 'Existing rule returned instead of creating duplicate' -Force
+                return $result
+            }
+        }
+
         # Generate rule name if not provided
         if ([string]::IsNullOrWhiteSpace($Name)) {
             $Name = "$SourceFileName (Hash)"

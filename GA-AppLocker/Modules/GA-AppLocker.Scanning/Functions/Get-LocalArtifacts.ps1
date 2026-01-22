@@ -45,7 +45,10 @@ function Get-LocalArtifacts {
         [switch]$Recurse,
 
         [Parameter()]
-        [int]$MaxDepth = 0
+        [int]$MaxDepth = 0,
+
+        [Parameter()]
+        [hashtable]$SyncHash = $null
     )
 
     $result = [PSCustomObject]@{
@@ -105,15 +108,31 @@ function Get-LocalArtifacts {
                 }
             }
             $stats.FilesFound += $files.Count
+            
+            # Update progress: found files
+            if ($SyncHash) {
+                $SyncHash.StatusText = "Found $($stats.FilesFound) files to process..."
+                $SyncHash.Progress = 30
+            }
             #endregion
 
             #region --- Process each file ---
+            $fileIndex = 0
+            $totalFiles = $files.Count
             foreach ($file in $files) {
                 try {
                     $artifact = Get-FileArtifact -FilePath $file.FullName
                     if ($artifact) {
                         $artifacts += $artifact
                         $stats.FilesProcessed++
+                    }
+                    
+                    # Update progress every 50 files or at end
+                    $fileIndex++
+                    if ($SyncHash -and (($fileIndex % 50 -eq 0) -or ($fileIndex -eq $totalFiles))) {
+                        $pct = [math]::Min(85, 30 + [int](55 * $fileIndex / [math]::Max(1, $totalFiles)))
+                        $SyncHash.Progress = $pct
+                        $SyncHash.StatusText = "Processing: $fileIndex / $totalFiles files ($($stats.FilesProcessed) artifacts)"
                     }
                 }
                 catch {

@@ -28,9 +28,20 @@ GA-AppLocker2/
 │   ├── GA-AppLocker.psd1           # Module manifest (exports all functions)
 │   ├── GA-AppLocker.psm1           # Module loader
 │   ├── GUI/
-│   │   ├── MainWindow.xaml         # WPF UI (dark theme, 7 panels)
-│   │   ├── MainWindow.xaml.ps1     # UI event handlers (code-behind pattern)
-│   │   └── ToastHelpers.ps1        # Toast notifications + loading overlay
+│   │   ├── MainWindow.xaml         # WPF UI (dark theme, 9 panels)
+│   │   ├── MainWindow.xaml.ps1     # Core UI (navigation, session state) - 716 lines
+│   │   ├── ToastHelpers.ps1        # Toast notifications + loading overlay
+│   │   ├── Helpers/
+│   │   │   └── UIHelpers.ps1       # Shared UI utilities
+│   │   └── Panels/                 # Panel-specific handlers (extracted)
+│   │       ├── Dashboard.ps1       # Dashboard stats, quick actions
+│   │       ├── ADDiscovery.ps1     # AD/OU discovery, machine filters
+│   │       ├── Credentials.ps1     # Credential management
+│   │       ├── Scanner.ps1         # Artifact scanning, type filters
+│   │       ├── Rules.ps1           # Rule generation, type/status filters
+│   │       ├── Policy.ps1          # Policy building, status filters
+│   │       ├── Deploy.ps1          # GPO deployment, job filters
+│   │       └── Setup.ps1           # Environment initialization
 │   └── Modules/
 │       ├── GA-AppLocker.Core/      # Logging, config, session state
 │       ├── GA-AppLocker.Discovery/ # AD discovery (domain, OU, machines)
@@ -321,8 +332,124 @@ Audit → Enforce
 | GPO deployment fails | Verify GroupPolicy module, run on DC or with RSAT |
 | UI freezes | Check for blocking operations (should use async) |
 
+## Recent Changes (Jan 2026)
+
+### GUI Refactoring (Jan 21, 2026)
+
+MainWindow.xaml.ps1 was refactored from **4,605 lines → 716 lines** (84% reduction):
+
+```
+GA-AppLocker/GUI/
+├── MainWindow.xaml.ps1      (716 lines - core navigation, session state, init)
+├── MainWindow.xaml
+├── ToastHelpers.ps1
+├── Helpers/
+│   └── UIHelpers.ps1        (logging, loading overlay)
+└── Panels/
+    ├── Dashboard.ps1        (dashboard stats, quick actions)
+    ├── ADDiscovery.ps1      (AD/OU discovery, machine selection)
+    ├── Credentials.ps1      (credential management)
+    ├── Scanner.ps1          (artifact scanning)
+    ├── Rules.ps1            (rule generation, filtering)
+    ├── Policy.ps1           (policy building)
+    ├── Deploy.ps1           (GPO deployment)
+    └── Setup.ps1            (environment initialization)
+```
+
+**Key changes:**
+- Panel functions extracted to separate files in `GUI/Panels/`
+- MainWindow.xaml.ps1 now dot-sources panel files
+- Each panel has its own `Initialize-*Panel` function
+- Filter buttons wired with visual feedback (highlighting active filter)
+
+### Filter Button Implementation Status
+
+| Panel | Wired | Visual Feedback | Filter Logic |
+|-------|-------|-----------------|--------------|
+| Scanner | ✅ | ✅ | ✅ |
+| Rules | ✅ | ✅ | ✅ |
+| Policy | ✅ | ✅ | ✅ |
+| Deploy | ✅ | ✅ | ✅ |
+| Discovery | ✅ | ✅ | ✅ |
+
+### New Bulk Operations (Set-BulkRuleStatus.ps1)
+
+```powershell
+# Bulk approve rules by vendor/pattern
+Set-BulkRuleStatus -PublisherPattern '*MICROSOFT*' -Status Approved -CurrentStatus Pending -WhatIf
+
+# One-click approve all trusted vendors (Microsoft, Adobe, Oracle, Google, etc.)
+Approve-TrustedVendorRules -WhatIf
+```
+
+### New Deduplication Functions (Remove-DuplicateRules.ps1)
+
+```powershell
+# Find and remove duplicate rules
+Remove-DuplicateRules -RuleType All -Strategy KeepOldest -WhatIf
+
+# Preview duplicates only
+Find-DuplicateRules -RuleType Hash
+
+# Check if rule exists before creating (called internally)
+Find-ExistingHashRule -Hash 'ABC123...' -CollectionType Exe
+Find-ExistingPublisherRule -PublisherName 'O=MICROSOFT' -ProductName '*'
+```
+
+### Dashboard UI Updates (MainWindow.xaml)
+
+- **Quick Actions** now includes:
+  - ✅ Approve Trusted (bulk approve trusted vendors)
+  - 🗑 Remove Duplicates (cleanup duplicate rules)
+  
+- **Pending stat card** now shows status breakdown: `Approved✔ | Rejected✘`
+
+### Duplicate Prevention
+
+`New-HashRule` and `New-PublisherRule` now check for existing rules before creating:
+- Returns existing rule instead of creating duplicate
+- Logs warning when duplicate detected
+- Only checks when `-Save` is specified
+
+## Known Data Issues
+
+As of Jan 2026, the Rules database has quality issues:
+
+| Issue | Finding |
+|-------|---------|
+| **Duplicate Hash Rules** | 19,035 hash rules but only 7,346 unique hashes (61% duplicates) |
+| **Duplicate Publisher Rules** | Same publisher appears thousands of times |
+| **All Rules Pending** | 35,680 Pending, only 3 Approved |
+
+**Solution:** Use the new bulk operations to clean up:
+```powershell
+# 1. Approve trusted vendors first
+Approve-TrustedVendorRules
+
+# 2. Then remove duplicates
+Remove-DuplicateRules -RuleType All -Strategy KeepOldest
+```
+
+**Expected after cleanup:**
+- Total Rules: ~13,500 (down from 35,683)
+- Approved: ~8,000 (Microsoft + trusted vendors)
+- Pending: ~5,500 (unsigned + unknown vendors)
+
+## Current Issues / Known Bugs
+
+### Scanning Progress Stuck at 36%
+- **Symptom:** Scanner UI shows progress stuck at 36%
+- **Location:** `MainWindow.xaml.ps1` lines 1290-1430 (Invoke-StartArtifactScan)
+- **Likely cause:** Background runspace communication issue with SyncHash
+- **Workaround:** Restart the dashboard and try again
+
+### Slow Rule Loading (35k rules)
+- Loading all rules takes 2-5 minutes due to 35k JSON files
+- Bulk operations show progress with Write-Progress
+- Future optimization: Consider SQLite or indexed storage
+
 ## Version History
 
 See [TODO.md](TODO.md) for completed work and [README.md](README.md) for feature list.
 
-**Current Status:** All 21 TODO items completed. 67 tests passing. Production-ready.
+**Current Status:** All 21 TODO items completed. 67 tests passing. Bulk operations and deduplication added Jan 2026.
