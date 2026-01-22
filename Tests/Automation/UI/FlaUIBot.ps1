@@ -22,7 +22,8 @@ param(
     [ValidateSet('Quick', 'Standard', 'Full')]
     [string]$TestMode = 'Standard',
     [switch]$KeepOpen,
-    [int]$DelayMs = 500
+    [int]$DelayMs = 500,
+    [int]$StartupTimeoutSec = 240  # Dashboard can take 2-3 minutes to load
 )
 
 $ErrorActionPreference = 'Continue'
@@ -43,7 +44,7 @@ try {
 function Get-MainWindow {
     param(
         [string]$Title = "GA-AppLocker Dashboard",
-        [int]$TimeoutSec = 30
+        [int]$TimeoutSec = 240
     )
     
     $root = [System.Windows.Automation.AutomationElement]::RootElement
@@ -51,9 +52,17 @@ function Get-MainWindow {
         [System.Windows.Automation.AutomationElement]::NameProperty, $Title)
     
     $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+    $lastProgress = 0
     while ($stopwatch.Elapsed.TotalSeconds -lt $TimeoutSec) {
         $window = $root.FindFirst([System.Windows.Automation.TreeScope]::Children, $condition)
         if ($window) { return $window }
+        
+        # Show progress every 30 seconds
+        $elapsed = [int]$stopwatch.Elapsed.TotalSeconds
+        if ($elapsed -ge ($lastProgress + 30)) {
+            Write-Host "  Still waiting... ($elapsed s elapsed)" -ForegroundColor Gray
+            $lastProgress = $elapsed
+        }
         Start-Sleep -Milliseconds 500
     }
     return $null
@@ -222,9 +231,9 @@ try {
     exit 1
 }
 
-# Wait for window
-Write-Host "Waiting for window (timeout: 30s)..." -ForegroundColor Gray
-$script:Window = Get-MainWindow -TimeoutSec 30
+# Wait for window (dashboard can take 2-3 minutes to load)
+Write-Host "Waiting for window (timeout: ${StartupTimeoutSec}s - dashboard loads slowly)..." -ForegroundColor Gray
+$script:Window = Get-MainWindow -TimeoutSec $StartupTimeoutSec
 
 if (-not $script:Window) {
     Write-Host "[FATAL] Dashboard window not found after 30 seconds" -ForegroundColor Red
