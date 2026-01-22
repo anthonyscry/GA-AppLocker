@@ -221,6 +221,8 @@ Audit → Enforce
 | Standard | Navigation + panel interactions |
 | Full | All panels + workflow simulation |
 
+**NOTE:** UI tests MUST be run from an interactive PowerShell session (open PowerShell manually). WPF apps cannot display windows from CI/CD, remote terminals, or non-interactive sessions.
+
 ### Test Categories
 - Core module tests
 - Discovery module tests

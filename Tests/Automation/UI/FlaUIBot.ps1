@@ -5,6 +5,12 @@
 .DESCRIPTION
     Uses Windows UIAutomation to test GUI functionality.
     Tests navigation, panel interactions, and basic workflows.
+    
+    IMPORTANT: Must be run from an INTERACTIVE PowerShell session!
+    WPF applications cannot display windows from non-interactive terminals,
+    CI/CD agents, or remote sessions without desktop access.
+    
+    To run: Open PowerShell manually and execute this script.
 .PARAMETER TestMode
     Quick: Navigation only
     Standard: Navigation + basic interactions
@@ -13,6 +19,8 @@
     Don't close the dashboard after tests.
 .PARAMETER DelayMs
     Delay between actions in milliseconds.
+.PARAMETER StartupTimeoutSec
+    How long to wait for dashboard to load (default: 240s / 4 minutes).
 .EXAMPLE
     .\FlaUIBot.ps1 -TestMode Quick
 .EXAMPLE
