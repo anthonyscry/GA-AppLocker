@@ -1580,63 +1580,78 @@
                                     </DataGrid.Columns>
                                 </DataGrid>
 
-                                <!-- Action Buttons with Selection Info -->
-                                <Grid Grid.Row="3" Margin="0,10,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    
-                                    <!-- Left: Selection Info and Select All -->
-                                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                                        <CheckBox x:Name="ChkSelectAllRules" Content="Select All" 
-                                                  Foreground="{StaticResource ForegroundBrush}" 
-                                                  VerticalAlignment="Center" Margin="0,0,15,0"
-                                                  Tag="SelectAllRules"/>
-                                        <Border Background="{StaticResource SidebarBrush}" CornerRadius="4" Padding="8,4" Margin="0,0,10,0">
-                                            <StackPanel Orientation="Horizontal">
-                                                <TextBlock Text="Selected: " Foreground="{StaticResource MutedBrush}" FontSize="12"/>
-                                                <TextBlock x:Name="TxtSelectedRuleCount" Text="0" Foreground="{StaticResource PrimaryBrush}" FontWeight="Bold" FontSize="12"/>
-                                            </StackPanel>
-                                        </Border>
-                                    </StackPanel>
-                                    
-                                    <!-- Center: Bulk Action Buttons -->
-                                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center">
-<Button x:Name="BtnApproveRule" Content="Approve" 
-                                                Style="{StaticResource ButtonStyle}" MinWidth="65" Padding="6,4" Margin="0,0,3,0"
-                                                Background="{StaticResource ApprovedBrush}" Tag="ApproveRule"/>
-                                        <Button x:Name="BtnRejectRule" Content="Reject" 
-                                                Style="{StaticResource ButtonStyle}" MinWidth="55" Padding="6,4" Margin="0,0,3,0"
-                                                Background="#8B0000" Tag="RejectRule"/>
-                                        <Button x:Name="BtnReviewRule" Content="Review" 
-                                                Style="{StaticResource ButtonStyle}" MinWidth="55" Padding="6,4" Margin="0,0,3,0"
-                                                Background="{StaticResource ActiveBrush}" Tag="ReviewRule"/>
-                                        <Border Width="1" Background="{StaticResource BorderBrush}" Margin="3,0,6,0"/>
-                                        <Button x:Name="BtnAddRuleToPolicy" Content="+ Policy" 
-                                                Style="{StaticResource ButtonStyle}" MinWidth="60" Padding="6,4" Margin="0,0,3,0"
-                                                Background="{StaticResource PrimaryBrush}" Tag="AddRuleToPolicy"/>
-                                        <Border Width="1" Background="{StaticResource BorderBrush}" Margin="3,0,6,0"/>
-                                        <Button x:Name="BtnDeleteRule" Content="Delete" 
-                                                Style="{StaticResource ButtonStyle}" MinWidth="50" Padding="6,4" Margin="0,0,3,0"
-                                                Tag="DeleteRule"/>
-                                        <Border Width="1" Background="{StaticResource BorderBrush}" Margin="3,0,6,0"/>
-                                        <Button x:Name="BtnApproveTrustedRules" Content="+ Trusted" 
-                                                Style="{StaticResource ButtonStyle}" MinWidth="70" Padding="6,4" Margin="0,0,3,0"
-                                                Background="#2E7D32" Tag="ApproveTrustedRules" ToolTip="Approve rules from trusted vendors (Microsoft, Adobe, etc.)"/>
-                                        <Button x:Name="BtnRemoveDuplicateRules" Content="- Dedupe" 
-                                                Style="{StaticResource ButtonStyle}" MinWidth="70" Padding="6,4" Margin="0,0,3,0"
-                                                Background="#5D4037" Tag="RemoveDuplicateRules" ToolTip="Remove duplicate rules"/>
-                                    </StackPanel>
-                                    
-                                    <!-- Right: Details Button -->
-                                    <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
-                                        <Button x:Name="BtnViewRuleDetails" Content="Details" 
-                                                Style="{StaticResource ButtonStyle}" MinWidth="75"
+                                <!-- Action Buttons - Two Row Layout -->
+                                <StackPanel Grid.Row="3" Margin="0,10,0,0">
+                                    <!-- Row 1: Selection + Status Actions -->
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        
+                                        <!-- Left: Selection Info -->
+                                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <CheckBox x:Name="ChkSelectAllRules" Content="Select All" 
+                                                      Foreground="{StaticResource ForegroundBrush}" 
+                                                      VerticalAlignment="Center" Margin="0,0,10,0"
+                                                      Tag="SelectAllRules"/>
+                                            <Border Background="{StaticResource SidebarBrush}" CornerRadius="4" Padding="6,3">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="Selected: " Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+                                                    <TextBlock x:Name="TxtSelectedRuleCount" Text="0" Foreground="{StaticResource PrimaryBrush}" FontWeight="Bold" FontSize="11"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </StackPanel>
+                                        
+                                        <!-- Center: Status Actions -->
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center">
+                                            <Button x:Name="BtnApproveRule" Content="Approve" 
+                                                    Style="{StaticResource ButtonStyle}" MinWidth="60" Padding="8,4" Margin="0,0,4,0"
+                                                    Background="{StaticResource ApprovedBrush}" Tag="ApproveRule"/>
+                                            <Button x:Name="BtnRejectRule" Content="Reject" 
+                                                    Style="{StaticResource ButtonStyle}" MinWidth="55" Padding="8,4" Margin="0,0,4,0"
+                                                    Background="#8B0000" Tag="RejectRule"/>
+                                            <Button x:Name="BtnReviewRule" Content="Review" 
+                                                    Style="{StaticResource ButtonStyle}" MinWidth="55" Padding="8,4" Margin="0,0,4,0"
+                                                    Background="{StaticResource ActiveBrush}" Tag="ReviewRule"/>
+                                        </StackPanel>
+                                        
+                                        <!-- Right: Details -->
+                                        <Button x:Name="BtnViewRuleDetails" Grid.Column="2" Content="Details" 
+                                                Style="{StaticResource ButtonStyle}" MinWidth="60" Padding="8,4"
                                                 Tag="ViewRuleDetails"/>
-                                    </StackPanel>
-                                </Grid>
+                                    </Grid>
+                                    
+                                    <!-- Row 2: Bulk Actions -->
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        
+                                        <!-- Left: Bulk Operations -->
+                                        <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                            <Button x:Name="BtnApproveTrustedRules" Content="+ Trusted" 
+                                                    Style="{StaticResource ButtonStyle}" MinWidth="70" Padding="8,4" Margin="0,0,4,0"
+                                                    Background="#2E7D32" Tag="ApproveTrustedRules" 
+                                                    ToolTip="Approve rules from trusted vendors (Microsoft, Adobe, etc.)"/>
+                                            <Button x:Name="BtnRemoveDuplicateRules" Content="- Dedupe" 
+                                                    Style="{StaticResource ButtonStyle}" MinWidth="65" Padding="8,4" Margin="0,0,4,0"
+                                                    Background="#5D4037" Tag="RemoveDuplicateRules" 
+                                                    ToolTip="Remove duplicate rules"/>
+                                            <Button x:Name="BtnAddRuleToPolicy" Content="+ Policy" 
+                                                    Style="{StaticResource ButtonStyle}" MinWidth="60" Padding="8,4" Margin="0,0,4,0"
+                                                    Background="{StaticResource PrimaryBrush}" Tag="AddRuleToPolicy"
+                                                    ToolTip="Add selected rules to policy"/>
+                                        </StackPanel>
+                                        
+                                        <!-- Right: Delete -->
+                                        <Button x:Name="BtnDeleteRule" Grid.Column="1" Content="Delete" 
+                                                Style="{StaticResource ButtonStyle}" MinWidth="55" Padding="8,4"
+                                                Background="#5D0000" Tag="DeleteRule"/>
+                                    </Grid>
+                                </StackPanel>
                             </Grid>
                         </Border>
                     </Grid>
