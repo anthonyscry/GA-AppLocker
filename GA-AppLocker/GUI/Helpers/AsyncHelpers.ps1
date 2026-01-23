@@ -122,14 +122,20 @@ function Invoke-AsyncOperation {
         }
     })
 
-    # Get module path for the runspace
-    $modulePath = if (Get-Command -Name 'Get-AppLockerDataPath' -ErrorAction SilentlyContinue) {
-        $dataPath = Get-AppLockerDataPath
-        $basePath = Split-Path (Split-Path $dataPath -Parent) -Parent
-        Join-Path $basePath 'GA-AppLocker.psd1'
+    # Get module path for the runspace - use Get-Module to find actual location
+    $modulePath = $null
+    $gaModule = Get-Module -Name 'GA-AppLocker' -ErrorAction SilentlyContinue
+    if ($gaModule) {
+        $modulePath = Join-Path $gaModule.ModuleBase 'GA-AppLocker.psd1'
     }
-    else {
-        $null
+    elseif (Get-Command -Name 'Get-AppLockerDataPath' -ErrorAction SilentlyContinue) {
+        # Fallback: try to find module relative to script location
+        $scriptRoot = Split-Path -Parent $PSScriptRoot
+        $parentRoot = Split-Path -Parent $scriptRoot
+        $candidatePath = Join-Path $parentRoot 'GA-AppLocker.psd1'
+        if (Test-Path $candidatePath) {
+            $modulePath = $candidatePath
+        }
     }
 
     [void]$powershell.AddParameter('ScriptBlock', $ScriptBlock)
@@ -430,14 +436,20 @@ function Invoke-AsyncWithProgress {
         }
     })
 
-    # Get module path for the runspace
-    $modulePath = if (Get-Command -Name 'Get-AppLockerDataPath' -ErrorAction SilentlyContinue) {
-        $dataPath = Get-AppLockerDataPath
-        $basePath = Split-Path (Split-Path $dataPath -Parent) -Parent
-        Join-Path $basePath 'GA-AppLocker.psd1'
+    # Get module path for the runspace - use Get-Module to find actual location
+    $modulePath = $null
+    $gaModule = Get-Module -Name 'GA-AppLocker' -ErrorAction SilentlyContinue
+    if ($gaModule) {
+        $modulePath = Join-Path $gaModule.ModuleBase 'GA-AppLocker.psd1'
     }
-    else {
-        $null
+    elseif (Get-Command -Name 'Get-AppLockerDataPath' -ErrorAction SilentlyContinue) {
+        # Fallback: try to find module relative to script location
+        $scriptRoot = Split-Path -Parent $PSScriptRoot
+        $parentRoot = Split-Path -Parent $scriptRoot
+        $candidatePath = Join-Path $parentRoot 'GA-AppLocker.psd1'
+        if (Test-Path $candidatePath) {
+            $modulePath = $candidatePath
+        }
     }
 
     [void]$powershell.AddParameter('ScriptBlock', $ScriptBlock)

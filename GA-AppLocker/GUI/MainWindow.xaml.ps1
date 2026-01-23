@@ -719,6 +719,28 @@ function Initialize-MainWindow {
         Write-Log -Level Warning -Message "Breadcrumb init failed: $($_.Exception.Message)"
     }
 
+    # Register keyboard shortcuts
+    try {
+        if (Get-Command -Name 'Register-KeyboardShortcuts' -ErrorAction SilentlyContinue) {
+            Register-KeyboardShortcuts -Window $Window
+            Write-Log -Message 'Keyboard shortcuts registered'
+        }
+    }
+    catch {
+        Write-Log -Level Warning -Message "Keyboard shortcuts init failed: $($_.Exception.Message)"
+    }
+
+    # Register drag-drop handlers
+    try {
+        if (Get-Command -Name 'Register-DragDropHandlers' -ErrorAction SilentlyContinue) {
+            Register-DragDropHandlers -Window $Window
+            Write-Log -Message 'Drag-drop handlers registered'
+        }
+    }
+    catch {
+        Write-Log -Level Warning -Message "Drag-drop handlers init failed: $($_.Exception.Message)"
+    }
+
     Write-Log -Message 'Main window initialized'
 }
 #endregion
