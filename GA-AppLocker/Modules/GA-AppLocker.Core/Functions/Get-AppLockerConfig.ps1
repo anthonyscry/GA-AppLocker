@@ -50,6 +50,7 @@ function Get-AppLockerConfig {
         DefaultScanPaths      = @(
             'C:\Program Files',
             'C:\Program Files (x86)',
+            'C:\ProgramData',
             'C:\Windows\System32',
             'C:\Windows\SysWOW64'
         )

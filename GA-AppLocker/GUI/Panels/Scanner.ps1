@@ -149,6 +149,7 @@ function Invoke-StartArtifactScan {
     $scanLocal = $Window.FindName('ChkScanLocal').IsChecked
     $scanRemote = $Window.FindName('ChkScanRemote').IsChecked
     $includeEvents = $Window.FindName('ChkIncludeEventLogs').IsChecked
+    $includeHighRisk = $Window.FindName('ChkIncludeHighRisk').IsChecked
     $saveResults = $Window.FindName('ChkSaveResults').IsChecked
     $scanName = $Window.FindName('TxtScanName').Text
     $pathsText = $Window.FindName('TxtScanPaths').Text
@@ -173,6 +174,19 @@ function Invoke-StartArtifactScan {
     $paths = @()
     if (-not [string]::IsNullOrWhiteSpace($pathsText)) {
         $paths = $pathsText -split "`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ }
+    }
+
+    # Add high risk paths if checkbox is checked
+    if ($includeHighRisk) {
+        $highRiskPaths = @(
+            [Environment]::GetFolderPath('UserProfile') + '\Downloads',
+            [Environment]::GetFolderPath('Desktop'),
+            $env:TEMP,
+            $env:LOCALAPPDATA + '\Temp'
+        ) | Where-Object { Test-Path $_ }
+        
+        $paths = @($paths) + $highRiskPaths | Select-Object -Unique
+        Write-Log -Message "Including high risk paths: $($highRiskPaths -join ', ')"
     }
 
     # Update UI state

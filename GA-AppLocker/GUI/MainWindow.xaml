@@ -1105,6 +1105,9 @@
                                         <CheckBox x:Name="ChkScanLocal" Content="Scan Local Machine" Foreground="{StaticResource ForegroundBrush}" IsChecked="True" Margin="0,0,0,6"/>
                                         <CheckBox x:Name="ChkScanRemote" Content="Scan Remote Machines" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,6"/>
                                         <CheckBox x:Name="ChkIncludeEventLogs" Content="Include Event Logs" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,6"/>
+                                        <CheckBox x:Name="ChkIncludeHighRisk" Content="Include High Risk Paths (Downloads, Desktop, Temp)" 
+                                                  Foreground="{StaticResource WarningBrush}" Margin="0,0,0,6"
+                                                  ToolTip="Scan user folders where malware commonly hides"/>
                                         <CheckBox x:Name="ChkSaveResults" Content="Auto-Save Results" Foreground="{StaticResource ForegroundBrush}" IsChecked="True" Margin="0,0,0,15"/>
                                         
                                         <!-- Scan Name -->
