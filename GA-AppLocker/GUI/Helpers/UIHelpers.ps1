@@ -1,7 +1,7 @@
 #region UI Helper Functions
 # UIHelpers.ps1 - Shared UI utility functions
 
-function script:Write-Log {
+function global:Write-Log {
     param([string]$Message, [string]$Level = 'Info')
     if (Get-Command -Name 'Write-AppLockerLog' -ErrorAction SilentlyContinue) {
         Write-AppLockerLog -Message $Message -Level $Level -NoConsole

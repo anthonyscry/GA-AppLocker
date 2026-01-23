@@ -38,7 +38,7 @@ if (Test-Path "$scriptPath\Wizards\SetupWizard.ps1") {
 
 #region ===== SAFE LOGGING WRAPPER =====
 # Wrapper to safely call module functions from code-behind scope
-function script:Write-Log {
+function global:Write-Log {
     param([string]$Message, [string]$Level = 'Info')
     if (Get-Command -Name 'Write-AppLockerLog' -ErrorAction SilentlyContinue) {
         Write-AppLockerLog -Message $Message -Level $Level -NoConsole
@@ -47,42 +47,9 @@ function script:Write-Log {
 #endregion
 
 #region ===== LOADING OVERLAY HELPERS =====
-# Using global scope so timer callbacks and closures can access these
-function global:Show-LoadingOverlay {
-    param([string]$Message = 'Processing...', [string]$SubMessage = '')
-    
-    $win = $script:MainWindow
-    if (-not $win) { return }
-    
-    $overlay = $win.FindName('LoadingOverlay')
-    $txtMain = $win.FindName('LoadingText')
-    $txtSub = $win.FindName('LoadingSubText')
-    
-    if ($overlay) { $overlay.Visibility = 'Visible' }
-    if ($txtMain) { $txtMain.Text = $Message }
-    if ($txtSub) { $txtSub.Text = $SubMessage }
-}
-
-function global:Hide-LoadingOverlay {
-    $win = $script:MainWindow
-    if (-not $win) { return }
-    
-    $overlay = $win.FindName('LoadingOverlay')
-    if ($overlay) { $overlay.Visibility = 'Collapsed' }
-}
-
-function global:Update-LoadingText {
-    param([string]$Message, [string]$SubMessage)
-    
-    $win = $script:MainWindow
-    if (-not $win) { return }
-    
-    $txtMain = $win.FindName('LoadingText')
-    $txtSub = $win.FindName('LoadingSubText')
-    
-    if ($txtMain -and $Message) { $txtMain.Text = $Message }
-    if ($txtSub -and $SubMessage) { $txtSub.Text = $SubMessage }
-}
+# NOTE: Show-LoadingOverlay, Hide-LoadingOverlay, Update-LoadingText
+# are defined in UIHelpers.ps1 (dot-sourced above) with global: scope
+# so timer callbacks and closures can access them.
 #endregion
 
 #region ===== BUTTON ACTION DISPATCHER =====
