@@ -193,10 +193,27 @@ function Update-RuleCounters {
     $approved = if ($Rules) { ($Rules | Where-Object { $_.Status -eq 'Approved' }).Count } else { 0 }
     $rejected = if ($Rules) { ($Rules | Where-Object { $_.Status -eq 'Rejected' }).Count } else { 0 }
 
-    $Window.FindName('TxtRuleTotalCount').Text = "$total"
-    $Window.FindName('TxtRulePendingCount').Text = "$pending"
-    $Window.FindName('TxtRuleApprovedCount').Text = "$approved"
-    $Window.FindName('TxtRuleRejectedCount').Text = "$rejected"
+    # Update counter elements if they exist (graceful fallback if XAML doesn't have them)
+    $txtTotal = $Window.FindName('TxtRuleTotalCount')
+    $txtPending = $Window.FindName('TxtRulePendingCount')
+    $txtApproved = $Window.FindName('TxtRuleApprovedCount')
+    $txtRejected = $Window.FindName('TxtRuleRejectedCount')
+
+    if ($txtTotal) { $txtTotal.Text = "$total" }
+    if ($txtPending) { $txtPending.Text = "$pending" }
+    if ($txtApproved) { $txtApproved.Text = "$approved" }
+    if ($txtRejected) { $txtRejected.Text = "$rejected" }
+
+    # Also update filter button content to show counts
+    $btnAll = $Window.FindName('BtnFilterAllRules')
+    $btnPending = $Window.FindName('BtnFilterRulesPending')
+    $btnApproved = $Window.FindName('BtnFilterRulesApproved')
+    $btnRejected = $Window.FindName('BtnFilterRulesRejected')
+
+    if ($btnAll) { $btnAll.Content = "All ($total)" }
+    if ($btnPending) { $btnPending.Content = "Pending ($pending)" }
+    if ($btnApproved) { $btnApproved.Content = "Approved ($approved)" }
+    if ($btnRejected) { $btnRejected.Content = "Rejected ($rejected)" }
 }
 
 function Update-RulesSelectionCount {
