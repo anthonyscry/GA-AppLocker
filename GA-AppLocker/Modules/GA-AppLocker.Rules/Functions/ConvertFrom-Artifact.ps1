@@ -69,6 +69,10 @@ function ConvertFrom-Artifact {
         [switch]$IncludeProductVersion,
 
         [Parameter()]
+        [ValidateSet('PublisherOnly', 'PublisherProduct', 'PublisherProductFile', 'Exact')]
+        [string]$PublisherLevel = 'PublisherProduct',
+
+        [Parameter()]
         [ValidateSet('Allow', 'Deny')]
         [string]$Action = 'Allow',
 
@@ -174,14 +178,31 @@ function ConvertFrom-Artifact {
                             $publisherGroups[$pubKey].Artifacts += $art
                         }
                         else {
-                            # Individual publisher rule per artifact
-                            $productName = if ($art.ProductName) { $art.ProductName } else { '*' }
-                            $minVer = if ($IncludeProductVersion -and $art.ProductVersion) { $art.ProductVersion } else { '*' }
+                            # Individual publisher rule per artifact - apply granularity level
+                            $productName = switch ($PublisherLevel) {
+                                'PublisherOnly' { '*' }
+                                default { if ($art.ProductName) { $art.ProductName } else { '*' } }
+                            }
+                            
+                            $binaryName = switch ($PublisherLevel) {
+                                'PublisherOnly' { '*' }
+                                'PublisherProduct' { '*' }
+                                default { $art.FileName }
+                            }
+                            
+                            $minVer = switch ($PublisherLevel) {
+                                'Exact' { if ($art.ProductVersion) { $art.ProductVersion } else { '*' } }
+                                default { '*' }
+                            }
+                            # Also respect legacy IncludeProductVersion switch
+                            if ($IncludeProductVersion -and $art.ProductVersion -and $minVer -eq '*') {
+                                $minVer = $art.ProductVersion
+                            }
                             
                             $pubResult = New-PublisherRule `
                                 -PublisherName $art.SignerCertificate `
                                 -ProductName $productName `
-                                -BinaryName $art.FileName `
+                                -BinaryName $binaryName `
                                 -MinVersion $minVer `
                                 -MaxVersion '*' `
                                 -Action $Action `

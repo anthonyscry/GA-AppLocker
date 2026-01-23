@@ -788,12 +788,12 @@
                                     
                                     <Separator Background="#3E3E42" Margin="0,4,0,8"/>
                                     
-                                    <Button x:Name="BtnDashApproveTrusted" Content="&#x2705; Approve Trusted" 
+                                    <Button x:Name="BtnDashApproveTrusted" Content="[+] Approve Trusted" 
                                             Style="{StaticResource ActionButtonStyle}" Background="#2D7D46"
                                             HorizontalAlignment="Stretch" Margin="0,0,0,8"
                                             ToolTip="Approve all rules from trusted vendors (Microsoft, Adobe, etc.)"/>
                                     
-                                    <Button x:Name="BtnDashRemoveDuplicates" Content="&#x1F5D1; Remove Duplicates" 
+                                    <Button x:Name="BtnDashRemoveDuplicates" Content="[-] Remove Duplicates" 
                                             Style="{StaticResource ActionButtonStyle}" Background="#8B5A2B"
                                             HorizontalAlignment="Stretch"
                                             ToolTip="Find and remove duplicate rules"/>
@@ -1364,6 +1364,15 @@
                                             <ComboBoxItem Content="Path Only (folder-based)"/>
                                         </ComboBox>
 
+                                        <TextBlock Text="Publisher Granularity:" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,5"/>
+                                        <ComboBox x:Name="CboPublisherLevel" Style="{StaticResource ComboBoxStyle}" Margin="0,0,0,10"
+                                                  ToolTip="Controls how specific publisher rules are. More permissive = fewer rules but broader access.">
+                                            <ComboBoxItem Content="Publisher Only (any product from vendor)" Tag="PublisherOnly"/>
+                                            <ComboBoxItem Content="Publisher + Product (any version)" IsSelected="True" Tag="PublisherProduct"/>
+                                            <ComboBoxItem Content="Publisher + Product + File (specific file)" Tag="PublisherProductFile"/>
+                                            <ComboBoxItem Content="Exact (specific version required)" Tag="Exact"/>
+                                        </ComboBox>
+
                                         <TextBlock Text="Rule Action:" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,5"/>
                                         <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                                             <RadioButton x:Name="RbRuleAllow" Content="Allow" IsChecked="True"
@@ -1613,10 +1622,10 @@
                                                 Style="{StaticResource ButtonStyle}" MinWidth="50" Padding="6,4" Margin="0,0,3,0"
                                                 Tag="DeleteRule"/>
                                         <Border Width="1" Background="{StaticResource BorderBrush}" Margin="3,0,6,0"/>
-                                        <Button x:Name="BtnApproveTrustedRules" Content="✓ Trusted" 
+                                        <Button x:Name="BtnApproveTrustedRules" Content="+ Trusted" 
                                                 Style="{StaticResource ButtonStyle}" MinWidth="70" Padding="6,4" Margin="0,0,3,0"
                                                 Background="#2E7D32" Tag="ApproveTrustedRules" ToolTip="Approve rules from trusted vendors (Microsoft, Adobe, etc.)"/>
-                                        <Button x:Name="BtnRemoveDuplicateRules" Content="⊘ Dedupe" 
+                                        <Button x:Name="BtnRemoveDuplicateRules" Content="- Dedupe" 
                                                 Style="{StaticResource ButtonStyle}" MinWidth="70" Padding="6,4" Margin="0,0,3,0"
                                                 Background="#5D4037" Tag="RemoveDuplicateRules" ToolTip="Remove duplicate rules"/>
                                     </StackPanel>

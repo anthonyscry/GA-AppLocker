@@ -503,6 +503,15 @@ function Invoke-GenerateRulesFromArtifacts {
         'S-1-1-0'  # Everyone
     }
 
+    # Get publisher granularity level
+    $pubLevelCombo = $Window.FindName('CboPublisherLevel')
+    $publisherLevel = if ($pubLevelCombo -and $pubLevelCombo.SelectedItem) {
+        $pubLevelCombo.SelectedItem.Tag
+    }
+    else {
+        'PublisherProduct'  # Default
+    }
+
     # Disable generate button during processing
     $btnGenerate = $Window.FindName('BtnGenerateFromArtifacts')
     if ($btnGenerate) { $btnGenerate.IsEnabled = $false }
@@ -610,6 +619,7 @@ function Invoke-GenerateRulesFromArtifacts {
         Mode = $mode
         Action = $action
         TargetGroupSid = $targetGroupSid
+        PublisherLevel = $publisherLevel
         Generated = 0
         Failed = 0
         IsComplete = $false
@@ -666,7 +676,19 @@ function Invoke-GenerateRulesFromArtifacts {
 
                     if (-not $ruleType) { continue }
 
-                    $result = ConvertFrom-Artifact -Artifact $artifact -PreferredRuleType $ruleType -Action $SyncHash.Action -UserOrGroupSid $SyncHash.TargetGroupSid -Save
+                    $convertParams = @{
+                        Artifact = $artifact
+                        PreferredRuleType = $ruleType
+                        Action = $SyncHash.Action
+                        UserOrGroupSid = $SyncHash.TargetGroupSid
+                        Save = $true
+                    }
+                    # Add publisher level for publisher rules
+                    if ($ruleType -eq 'Publisher' -and $SyncHash.PublisherLevel) {
+                        $convertParams['PublisherLevel'] = $SyncHash.PublisherLevel
+                    }
+                    
+                    $result = ConvertFrom-Artifact @convertParams
                     if ($result.Success) { $generated++ } else { $failed++ }
                 }
                 catch {
