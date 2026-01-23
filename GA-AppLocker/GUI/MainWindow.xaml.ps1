@@ -47,7 +47,8 @@ function script:Write-Log {
 #endregion
 
 #region ===== LOADING OVERLAY HELPERS =====
-function script:Show-LoadingOverlay {
+# Using global scope so timer callbacks and closures can access these
+function global:Show-LoadingOverlay {
     param([string]$Message = 'Processing...', [string]$SubMessage = '')
     
     $win = $script:MainWindow
@@ -62,7 +63,7 @@ function script:Show-LoadingOverlay {
     if ($txtSub) { $txtSub.Text = $SubMessage }
 }
 
-function script:Hide-LoadingOverlay {
+function global:Hide-LoadingOverlay {
     $win = $script:MainWindow
     if (-not $win) { return }
     
@@ -70,7 +71,7 @@ function script:Hide-LoadingOverlay {
     if ($overlay) { $overlay.Visibility = 'Collapsed' }
 }
 
-function script:Update-LoadingText {
+function global:Update-LoadingText {
     param([string]$Message, [string]$SubMessage)
     
     $win = $script:MainWindow

@@ -1,6 +1,7 @@
 #region ===== TOAST NOTIFICATION HELPERS =====
 # Show a toast notification in the bottom-right corner
-function script:Show-Toast {
+# Using global scope so timer callbacks and closures can access it
+function global:Show-Toast {
     param(
         [string]$Message,
         [ValidateSet('Info', 'Success', 'Warning', 'Error')]
