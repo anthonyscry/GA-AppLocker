@@ -539,9 +539,11 @@ function global:Close-RuleGenerationWizard {
     
     # Refresh rules panel if rules were created
     if ($script:WizardState.GenerationResult -and $script:WizardState.GenerationResult.Success) {
-        if (Get-Command -Name 'Refresh-RulesPanel' -ErrorAction SilentlyContinue) {
-            Refresh-RulesPanel
+        # Reset cache and refresh rules grid
+        if (Get-Command -Name 'Reset-RulesIndexCache' -ErrorAction SilentlyContinue) {
+            Reset-RulesIndexCache
         }
+        Invoke-ButtonAction -Action 'RefreshRules'
     }
     
     global:Write-Log "Wizard closed"
