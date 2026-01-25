@@ -1006,6 +1006,11 @@ function Invoke-DeleteSelectedRules {
         }
     }
     
+    # Reset cache so it reloads from disk
+    if (Get-Command -Name 'Reset-RulesIndexCache' -ErrorAction SilentlyContinue) {
+        Reset-RulesIndexCache
+    }
+    
     # Refresh the grid
     Update-RulesDataGrid -Window $Window
     Update-RulesSelectionCount -Window $Window
