@@ -288,22 +288,66 @@ function Remove-RulesBulk {
         }
         $rulesPath = Join-Path $dataPath 'Rules'
 
-        foreach ($id in $RuleIds) {
-            try {
-                $rulePath = Join-Path $rulesPath "$id.json"
-                if (Test-Path $rulePath) {
-                    Remove-Item -Path $rulePath -Force
-                    $result.RemovedCount++
+        # For large deletes (500+), use fast batch approach
+        if ($RuleIds.Count -ge 500) {
+            # Build hashset for O(1) lookups
+            $idsToDelete = [System.Collections.Generic.HashSet[string]]::new(
+                [string[]]$RuleIds, 
+                [System.StringComparer]::OrdinalIgnoreCase
+            )
+            
+            # Get all rule files and delete matching ones
+            $allFiles = Get-ChildItem -Path $rulesPath -Filter '*.json' -File -ErrorAction SilentlyContinue
+            
+            # If deleting most files (>80%), just wipe and recreate folder
+            if ($RuleIds.Count -ge ($allFiles.Count * 0.8)) {
+                # Delete all files at once (much faster)
+                Remove-Item -Path "$rulesPath\*.json" -Force -ErrorAction SilentlyContinue
+                $result.RemovedCount = $RuleIds.Count
+                
+                # Clear and rebuild index
+                if ($UpdateIndex) {
+                    Clear-RulesIndex
                 }
             }
-            catch {
-                $result.FailedCount++
+            else {
+                # Delete selected files in parallel-ish batches
+                foreach ($file in $allFiles) {
+                    $id = [System.IO.Path]::GetFileNameWithoutExtension($file.Name)
+                    if ($idsToDelete.Contains($id)) {
+                        try {
+                            [System.IO.File]::Delete($file.FullName)
+                            $result.RemovedCount++
+                        }
+                        catch {
+                            $result.FailedCount++
+                        }
+                    }
+                }
+                
+                if ($UpdateIndex -and $result.RemovedCount -gt 0) {
+                    Remove-RulesFromIndex -RuleIds $RuleIds
+                }
             }
         }
+        else {
+            # Small delete - use original approach
+            foreach ($id in $RuleIds) {
+                try {
+                    $rulePath = Join-Path $rulesPath "$id.json"
+                    if (Test-Path $rulePath) {
+                        Remove-Item -Path $rulePath -Force
+                        $result.RemovedCount++
+                    }
+                }
+                catch {
+                    $result.FailedCount++
+                }
+            }
 
-        # Update index if requested
-        if ($UpdateIndex -and $result.RemovedCount -gt 0) {
-            $indexResult = Remove-RulesFromIndex -RuleIds $RuleIds
+            if ($UpdateIndex -and $result.RemovedCount -gt 0) {
+                Remove-RulesFromIndex -RuleIds $RuleIds
+            }
         }
 
         $result.Success = $true
@@ -313,6 +357,24 @@ function Remove-RulesBulk {
     }
 
     return $result
+}
+
+function Clear-RulesIndex {
+    <#
+    .SYNOPSIS
+        Clears the entire rules index (used after bulk delete all).
+    #>
+    [CmdletBinding()]
+    param()
+    
+    $script:JsonIndex = [PSCustomObject]@{ Rules = @(); LastUpdated = (Get-Date -Format 'o') }
+    $script:HashIndex = @{}
+    $script:PublisherIndex = @{}
+    $script:RuleById = @{}
+    $script:JsonIndexLoaded = $true
+    
+    # Save empty index
+    Save-JsonIndex
 }
 
 function Remove-RulesFromIndex {
