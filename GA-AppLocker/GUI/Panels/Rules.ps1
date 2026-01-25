@@ -932,9 +932,11 @@ function Invoke-DeleteSelectedRules {
         return
     }
 
-    # Use MessageBox for confirmation (requires blocking user interaction)
+    $count = $selectedItems.Count
+    
+    # Use MessageBox for confirmation
     $confirm = [System.Windows.MessageBox]::Show(
-        "Are you sure you want to delete $($selectedItems.Count) rule(s)?`n`nThis action cannot be undone.",
+        "Are you sure you want to delete $count rule(s)?`n`nThis action cannot be undone.",
         'Confirm Delete',
         'YesNo',
         'Warning'
@@ -942,71 +944,48 @@ function Invoke-DeleteSelectedRules {
 
     if ($confirm -ne 'Yes') { return }
 
-    $count = $selectedItems.Count
-    
-    # Show loading overlay immediately
     Show-LoadingOverlay -Message "Deleting $count rules..." -SubMessage 'Please wait'
     
-    # For large selections, use fast path - delete all rule files directly
-    if ($count -ge 500) {
-        try {
-            $dataPath = Get-AppLockerDataPath
-            $rulesPath = Join-Path $dataPath 'Rules'
-            
-            # Just delete all .json files in Rules folder
-            Remove-Item -Path "$rulesPath\*.json" -Force -ErrorAction SilentlyContinue
-            
-            # Clear the index
-            if (Get-Command -Name 'Clear-RulesIndex' -ErrorAction SilentlyContinue) {
-                Clear-RulesIndex
-            }
-            
-            # Invalidate GlobalSearch cache
-            if (Get-Command -Name 'Clear-CachedValue' -ErrorAction SilentlyContinue) {
-                Clear-CachedValue -Key 'GlobalSearch_AllRules'
-            }
-            
-            Show-Toast -Message "Deleted $count rule(s)." -Type 'Success'
-        }
-        catch {
-            Show-Toast -Message "Error: $($_.Exception.Message)" -Type 'Error'
-        }
-        finally {
-            Hide-LoadingOverlay
-        }
-    }
-    else {
-        # Small delete - collect IDs and use bulk delete
-        $ids = [System.Collections.Generic.List[string]]::new()
+    try {
+        $dataPath = Get-AppLockerDataPath
+        $rulesPath = Join-Path $dataPath 'Rules'
+        $indexPath = Join-Path $dataPath 'rules-index.json'
+        
+        # Collect IDs to delete
+        $idsToDelete = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
         foreach ($item in $selectedItems) {
-            $ids.Add($item.Id)
+            [void]$idsToDelete.Add($item.Id)
         }
         
-        try {
-            if (Get-Command -Name 'Remove-RulesBulk' -ErrorAction SilentlyContinue) {
-                $result = Remove-RulesBulk -RuleIds $ids.ToArray() -UpdateIndex
-                
-                if (Get-Command -Name 'Clear-CachedValue' -ErrorAction SilentlyContinue) {
-                    Clear-CachedValue -Key 'GlobalSearch_AllRules'
-                }
-                
-                if ($result.Success) {
-                    Show-Toast -Message "Deleted $($result.RemovedCount) rule(s)." -Type 'Success'
-                }
-                else {
-                    Show-Toast -Message "Delete failed: $($result.Error)" -Type 'Error'
-                }
+        # Delete rule files
+        $deleted = 0
+        foreach ($id in $idsToDelete) {
+            $filePath = Join-Path $rulesPath "$id.json"
+            if (Test-Path $filePath) {
+                Remove-Item -Path $filePath -Force -ErrorAction SilentlyContinue
+                $deleted++
             }
         }
-        catch {
-            Show-Toast -Message "Error: $($_.Exception.Message)" -Type 'Error'
+        
+        # Rewrite index file directly (remove deleted rules)
+        if (Test-Path $indexPath) {
+            $index = Get-Content $indexPath -Raw | ConvertFrom-Json
+            $remaining = @($index.Rules | Where-Object { -not $idsToDelete.Contains($_.Id) })
+            $index.Rules = $remaining
+            $index.LastUpdated = (Get-Date -Format 'o')
+            $index | ConvertTo-Json -Depth 10 -Compress | Set-Content $indexPath -Force
         }
-        finally {
-            Hide-LoadingOverlay
-        }
+        
+        Show-Toast -Message "Deleted $deleted rule(s)." -Type 'Success'
+    }
+    catch {
+        Show-Toast -Message "Error: $($_.Exception.Message)" -Type 'Error'
+    }
+    finally {
+        Hide-LoadingOverlay
     }
     
-    # Reset cache so it reloads from disk
+    # Force reload from disk
     if (Get-Command -Name 'Reset-RulesIndexCache' -ErrorAction SilentlyContinue) {
         Reset-RulesIndexCache
     }
