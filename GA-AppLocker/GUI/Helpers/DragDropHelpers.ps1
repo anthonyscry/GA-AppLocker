@@ -229,19 +229,40 @@ function Invoke-WindowDrop {
                 $result = Show-DropActionDialog -FileCount $files.Count -FileType 'executable'
                 if ($result -eq 'Scan') {
                     Set-ActivePanel -PanelName 'PanelScanner'
-                    Start-Sleep -Milliseconds 100
-                    Invoke-ScannerPanelDrop -Window $Window -Files $files
+                    $capturedWindow = $Window
+                    $capturedFiles = $files
+                    $timer = New-Object System.Windows.Threading.DispatcherTimer
+                    $timer.Interval = [TimeSpan]::FromMilliseconds(100)
+                    $timer.Add_Tick({
+                        $timer.Stop()
+                        Invoke-ScannerPanelDrop -Window $capturedWindow -Files $capturedFiles
+                    }.GetNewClosure())
+                    $timer.Start()
                 }
                 elseif ($result -eq 'CreateRules') {
                     Set-ActivePanel -PanelName 'PanelRules'
-                    Start-Sleep -Milliseconds 100
-                    Invoke-RulesPanelDrop -Window $Window -Files $files
+                    $capturedWindow = $Window
+                    $capturedFiles = $files
+                    $timer = New-Object System.Windows.Threading.DispatcherTimer
+                    $timer.Interval = [TimeSpan]::FromMilliseconds(100)
+                    $timer.Add_Tick({
+                        $timer.Stop()
+                        Invoke-RulesPanelDrop -Window $capturedWindow -Files $capturedFiles
+                    }.GetNewClosure())
+                    $timer.Start()
                 }
             }
             elseif ($hasXml) {
                 Set-ActivePanel -PanelName 'PanelPolicy'
-                Start-Sleep -Milliseconds 100
-                Invoke-PolicyPanelDrop -Window $Window -Files $files
+                $capturedWindow = $Window
+                $capturedFiles = $files
+                $timer = New-Object System.Windows.Threading.DispatcherTimer
+                $timer.Interval = [TimeSpan]::FromMilliseconds(100)
+                $timer.Add_Tick({
+                    $timer.Stop()
+                    Invoke-PolicyPanelDrop -Window $capturedWindow -Files $capturedFiles
+                }.GetNewClosure())
+                $timer.Start()
             }
             else {
                 Show-Toast -Message "Unsupported file type" -Type 'Warning'
