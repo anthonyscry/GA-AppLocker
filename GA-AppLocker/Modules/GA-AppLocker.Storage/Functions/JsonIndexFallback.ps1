@@ -14,6 +14,25 @@ $script:HashIndex = @{}
 $script:PublisherIndex = @{}
 $script:RuleById = @{}
 
+function Reset-RulesIndexCache {
+    <#
+    .SYNOPSIS
+        Forces the rules index to be reloaded from disk on next access.
+    .DESCRIPTION
+        Call this after async operations that modify rules to ensure
+        the in-memory index reflects the latest disk state.
+    #>
+    [CmdletBinding()]
+    param()
+    
+    $script:JsonIndexLoaded = $false
+    $script:JsonIndex = $null
+    $script:HashIndex = @{}
+    $script:PublisherIndex = @{}
+    $script:RuleById = @{}
+    Write-Verbose "Rules index cache reset - will reload from disk on next access"
+}
+
 function script:Get-JsonIndexPath {
     if (-not $script:JsonIndexPath) {
         $dataPath = if (Get-Command -Name 'Get-AppLockerDataPath' -ErrorAction SilentlyContinue) {

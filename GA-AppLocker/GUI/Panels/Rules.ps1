@@ -952,7 +952,14 @@ function Invoke-DeleteSelectedRules {
         
         # Try bulk delete first
         if (Get-Command -Name 'Remove-RulesBulk' -ErrorAction SilentlyContinue) {
-            return Remove-RulesBulk -RuleIds $RuleIds
+            $result = Remove-RulesBulk -RuleIds $RuleIds -UpdateIndex
+            
+            # Invalidate GlobalSearch cache so refreshed data is fetched
+            if (Get-Command -Name 'Clear-CachedValue' -ErrorAction SilentlyContinue) {
+                Clear-CachedValue -Key 'GlobalSearch_AllRules'
+            }
+            
+            return $result
         }
         
         # Fallback to one-by-one
@@ -965,14 +972,16 @@ function Invoke-DeleteSelectedRules {
             }
             catch { $errors++ }
         }
-        return @{ Success = $true; DeletedCount = $deleted; ErrorCount = $errors }
+        return @{ Success = $true; RemovedCount = $deleted; FailedCount = $errors }
     } -Arguments @{ RuleIds = $ids } -LoadingMessage "Deleting $count rules..." -LoadingSubMessage 'Please wait' -OnComplete {
         param($Result)
         
         if ($Result -and $Result.Success) {
-            Show-Toast -Message "Deleted $($Result.DeletedCount) rule(s)." -Type 'Success'
-            if ($Result.ErrorCount -gt 0) {
-                Show-Toast -Message "$($Result.ErrorCount) rule(s) failed to delete." -Type 'Warning'
+            $removed = if ($Result.RemovedCount) { $Result.RemovedCount } else { 0 }
+            $failed = if ($Result.FailedCount) { $Result.FailedCount } else { 0 }
+            Show-Toast -Message "Deleted $removed rule(s)." -Type 'Success'
+            if ($failed -gt 0) {
+                Show-Toast -Message "$failed rule(s) failed to delete." -Type 'Warning'
             }
         }
         elseif ($Result) {
@@ -980,6 +989,11 @@ function Invoke-DeleteSelectedRules {
         }
         else {
             Show-Toast -Message "Delete operation failed." -Type 'Error'
+        }
+        
+        # Reset the in-memory cache so it reloads from disk
+        if (Get-Command -Name 'Reset-RulesIndexCache' -ErrorAction SilentlyContinue) {
+            Reset-RulesIndexCache
         }
         
         # Refresh the grid after delete using global action dispatcher
