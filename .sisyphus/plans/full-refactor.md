@@ -121,7 +121,7 @@ Measurement Script:
   Accept: Scoped verification returns no matches, tests pass
   Commit: perf(search): replace Where-Object with .Where()
 
-- [ ] 1.3. Integrate Cache-Manager
+- [x] 1.3. Integrate Cache-Manager
   What: Use Get-CachedValue, add invalidation hooks
   TTL: 60s
 
