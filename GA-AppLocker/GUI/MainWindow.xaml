@@ -1637,7 +1637,7 @@
                                         <StackPanel Grid.Column="0" Orientation="Horizontal">
                                             <Button x:Name="BtnApproveTrustedRules" Content="+ Trusted" 
                                                     Style="{StaticResource ButtonStyle}" MinWidth="70" Padding="8,4" Margin="0,0,4,0"
-                                                    Background="#2E7D32" Tag="ApproveTrustedRules" 
+                                                    Background="#2E7D32" Tag="ApproveTrustedVendors" 
                                                     ToolTip="Approve rules from trusted vendors (Microsoft, Adobe, etc.)"/>
                                             <Button x:Name="BtnRemoveDuplicateRules" Content="- Dedupe" 
                                                     Style="{StaticResource ButtonStyle}" MinWidth="65" Padding="8,4" Margin="0,0,4,0"
