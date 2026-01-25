@@ -136,36 +136,36 @@ function Invoke-GlobalSearch {
         if (Get-Command -Name 'Get-DiscoveredMachine' -ErrorAction SilentlyContinue) {
             $machines = Get-DiscoveredMachine -ErrorAction SilentlyContinue
             if ($machines) {
-                $results.Machines = @($machines | Where-Object {
+                $results.Machines = @($machines.Where({
                     $_.Name -like "*$query*" -or
                     $_.DNSHostName -like "*$query*" -or
                     $_.OU -like "*$query*" -or
                     $_.OperatingSystem -like "*$query*"
-                } | Select-Object -First 5)
+                }) | Select-Object -First 5)
             }
         }
         
         # Search Artifacts (from current scan data)
         if ($script:CurrentScanArtifacts -and $script:CurrentScanArtifacts.Count -gt 0) {
-            $results.Artifacts = @($script:CurrentScanArtifacts | Where-Object {
+            $results.Artifacts = @($script:CurrentScanArtifacts.Where({
                 $_.FileName -like "*$query*" -or
                 $_.Publisher -like "*$query*" -or
                 $_.ProductName -like "*$query*" -or
                 $_.FilePath -like "*$query*"
-            } | Select-Object -First 5)
+            }) | Select-Object -First 5)
         }
         
         # Search Rules
         if (Get-Command -Name 'Get-AllRules' -ErrorAction SilentlyContinue) {
             $rulesResult = Get-AllRules -ErrorAction SilentlyContinue
             if ($rulesResult.Success -and $rulesResult.Data) {
-                $results.Rules = @($rulesResult.Data | Where-Object {
+                $results.Rules = @($rulesResult.Data.Where({
                     $_.Name -like "*$query*" -or
                     $_.Publisher -like "*$query*" -or
                     $_.ProductName -like "*$query*" -or
                     $_.FileName -like "*$query*" -or
                     $_.Description -like "*$query*"
-                } | Select-Object -First 5)
+                }) | Select-Object -First 5)
             }
         }
         
@@ -173,10 +173,10 @@ function Invoke-GlobalSearch {
         if (Get-Command -Name 'Get-AllPolicies' -ErrorAction SilentlyContinue) {
             $policiesResult = Get-AllPolicies -ErrorAction SilentlyContinue
             if ($policiesResult.Success -and $policiesResult.Data) {
-                $results.Policies = @($policiesResult.Data | Where-Object {
+                $results.Policies = @($policiesResult.Data.Where({
                     $_.Name -like "*$query*" -or
                     $_.Description -like "*$query*"
-                } | Select-Object -First 5)
+                }) | Select-Object -First 5)
             }
         }
     }
