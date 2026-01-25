@@ -947,47 +947,37 @@ function Invoke-DeleteSelectedRules {
     Show-LoadingOverlay -Message "Deleting $count rules..." -SubMessage 'Please wait'
     
     try {
-        $dataPath = Get-AppLockerDataPath
-        $rulesPath = Join-Path $dataPath 'Rules'
-        $indexPath = Join-Path $dataPath 'rules-index.json'
-        
         # Collect IDs to delete
-        $idsToDelete = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
-        foreach ($item in $selectedItems) {
-            [void]$idsToDelete.Add($item.Id)
-        }
+        $idsToDelete = @($selectedItems | ForEach-Object { $_.Id })
         
-        # Delete rule files
-        $deleted = 0
-        foreach ($id in $idsToDelete) {
-            $filePath = Join-Path $rulesPath "$id.json"
-            if (Test-Path $filePath) {
-                Remove-Item -Path $filePath -Force -ErrorAction SilentlyContinue
-                $deleted++
+        # Use SQLite database deletion
+        if (Get-Command -Name 'Remove-RuleFromDatabase' -ErrorAction SilentlyContinue) {
+            $deleteResult = Remove-RuleFromDatabase -Id $idsToDelete
+            
+            if ($deleteResult.Success) {
+                $deleted = $deleteResult.RemovedCount
+                Show-Toast -Message "Deleted $deleted rule(s)." -Type 'Success'
+                
+                # Invalidate caches
+                if (Get-Command -Name 'Clear-AppLockerCache' -ErrorAction SilentlyContinue) {
+                    Clear-AppLockerCache -Pattern 'GlobalSearch_*' | Out-Null
+                    Clear-AppLockerCache -Pattern 'RuleCounts*' | Out-Null
+                    Clear-AppLockerCache -Pattern 'RuleQuery*' | Out-Null
+                }
+            }
+            else {
+                Show-Toast -Message "Delete failed: $($deleteResult.Error)" -Type 'Error'
             }
         }
-        
-        # Rewrite index file directly (remove deleted rules)
-        if (Test-Path $indexPath) {
-            $index = Get-Content $indexPath -Raw | ConvertFrom-Json
-            $remaining = @($index.Rules | Where-Object { -not $idsToDelete.Contains($_.Id) })
-            $index.Rules = $remaining
-            $index.LastUpdated = (Get-Date -Format 'o')
-            $index | ConvertTo-Json -Depth 10 -Compress | Set-Content $indexPath -Force
+        else {
+            Show-Toast -Message "Remove-RuleFromDatabase not available. Please update GA-AppLocker.Storage module." -Type 'Error'
         }
-        
-        Show-Toast -Message "Deleted $deleted rule(s)." -Type 'Success'
     }
     catch {
         Show-Toast -Message "Error: $($_.Exception.Message)" -Type 'Error'
     }
     finally {
         Hide-LoadingOverlay
-    }
-    
-    # Force reload from disk
-    if (Get-Command -Name 'Reset-RulesIndexCache' -ErrorAction SilentlyContinue) {
-        Reset-RulesIndexCache
     }
     
     # Refresh the grid

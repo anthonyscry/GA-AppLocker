@@ -255,31 +255,60 @@ function Remove-Rule {
     }
 
     try {
-        $rulePath = Get-RuleStoragePath
-        $ruleFile = Join-Path $rulePath "$Id.json"
-
-        if (-not (Test-Path $ruleFile)) {
-            $result.Error = "Rule not found: $Id"
-            return $result
+        # Try SQLite storage first (primary storage)
+        if (Get-Command -Name 'Remove-RuleFromDatabase' -ErrorAction SilentlyContinue) {
+            # Get rule name for logging before deletion
+            $rule = $null
+            if (Get-Command -Name 'Get-RuleFromDatabase' -ErrorAction SilentlyContinue) {
+                $rule = Get-RuleFromDatabase -Id $Id
+            }
+            $ruleName = if ($rule) { $rule.Name } else { $Id }
+            
+            $deleteResult = Remove-RuleFromDatabase -Id @($Id)
+            
+            if ($deleteResult.Success -and $deleteResult.RemovedCount -gt 0) {
+                $result.Success = $true
+                Write-RuleLog -Message "Deleted rule: $ruleName ($Id)"
+                
+                # Invalidate caches
+                if (Get-Command -Name 'Clear-AppLockerCache' -ErrorAction SilentlyContinue) {
+                    Clear-AppLockerCache -Pattern "GlobalSearch_*" | Out-Null
+                    Clear-AppLockerCache -Pattern 'RuleCounts*' | Out-Null
+                    Clear-AppLockerCache -Pattern 'RuleQuery*' | Out-Null
+                }
+            }
+            elseif ($deleteResult.Success -and $deleteResult.RemovedCount -eq 0) {
+                $result.Error = "Rule not found: $Id"
+            }
+            else {
+                $result.Error = $deleteResult.Error
+            }
         }
+        else {
+            # Fallback to JSON file deletion (legacy)
+            $rulePath = Get-RuleStoragePath
+            $ruleFile = Join-Path $rulePath "$Id.json"
 
-        # Get rule name for logging
-        $rule = Get-Content -Path $ruleFile -Raw | ConvertFrom-Json
-        $ruleName = $rule.Name
+            if (-not (Test-Path $ruleFile)) {
+                $result.Error = "Rule not found: $Id"
+                return $result
+            }
 
-        Remove-Item -Path $ruleFile -Force
-        
-        # Update the index to remove this rule
-        if (Get-Command -Name 'Remove-RulesFromIndex' -ErrorAction SilentlyContinue) {
-            Remove-RulesFromIndex -RuleIds @($Id) | Out-Null
-        }
-        
-        $result.Success = $true
-        Write-RuleLog -Message "Deleted rule: $ruleName ($Id)"
-        
-        # Invalidate GlobalSearch cache
-        if (Get-Command -Name 'Clear-AppLockerCache' -ErrorAction SilentlyContinue) {
-            Clear-AppLockerCache -Pattern "GlobalSearch_*" | Out-Null
+            $rule = Get-Content -Path $ruleFile -Raw | ConvertFrom-Json
+            $ruleName = $rule.Name
+
+            Remove-Item -Path $ruleFile -Force
+            
+            if (Get-Command -Name 'Remove-RulesFromIndex' -ErrorAction SilentlyContinue) {
+                Remove-RulesFromIndex -RuleIds @($Id) | Out-Null
+            }
+            
+            $result.Success = $true
+            Write-RuleLog -Message "Deleted rule: $ruleName ($Id)"
+            
+            if (Get-Command -Name 'Clear-AppLockerCache' -ErrorAction SilentlyContinue) {
+                Clear-AppLockerCache -Pattern "GlobalSearch_*" | Out-Null
+            }
         }
     }
     catch {

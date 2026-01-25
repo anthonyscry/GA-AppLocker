@@ -261,7 +261,7 @@ function Remove-RulesBulk {
         Array of rule IDs to remove.
 
     .PARAMETER UpdateIndex
-        If specified, updates the in-memory index after removal.
+        If specified, updates the in-memory index after removal (legacy, ignored for SQLite).
     #>
     [CmdletBinding()]
     [OutputType([PSCustomObject])]
@@ -281,57 +281,56 @@ function Remove-RulesBulk {
     }
 
     try {
-        $dataPath = if (Get-Command -Name 'Get-AppLockerDataPath' -ErrorAction SilentlyContinue) {
-            Get-AppLockerDataPath
-        } else {
-            Join-Path $env:LOCALAPPDATA 'GA-AppLocker'
-        }
-        $rulesPath = Join-Path $dataPath 'Rules'
-
-        # For large deletes (500+), use fast batch approach
-        if ($RuleIds.Count -ge 500) {
-            # Build hashset for O(1) lookups
-            $idsToDelete = [System.Collections.Generic.HashSet[string]]::new(
-                [string[]]$RuleIds, 
-                [System.StringComparer]::OrdinalIgnoreCase
-            )
+        # Primary path: Use SQLite database
+        $dbPath = Get-RuleDatabasePath
+        if (Test-Path $dbPath) {
+            $conn = Get-SqliteConnection -DatabasePath $dbPath
+            $conn.Open()
             
-            # Get all rule files and delete matching ones
-            $allFiles = Get-ChildItem -Path $rulesPath -Filter '*.json' -File -ErrorAction SilentlyContinue
-            
-            # If deleting most files (>80%), just wipe and recreate folder
-            if ($RuleIds.Count -ge ($allFiles.Count * 0.8)) {
-                # Delete all files at once (much faster)
-                Remove-Item -Path "$rulesPath\*.json" -Force -ErrorAction SilentlyContinue
-                $result.RemovedCount = $RuleIds.Count
+            try {
+                # Use transaction for atomicity and performance
+                $transaction = $conn.BeginTransaction()
                 
-                # Clear and rebuild index
-                if ($UpdateIndex) {
-                    Clear-RulesIndex
-                }
-            }
-            else {
-                # Delete selected files in parallel-ish batches
-                foreach ($file in $allFiles) {
-                    $id = [System.IO.Path]::GetFileNameWithoutExtension($file.Name)
-                    if ($idsToDelete.Contains($id)) {
-                        try {
-                            [System.IO.File]::Delete($file.FullName)
-                            $result.RemovedCount++
-                        }
-                        catch {
-                            $result.FailedCount++
+                try {
+                    foreach ($ruleId in $RuleIds) {
+                        $sql = "DELETE FROM Rules WHERE Id = @Id;"
+                        $affected = Invoke-SqliteNonQuery -Connection $conn -CommandText $sql -Parameters @{ Id = $ruleId }
+                        if ($affected -gt 0) { 
+                            $result.RemovedCount++ 
                         }
                     }
+                    
+                    $transaction.Commit()
+                    $result.Success = $true
+                    
+                    # Invalidate caches
+                    if (Get-Command -Name 'Clear-AppLockerCache' -ErrorAction SilentlyContinue) {
+                        Clear-AppLockerCache -Pattern 'GlobalSearch_*' | Out-Null
+                        Clear-AppLockerCache -Pattern 'RuleCounts*' | Out-Null
+                        Clear-AppLockerCache -Pattern 'RuleQuery*' | Out-Null
+                    }
+                    
+                    Write-StorageLog -Message "Bulk deleted $($result.RemovedCount) rules from database"
                 }
-                
-                if ($UpdateIndex -and $result.RemovedCount -gt 0) {
-                    Remove-RulesFromIndex -RuleIds $RuleIds
+                catch {
+                    $transaction.Rollback()
+                    throw
                 }
+            }
+            finally {
+                $conn.Close()
+                $conn.Dispose()
             }
         }
         else {
-            # Small delete - use original approach
+            # Fallback: Legacy JSON file deletion
+            $dataPath = if (Get-Command -Name 'Get-AppLockerDataPath' -ErrorAction SilentlyContinue) {
+                Get-AppLockerDataPath
+            } else {
+                Join-Path $env:LOCALAPPDATA 'GA-AppLocker'
+            }
+            $rulesPath = Join-Path $dataPath 'Rules'
+
             foreach ($id in $RuleIds) {
                 try {
                     $rulePath = Join-Path $rulesPath "$id.json"
@@ -348,12 +347,13 @@ function Remove-RulesBulk {
             if ($UpdateIndex -and $result.RemovedCount -gt 0) {
                 Remove-RulesFromIndex -RuleIds $RuleIds
             }
-        }
 
-        $result.Success = $true
+            $result.Success = $true
+        }
     }
     catch {
         $result.Error = "Bulk remove failed: $($_.Exception.Message)"
+        Write-StorageLog -Message $result.Error -Level 'ERROR'
     }
 
     return $result
