@@ -189,11 +189,14 @@ function Invoke-GlobalSearch {
             }) | Select-Object -First 5)
         }
         
-        # Search Rules
+        # Search Rules (with 60s cache)
         if (Get-Command -Name 'Get-AllRules' -ErrorAction SilentlyContinue) {
-            $rulesResult = Get-AllRules -ErrorAction SilentlyContinue
-            if ($rulesResult.Success -and $rulesResult.Data) {
-                $results.Rules = @($rulesResult.Data.Where({
+            $allRules = Get-CachedValue -Key 'GlobalSearch_AllRules' -MaxAgeSeconds 60 -Factory {
+                $result = Get-AllRules -ErrorAction SilentlyContinue
+                if ($result.Success -and $result.Data) { $result.Data } else { @() }
+            }
+            if ($allRules -and $allRules.Count -gt 0) {
+                $results.Rules = @($allRules.Where({
                     $_.Name -like "*$query*" -or
                     $_.Publisher -like "*$query*" -or
                     $_.ProductName -like "*$query*" -or
@@ -203,11 +206,14 @@ function Invoke-GlobalSearch {
             }
         }
         
-        # Search Policies
+        # Search Policies (with 60s cache)
         if (Get-Command -Name 'Get-AllPolicies' -ErrorAction SilentlyContinue) {
-            $policiesResult = Get-AllPolicies -ErrorAction SilentlyContinue
-            if ($policiesResult.Success -and $policiesResult.Data) {
-                $results.Policies = @($policiesResult.Data.Where({
+            $allPolicies = Get-CachedValue -Key 'GlobalSearch_AllPolicies' -MaxAgeSeconds 60 -Factory {
+                $result = Get-AllPolicies -ErrorAction SilentlyContinue
+                if ($result.Success -and $result.Data) { $result.Data } else { @() }
+            }
+            if ($allPolicies -and $allPolicies.Count -gt 0) {
+                $results.Policies = @($allPolicies.Where({
                     $_.Name -like "*$query*" -or
                     $_.Description -like "*$query*"
                 }) | Select-Object -First 5)

@@ -1,0 +1,54 @@
+Loading GA-AppLocker module...
+Module loaded successfully
+
+
+= * 60
+ CORE MODULE TESTS
+= * 60
+[PASS] Write-AppLockerLog - Log file created
+[PASS] Get-AppLockerDataPath - Returns valid path
+[PASS] Get-AppLockerConfig - Returns config object
+
+[PASS] Set-AppLockerConfig - Can set and retrieve config
+[PASS] Test-Prerequisites - Returns prereq results
+
+= * 60
+ DISCOVERY MODULE TESTS
+= * 60
+[2026-01-24 19:54:48] [Error] LDAP connection failed: Exception calling "Bind" with "0" argument(s): "The LDAP server is unavailable."
+[PASS] Get-DomainInfo - Returns valid result
+[2026-01-24 19:54:50] [Error] LDAP connection failed: Exception calling "Bind" with "0" argument(s): "The LDAP server is unavailable."
+[FAIL] Get-OUTree - Exception
+        You cannot call a method on a null-valued expression.
+[PASS] Get-ComputersByOU (empty) - Handles empty input
+[PASS] Test-MachineConnectivity (empty) - Handles empty input
+
+= * 60
+ CREDENTIALS MODULE TESTS
+= * 60
+[PASS] Get-CredentialStoragePath - Returns valid path
+[PASS] New-CredentialProfile - Creates profile
+[PASS] Get-CredentialProfile - Retrieves profile by name
+[PASS] Get-AllCredentialProfiles - Returns profiles list
+[PASS] Get-CredentialForTier - Returns valid result
+[PASS] Remove-CredentialProfile - Removes profile
+
+= * 60
+ SCANNING MODULE TESTS
+= * 60
+[PASS] Get-LocalArtifacts (non-recursive) - Scans local files
+[PASS] Get-LocalArtifacts (recursive) - Recursive scan works
+[PASS] Artifact data structure - Has required properties
+[PASS] Get-AppLockerEventLogs - Returns valid result
+[PASS] Start-ArtifactScan (local) - Orchestrates local scan
+[PASS] Get-ScanResults (list) - Lists saved scans
+[PASS] Get-RemoteArtifacts (structure) - Returns valid result structure
+
+= * 60
+ RULES MODULE TESTS
+= * 60
+[PASS] New-PublisherRule - Creates publisher rule
+[PASS] New-HashRule - Creates hash rule
+[PASS] New-PathRule - Creates path rule
+[PASS] ConvertFrom-Artifact - Converts artifact to rule
+[2026-01-24 19:55:33] [INFO] [Storage] Loaded JSON index with 8178 rules

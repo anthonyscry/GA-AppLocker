@@ -113,6 +113,11 @@ function Save-RulesBulk {
         }
 
         $result.Success = $true
+        
+        # Invalidate GlobalSearch cache
+        if (Get-Command -Name 'Clear-AppLockerCache' -ErrorAction SilentlyContinue) {
+            Clear-AppLockerCache -Pattern "GlobalSearch_*" | Out-Null
+        }
     }
     catch {
         $result.Error = "Bulk save failed: $($_.Exception.Message)"

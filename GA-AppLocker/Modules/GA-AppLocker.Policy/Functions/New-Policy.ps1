@@ -101,6 +101,11 @@ function New-Policy {
 
         $policyFile = Join-Path $policiesPath "$policyId.json"
         $policy | ConvertTo-Json -Depth 5 | Set-Content -Path $policyFile -Encoding UTF8
+        
+        # Invalidate GlobalSearch cache
+        if (Get-Command -Name 'Clear-AppLockerCache' -ErrorAction SilentlyContinue) {
+            Clear-AppLockerCache -Pattern "GlobalSearch_*" | Out-Null
+        }
 
         return @{
             Success = $true

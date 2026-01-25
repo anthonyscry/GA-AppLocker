@@ -55,6 +55,11 @@ function Add-RuleToPolicy {
         $policy.Version = $policy.Version + 1
 
         $policy | ConvertTo-Json -Depth 5 | Set-Content -Path $policyFile -Encoding UTF8
+        
+        # Invalidate GlobalSearch cache
+        if (Get-Command -Name 'Clear-AppLockerCache' -ErrorAction SilentlyContinue) {
+            Clear-AppLockerCache -Pattern "GlobalSearch_*" | Out-Null
+        }
 
         return @{
             Success = $true
@@ -122,6 +127,11 @@ function Remove-RuleFromPolicy {
         $policy.Version = $policy.Version + 1
 
         $policy | ConvertTo-Json -Depth 5 | Set-Content -Path $policyFile -Encoding UTF8
+        
+        # Invalidate GlobalSearch cache
+        if (Get-Command -Name 'Clear-AppLockerCache' -ErrorAction SilentlyContinue) {
+            Clear-AppLockerCache -Pattern "GlobalSearch_*" | Out-Null
+        }
 
         return @{
             Success = $true

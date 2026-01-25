@@ -276,6 +276,11 @@ function Remove-Rule {
         
         $result.Success = $true
         Write-RuleLog -Message "Deleted rule: $ruleName ($Id)"
+        
+        # Invalidate GlobalSearch cache
+        if (Get-Command -Name 'Clear-AppLockerCache' -ErrorAction SilentlyContinue) {
+            Clear-AppLockerCache -Pattern "GlobalSearch_*" | Out-Null
+        }
     }
     catch {
         $result.Error = "Failed to delete rule: $($_.Exception.Message)"
