@@ -17,3 +17,23 @@ jobs:
         run: |
           Import-Module ./GA-AppLocker/GA-AppLocker.psd1 -Force
           Write-Host "Module loaded OK"
+
+      - name: Create Release Zip
+        shell: pwsh
+        run: |
+          # Create build output directory
+          New-Item -ItemType Directory -Force -Path ./build | Out-Null
+          
+          # Copy app files (exclude dev files)
+          Copy-Item -Path ./GA-AppLocker -Destination ./build/GA-AppLocker -Recurse
+          Copy-Item -Path ./Run-Dashboard.ps1 -Destination ./build/
+          
+          # Create zip
+          Compress-Archive -Path ./build/* -DestinationPath ./GA-AppLocker2.zip -Force
+          Write-Host "Created GA-AppLocker2.zip"
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: GA-AppLocker2
+          path: GA-AppLocker2.zip
