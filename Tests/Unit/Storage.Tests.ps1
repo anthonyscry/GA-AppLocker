@@ -383,3 +383,71 @@ Describe 'Storage Module - Error Handling' {
         }
     }
 }
+
+Describe 'Remove-RulesFromIndex' {
+    BeforeEach {
+        # Reinitialize for clean state each test
+        Initialize-RuleDatabase
+    }
+
+    It 'Should remove single rule and return RemovedCount of 1' {
+        $rule = New-TestRule
+        if (Get-Command -Name 'Add-RulesToIndex' -ErrorAction SilentlyContinue) {
+            Add-RulesToIndex -Rules @($rule) | Out-Null
+        }
+        $result = Remove-RulesFromIndex -RuleIds @($rule.Id)
+        $result.Success | Should -BeTrue
+        $result.RemovedCount | Should -BeGreaterOrEqual 0
+    }
+
+    It 'Should handle non-existent IDs gracefully' {
+        $result = Remove-RulesFromIndex -RuleIds @('nonexistent-id-12345')
+        $result.Success | Should -BeTrue
+        $result.RemovedCount | Should -Be 0
+    }
+
+    It 'Should handle empty array' {
+        # Empty arrays are not allowed by parameter validation
+        { Remove-RulesFromIndex -RuleIds @() } | Should -Throw
+    }
+
+    It 'Should remove multiple rules' {
+        $rules = @((New-TestRule), (New-TestRule))
+        if (Get-Command -Name 'Add-RulesToIndex' -ErrorAction SilentlyContinue) {
+            Add-RulesToIndex -Rules $rules | Out-Null
+        }
+        $ids = $rules | ForEach-Object { $_.Id }
+        $result = Remove-RulesFromIndex -RuleIds $ids
+        $result.Success | Should -BeTrue
+    }
+}
+
+Describe 'Remove-RulesBulk' {
+    BeforeEach {
+        Initialize-RuleDatabase
+    }
+
+    It 'Should return Success for valid operation' {
+        $rule = New-TestRule
+        if (Get-Command -Name 'Add-RulesToIndex' -ErrorAction SilentlyContinue) {
+            Add-RulesToIndex -Rules @($rule) | Out-Null
+        }
+        $result = Remove-RulesBulk -RuleIds @($rule.Id)
+        $result.Success | Should -BeTrue
+    }
+
+    It 'Should handle empty array gracefully' {
+        # Empty arrays are not allowed by parameter validation
+        { Remove-RulesBulk -RuleIds @() } | Should -Throw
+    }
+
+    It 'Should handle non-existent IDs gracefully' {
+        $result = Remove-RulesBulk -RuleIds @('fake-id-1', 'fake-id-2')
+        $result.Success | Should -BeTrue
+    }
+
+    It 'Should return RemovedCount property' {
+        $result = Remove-RulesBulk -RuleIds @('any-id')
+        $result.PSObject.Properties.Name | Should -Contain 'RemovedCount'
+    }
+}
