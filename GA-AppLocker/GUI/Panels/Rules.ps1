@@ -1,3 +1,6 @@
+# Suppress flag for bulk selection operations
+$script:SuppressRulesSelectionChanged = $false
+
 #region Rules Panel Functions
 # Rules.ps1 - Rules panel handlers
 function Initialize-RulesPanel {
@@ -64,6 +67,7 @@ function Initialize-RulesPanel {
     $rulesGrid = $Window.FindName('RulesDataGrid')
     if ($rulesGrid) {
         $rulesGrid.Add_SelectionChanged({
+                if ($script:SuppressRulesSelectionChanged) { return }
                 Update-RulesSelectionCount -Window $global:GA_MainWindow
             })
         
@@ -285,11 +289,20 @@ function Invoke-SelectAllRules {
     $dataGrid = $Window.FindName('RulesDataGrid')
     if (-not $dataGrid) { return }
     
-    if ($SelectAll) {
-        $dataGrid.SelectAll()
+    # Suppress selection events during bulk operation
+    $script:SuppressRulesSelectionChanged = $true
+    
+    try {
+        if ($SelectAll) {
+            $dataGrid.SelectAll()
+        }
+        else {
+            $dataGrid.UnselectAll()
+        }
     }
-    else {
-        $dataGrid.UnselectAll()
+    finally {
+        # Re-enable selection events
+        $script:SuppressRulesSelectionChanged = $false
     }
     
     Update-RulesSelectionCount -Window $Window
