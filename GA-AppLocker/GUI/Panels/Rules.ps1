@@ -592,7 +592,13 @@ function Invoke-GenerateRulesFromArtifacts {
                     } else {
                         "$($_.Publisher)|$($_.ProductName)".ToLower()
                     }
-                    if ($ruleIndex.Publishers.Contains($pubKey)) {
+                    # Use correct index based on PublisherLevel
+                    $indexToCheck = if ($publisherLevel -eq 'PublisherOnly') {
+                        $ruleIndex.PublishersOnly
+                    } else {
+                        $ruleIndex.Publishers
+                    }
+                    if ($indexToCheck -and $indexToCheck.Contains($pubKey)) {
                         $dominated = $true
                     }
                 }
