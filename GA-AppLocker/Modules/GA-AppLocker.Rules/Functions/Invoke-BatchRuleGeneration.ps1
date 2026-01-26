@@ -402,8 +402,15 @@ function script:Test-RuleExistsInIndex {
             } else {
                 "$($Artifact.SignerCertificate)|$($Artifact.ProductName)".ToLower()
             }
-            if ($Index.Publishers) {
-                return $Index.Publishers.Contains($key)
+            # Use correct index based on PublisherLevel
+            if ($PublisherLevel -eq 'PublisherOnly') {
+                if ($Index.PublishersOnly) {
+                    return $Index.PublishersOnly.Contains($key)
+                }
+            } else {
+                if ($Index.Publishers) {
+                    return $Index.Publishers.Contains($key)
+                }
             }
             return $false
         }
