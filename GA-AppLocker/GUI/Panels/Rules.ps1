@@ -586,7 +586,12 @@ function Invoke-GenerateRulesFromArtifacts {
                 }
                 # Check publisher rules (for signed files)
                 if (-not $dominated -and $_.IsSigned -and $_.Publisher) {
-                    $pubKey = "$($_.Publisher)|$($_.ProductName)".ToLower()
+                    # Respect PublisherLevel when checking existing rules
+                    $pubKey = if ($publisherLevel -eq 'PublisherOnly') {
+                        $_.Publisher.ToLower()
+                    } else {
+                        "$($_.Publisher)|$($_.ProductName)".ToLower()
+                    }
                     if ($ruleIndex.Publishers.Contains($pubKey)) {
                         $dominated = $true
                     }
@@ -615,7 +620,12 @@ function Invoke-GenerateRulesFromArtifacts {
         
         # For Publisher mode or Smart mode with signed files, dedupe by publisher+product
         if ($mode -in @('Publisher', 'Smart') -and $artifact.IsSigned -and $artifact.Publisher) {
-            $pubKey = "$($artifact.Publisher)|$($artifact.ProductName)".ToLower()
+            # Respect PublisherLevel when deduplicating
+            $pubKey = if ($publisherLevel -eq 'PublisherOnly') {
+                $artifact.Publisher.ToLower()
+            } else {
+                "$($artifact.Publisher)|$($artifact.ProductName)".ToLower()
+            }
             if ($seenPublishers.Contains($pubKey)) {
                 $dominated = $true
             }

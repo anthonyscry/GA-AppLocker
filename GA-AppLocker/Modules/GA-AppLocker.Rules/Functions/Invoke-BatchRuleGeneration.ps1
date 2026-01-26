@@ -197,7 +197,7 @@ function Invoke-BatchRuleGeneration {
             
             foreach ($art in $unique) {
                 $ruleType = Get-RuleTypeForArtifact -Artifact $art -Mode $Mode
-                $exists = Test-RuleExistsInIndex -Artifact $art -Index $existingIndex -RuleType $ruleType
+                $exists = Test-RuleExistsInIndex -Artifact $art -Index $existingIndex -RuleType $ruleType -PublisherLevel $PublisherLevel
                 
                 if ($exists) {
                     $existingCount++
@@ -388,14 +388,20 @@ function script:Test-RuleExistsInIndex {
     param(
         [PSCustomObject]$Artifact,
         [PSCustomObject]$Index,
-        [string]$RuleType
+        [string]$RuleType,
+        [string]$PublisherLevel = 'PublisherProduct'
     )
     
     if (-not $Index) { return $false }
     
     switch ($RuleType) {
         'Publisher' {
-            $key = "$($Artifact.SignerCertificate)|$($Artifact.ProductName)".ToLower()
+            # Respect PublisherLevel for existing rule check
+            $key = if ($PublisherLevel -eq 'PublisherOnly') {
+                $Artifact.SignerCertificate.ToLower()
+            } else {
+                "$($Artifact.SignerCertificate)|$($Artifact.ProductName)".ToLower()
+            }
             if ($Index.Publishers) {
                 return $Index.Publishers.Contains($key)
             }
