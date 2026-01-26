@@ -182,6 +182,7 @@ function Invoke-BatchRuleGeneration {
             }
             
             $dedupedCount = $filtered.Count - $unique.Count
+            Write-RuleLog -Message "DEBUG Invoke-BatchRuleGeneration received PublisherLevel=$PublisherLevel (Type=$($PublisherLevel.GetType().Name))"
             Write-RuleLog -Message "Deduped: $dedupedCount duplicates removed, $($unique.Count) unique (Mode=$Mode, DedupeMode=$DedupeMode, PublisherLevel=$PublisherLevel)"
             if ($OnProgress) { & $OnProgress 30 "Unique: $($unique.Count) artifacts" }
 

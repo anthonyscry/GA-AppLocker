@@ -1571,12 +1571,39 @@ function global:Invoke-LaunchRuleWizard {
     }
     
     try {
-        # Use batch generation with sensible defaults
+        # Read Publisher Granularity from Rules panel ComboBox
+        $pubLevelCombo = $Window.FindName('CboPublisherLevel')
+        $publisherLevel = if ($pubLevelCombo -and $pubLevelCombo.SelectedItem -and $pubLevelCombo.SelectedItem.Tag) {
+            $tag = $pubLevelCombo.SelectedItem.Tag
+            Write-Log -Message "Publisher Granularity: $tag (from $($pubLevelCombo.SelectedItem.Content))"
+            $tag
+        } else {
+            Write-Log -Message "Publisher Granularity: PublisherProduct (default)"
+            'PublisherProduct'
+        }
+        
+        # Read Rule Action (Allow/Deny)
+        $rbAllow = $Window.FindName('RbRuleAllow')
+        $action = if ($rbAllow -and $rbAllow.IsChecked) { 'Allow' } else { 'Deny' }
+        Write-Log -Message "Rule Action: $action"
+        
+        # Read Target Group
+        $targetCombo = $Window.FindName('CboRuleTargetGroup')
+        $targetSid = if ($targetCombo -and $targetCombo.SelectedItem -and $targetCombo.SelectedItem.Tag) {
+            $targetCombo.SelectedItem.Tag
+        } else {
+            'S-1-1-0'  # Everyone
+        }
+        Write-Log -Message "Target Group SID: $targetSid"
+        
+        # Use batch generation with user's settings
         $result = Invoke-BatchRuleGeneration -Artifacts $script:CurrentScanArtifacts `
             -Mode 'Smart' `
-            -Action 'Allow' `
+            -Action $action `
             -Status 'Pending' `
-            -DedupeMode 'Smart'
+            -DedupeMode 'Smart' `
+            -PublisherLevel $publisherLevel `
+            -UserOrGroupSid $targetSid
         
         # Hide loading overlay
         if (Get-Command -Name 'Hide-LoadingOverlay' -ErrorAction SilentlyContinue) {

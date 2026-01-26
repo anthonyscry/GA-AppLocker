@@ -558,12 +558,18 @@ function Invoke-GenerateRulesFromArtifacts {
 
     # Get publisher granularity level
     $pubLevelCombo = $Window.FindName('CboPublisherLevel')
+    # DEBUG: Log ComboBox state
+    Write-RuleLog -Message "DEBUG CboPublisherLevel: Found=$($null -ne $pubLevelCombo), SelectedItem=$($pubLevelCombo.SelectedItem), SelectedIndex=$($pubLevelCombo.SelectedIndex)"
+    if ($pubLevelCombo -and $pubLevelCombo.SelectedItem) {
+        Write-RuleLog -Message "DEBUG SelectedItem: Type=$($pubLevelCombo.SelectedItem.GetType().Name), Content=$($pubLevelCombo.SelectedItem.Content), Tag=$($pubLevelCombo.SelectedItem.Tag)"
+    }
     $publisherLevel = if ($pubLevelCombo -and $pubLevelCombo.SelectedItem) {
         $pubLevelCombo.SelectedItem.Tag
     }
     else {
         'PublisherProduct'  # Default
     }
+    Write-RuleLog -Message "DEBUG Final publisherLevel=$publisherLevel"
 
     # Disable generate button during processing
     $btnGenerate = $Window.FindName('BtnGenerateFromArtifacts')
@@ -682,6 +688,7 @@ function Invoke-GenerateRulesFromArtifacts {
     Show-Toast -Message "Generating rules from $($artifactsToProcess.Count) unique artifacts (of $originalCount total)$filterMsg..." -Type 'Info'
 
     # Create sync hashtable for async communication
+    Write-RuleLog -Message "DEBUG Creating SyncHash with PublisherLevel=$publisherLevel"
     $script:RuleGenSyncHash = [hashtable]::Synchronized(@{
         Window = $Window
         Artifacts = @($artifactsToProcess)
@@ -734,6 +741,9 @@ function Invoke-GenerateRulesFromArtifacts {
             }
             Import-Module $manifestPath -Force -ErrorAction Stop
 
+            # DEBUG: Log what we received in the runspace
+            Write-RuleLog -Message "DEBUG Runspace: SyncHash.PublisherLevel = '$($SyncHash.PublisherLevel)'"
+
             # Use batch generation for 10x+ performance improvement
             $batchParams = @{
                 Artifacts = $SyncHash.Artifacts
@@ -747,6 +757,9 @@ function Invoke-GenerateRulesFromArtifacts {
             # Add publisher level if specified
             if ($SyncHash.PublisherLevel) {
                 $batchParams['PublisherLevel'] = $SyncHash.PublisherLevel
+                Write-RuleLog -Message "DEBUG Runspace: Added PublisherLevel='$($SyncHash.PublisherLevel)' to batchParams"
+            } else {
+                Write-RuleLog -Message "DEBUG Runspace: PublisherLevel was NULL/EMPTY - using default!"
             }
             
             # Progress callback to update sync hash
