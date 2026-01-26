@@ -60,7 +60,7 @@ function global:Write-Log {
 function global:Invoke-ButtonAction {
     param([string]$Action)
 
-    $win = $script:MainWindow
+    $win = $global:GA_MainWindow
     if (-not $win) { return }
 
     switch ($Action) {
@@ -158,7 +158,7 @@ function global:Invoke-ButtonAction {
 
 #region ===== SCRIPT-LEVEL VARIABLES =====
 # Store window reference for event handlers
-$script:MainWindow = $null
+$global:GA_MainWindow = $null
 $script:DiscoveredOUs = @()
 $script:DiscoveredMachines = @()
 $script:SelectedScanMachines = @()
@@ -190,8 +190,8 @@ function global:Set-ActivePanel {
     param([string]$PanelName)
 
     # Try script scope first, fall back to global
-    $Window = $script:MainWindow
-    if (-not $Window) { $Window = $script:MainWindow }
+    $Window = $global:GA_MainWindow
+    if (-not $Window) { $Window = $global:GA_MainWindow }
     if (-not $Window) { return }
 
     # All panel names
@@ -370,7 +370,7 @@ function script:Restore-PreviousSessionState {
 function script:Update-WorkflowBreadcrumb {
     param([System.Windows.Window]$Window)
     
-    if (-not $Window) { $Window = $script:MainWindow }
+    if (-not $Window) { $Window = $global:GA_MainWindow }
     if (-not $Window) { return }
     
     # Get brushes
@@ -451,7 +451,7 @@ function Initialize-Navigation {
     param([System.Windows.Window]$Window)
 
     # Store window reference
-    $script:MainWindow = $Window
+    $global:GA_MainWindow = $Window
 
     # Register each nav button directly - no closures needed
     $btn = $Window.FindName('NavDashboard')
@@ -485,7 +485,7 @@ function Initialize-Navigation {
     $btnCollapse = $Window.FindName('BtnCollapseSidebar')
     if ($btnCollapse) {
         $btnCollapse.Add_Click({
-                $win = $script:MainWindow
+                $win = $global:GA_MainWindow
                 $sidebar = $win.FindName('SidebarBorder')
                 $parentGrid = $sidebar.Parent
             
@@ -567,7 +567,7 @@ function Initialize-MainWindow {
     )
 
     # Store window reference for script-level access
-    $script:MainWindow = $Window
+    $global:GA_MainWindow = $Window
 
     # Initialize navigation buttons
     try {

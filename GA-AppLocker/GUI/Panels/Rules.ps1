@@ -17,7 +17,7 @@ function Initialize-RulesPanel {
                     $tag = $sender.Tag
                     if ($tag -match 'FilterRules(.+)') {
                         $filter = $Matches[1]
-                        Update-RulesFilter -Window $script:MainWindow -Filter $filter
+                        Update-RulesFilter -Window $global:GA_MainWindow -Filter $filter
                     }
                 }.GetNewClosure())
         }
@@ -45,7 +45,7 @@ function Initialize-RulesPanel {
     $filterBox = $Window.FindName('TxtRuleFilter')
     if ($filterBox) {
         $filterBox.Add_TextChanged({
-                Update-RulesDataGrid -Window $script:MainWindow
+                Update-RulesDataGrid -Window $global:GA_MainWindow
             })
     }
 
@@ -53,10 +53,10 @@ function Initialize-RulesPanel {
     $selectAllChk = $Window.FindName('ChkSelectAllRules')
     if ($selectAllChk) {
         $selectAllChk.Add_Checked({
-                Invoke-SelectAllRules -Window $script:MainWindow -SelectAll $true
+                Invoke-SelectAllRules -Window $global:GA_MainWindow -SelectAll $true
             })
         $selectAllChk.Add_Unchecked({
-                Invoke-SelectAllRules -Window $script:MainWindow -SelectAll $false
+                Invoke-SelectAllRules -Window $global:GA_MainWindow -SelectAll $false
             })
     }
 
@@ -64,7 +64,7 @@ function Initialize-RulesPanel {
     $rulesGrid = $Window.FindName('RulesDataGrid')
     if ($rulesGrid) {
         $rulesGrid.Add_SelectionChanged({
-                Update-RulesSelectionCount -Window $script:MainWindow
+                Update-RulesSelectionCount -Window $global:GA_MainWindow
             })
         
         # Wire up context menu items
@@ -74,7 +74,7 @@ function Initialize-RulesPanel {
                 if ($item -is [System.Windows.Controls.MenuItem] -and $item.Tag) {
                     $item.Add_Click({
                         param($sender, $e)
-                        Invoke-RulesContextAction -Action $sender.Tag -Window $script:MainWindow
+                        Invoke-RulesContextAction -Action $sender.Tag -Window $global:GA_MainWindow
                     }.GetNewClosure())
                 }
             }
@@ -1599,7 +1599,7 @@ function global:Show-RuleHistoryDialog {
                 [System.Windows.MessageBox]::Show('Rule restored successfully.', 'Restored', 'OK', 'Information')
                 $dialog.Close()
                 # Refresh rules grid
-                Update-RulesDataGrid -Window $script:MainWindow -Async
+                Update-RulesDataGrid -Window $global:GA_MainWindow -Async
             }
             else {
                 [System.Windows.MessageBox]::Show("Restore failed: $($restoreResult.Error)", 'Error', 'OK', 'Error')

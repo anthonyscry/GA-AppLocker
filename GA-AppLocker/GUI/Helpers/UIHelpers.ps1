@@ -11,7 +11,7 @@ function global:Write-Log {
 function global:Show-LoadingOverlay {
     param([string]$Message = 'Processing...', [string]$SubMessage = '')
     
-    $win = $script:MainWindow
+    $win = $global:GA_MainWindow
     if (-not $win) { return }
     
     $overlay = $win.FindName('LoadingOverlay')
@@ -24,7 +24,7 @@ function global:Show-LoadingOverlay {
 }
 
 function global:Hide-LoadingOverlay {
-    $win = $script:MainWindow
+    $win = $global:GA_MainWindow
     if (-not $win) { return }
     
     $overlay = $win.FindName('LoadingOverlay')
@@ -34,7 +34,7 @@ function global:Hide-LoadingOverlay {
 function global:Update-LoadingText {
     param([string]$Message, [string]$SubMessage)
     
-    $win = $script:MainWindow
+    $win = $global:GA_MainWindow
     if (-not $win) { return }
     
     $txtMain = $win.FindName('LoadingText')

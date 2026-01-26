@@ -35,7 +35,7 @@ function Unregister-DiscoveryPanelEvents {
     #>
     param([System.Windows.Window]$Window)
     
-    if (-not $Window) { $Window = $script:MainWindow }
+    if (-not $Window) { $Window = $global:GA_MainWindow }
     if (-not $Window) { return }
     
     # Remove Refresh button handler

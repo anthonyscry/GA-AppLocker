@@ -17,7 +17,7 @@ function Initialize-DeploymentPanel {
                     $tag = $sender.Tag
                     if ($tag -match 'FilterJobs(.+)') {
                         $filter = $Matches[1]
-                        Update-DeploymentFilter -Window $script:MainWindow -Filter $filter
+                        Update-DeploymentFilter -Window $global:GA_MainWindow -Filter $filter
                     }
                 }.GetNewClosure())
         }
@@ -44,7 +44,7 @@ function Initialize-DeploymentPanel {
     if ($dataGrid) {
         $dataGrid.Add_SelectionChanged({
                 param($sender, $e)
-                Update-SelectedJobInfo -Window $script:MainWindow
+                Update-SelectedJobInfo -Window $global:GA_MainWindow
             })
     }
 
@@ -64,7 +64,7 @@ function Initialize-DeploymentPanel {
         $gpoCombo.Add_SelectionChanged({
                 param($sender, $e)
                 $selectedItem = $sender.SelectedItem
-                $customBox = $script:MainWindow.FindName('TxtDeployCustomGPO')
+                $customBox = $global:GA_MainWindow.FindName('TxtDeployCustomGPO')
                 if ($customBox) {
                     if ($selectedItem -and $selectedItem.Tag -eq 'Custom') {
                         $customBox.Visibility = 'Visible'

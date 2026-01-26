@@ -9,7 +9,7 @@ function global:Show-Toast {
         [int]$DurationMs = 4000
     )
     
-    $Window = $script:MainWindow
+    $Window = $global:GA_MainWindow
     if (-not $Window) { return }
     
     $toastStack = $Window.FindName('ToastStack')
@@ -115,7 +115,7 @@ function script:Show-Loading {
         [string]$SubMessage = ''
     )
     
-    $Window = $script:MainWindow
+    $Window = $global:GA_MainWindow
     if (-not $Window) { return }
     
     $overlay = $Window.FindName('LoadingOverlay')
@@ -146,7 +146,7 @@ function script:Show-Loading {
 
 # Hide loading overlay
 function script:Hide-Loading {
-    $Window = $script:MainWindow
+    $Window = $global:GA_MainWindow
     if (-not $Window) { return }
     
     $overlay = $Window.FindName('LoadingOverlay')
@@ -168,7 +168,7 @@ function script:Update-LoadingMessage {
         [string]$SubMessage
     )
     
-    $Window = $script:MainWindow
+    $Window = $global:GA_MainWindow
     if (-not $Window) { return }
     
     $loadingText = $Window.FindName('LoadingText')

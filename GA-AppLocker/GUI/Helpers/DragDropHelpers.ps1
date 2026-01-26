@@ -65,7 +65,7 @@ function Register-ScannerPanelDrop {
         
         $scannerPanel.add_Drop({
             param($sender, $e)
-            Invoke-ScannerPanelDrop -Window $script:MainWindow -DragEventArgs $e
+            Invoke-ScannerPanelDrop -Window $global:GA_MainWindow -DragEventArgs $e
         })
 
         $scannerPanel.add_DragOver({
@@ -87,7 +87,7 @@ function Register-ScannerPanelDrop {
         
         $artifactsDropZone.add_Drop({
             param($sender, $e)
-            Invoke-ScannerPanelDrop -Window $script:MainWindow -DragEventArgs $e
+            Invoke-ScannerPanelDrop -Window $global:GA_MainWindow -DragEventArgs $e
         })
     }
 }
@@ -105,7 +105,7 @@ function Register-RulesPanelDrop {
         
         $rulesPanel.add_Drop({
             param($sender, $e)
-            Invoke-RulesPanelDrop -Window $script:MainWindow -DragEventArgs $e
+            Invoke-RulesPanelDrop -Window $global:GA_MainWindow -DragEventArgs $e
         })
 
         $rulesPanel.add_DragOver({
@@ -146,7 +146,7 @@ function Register-PolicyPanelDrop {
         
         $policyPanel.add_Drop({
             param($sender, $e)
-            Invoke-PolicyPanelDrop -Window $script:MainWindow -DragEventArgs $e
+            Invoke-PolicyPanelDrop -Window $global:GA_MainWindow -DragEventArgs $e
         })
 
         $policyPanel.add_DragOver({
@@ -178,7 +178,7 @@ function Register-PolicyPanelDrop {
         
         $policyRulesGrid.add_Drop({
             param($sender, $e)
-            Invoke-PolicyRulesGridDrop -Window $script:MainWindow -DragEventArgs $e
+            Invoke-PolicyRulesGridDrop -Window $global:GA_MainWindow -DragEventArgs $e
         })
     }
 }

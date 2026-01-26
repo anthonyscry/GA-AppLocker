@@ -57,7 +57,7 @@ function Invoke-AsyncOperation {
         [switch]$NoLoadingOverlay
     )
 
-    $win = $script:MainWindow
+    $win = $global:GA_MainWindow
     if (-not $win) {
         Write-Warning "MainWindow not available, running synchronously"
         try {
@@ -253,7 +253,7 @@ function Invoke-UIUpdate {
         [scriptblock]$Action
     )
 
-    $win = $script:MainWindow
+    $win = $global:GA_MainWindow
     if (-not $win) {
         # No window, just execute directly
         & $Action
@@ -388,7 +388,7 @@ function Invoke-AsyncWithProgress {
         [scriptblock]$OnError
     )
 
-    $win = $script:MainWindow
+    $win = $global:GA_MainWindow
     if (-not $win) {
         Write-Warning "MainWindow not available, running synchronously"
         try {

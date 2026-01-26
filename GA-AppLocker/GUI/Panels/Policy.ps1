@@ -17,7 +17,7 @@ function Initialize-PolicyPanel {
                     $tag = $sender.Tag
                     if ($tag -match 'FilterPolicies(.+)') {
                         $filter = $Matches[1]
-                        Update-PoliciesFilter -Window $script:MainWindow -Filter $filter
+                        Update-PoliciesFilter -Window $global:GA_MainWindow -Filter $filter
                     }
                 }.GetNewClosure())
         }
@@ -46,7 +46,7 @@ function Initialize-PolicyPanel {
     if ($dataGrid) {
         $dataGrid.Add_SelectionChanged({
                 param($sender, $e)
-                Update-SelectedPolicyInfo -Window $script:MainWindow
+                Update-SelectedPolicyInfo -Window $global:GA_MainWindow
             })
     }
 

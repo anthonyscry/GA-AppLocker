@@ -32,7 +32,7 @@ function Initialize-GlobalSearch {
     # Text changed event - search as user types with 300ms debouncing
     $searchBox.Add_TextChanged({
         param($sender, $e)
-        $win = $script:MainWindow
+        $win = $global:GA_MainWindow
         $text = $sender.Text
         $placeholder = $win.FindName('GlobalSearchPlaceholder')
         $clearBtn = $win.FindName('BtnClearGlobalSearch')
@@ -99,12 +99,12 @@ function Initialize-GlobalSearch {
     # Lost focus - hide popup (with slight delay for click handling)
     $searchBox.Add_LostFocus({
         param($sender, $e)
-        $win = $script:MainWindow
+        $win = $global:GA_MainWindow
         $popup = $win.FindName('GlobalSearchPopup')
         # Use dispatcher to delay hiding, allowing click events to process
         $win.Dispatcher.BeginInvoke([Action]{
             Start-Sleep -Milliseconds 200
-            $popup = $script:MainWindow.FindName('GlobalSearchPopup')
+            $popup = $global:GA_MainWindow.FindName('GlobalSearchPopup')
             if ($popup -and -not $popup.IsMouseOver) {
                 $popup.IsOpen = $false
             }
@@ -114,7 +114,7 @@ function Initialize-GlobalSearch {
     # Clear button click
     if ($clearBtn) {
         $clearBtn.Add_Click({
-            $win = $script:MainWindow
+            $win = $global:GA_MainWindow
             $searchBox = $win.FindName('GlobalSearchBox')
             $popup = $win.FindName('GlobalSearchPopup')
             if ($searchBox) { $searchBox.Text = '' }
@@ -126,7 +126,7 @@ function Initialize-GlobalSearch {
     $Window.Add_KeyDown({
         param($sender, $e)
         if ($e.Key -eq 'K' -and [System.Windows.Input.Keyboard]::Modifiers -eq 'Control') {
-            $searchBox = $script:MainWindow.FindName('GlobalSearchBox')
+            $searchBox = $global:GA_MainWindow.FindName('GlobalSearchBox')
             if ($searchBox) {
                 $searchBox.Focus()
                 $searchBox.SelectAll()
@@ -135,8 +135,8 @@ function Initialize-GlobalSearch {
         }
         # Escape to close popup and clear
         if ($e.Key -eq 'Escape') {
-            $popup = $script:MainWindow.FindName('GlobalSearchPopup')
-            $searchBox = $script:MainWindow.FindName('GlobalSearchBox')
+            $popup = $global:GA_MainWindow.FindName('GlobalSearchPopup')
+            $searchBox = $global:GA_MainWindow.FindName('GlobalSearchBox')
             if ($popup -and $popup.IsOpen) {
                 $popup.IsOpen = $false
                 $e.Handled = $true
@@ -155,7 +155,7 @@ function Invoke-AsyncGlobalSearch {
     #>
     param([string]$Query)
     
-    $win = $script:MainWindow
+    $win = $global:GA_MainWindow
     $popup = $win.FindName('GlobalSearchPopup')
     
     # Pre-fetch data on UI thread (uses cache, so fast)
@@ -252,7 +252,7 @@ function Invoke-AsyncGlobalSearch {
         AllPolicies = $allPolicies
     } -OnComplete {
         param($Result)
-        $win = $script:MainWindow
+        $win = $global:GA_MainWindow
         $popup = $win.FindName('GlobalSearchPopup')
         
         if ($Result -and $Result.Success -and $Result.Result) {
@@ -492,7 +492,7 @@ function Add-SearchResultSection {
         }
         $clickHandler = {
             param($sender, $e)
-            $win = $script:MainWindow
+            $win = $global:GA_MainWindow
             $popup = $win.FindName('GlobalSearchPopup')
             if ($popup) { $popup.IsOpen = $false }
             

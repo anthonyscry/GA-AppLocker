@@ -90,10 +90,10 @@ function global:Show-WizardStep1 {
     $script:WizardState.CurrentStep = 1
     
     # Get UI elements
-    $wizard = $script:MainWindow.FindName('RuleWizardOverlay')
-    $step1 = $script:MainWindow.FindName('WizardStep1')
-    $step2 = $script:MainWindow.FindName('WizardStep2')
-    $step3 = $script:MainWindow.FindName('WizardStep3')
+    $wizard = $global:GA_MainWindow.FindName('RuleWizardOverlay')
+    $step1 = $global:GA_MainWindow.FindName('WizardStep1')
+    $step2 = $global:GA_MainWindow.FindName('WizardStep2')
+    $step3 = $global:GA_MainWindow.FindName('WizardStep3')
     
     # Update step indicators
     Update-WizardStepIndicators -Step 1
@@ -105,18 +105,18 @@ function global:Show-WizardStep1 {
     
     # Populate artifact summary
     $summary = $script:WizardState.ArtifactSummary
-    $txtTotal = $script:MainWindow.FindName('WizardTxtTotalArtifacts')
-    $txtSigned = $script:MainWindow.FindName('WizardTxtSignedArtifacts')
-    $txtUnsigned = $script:MainWindow.FindName('WizardTxtUnsignedArtifacts')
+    $txtTotal = $global:GA_MainWindow.FindName('WizardTxtTotalArtifacts')
+    $txtSigned = $global:GA_MainWindow.FindName('WizardTxtSignedArtifacts')
+    $txtUnsigned = $global:GA_MainWindow.FindName('WizardTxtUnsignedArtifacts')
     
     if ($txtTotal) { $txtTotal.Text = $summary.Total }
     if ($txtSigned) { $txtSigned.Text = $summary.Signed }
     if ($txtUnsigned) { $txtUnsigned.Text = $summary.Unsigned }
     
     # Update type counts with DLL, EXE, Script counts
-    $txtExe = $script:MainWindow.FindName('WizardTxtExeCount')
-    $txtDll = $script:MainWindow.FindName('WizardTxtDllCount')
-    $txtScript = $script:MainWindow.FindName('WizardTxtScriptCount')
+    $txtExe = $global:GA_MainWindow.FindName('WizardTxtExeCount')
+    $txtDll = $global:GA_MainWindow.FindName('WizardTxtDllCount')
+    $txtScript = $global:GA_MainWindow.FindName('WizardTxtScriptCount')
     
     if ($txtExe) { $txtExe.Text = if ($summary.ByType.ContainsKey('EXE')) { $summary.ByType['EXE'] } else { 0 } }
     if ($txtDll) { $txtDll.Text = if ($summary.ByType.ContainsKey('DLL')) { $summary.ByType['DLL'] } else { 0 } }
@@ -128,14 +128,14 @@ function global:Show-WizardStep1 {
     if ($txtScript) { $txtScript.Text = $scriptCount }
     
     # Load saved settings into UI
-    $cboMode = $script:MainWindow.FindName('WizardCboMode')
-    $cboAction = $script:MainWindow.FindName('WizardCboAction')
-    $cboStatus = $script:MainWindow.FindName('WizardCboStatus')
-    $chkSkipDlls = $script:MainWindow.FindName('WizardChkSkipDlls')
-    $chkSkipUnsigned = $script:MainWindow.FindName('WizardChkSkipUnsigned')
-    $chkSkipScripts = $script:MainWindow.FindName('WizardChkSkipScripts')
-    $cboPubLevel = $script:MainWindow.FindName('WizardCboPubLevel')
-    $cboDedupeMode = $script:MainWindow.FindName('WizardCboDedupeMode')
+    $cboMode = $global:GA_MainWindow.FindName('WizardCboMode')
+    $cboAction = $global:GA_MainWindow.FindName('WizardCboAction')
+    $cboStatus = $global:GA_MainWindow.FindName('WizardCboStatus')
+    $chkSkipDlls = $global:GA_MainWindow.FindName('WizardChkSkipDlls')
+    $chkSkipUnsigned = $global:GA_MainWindow.FindName('WizardChkSkipUnsigned')
+    $chkSkipScripts = $global:GA_MainWindow.FindName('WizardChkSkipScripts')
+    $cboPubLevel = $global:GA_MainWindow.FindName('WizardCboPubLevel')
+    $cboDedupeMode = $global:GA_MainWindow.FindName('WizardCboDedupeMode')
     
     if ($cboMode) { $cboMode.SelectedValue = $script:WizardState.Settings.Mode }
     if ($cboAction) { $cboAction.SelectedValue = $script:WizardState.Settings.Action }
@@ -158,14 +158,14 @@ function global:Save-WizardStep1Settings {
     .SYNOPSIS
         Saves settings from Step 1 UI to wizard state.
     #>
-    $cboMode = $script:MainWindow.FindName('WizardCboMode')
-    $cboAction = $script:MainWindow.FindName('WizardCboAction')
-    $cboStatus = $script:MainWindow.FindName('WizardCboStatus')
-    $chkSkipDlls = $script:MainWindow.FindName('WizardChkSkipDlls')
-    $chkSkipUnsigned = $script:MainWindow.FindName('WizardChkSkipUnsigned')
-    $chkSkipScripts = $script:MainWindow.FindName('WizardChkSkipScripts')
-    $cboPubLevel = $script:MainWindow.FindName('WizardCboPubLevel')
-    $cboDedupeMode = $script:MainWindow.FindName('WizardCboDedupeMode')
+    $cboMode = $global:GA_MainWindow.FindName('WizardCboMode')
+    $cboAction = $global:GA_MainWindow.FindName('WizardCboAction')
+    $cboStatus = $global:GA_MainWindow.FindName('WizardCboStatus')
+    $chkSkipDlls = $global:GA_MainWindow.FindName('WizardChkSkipDlls')
+    $chkSkipUnsigned = $global:GA_MainWindow.FindName('WizardChkSkipUnsigned')
+    $chkSkipScripts = $global:GA_MainWindow.FindName('WizardChkSkipScripts')
+    $cboPubLevel = $global:GA_MainWindow.FindName('WizardCboPubLevel')
+    $cboDedupeMode = $global:GA_MainWindow.FindName('WizardCboDedupeMode')
     
     if ($cboMode) { $script:WizardState.Settings.Mode = $cboMode.SelectedValue }
     if ($cboAction) { $script:WizardState.Settings.Action = $cboAction.SelectedValue }
@@ -191,9 +191,9 @@ function global:Show-WizardStep2 {
     $script:WizardState.CurrentStep = 2
     
     # Get UI elements
-    $step1 = $script:MainWindow.FindName('WizardStep1')
-    $step2 = $script:MainWindow.FindName('WizardStep2')
-    $step3 = $script:MainWindow.FindName('WizardStep3')
+    $step1 = $global:GA_MainWindow.FindName('WizardStep1')
+    $step2 = $global:GA_MainWindow.FindName('WizardStep2')
+    $step3 = $global:GA_MainWindow.FindName('WizardStep3')
     
     # Update step indicators
     Update-WizardStepIndicators -Step 2
@@ -204,8 +204,8 @@ function global:Show-WizardStep2 {
     $step3.Visibility = 'Collapsed'
     
     # Show loading state
-    $previewLoading = $script:MainWindow.FindName('WizardPreviewLoading')
-    $previewContent = $script:MainWindow.FindName('WizardPreviewContent')
+    $previewLoading = $global:GA_MainWindow.FindName('WizardPreviewLoading')
+    $previewContent = $global:GA_MainWindow.FindName('WizardPreviewContent')
     if ($previewLoading) { $previewLoading.Visibility = 'Visible' }
     if ($previewContent) { $previewContent.Visibility = 'Collapsed' }
     
@@ -251,19 +251,19 @@ function global:Update-WizardPreviewUI {
     param([PSCustomObject]$Preview)
     
     # Hide loading, show content
-    $previewLoading = $script:MainWindow.FindName('WizardPreviewLoading')
-    $previewContent = $script:MainWindow.FindName('WizardPreviewContent')
+    $previewLoading = $global:GA_MainWindow.FindName('WizardPreviewLoading')
+    $previewContent = $global:GA_MainWindow.FindName('WizardPreviewContent')
     if ($previewLoading) { $previewLoading.Visibility = 'Collapsed' }
     if ($previewContent) { $previewContent.Visibility = 'Visible' }
     
     # Update statistics
-    $txtToProcess = $script:MainWindow.FindName('WizardTxtToProcess')
-    $txtSkipped = $script:MainWindow.FindName('WizardTxtSkipped')
-    $txtDeduped = $script:MainWindow.FindName('WizardTxtDeduped')
-    $txtNewRules = $script:MainWindow.FindName('WizardTxtNewRules')
-    $txtExisting = $script:MainWindow.FindName('WizardTxtExistingRules')
-    $txtPubRules = $script:MainWindow.FindName('WizardTxtPublisherRules')
-    $txtHashRules = $script:MainWindow.FindName('WizardTxtHashRules')
+    $txtToProcess = $global:GA_MainWindow.FindName('WizardTxtToProcess')
+    $txtSkipped = $global:GA_MainWindow.FindName('WizardTxtSkipped')
+    $txtDeduped = $global:GA_MainWindow.FindName('WizardTxtDeduped')
+    $txtNewRules = $global:GA_MainWindow.FindName('WizardTxtNewRules')
+    $txtExisting = $global:GA_MainWindow.FindName('WizardTxtExistingRules')
+    $txtPubRules = $global:GA_MainWindow.FindName('WizardTxtPublisherRules')
+    $txtHashRules = $global:GA_MainWindow.FindName('WizardTxtHashRules')
     
     if ($txtToProcess) { $txtToProcess.Text = $Preview.AfterExclusions }
     if ($txtSkipped) { $txtSkipped.Text = ($Preview.TotalArtifacts - $Preview.AfterExclusions) }
@@ -274,13 +274,13 @@ function global:Update-WizardPreviewUI {
     if ($txtHashRules) { $txtHashRules.Text = $Preview.EstimatedHash }
     
     # Update sample rules DataGrid
-    $dgSample = $script:MainWindow.FindName('WizardDgSampleRules')
+    $dgSample = $global:GA_MainWindow.FindName('WizardDgSampleRules')
     if ($dgSample -and $Preview.SampleRules) {
         $dgSample.ItemsSource = $Preview.SampleRules
     }
     
     # Update generate button text
-    $btnGenerate = $script:MainWindow.FindName('WizardBtnGenerate')
+    $btnGenerate = $global:GA_MainWindow.FindName('WizardBtnGenerate')
     if ($btnGenerate) {
         $btnGenerate.Content = "Generate $($Preview.NewRulesToCreate) Rules"
         $btnGenerate.IsEnabled = $Preview.NewRulesToCreate -gt 0
@@ -298,9 +298,9 @@ function global:Show-WizardStep3 {
     $script:WizardState.IsGenerating = $true
     
     # Get UI elements
-    $step1 = $script:MainWindow.FindName('WizardStep1')
-    $step2 = $script:MainWindow.FindName('WizardStep2')
-    $step3 = $script:MainWindow.FindName('WizardStep3')
+    $step1 = $global:GA_MainWindow.FindName('WizardStep1')
+    $step2 = $global:GA_MainWindow.FindName('WizardStep2')
+    $step3 = $global:GA_MainWindow.FindName('WizardStep3')
     
     # Update step indicators
     Update-WizardStepIndicators -Step 3
@@ -311,11 +311,11 @@ function global:Show-WizardStep3 {
     $step3.Visibility = 'Visible'
     
     # Reset progress UI
-    $progressBar = $script:MainWindow.FindName('WizardProgressBar')
-    $txtProgress = $script:MainWindow.FindName('WizardTxtProgress')
-    $txtStatus = $script:MainWindow.FindName('WizardTxtStatus')
-    $panelComplete = $script:MainWindow.FindName('WizardPanelComplete')
-    $panelProgress = $script:MainWindow.FindName('WizardPanelProgress')
+    $progressBar = $global:GA_MainWindow.FindName('WizardProgressBar')
+    $txtProgress = $global:GA_MainWindow.FindName('WizardTxtProgress')
+    $txtStatus = $global:GA_MainWindow.FindName('WizardTxtStatus')
+    $panelComplete = $global:GA_MainWindow.FindName('WizardPanelComplete')
+    $panelProgress = $global:GA_MainWindow.FindName('WizardPanelProgress')
     
     if ($progressBar) { $progressBar.Value = 0 }
     if ($txtProgress) { $txtProgress.Text = "0 / $($script:WizardState.Preview.NewRulesToCreate)" }
@@ -342,9 +342,9 @@ function global:Start-WizardBatchGeneration {
     $progressCallback = {
         param($Percent, $Message)
         
-        $script:MainWindow.Dispatcher.Invoke([Action]{
-            $progressBar = $script:MainWindow.FindName('WizardProgressBar')
-            $txtStatus = $script:MainWindow.FindName('WizardTxtStatus')
+        $global:GA_MainWindow.Dispatcher.Invoke([Action]{
+            $progressBar = $global:GA_MainWindow.FindName('WizardProgressBar')
+            $txtStatus = $global:GA_MainWindow.FindName('WizardTxtStatus')
             
             if ($progressBar) { $progressBar.Value = $Percent }
             if ($txtStatus) { $txtStatus.Text = $Message }
@@ -386,8 +386,8 @@ function global:Start-WizardBatchGeneration {
                 -DedupeMode $settings.DedupeMode `
                 -OnProgress {
                     param($Pct, $Msg)
-                    $progressBar = $script:MainWindow.FindName('WizardProgressBar')
-                    $txtStatus = $script:MainWindow.FindName('WizardTxtStatus')
+                    $progressBar = $global:GA_MainWindow.FindName('WizardProgressBar')
+                    $txtStatus = $global:GA_MainWindow.FindName('WizardTxtStatus')
                     if ($progressBar) { $progressBar.Value = $Pct }
                     if ($txtStatus) { $txtStatus.Text = $Msg }
                     [System.Windows.Forms.Application]::DoEvents()
@@ -411,13 +411,13 @@ function global:Complete-WizardGeneration {
     $script:WizardState.GenerationResult = $Result
     
     # Update UI on main thread
-    $script:MainWindow.Dispatcher.Invoke([Action]{
-        $progressBar = $script:MainWindow.FindName('WizardProgressBar')
-        $txtStatus = $script:MainWindow.FindName('WizardTxtStatus')
-        $panelComplete = $script:MainWindow.FindName('WizardPanelComplete')
-        $panelProgress = $script:MainWindow.FindName('WizardPanelProgress')
-        $txtResult = $script:MainWindow.FindName('WizardTxtResult')
-        $txtDuration = $script:MainWindow.FindName('WizardTxtDuration')
+    $global:GA_MainWindow.Dispatcher.Invoke([Action]{
+        $progressBar = $global:GA_MainWindow.FindName('WizardProgressBar')
+        $txtStatus = $global:GA_MainWindow.FindName('WizardTxtStatus')
+        $panelComplete = $global:GA_MainWindow.FindName('WizardPanelComplete')
+        $panelProgress = $global:GA_MainWindow.FindName('WizardPanelProgress')
+        $txtResult = $global:GA_MainWindow.FindName('WizardTxtResult')
+        $txtDuration = $global:GA_MainWindow.FindName('WizardTxtDuration')
         
         if ($progressBar) { $progressBar.Value = 100 }
         if ($panelProgress) { $panelProgress.Visibility = 'Collapsed' }
@@ -459,9 +459,9 @@ function global:Complete-WizardGeneration {
 function global:Update-WizardStepIndicators {
     param([int]$Step)
     
-    $ind1 = $script:MainWindow.FindName('WizardIndicator1')
-    $ind2 = $script:MainWindow.FindName('WizardIndicator2')
-    $ind3 = $script:MainWindow.FindName('WizardIndicator3')
+    $ind1 = $global:GA_MainWindow.FindName('WizardIndicator1')
+    $ind2 = $global:GA_MainWindow.FindName('WizardIndicator2')
+    $ind3 = $global:GA_MainWindow.FindName('WizardIndicator3')
     
     # Active = filled, Inactive = outline only
     $activeStyle = 'WizardStepActive'
@@ -481,11 +481,11 @@ function global:Update-WizardStepIndicators {
 }
 
 function global:Update-WizardButtons {
-    $btnBack = $script:MainWindow.FindName('WizardBtnBack')
-    $btnNext = $script:MainWindow.FindName('WizardBtnNext')
-    $btnCancel = $script:MainWindow.FindName('WizardBtnCancel')
-    $btnClose = $script:MainWindow.FindName('WizardBtnClose')
-    $btnGenerate = $script:MainWindow.FindName('WizardBtnGenerate')
+    $btnBack = $global:GA_MainWindow.FindName('WizardBtnBack')
+    $btnNext = $global:GA_MainWindow.FindName('WizardBtnNext')
+    $btnCancel = $global:GA_MainWindow.FindName('WizardBtnCancel')
+    $btnClose = $global:GA_MainWindow.FindName('WizardBtnClose')
+    $btnGenerate = $global:GA_MainWindow.FindName('WizardBtnGenerate')
     
     $step = $script:WizardState.CurrentStep
     $isGenerating = $script:WizardState.IsGenerating
@@ -528,7 +528,7 @@ function global:Close-RuleGenerationWizard {
     .SYNOPSIS
         Closes the wizard overlay.
     #>
-    $wizard = $script:MainWindow.FindName('RuleWizardOverlay')
+    $wizard = $global:GA_MainWindow.FindName('RuleWizardOverlay')
     if ($wizard) {
         $wizard.Visibility = 'Collapsed'
     }
@@ -552,7 +552,7 @@ function global:Close-RuleGenerationWizard {
         }
         
         # Refresh the rules grid directly
-        Update-RulesDataGrid -Window $script:MainWindow
+        Update-RulesDataGrid -Window $global:GA_MainWindow
     }
     
     global:Write-Log "Wizard closed"

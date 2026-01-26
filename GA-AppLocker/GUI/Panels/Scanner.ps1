@@ -44,13 +44,13 @@ function Initialize-ScannerPanel {
     if ($btnSelectMachines) { $btnSelectMachines.Add_Click({ Invoke-ButtonAction -Action 'SelectMachines' }) }
 
     $btnBrowsePath = $Window.FindName('BtnBrowsePath')
-    if ($btnBrowsePath) { $btnBrowsePath.Add_Click({ Invoke-BrowseScanPath -Window $script:MainWindow }) }
+    if ($btnBrowsePath) { $btnBrowsePath.Add_Click({ Invoke-BrowseScanPath -Window $global:GA_MainWindow }) }
 
     # High risk paths checkbox handler - add/remove paths from textbox
     $chkHighRisk = $Window.FindName('ChkIncludeHighRisk')
     if ($chkHighRisk) {
         $chkHighRisk.Add_Checked({
-            $txtPaths = $script:MainWindow.FindName('TxtScanPaths')
+            $txtPaths = $global:GA_MainWindow.FindName('TxtScanPaths')
             if ($txtPaths) {
                 $highRiskPaths = @(
                     "# --- HIGH RISK PATHS ---",
@@ -62,7 +62,7 @@ function Initialize-ScannerPanel {
             }
         })
         $chkHighRisk.Add_Unchecked({
-            $txtPaths = $script:MainWindow.FindName('TxtScanPaths')
+            $txtPaths = $global:GA_MainWindow.FindName('TxtScanPaths')
             if ($txtPaths) {
                 # Remove high risk section
                 $lines = $txtPaths.Text -split "`n" | Where-Object { 
@@ -80,8 +80,8 @@ function Initialize-ScannerPanel {
     $btnResetPaths = $Window.FindName('BtnResetPaths')
     if ($btnResetPaths) {
         $btnResetPaths.Add_Click({ 
-                $txtPaths = $script:MainWindow.FindName('TxtScanPaths')
-                $chkHighRisk = $script:MainWindow.FindName('ChkIncludeHighRisk')
+                $txtPaths = $global:GA_MainWindow.FindName('TxtScanPaths')
+                $chkHighRisk = $global:GA_MainWindow.FindName('ChkIncludeHighRisk')
                 if ($chkHighRisk) { $chkHighRisk.IsChecked = $false }
                 if ($txtPaths) { 
                     $defaultPaths = @(
@@ -133,8 +133,8 @@ function Initialize-ScannerPanel {
             $btn.Add_Click({ 
                     param($sender, $e)
                     $filter = $sender.Tag
-                    if ($script:MainWindow) {
-                        Update-ArtifactFilter -Window $script:MainWindow -Filter $filter
+                    if ($global:GA_MainWindow) {
+                        Update-ArtifactFilter -Window $global:GA_MainWindow -Filter $filter
                     }
                 })
         }
@@ -148,8 +148,8 @@ function Initialize-ScannerPanel {
         $script:ArtifactFilterTimer.Interval = [TimeSpan]::FromMilliseconds(300)
         $script:ArtifactFilterTimer.Add_Tick({
             $script:ArtifactFilterTimer.Stop()
-            if ($script:MainWindow) {
-                Update-ArtifactDataGrid -Window $script:MainWindow
+            if ($global:GA_MainWindow) {
+                Update-ArtifactDataGrid -Window $global:GA_MainWindow
             }
         })
         
@@ -165,7 +165,7 @@ function Initialize-ScannerPanel {
     $btnGenerateFromArtifacts = $Window.FindName('BtnGenerateFromArtifacts')
     if ($btnGenerateFromArtifacts) {
         $btnGenerateFromArtifacts.Add_Click({
-            Invoke-LaunchRuleWizard -Window $script:MainWindow
+            Invoke-LaunchRuleWizard -Window $global:GA_MainWindow
         })
     }
 
@@ -173,14 +173,14 @@ function Initialize-ScannerPanel {
     $btnSelectAll = $Window.FindName('BtnSelectAllArtifacts')
     if ($btnSelectAll) {
         $btnSelectAll.Add_Click({
-            Invoke-SelectAllArtifacts -Window $script:MainWindow -SelectAll $true
+            Invoke-SelectAllArtifacts -Window $global:GA_MainWindow -SelectAll $true
         })
     }
     
     $btnDeselectAll = $Window.FindName('BtnDeselectAllArtifacts')
     if ($btnDeselectAll) {
         $btnDeselectAll.Add_Click({
-            Invoke-SelectAllArtifacts -Window $script:MainWindow -SelectAll $false
+            Invoke-SelectAllArtifacts -Window $global:GA_MainWindow -SelectAll $false
         })
     }
     
@@ -188,7 +188,7 @@ function Initialize-ScannerPanel {
     $artifactGrid = $Window.FindName('ArtifactDataGrid')
     if ($artifactGrid) {
         $artifactGrid.Add_SelectionChanged({
-            Update-ArtifactSelectionCount -Window $script:MainWindow
+            Update-ArtifactSelectionCount -Window $global:GA_MainWindow
         })
     }
 
