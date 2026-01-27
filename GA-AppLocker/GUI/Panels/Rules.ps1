@@ -310,7 +310,8 @@ function Invoke-SelectAllRules {
         }
         
         # Visual feedback - highlight the checkbox but skip slow DataGrid.SelectAll()
-        Write-RuleLog -Message "Virtual select all: $SelectAll for $itemCount items"
+        Write-Log -Level Info -Message "Virtual select all: $SelectAll for $itemCount items"
+        Update-RulesSelectionCount -Window $Window
         return
     }
     
@@ -974,26 +975,72 @@ function Set-SelectedRuleStatus {
     
     # Reset virtual selection after operation
     $script:AllRulesSelected = $false
-
-    if (-not (Get-Command -Name 'Set-RuleStatus' -ErrorAction SilentlyContinue)) {
-        Show-Toast -Message 'Set-RuleStatus function not available.' -Type 'Error'
-        return
+    
+    $count = $selectedItems.Count
+    
+    # For large selections, use batch processing with loading overlay
+    if ($count -gt 50) {
+        Show-LoadingOverlay -Message "Updating $count rules to '$Status'..." -SubMessage 'Please wait'
+        # Pump the message queue so overlay actually renders before we start
+        [System.Windows.Threading.Dispatcher]::CurrentDispatcher.Invoke(
+            [System.Windows.Threading.DispatcherPriority]::Background,
+            [Action]{}
+        )
     }
 
-    $updated = 0
-    $errors = @()
-    foreach ($item in $selectedItems) {
-        try {
-            $result = Set-RuleStatus -Id $item.Id -Status $Status
-            if ($result.Success) { $updated++ }
+    try {
+        # Get rule storage path (construct from exported function)
+        $dataPath = Get-AppLockerDataPath
+        $rulePath = Join-Path $dataPath 'Rules'
+        $updated = 0
+        $errors = @()
+        $updatedIds = [System.Collections.Generic.List[string]]::new()
+        $processedCount = 0
+        
+        foreach ($item in $selectedItems) {
+            $processedCount++
+            
+            # Update loading overlay progress and pump UI events for large batches
+            if ($count -gt 50 -and $processedCount % 100 -eq 0) {
+                $pct = [math]::Round(($processedCount / $count) * 100)
+                Show-LoadingOverlay -Message "Updating $count rules to '$Status'..." -SubMessage "$processedCount of $count ($pct%)"
+                # Pump the message queue to keep UI responsive
+                [System.Windows.Threading.Dispatcher]::CurrentDispatcher.Invoke(
+                    [System.Windows.Threading.DispatcherPriority]::Background,
+                    [Action]{}
+                )
+            }
+            
+            try {
+                $ruleFile = Join-Path $rulePath "$($item.Id).json"
+                if (Test-Path $ruleFile) {
+                    $rule = Get-Content -Path $ruleFile -Raw | ConvertFrom-Json
+                    $rule.Status = $Status
+                    $rule.ModifiedDate = Get-Date
+                    $rule | ConvertTo-Json -Depth 10 | Set-Content -Path $ruleFile -Encoding UTF8
+                    $updatedIds.Add($item.Id)
+                    $updated++
+                }
+            }
+            catch { 
+                $errors += "Rule $($item.Id): $($_.Exception.Message)"
+            }
         }
-        catch { 
-            $errors += "Rule $($item.Id): $($_.Exception.Message)"
+        
+        # Batch update the index once (much faster than individual calls)
+        if ($updatedIds.Count -gt 0) {
+            if (Get-Command -Name 'Update-RuleStatusInIndex' -ErrorAction SilentlyContinue) {
+                Update-RuleStatusInIndex -RuleIds $updatedIds.ToArray() -Status $Status | Out-Null
+            }
+        }
+        
+        if ($errors.Count -gt 0) {
+            Write-Log -Level Warning -Message "Errors updating rules: $($errors.Count) failures"
         }
     }
-    if ($errors.Count -gt 0) {
-        if (Get-Command -Name 'Write-AppLockerLog' -ErrorAction SilentlyContinue) {
-            Write-AppLockerLog -Level Warning -Message "Errors updating rules: $($errors -join '; ')" -NoConsole
+    finally {
+        if ($count -gt 50) {
+            Hide-LoadingOverlay
         }
     }
 
