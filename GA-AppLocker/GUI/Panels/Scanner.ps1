@@ -1478,28 +1478,71 @@ function global:Show-RuleGenerationConfigDialog {
         <SolidColorBrush x:Key="BorderBrush" Color="#3F3F46"/>
         <SolidColorBrush x:Key="HoverBrush" Color="#3E3E42"/>
         
-        <!-- ComboBox dropdown item style -->
+        <!-- ComboBox ToggleButton Template -->
+        <ControlTemplate x:Key="ComboBoxToggleButton" TargetType="ToggleButton">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition/>
+                    <ColumnDefinition Width="20"/>
+                </Grid.ColumnDefinitions>
+                <Border x:Name="Border" Grid.ColumnSpan="2" Background="#2D2D30" BorderBrush="#3F3F46" BorderThickness="1" CornerRadius="2"/>
+                <Border Grid.Column="0" Background="#2D2D30" BorderBrush="#3F3F46" BorderThickness="0,0,1,0" CornerRadius="2,0,0,2" Margin="1"/>
+                <Path x:Name="Arrow" Grid.Column="1" Fill="#E0E0E0" HorizontalAlignment="Center" VerticalAlignment="Center" Data="M 0 0 L 4 4 L 8 0 Z"/>
+            </Grid>
+        </ControlTemplate>
+        
+        <!-- ComboBox Template -->
+        <ControlTemplate x:Key="DarkComboBoxTemplate" TargetType="ComboBox">
+            <Grid>
+                <ToggleButton Name="ToggleButton" Template="{StaticResource ComboBoxToggleButton}" 
+                              IsChecked="{Binding Path=IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" 
+                              Focusable="false" ClickMode="Press"/>
+                <ContentPresenter Name="ContentSite" IsHitTestVisible="False" 
+                                  Content="{TemplateBinding SelectionBoxItem}" 
+                                  ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                  ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                  Margin="8,4,28,4" VerticalAlignment="Center" HorizontalAlignment="Left"/>
+                <Popup Name="Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}" 
+                       AllowsTransparency="True" Focusable="False" PopupAnimation="Slide">
+                    <Grid Name="DropDown" SnapsToDevicePixels="True" MinWidth="{TemplateBinding ActualWidth}" MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                        <Border x:Name="DropDownBorder" Background="#2D2D30" BorderBrush="#3F3F46" BorderThickness="1"/>
+                        <ScrollViewer Margin="2" SnapsToDevicePixels="True">
+                            <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained"/>
+                        </ScrollViewer>
+                    </Grid>
+                </Popup>
+            </Grid>
+        </ControlTemplate>
+        
+        <!-- ComboBox Style -->
+        <Style TargetType="ComboBox">
+            <Setter Property="Template" Value="{StaticResource DarkComboBoxTemplate}"/>
+            <Setter Property="Foreground" Value="#E0E0E0"/>
+            <Setter Property="Height" Value="32"/>
+        </Style>
+        
+        <!-- ComboBoxItem Style -->
         <Style TargetType="ComboBoxItem">
             <Setter Property="Background" Value="#2D2D30"/>
             <Setter Property="Foreground" Value="#E0E0E0"/>
             <Setter Property="Padding" Value="8,6"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Style.Triggers>
-                <Trigger Property="IsHighlighted" Value="True">
-                    <Setter Property="Background" Value="#3E3E42"/>
-                </Trigger>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#3E3E42"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-        
-        <!-- ComboBox style for dropdown background -->
-        <Style TargetType="ComboBox">
-            <Setter Property="Background" Value="#2D2D30"/>
-            <Setter Property="Foreground" Value="#E0E0E0"/>
-            <Setter Property="BorderBrush" Value="#3F3F46"/>
-            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#3E3E42"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#3E3E42"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </Window.Resources>
     <Grid Margin="20">
