@@ -290,68 +290,31 @@ function Remove-RulesBulk {
     }
 
     try {
-        # Primary path: Use SQLite database
-        $dbPath = Get-RuleDatabasePath
-        if (Test-Path $dbPath) {
-            $conn = Get-SqliteConnection -DatabasePath $dbPath
-            $conn.Open()
-            
-            try {
-                # Use transaction for atomicity and performance
-                $transaction = $conn.BeginTransaction()
-                
-                try {
-                    foreach ($ruleId in $RuleIds) {
-                        $sql = "DELETE FROM Rules WHERE Id = @Id;"
-                        $affected = Invoke-SqliteNonQuery -Connection $conn -CommandText $sql -Parameters @{ Id = $ruleId }
-                        if ($affected -gt 0) { 
-                            $result.RemovedCount++ 
-                        }
-                    }
-                    
-                    $transaction.Commit()
-                    $result.Success = $true
-                    
-                    # Invalidate caches
-                    if (Get-Command -Name 'Clear-AppLockerCache' -ErrorAction SilentlyContinue) {
-                        Clear-AppLockerCache -Pattern 'GlobalSearch_*' | Out-Null
-                        Clear-AppLockerCache -Pattern 'RuleCounts*' | Out-Null
-                        Clear-AppLockerCache -Pattern 'RuleQuery*' | Out-Null
-                    }
-                    
-                    Write-StorageLog -Message "Bulk deleted $($result.RemovedCount) rules from database"
+        # Use JSON storage
+        $indexResult = Remove-RulesFromIndex -RuleIds $RuleIds
+        $result.Success = $indexResult.Success
+        $result.RemovedCount = $indexResult.RemovedCount
+        $result.Error = $indexResult.Error
+        
+        # Also delete the individual rule files
+        if ($result.Success) {
+            $rulesPath = Get-RuleStoragePath
+            foreach ($ruleId in $RuleIds) {
+                $rulePath = Join-Path $rulesPath "$ruleId.json"
+                if (Test-Path $rulePath) {
+                    Remove-Item $rulePath -Force -ErrorAction SilentlyContinue
                 }
-                catch {
-                    $transaction.Rollback()
-                    throw
-                }
-            }
-            finally {
-                $conn.Close()
-                $conn.Dispose()
             }
         }
-        else {
-            # Fallback: Use JSON index
-            if (Get-Command -Name 'Remove-RulesFromIndex' -ErrorAction SilentlyContinue) {
-                $indexResult = Remove-RulesFromIndex -RuleIds $RuleIds
-                $result.Success = $indexResult.Success
-                $result.RemovedCount = $indexResult.RemovedCount
-                $result.Error = $indexResult.Error
-                
-                # Invalidate caches
-                if ($result.Success -and $result.RemovedCount -gt 0) {
-                    if (Get-Command -Name 'Clear-AppLockerCache' -ErrorAction SilentlyContinue) {
-                        Clear-AppLockerCache -Pattern 'GlobalSearch_*' | Out-Null
-                        Clear-AppLockerCache -Pattern 'RuleCounts*' | Out-Null
-                        Clear-AppLockerCache -Pattern 'RuleQuery*' | Out-Null
-                    }
-                    Write-StorageLog -Message "Bulk deleted $($result.RemovedCount) rules from JSON index"
-                }
+        
+        # Invalidate caches
+        if ($result.Success -and $result.RemovedCount -gt 0) {
+            if (Get-Command -Name 'Clear-AppLockerCache' -ErrorAction SilentlyContinue) {
+                Clear-AppLockerCache -Pattern 'GlobalSearch_*' | Out-Null
+                Clear-AppLockerCache -Pattern 'RuleCounts*' | Out-Null
+                Clear-AppLockerCache -Pattern 'RuleQuery*' | Out-Null
             }
-            else {
-                $result.Error = "Remove-RulesFromIndex function not available"
-            }
+            Write-StorageLog -Message "Bulk deleted $($result.RemovedCount) rules"
         }
     }
     catch {

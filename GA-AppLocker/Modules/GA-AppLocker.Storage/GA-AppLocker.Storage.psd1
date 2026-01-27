@@ -1,26 +1,23 @@
 @{
     RootModule = 'GA-AppLocker.Storage.psm1'
-    ModuleVersion = '1.0.0'
+    ModuleVersion = '2.0.0'
     GUID = 'a8b7c6d5-e4f3-4a2b-9c1d-0e8f7a6b5c4d'
     Author = 'GA-AppLocker Team'
-    Description = 'SQLite storage layer for GA-AppLocker rules and data'
+    Description = 'JSON-based storage layer for GA-AppLocker rules and data'
     PowerShellVersion = '5.1'
     
     FunctionsToExport = @(
-        # Database Management
-        'Initialize-RuleDatabase',
-        'Get-RuleDatabasePath',
-        'Test-RuleDatabaseExists',
-        
-        # Rule CRUD Operations  
-        'Add-RuleToDatabase',
-        'Get-RuleFromDatabase',
-        'Get-RulesFromDatabase',
-        'Update-RuleInDatabase',
-        'Remove-RuleFromDatabase',
+        # Rule Storage Operations (JSON-based)
+        'Get-RuleStoragePath',
+        'Get-RuleById',
+        'Get-AllRules',
+        'Add-Rule',
+        'Update-Rule',
+        'Remove-Rule',
+        'Find-RuleByHash',
+        'Find-RuleByPublisher',
         
         # Bulk Operations (Batch Rule Generation)
-        'Import-RulesToDatabase',
         'Get-RuleCounts',
         'Save-RulesBulk',
         'Add-RulesToIndex',
@@ -30,10 +27,9 @@
         'Get-BatchPreview',
         'Update-RuleStatusInIndex',
         
-        # Query Helpers
-        'Find-RuleByHash',
-        'Find-RuleByPublisher',
-        'Get-DuplicateRules',
+        # Index Management
+        'Reset-RulesIndexCache',
+        'Rebuild-RulesIndex',
         
         # Index Watcher Functions
         'Start-RuleIndexWatcher',
@@ -49,16 +45,12 @@
         'Find-RulesInRepository',
         'Get-RuleCountsFromRepository',
         'Invoke-RuleBatchOperation',
-        'Test-RuleExistsInRepository',
-        
-        # Cache Management
-        'Clear-RulesIndex',
-        'Reset-RulesIndexCache'
+        'Test-RuleExistsInRepository'
     )
     
     PrivateData = @{
         PSData = @{
-            Tags = @('AppLocker', 'SQLite', 'Storage')
+            Tags = @('AppLocker', 'JSON', 'Storage')
         }
     }
 }

@@ -69,11 +69,19 @@ function Backup-AppLockerData {
             Join-Path $env:LOCALAPPDATA 'GA-AppLocker'
         }
 
-        # Backup Rules (SQLite database)
-        $dbPath = Join-Path $dataPath 'rules.db'
-        if (Test-Path $dbPath) {
-            Copy-Item $dbPath (Join-Path $tempDir 'rules.db') -Force
-            $backupManifest.Contents += @{ Type = 'Database'; File = 'rules.db'; Size = (Get-Item $dbPath).Length }
+        # Backup Rules (JSON index and rule files)
+        $indexPath = Join-Path $dataPath 'rules-index.json'
+        if (Test-Path $indexPath) {
+            Copy-Item $indexPath (Join-Path $tempDir 'rules-index.json') -Force
+            $backupManifest.Contents += @{ Type = 'RulesIndex'; File = 'rules-index.json'; Size = (Get-Item $indexPath).Length }
+        }
+        
+        $rulesPath = Join-Path $dataPath 'Rules'
+        if (Test-Path $rulesPath) {
+            $rulesDir = Join-Path $tempDir 'Rules'
+            Copy-Item $rulesPath $rulesDir -Recurse -Force
+            $ruleFiles = Get-ChildItem $rulesPath -Filter '*.json' -File -ErrorAction SilentlyContinue
+            $backupManifest.Contents += @{ Type = 'Rules'; Folder = 'Rules'; FileCount = $ruleFiles.Count }
         }
 
         # Backup Policies
@@ -261,15 +269,32 @@ function Restore-AppLockerData {
 
         $restoredItems = @()
 
-        # Restore database
-        $dbBackup = Join-Path $tempDir 'rules.db'
-        if (Test-Path $dbBackup) {
-            $dbTarget = Join-Path $dataPath 'rules.db'
-            if ((Test-Path $dbTarget) -and -not $Force) {
-                Write-Warning "Database exists. Use -Force to overwrite."
+        # Restore rules index
+        $indexBackup = Join-Path $tempDir 'rules-index.json'
+        if (Test-Path $indexBackup) {
+            $indexTarget = Join-Path $dataPath 'rules-index.json'
+            if ((Test-Path $indexTarget) -and -not $Force) {
+                Write-Warning "Rules index exists. Use -Force to overwrite."
             } else {
-                Copy-Item $dbBackup $dbTarget -Force
-                $restoredItems += 'Database (rules.db)'
+                Copy-Item $indexBackup $indexTarget -Force
+                $restoredItems += 'Rules Index (rules-index.json)'
+            }
+        }
+        
+        # Restore Rules folder
+        $rulesBackup = Join-Path $tempDir 'Rules'
+        if (Test-Path $rulesBackup) {
+            $rulesTarget = Join-Path $dataPath 'Rules'
+            if (-not (Test-Path $rulesTarget)) {
+                New-Item -Path $rulesTarget -ItemType Directory -Force | Out-Null
+            }
+            Copy-Item "$rulesBackup\*" $rulesTarget -Recurse -Force
+            $ruleCount = (Get-ChildItem $rulesBackup -Filter '*.json' -File).Count
+            $restoredItems += "Rules ($ruleCount files)"
+            
+            # Reset cache to pick up restored rules
+            if (Get-Command -Name 'Reset-RulesIndexCache' -ErrorAction SilentlyContinue) {
+                Reset-RulesIndexCache
             }
         }
 

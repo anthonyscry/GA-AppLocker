@@ -3,7 +3,7 @@
     Repository pattern implementation for rule data access.
 
 .DESCRIPTION
-    Provides a high-level abstraction layer over the storage backend (SQLite or JSON).
+    Provides a high-level abstraction layer over the JSON storage backend.
     Implements the Repository pattern for clean separation between business logic
     and data persistence. Features:
     - Unified CRUD operations
@@ -14,7 +14,7 @@
 
 .NOTES
     Author: GA-AppLocker Team
-    Version: 1.0.0
+    Version: 2.0.0 - JSON-only storage
 #>
 
 #region ===== REPOSITORY CLASS =====

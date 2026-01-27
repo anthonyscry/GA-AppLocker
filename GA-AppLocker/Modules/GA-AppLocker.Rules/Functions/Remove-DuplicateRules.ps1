@@ -68,28 +68,22 @@ function Remove-DuplicateRules {
     }
 
     try {
-        # Try Storage layer first for fast duplicate detection
+        # Use storage layer for fast duplicate detection
         # NOTE: Don't use -FullPayload - index data has all fields needed for duplicate detection
         # (Hash, PublisherName, ProductName, Path, CollectionType, CreatedDate, Status, Id)
-        if (Get-Command -Name 'Get-RulesFromDatabase' -ErrorAction SilentlyContinue) {
-            $dbResult = Get-RulesFromDatabase -Take 100000
-            if ($dbResult.Success -and $dbResult.Data.Count -gt 0) {
-                $allRules = [System.Collections.Generic.List[PSCustomObject]]::new()
-                foreach ($rule in $dbResult.Data) {
-                    $allRules.Add($rule)
-                }
-                Write-RuleLog -Message "Loaded $($allRules.Count) rules from index (fast path)"
+        $dbResult = Get-AllRules -Take 100000
+        if ($dbResult.Success -and $dbResult.Data.Count -gt 0) {
+            $allRules = [System.Collections.Generic.List[PSCustomObject]]::new()
+            foreach ($rule in $dbResult.Data) {
+                $allRules.Add($rule)
             }
-            else {
-                # Fall back to JSON scan
-                $allRules = $null
-            }
+            Write-RuleLog -Message "Loaded $($allRules.Count) rules from index"
         }
         else {
             $allRules = $null
         }
 
-        # Fallback: JSON file scan
+        # Fallback: Direct JSON file scan if index failed
         if ($null -eq $allRules) {
             $rulePath = Get-RuleStoragePath
             $ruleFiles = Get-ChildItem -Path $rulePath -Filter '*.json' -ErrorAction SilentlyContinue
@@ -386,23 +380,18 @@ function Find-DuplicateRules {
     }
 
     try {
-        # Try Storage layer first for fast duplicate detection
-        if (Get-Command -Name 'Get-RulesFromDatabase' -ErrorAction SilentlyContinue) {
-            $dbResult = Get-RulesFromDatabase -Take 100000
-            if ($dbResult.Success -and $dbResult.Data.Count -gt 0) {
-                $allRules = [System.Collections.Generic.List[PSCustomObject]]::new()
-                foreach ($rule in $dbResult.Data) { $allRules.Add($rule) }
-                $result.TotalRules = $allRules.Count
-            }
-            else {
-                $allRules = $null
-            }
+        # Use storage layer for fast duplicate detection
+        $dbResult = Get-AllRules -Take 100000
+        if ($dbResult.Success -and $dbResult.Data.Count -gt 0) {
+            $allRules = [System.Collections.Generic.List[PSCustomObject]]::new()
+            foreach ($rule in $dbResult.Data) { $allRules.Add($rule) }
+            $result.TotalRules = $allRules.Count
         }
         else {
             $allRules = $null
         }
 
-        # Fallback: JSON file scan
+        # Fallback: Direct JSON file scan if index failed
         if ($null -eq $allRules) {
             $rulePath = Get-RuleStoragePath
             $ruleFiles = Get-ChildItem -Path $rulePath -Filter '*.json' -ErrorAction SilentlyContinue

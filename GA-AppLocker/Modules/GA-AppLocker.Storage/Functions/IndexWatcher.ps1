@@ -250,15 +250,13 @@ function script:Invoke-DebouncedRebuild {
     try {
         Write-StorageLog -Message "Rebuilding index due to file changes..."
         
-        # Use the JSON index rebuild function if available
-        if (Get-Command -Name 'Import-RulesToDatabase' -ErrorAction SilentlyContinue) {
-            $result = Import-RulesToDatabase -Force
-            if ($result.Success) {
-                Write-StorageLog -Message "Index rebuilt: $($result.ImportedCount) rules indexed"
-            }
-            else {
-                Write-StorageLog -Message "Index rebuild failed: $($result.Error)" -Level 'ERROR'
-            }
+        # Use the JSON index rebuild function
+        $result = Rebuild-RulesIndex
+        if ($result.Success) {
+            Write-StorageLog -Message "Index rebuilt: $($result.RuleCount) rules indexed"
+        }
+        else {
+            Write-StorageLog -Message "Index rebuild failed: $($result.Error)" -Level 'ERROR'
         }
     }
     catch {
@@ -281,7 +279,7 @@ function script:Invoke-DebouncedRebuild {
     Invoke-RuleIndexRebuild
 
 .OUTPUTS
-    [PSCustomObject] Result from Import-RulesToDatabase.
+    [PSCustomObject] Result from Rebuild-RulesIndex.
 #>
 function Invoke-RuleIndexRebuild {
     [CmdletBinding()]
@@ -289,13 +287,5 @@ function Invoke-RuleIndexRebuild {
     param()
 
     Write-StorageLog -Message "Manual index rebuild triggered"
-    
-    if (Get-Command -Name 'Import-RulesToDatabase' -ErrorAction SilentlyContinue) {
-        return Import-RulesToDatabase -Force
-    }
-    
-    return [PSCustomObject]@{
-        Success = $false
-        Error = "Import-RulesToDatabase function not available"
-    }
+    return Rebuild-RulesIndex
 }
