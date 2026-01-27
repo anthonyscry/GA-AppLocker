@@ -376,8 +376,8 @@ function Invoke-AddSelectedRulesToPolicy {
     # Create selection dialog
     $dialog = [System.Windows.Window]::new()
     $dialog.Title = "Add $($selectedItems.Count) Rule(s) to Policy"
-    $dialog.Width = 400
-    $dialog.Height = 300
+    $dialog.Width = 420
+    $dialog.Height = 340
     $dialog.WindowStartupLocation = 'CenterOwner'
     $dialog.Owner = $Window
     $dialog.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#1E1E1E')
@@ -388,14 +388,15 @@ function Invoke-AddSelectedRulesToPolicy {
 
     # Label
     $label = [System.Windows.Controls.TextBlock]::new()
-    $label.Text = "Select a policy to add the selected rules:"
+    $label.Text = "Select a policy to add $($selectedItems.Count) rule(s):"
     $label.Foreground = [System.Windows.Media.Brushes]::White
+    $label.FontSize = 14
     $label.Margin = [System.Windows.Thickness]::new(0, 0, 0, 15)
     $stack.Children.Add($label)
 
     # Policy ListBox
     $listBox = [System.Windows.Controls.ListBox]::new()
-    $listBox.Height = 150
+    $listBox.Height = 160
     $listBox.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#2D2D30')
     $listBox.Foreground = [System.Windows.Media.Brushes]::White
     $listBox.BorderThickness = [System.Windows.Thickness]::new(1)
@@ -406,6 +407,7 @@ function Invoke-AddSelectedRulesToPolicy {
         $item.Content = "$($policy.Name) (Phase $($policy.Phase)) - $($policy.Status)"
         $item.Tag = $policy.Id
         $item.Foreground = [System.Windows.Media.Brushes]::White
+        $item.Padding = [System.Windows.Thickness]::new(5, 3, 5, 3)
         $listBox.Items.Add($item)
     }
     $stack.Children.Add($listBox)
@@ -448,31 +450,29 @@ function Invoke-AddSelectedRulesToPolicy {
     $btnAdd.Add_Click({
         if ($listBoxRef.SelectedItem) {
             $policyId = $listBoxRef.SelectedItem.Tag
-            $addedCount = 0
-            $errors = @()
             
-            foreach ($rule in $selectedRules) {
-                try {
-                    $result = Add-RuleToPolicy -PolicyId $policyId -RuleId $rule.Id
-                    if ($result.Success) { $addedCount++ }
-                    else { $errors += $result.Error }
+            # Collect all rule IDs and call Add-RuleToPolicy ONCE (it accepts arrays)
+            $ruleIds = @($selectedRules | ForEach-Object { $_.Id })
+            
+            try {
+                $result = Add-RuleToPolicy -PolicyId $policyId -RuleId $ruleIds
+                
+                $dialogRef.DialogResult = $true
+                $dialogRef.Close()
+                
+                if ($result.Success) {
+                    Show-Toast -Message "$($result.Message)" -Type 'Success'
+                    # Reset virtual selection after successful operation
+                    $script:AllRulesSelected = $false
                 }
-                catch {
-                    $errors += "Rule $($rule.Id): $($_.Exception.Message)"
+                else {
+                    Show-Toast -Message "Failed to add rules: $($result.Error)" -Type 'Error'
                 }
             }
-            
-            $dialogRef.DialogResult = $true
-            $dialogRef.Close()
-            
-            if ($addedCount -gt 0) {
-                Show-Toast -Message "Added $addedCount rule(s) to policy." -Type 'Success'
-                # Reset virtual selection after successful operation
-                $script:AllRulesSelected = $false
-            }
-            if ($errors.Count -gt 0) {
-                Show-Toast -Message "Some rules could not be added: $($errors.Count) error(s)" -Type 'Warning'
-                Write-Log -Level Warning -Message "Errors adding rules: $($errors -join '; ')"
+            catch {
+                $dialogRef.DialogResult = $false
+                $dialogRef.Close()
+                Show-Toast -Message "Error adding rules: $($_.Exception.Message)" -Type 'Error'
             }
         }
         else {
