@@ -452,27 +452,37 @@ function Invoke-AddSelectedRulesToPolicy {
             $policyId = $listBoxRef.SelectedItem.Tag
             
             # Collect all rule IDs and call Add-RuleToPolicy ONCE (it accepts arrays)
-            $ruleIds = @($selectedRules | ForEach-Object { $_.Id })
+            $ruleIds = @($selectedRules | ForEach-Object { $_.Id } | Where-Object { $_ })
+            
+            if ($ruleIds.Count -eq 0) {
+                Show-Toast -Message 'No valid rule IDs found.' -Type 'Warning'
+                return
+            }
             
             try {
+                Write-Log -Level Info -Message "Adding $($ruleIds.Count) rules to policy $policyId"
                 $result = Add-RuleToPolicy -PolicyId $policyId -RuleId $ruleIds
                 
                 $dialogRef.DialogResult = $true
                 $dialogRef.Close()
                 
                 if ($result.Success) {
-                    Show-Toast -Message "$($result.Message)" -Type 'Success'
+                    $msg = if ($result.Message) { $result.Message } else { "Added $($ruleIds.Count) rule(s) to policy" }
+                    Show-Toast -Message $msg -Type 'Success'
                     # Reset virtual selection after successful operation
                     $script:AllRulesSelected = $false
                 }
                 else {
-                    Show-Toast -Message "Failed to add rules: $($result.Error)" -Type 'Error'
+                    $errMsg = if ($result.Error) { $result.Error } else { "Unknown error" }
+                    Show-Toast -Message "Failed to add rules: $errMsg" -Type 'Error'
+                    Write-Log -Level Error -Message "Add to policy failed: $errMsg"
                 }
             }
             catch {
                 $dialogRef.DialogResult = $false
                 $dialogRef.Close()
                 Show-Toast -Message "Error adding rules: $($_.Exception.Message)" -Type 'Error'
+                Write-Log -Level Error -Message "Add to policy exception: $($_.Exception.Message)"
             }
         }
         else {
