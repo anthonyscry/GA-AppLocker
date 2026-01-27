@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Collects installed Appx/MSIX packages for AppLocker rule generation.
 

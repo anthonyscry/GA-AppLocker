@@ -191,6 +191,7 @@ if (Test-Path $functionPath) {
 Export-ModuleMember -Function @(
     'Get-LocalArtifacts',
     'Get-RemoteArtifacts',
+    'Get-AppxArtifacts',
     'Get-AppLockerEventLogs',
     'Start-ArtifactScan',
     'Get-ScanResults',
