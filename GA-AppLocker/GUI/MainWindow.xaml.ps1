@@ -34,6 +34,9 @@ if (Test-Path "$scriptPath\Dialogs") {
 if (Test-Path "$scriptPath\Wizards\SetupWizard.ps1") {
     . "$scriptPath\Wizards\SetupWizard.ps1"
 }
+if (Test-Path "$scriptPath\Wizards\RuleGenerationWizard.ps1") {
+    . "$scriptPath\Wizards\RuleGenerationWizard.ps1"
+}
 
 # Load panel handlers
 . "$scriptPath\Panels\Dashboard.ps1"
