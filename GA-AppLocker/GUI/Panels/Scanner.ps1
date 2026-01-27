@@ -1442,21 +1442,216 @@ function global:Invoke-LaunchRuleWizard {
         }
     }
     
-    # Fallback: Show confirmation dialog before generating (wizard UI not available)
-    $confirmResult = [System.Windows.MessageBox]::Show(
-        "Generate rules from $artifactCount artifacts?`n`nMode: Smart (Publisher for signed, Hash for unsigned)`nAction: Pending (requires approval)`n`nThis may take a minute for large artifact sets.",
-        "Confirm Rule Generation",
-        [System.Windows.MessageBoxButton]::YesNo,
-        [System.Windows.MessageBoxImage]::Question
-    )
+    # Fallback: Show configuration dialog before generating (wizard UI not available)
+    $dialogResult = Show-RuleGenerationConfigDialog -ArtifactCount $artifactCount
     
-    if ($confirmResult -ne [System.Windows.MessageBoxResult]::Yes) {
+    if (-not $dialogResult -or -not $dialogResult.Confirmed) {
         Write-Log -Message "Rule generation cancelled by user"
         return
     }
     
-    # User confirmed - proceed with generation
-    Invoke-DirectRuleGeneration -Window $Window
+    # User confirmed - proceed with generation using their settings
+    Invoke-DirectRuleGenerationWithSettings -Window $Window -Settings $dialogResult
+}
+
+function global:Show-RuleGenerationConfigDialog {
+    <#
+    .SYNOPSIS
+        Shows a configuration dialog for rule generation settings.
+    #>
+    param([int]$ArtifactCount)
+    
+    # Create dialog XAML
+    $dialogXaml = @"
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Rule Generation Settings" 
+        Width="450" Height="480"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        Background="#1E1E1E">
+    <Window.Resources>
+        <SolidColorBrush x:Key="FgBrush" Color="#E0E0E0"/>
+        <SolidColorBrush x:Key="MutedBrush" Color="#808080"/>
+        <SolidColorBrush x:Key="AccentBrush" Color="#0078D4"/>
+        <SolidColorBrush x:Key="ControlBg" Color="#2D2D30"/>
+        <SolidColorBrush x:Key="BorderBrush" Color="#3F3F46"/>
+    </Window.Resources>
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,15">
+            <TextBlock Text="Configure Rule Generation" FontSize="18" FontWeight="SemiBold" Foreground="{StaticResource FgBrush}"/>
+            <TextBlock Text="$ArtifactCount artifacts will be processed" Foreground="{StaticResource MutedBrush}" Margin="0,5,0,0"/>
+        </StackPanel>
+        
+        <!-- Settings -->
+        <StackPanel Grid.Row="1">
+            <!-- Publisher Granularity -->
+            <TextBlock Text="Publisher Granularity" Foreground="{StaticResource FgBrush}" FontWeight="SemiBold" Margin="0,0,0,5"/>
+            <ComboBox x:Name="CboPublisherLevel" Background="{StaticResource ControlBg}" Foreground="{StaticResource FgBrush}" 
+                      BorderBrush="{StaticResource BorderBrush}" Padding="8,6" Margin="0,0,0,15">
+                <ComboBoxItem Content="Publisher + Product (Recommended)" Tag="PublisherProduct" IsSelected="True"/>
+                <ComboBoxItem Content="Publisher + Product + Version" Tag="PublisherProductVersion"/>
+                <ComboBoxItem Content="Publisher Only" Tag="Publisher"/>
+                <ComboBoxItem Content="Publisher + Product + Version + FileName" Tag="PublisherProductVersionFileName"/>
+            </ComboBox>
+            
+            <!-- Rule Action -->
+            <TextBlock Text="Rule Action" Foreground="{StaticResource FgBrush}" FontWeight="SemiBold" Margin="0,0,0,5"/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                <RadioButton x:Name="RbAllow" Content="Allow" Foreground="{StaticResource FgBrush}" IsChecked="True" Margin="0,0,20,0"/>
+                <RadioButton x:Name="RbDeny" Content="Deny" Foreground="{StaticResource FgBrush}"/>
+            </StackPanel>
+            
+            <!-- Target Group -->
+            <TextBlock Text="Target Group" Foreground="{StaticResource FgBrush}" FontWeight="SemiBold" Margin="0,0,0,5"/>
+            <ComboBox x:Name="CboTargetGroup" Background="{StaticResource ControlBg}" Foreground="{StaticResource FgBrush}" 
+                      BorderBrush="{StaticResource BorderBrush}" Padding="8,6" Margin="0,0,0,15">
+                <ComboBoxItem Content="Everyone" Tag="S-1-1-0" IsSelected="True"/>
+                <ComboBoxItem Content="Administrators" Tag="S-1-5-32-544"/>
+                <ComboBoxItem Content="Users" Tag="S-1-5-32-545"/>
+            </ComboBox>
+            
+            <!-- Unsigned File Handling -->
+            <TextBlock Text="Unsigned File Handling" Foreground="{StaticResource FgBrush}" FontWeight="SemiBold" Margin="0,0,0,5"/>
+            <ComboBox x:Name="CboUnsignedMode" Background="{StaticResource ControlBg}" Foreground="{StaticResource FgBrush}" 
+                      BorderBrush="{StaticResource BorderBrush}" Padding="8,6" Margin="0,0,0,15">
+                <ComboBoxItem Content="Hash (Recommended)" Tag="Hash" IsSelected="True"/>
+                <ComboBoxItem Content="Path" Tag="Path"/>
+                <ComboBoxItem Content="Skip (Don't create rules)" Tag="Skip"/>
+            </ComboBox>
+            
+            <!-- Initial Status -->
+            <TextBlock Text="Initial Status" Foreground="{StaticResource FgBrush}" FontWeight="SemiBold" Margin="0,0,0,5"/>
+            <ComboBox x:Name="CboStatus" Background="{StaticResource ControlBg}" Foreground="{StaticResource FgBrush}" 
+                      BorderBrush="{StaticResource BorderBrush}" Padding="8,6" Margin="0,0,0,15">
+                <ComboBoxItem Content="Pending (Requires approval)" Tag="Pending" IsSelected="True"/>
+                <ComboBoxItem Content="Approved" Tag="Approved"/>
+            </ComboBox>
+        </StackPanel>
+        
+        <!-- Buttons -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+            <Button x:Name="BtnCancel" Content="Cancel" Width="100" Padding="10,8" Margin="0,0,10,0"
+                    Background="{StaticResource ControlBg}" Foreground="{StaticResource FgBrush}" 
+                    BorderBrush="{StaticResource BorderBrush}"/>
+            <Button x:Name="BtnGenerate" Content="Generate Rules" Width="120" Padding="10,8"
+                    Background="{StaticResource AccentBrush}" Foreground="White" BorderBrush="{StaticResource AccentBrush}"/>
+        </StackPanel>
+    </Grid>
+</Window>
+"@
+
+    try {
+        # Parse XAML
+        $reader = [System.Xml.XmlReader]::Create([System.IO.StringReader]::new($dialogXaml))
+        $dialog = [System.Windows.Markup.XamlReader]::Load($reader)
+        
+        # Get controls
+        $cboPublisherLevel = $dialog.FindName('CboPublisherLevel')
+        $rbAllow = $dialog.FindName('RbAllow')
+        $rbDeny = $dialog.FindName('RbDeny')
+        $cboTargetGroup = $dialog.FindName('CboTargetGroup')
+        $cboUnsignedMode = $dialog.FindName('CboUnsignedMode')
+        $cboStatus = $dialog.FindName('CboStatus')
+        $btnCancel = $dialog.FindName('BtnCancel')
+        $btnGenerate = $dialog.FindName('BtnGenerate')
+        
+        # Result object
+        $result = @{ Confirmed = $false }
+        
+        # Button handlers
+        $btnCancel.Add_Click({ $dialog.DialogResult = $false; $dialog.Close() })
+        $btnGenerate.Add_Click({
+            $result.Confirmed = $true
+            $result.PublisherLevel = $cboPublisherLevel.SelectedItem.Tag
+            $result.Action = if ($rbAllow.IsChecked) { 'Allow' } else { 'Deny' }
+            $result.TargetSid = $cboTargetGroup.SelectedItem.Tag
+            $result.UnsignedMode = $cboUnsignedMode.SelectedItem.Tag
+            $result.Status = $cboStatus.SelectedItem.Tag
+            $dialog.DialogResult = $true
+            $dialog.Close()
+        })
+        
+        # Show dialog
+        $dialogResult = $dialog.ShowDialog()
+        
+        if ($result.Confirmed) {
+            return [PSCustomObject]$result
+        }
+        return $null
+    }
+    catch {
+        Write-Log -Level Error -Message "Failed to show config dialog: $($_.Exception.Message)"
+        return $null
+    }
+}
+
+function global:Invoke-DirectRuleGenerationWithSettings {
+    <#
+    .SYNOPSIS
+        Generates rules using settings from the configuration dialog.
+    #>
+    param(
+        [System.Windows.Window]$Window,
+        [PSCustomObject]$Settings
+    )
+    
+    $artifactCount = $script:CurrentScanArtifacts.Count
+    Show-Toast -Message "Generating rules from $artifactCount artifacts..." -Type 'Info'
+    Write-Log -Message "Starting batch rule generation for $artifactCount artifacts"
+    Write-Log -Message "Settings: PublisherLevel=$($Settings.PublisherLevel), Action=$($Settings.Action), UnsignedMode=$($Settings.UnsignedMode)"
+    
+    # Show loading overlay
+    if (Get-Command -Name 'Show-LoadingOverlay' -ErrorAction SilentlyContinue) {
+        Show-LoadingOverlay -Message "Generating Rules..." -SubMessage "Processing $artifactCount artifacts..."
+    }
+    
+    try {
+        # Use batch generation with user's settings from dialog
+        $result = Invoke-BatchRuleGeneration -Artifacts $script:CurrentScanArtifacts `
+            -Mode 'Smart' `
+            -Action $Settings.Action `
+            -Status $Settings.Status `
+            -DedupeMode 'Smart' `
+            -PublisherLevel $Settings.PublisherLevel `
+            -UserOrGroupSid $Settings.TargetSid `
+            -UnsignedMode $Settings.UnsignedMode
+        
+        # Hide loading overlay
+        if (Get-Command -Name 'Hide-LoadingOverlay' -ErrorAction SilentlyContinue) {
+            Hide-LoadingOverlay
+        }
+        
+        # Show results
+        $msg = "Created $($result.RulesCreated) rules"
+        if ($result.AlreadyExisted -gt 0) { $msg += " ($($result.AlreadyExisted) already existed)" }
+        Show-Toast -Message $msg -Type 'Success'
+        Write-Log -Message "Batch generation complete: $($result.RulesCreated) created, $($result.AlreadyExisted) existed"
+        
+        # Navigate to Rules panel to see results
+        if (Get-Command -Name 'Set-ActivePanel' -ErrorAction SilentlyContinue) {
+            Set-ActivePanel -PanelName 'PanelRules'
+        }
+        
+        # Auto-refresh the Rules DataGrid to show newly created rules
+        if (Get-Command -Name 'Update-RulesDataGrid' -ErrorAction SilentlyContinue) {
+            Update-RulesDataGrid -Window $Window
+        }
+    }
+    catch {
+        if (Get-Command -Name 'Hide-LoadingOverlay' -ErrorAction SilentlyContinue) {
+            Hide-LoadingOverlay
+        }
+        Show-Toast -Message "Generation failed: $($_.Exception.Message)" -Type 'Error'
+        Write-Log -Level Error -Message "Batch generation failed: $($_.Exception.Message)"
+    }
 }
 
 function global:Invoke-DirectRuleGeneration {
