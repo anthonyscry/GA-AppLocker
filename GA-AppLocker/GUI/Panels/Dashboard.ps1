@@ -37,8 +37,9 @@ function Update-DashboardStats {
 
     # Update stats from actual data
     try {
-        # Update charts
+        # Update charts (uses Get-RuleCounts - fast)
         Update-DashboardCharts -Window $Window
+        
         # Machines count (null-safe)
         $statMachines = $Window.FindName('StatMachines')
         if ($statMachines) { 
@@ -67,50 +68,52 @@ function Update-DashboardStats {
             $statArtifacts.Text = $totalArtifacts.ToString()
         }
 
-        # Rules count
+        # Rules count - use Get-RuleCounts for fast counting from index (no file I/O)
         $statRules = $Window.FindName('StatRules')
         $statPending = $Window.FindName('StatPending')
         $statApproved = $Window.FindName('StatApproved')
         $statRejected = $Window.FindName('StatRejected')
-        $rulesResult = Get-AllRules
-        if ($rulesResult.Success) {
-            $allRules = @($rulesResult.Data)
-            # Rules = Total rules count
+        $countsResult = Get-RuleCounts
+        if ($countsResult.Success) {
+            # Total rules count
             if ($statRules) { 
-                $statRules.Text = $allRules.Count.ToString() 
+                $statRules.Text = $countsResult.Total.ToString() 
             }
-            
-            # Group by status for counts
-            $statusGroups = $allRules | Group-Object Status
             
             # Pending = Rules awaiting approval
             if ($statPending) {
-                $pendingCount = ($statusGroups | Where-Object Name -eq 'Pending' | Select-Object -ExpandProperty Count) -as [int]
-                $statPending.Text = $(if ($pendingCount) { $pendingCount } else { 0 }).ToString()
+                $pendingCount = if ($countsResult.ByStatus['Pending']) { $countsResult.ByStatus['Pending'] } else { 0 }
+                $statPending.Text = $pendingCount.ToString()
             }
             
             # Approved count
             if ($statApproved) {
-                $approvedCount = ($statusGroups | Where-Object Name -eq 'Approved' | Select-Object -ExpandProperty Count) -as [int]
-                $statApproved.Text = $(if ($approvedCount) { $approvedCount } else { 0 }).ToString()
+                $approvedCount = if ($countsResult.ByStatus['Approved']) { $countsResult.ByStatus['Approved'] } else { 0 }
+                $statApproved.Text = $approvedCount.ToString()
             }
             
             # Rejected count
             if ($statRejected) {
-                $rejectedCount = ($statusGroups | Where-Object Name -eq 'Rejected' | Select-Object -ExpandProperty Count) -as [int]
-                $statRejected.Text = $(if ($rejectedCount) { $rejectedCount } else { 0 }).ToString()
+                $rejectedCount = if ($countsResult.ByStatus['Rejected']) { $countsResult.ByStatus['Rejected'] } else { 0 }
+                $statRejected.Text = $rejectedCount.ToString()
             }
 
-            # Populate pending rules list
+            # Populate pending rules list - use direct Storage query for just 10 items
+            # The index already has Name and RuleType fields, so no file I/O needed
             $pendingList = $Window.FindName('DashPendingRules')
             if ($pendingList) {
-                $pendingRules = @($allRules | Where-Object { $_.Status -eq 'Pending' } | Select-Object -First 10 | ForEach-Object {
-                        [PSCustomObject]@{
-                            Type = $_.RuleType
-                            Name = $_.Name
-                        }
-                    })
-                $pendingList.ItemsSource = $pendingRules
+                if (Get-Command -Name 'Get-RulesFromDatabase' -ErrorAction SilentlyContinue) {
+                    $pendingResult = Get-RulesFromDatabase -Status 'Pending' -Take 10
+                    if ($pendingResult.Success) {
+                        $pendingRules = @($pendingResult.Data | ForEach-Object {
+                            [PSCustomObject]@{
+                                Type = $_.RuleType
+                                Name = $_.Name
+                            }
+                        })
+                        $pendingList.ItemsSource = $pendingRules
+                    }
+                }
             }
         }
 
@@ -164,39 +167,31 @@ function Update-DashboardCharts {
     <#
     .SYNOPSIS
         Updates the dashboard chart widgets with current data.
+        
+    .NOTES
+        Uses Get-RuleCounts for fast O(n) counting from index instead of
+        Get-AllRules which loads full payloads from disk (slow with many rules).
     #>
     param([System.Windows.Window]$Window)
     
     try {
-        $rulesResult = Get-AllRules
-        if (-not $rulesResult.Success) { return }
+        $countsResult = Get-RuleCounts
+        if (-not $countsResult.Success) { return }
         
-        $allRules = @($rulesResult.Data)
-        $totalRules = $allRules.Count
+        $totalRules = $countsResult.Total
         
         if ($totalRules -eq 0) { return }
         
-        # Group by status
-        $statusGroups = $allRules | Group-Object Status
-        $approved = ($statusGroups | Where-Object Name -eq 'Approved' | Select-Object -ExpandProperty Count) -as [int]
-        $pending = ($statusGroups | Where-Object Name -eq 'Pending' | Select-Object -ExpandProperty Count) -as [int]
-        $rejected = ($statusGroups | Where-Object Name -eq 'Rejected' | Select-Object -ExpandProperty Count) -as [int]
-        $review = ($statusGroups | Where-Object Name -eq 'Review' | Select-Object -ExpandProperty Count) -as [int]
+        # Get counts by status (already grouped in result)
+        $approved = if ($countsResult.ByStatus['Approved']) { $countsResult.ByStatus['Approved'] } else { 0 }
+        $pending = if ($countsResult.ByStatus['Pending']) { $countsResult.ByStatus['Pending'] } else { 0 }
+        $rejected = if ($countsResult.ByStatus['Rejected']) { $countsResult.ByStatus['Rejected'] } else { 0 }
+        $review = if ($countsResult.ByStatus['Review']) { $countsResult.ByStatus['Review'] } else { 0 }
         
-        if (-not $approved) { $approved = 0 }
-        if (-not $pending) { $pending = 0 }
-        if (-not $rejected) { $rejected = 0 }
-        if (-not $review) { $review = 0 }
-        
-        # Group by rule type
-        $typeGroups = $allRules | Group-Object RuleType
-        $publisherCount = ($typeGroups | Where-Object Name -eq 'Publisher' | Select-Object -ExpandProperty Count) -as [int]
-        $hashCount = ($typeGroups | Where-Object Name -eq 'Hash' | Select-Object -ExpandProperty Count) -as [int]
-        $pathCount = ($typeGroups | Where-Object Name -eq 'Path' | Select-Object -ExpandProperty Count) -as [int]
-        
-        if (-not $publisherCount) { $publisherCount = 0 }
-        if (-not $hashCount) { $hashCount = 0 }
-        if (-not $pathCount) { $pathCount = 0 }
+        # Get counts by rule type (already grouped in result)
+        $publisherCount = if ($countsResult.ByRuleType['Publisher']) { $countsResult.ByRuleType['Publisher'] } else { 0 }
+        $hashCount = if ($countsResult.ByRuleType['Hash']) { $countsResult.ByRuleType['Hash'] } else { 0 }
+        $pathCount = if ($countsResult.ByRuleType['Path']) { $countsResult.ByRuleType['Path'] } else { 0 }
         
         # Calculate max for scaling (use 200 pixels as max width)
         $maxBarWidth = 200
