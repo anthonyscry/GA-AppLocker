@@ -30,6 +30,7 @@
         # Index Management
         'Reset-RulesIndexCache',
         'Rebuild-RulesIndex',
+        'Remove-OrphanedRuleFiles',
         
         # Index Watcher Functions
         'Start-RuleIndexWatcher',

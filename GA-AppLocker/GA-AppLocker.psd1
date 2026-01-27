@@ -168,6 +168,10 @@ Features:
         'Get-RuleIndexWatcherStatus',
         'Set-RuleIndexWatcherDebounce',
         'Invoke-RuleIndexRebuild',
+        # Storage - Index Maintenance
+        'Reset-RulesIndexCache',
+        'Rebuild-RulesIndex',
+        'Remove-OrphanedRuleFiles',
         # Storage - Repository Pattern
         'Get-RuleFromRepository',
         'Save-RuleToRepository',

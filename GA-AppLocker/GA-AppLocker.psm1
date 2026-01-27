@@ -391,6 +391,8 @@ Export-ModuleMember -Function @(
     'Get-RuleIndexWatcherStatus',
     'Set-RuleIndexWatcherDebounce',
     'Invoke-RuleIndexRebuild',
+    # Storage - Maintenance
+    'Remove-OrphanedRuleFiles',
     # Storage - Repository Pattern
     'Get-RuleFromRepository',
     'Save-RuleToRepository',

@@ -916,4 +916,150 @@ function Get-RuleDatabasePath {
 function Test-RuleDatabaseExists {
     return Test-Path (Get-JsonIndexPath)
 }
+
+function Remove-OrphanedRuleFiles {
+    <#
+    .SYNOPSIS
+        Removes rule files that are not in the index.
+    
+    .DESCRIPTION
+        Scans the Rules directory for JSON files that don't have a corresponding
+        entry in the rules index. These orphaned files take up disk space and
+        can slow down directory operations.
+    
+    .PARAMETER WhatIf
+        Show what would be deleted without actually deleting.
+    
+    .PARAMETER Force
+        Skip confirmation prompt.
+    
+    .EXAMPLE
+        Remove-OrphanedRuleFiles -WhatIf
+        # Shows orphaned files without deleting
+    
+    .EXAMPLE
+        Remove-OrphanedRuleFiles -Force
+        # Deletes orphaned files without prompting
+    
+    .OUTPUTS
+        [PSCustomObject] Result with count of files removed.
+    #>
+    [CmdletBinding(SupportsShouldProcess)]
+    [OutputType([PSCustomObject])]
+    param(
+        [switch]$Force
+    )
+    
+    $result = [PSCustomObject]@{
+        Success = $false
+        OrphanedCount = 0
+        RemovedCount = 0
+        BytesFreed = 0
+        OrphanedFiles = @()
+        Error = $null
+    }
+    
+    try {
+        # Ensure index is loaded
+        Initialize-JsonIndex
+        
+        $rulesPath = Get-RuleStoragePath
+        if (-not (Test-Path $rulesPath)) {
+            $result.Success = $true
+            $result.Error = "Rules directory does not exist"
+            return $result
+        }
+        
+        # Get all rule IDs from index
+        $indexedIds = @{}
+        if ($script:JsonIndex.Rules) {
+            foreach ($rule in $script:JsonIndex.Rules) {
+                $indexedIds[$rule.Id] = $true
+            }
+        }
+        
+        Write-StorageLog -Message "Index contains $($indexedIds.Count) rules"
+        
+        # Enumerate files in rules directory using .NET for performance
+        # (Get-ChildItem can be slow with many files)
+        $files = [System.IO.Directory]::EnumerateFiles($rulesPath, '*.json', [System.IO.SearchOption]::TopDirectoryOnly)
+        
+        $orphanedFiles = [System.Collections.Generic.List[PSCustomObject]]::new()
+        $totalBytes = 0
+        $fileCount = 0
+        
+        foreach ($filePath in $files) {
+            $fileCount++
+            $fileName = [System.IO.Path]::GetFileNameWithoutExtension($filePath)
+            
+            # Check if file ID is in index
+            if (-not $indexedIds.ContainsKey($fileName)) {
+                try {
+                    $fileInfo = [System.IO.FileInfo]::new($filePath)
+                    $orphanedFiles.Add([PSCustomObject]@{
+                        Path = $filePath
+                        Name = $fileName
+                        Size = $fileInfo.Length
+                    })
+                    $totalBytes += $fileInfo.Length
+                }
+                catch {
+                    # Skip files we can't access
+                }
+            }
+            
+            # Log progress every 10000 files
+            if ($fileCount % 10000 -eq 0) {
+                Write-StorageLog -Message "Scanned $fileCount files, found $($orphanedFiles.Count) orphaned..."
+            }
+        }
+        
+        $result.OrphanedCount = $orphanedFiles.Count
+        $result.OrphanedFiles = $orphanedFiles.ToArray()
+        $result.BytesFreed = $totalBytes
+        
+        Write-StorageLog -Message "Found $($orphanedFiles.Count) orphaned files ($([math]::Round($totalBytes/1MB, 2)) MB)"
+        
+        if ($orphanedFiles.Count -eq 0) {
+            $result.Success = $true
+            return $result
+        }
+        
+        # Confirm deletion unless -Force or -WhatIf
+        if (-not $Force -and -not $WhatIfPreference) {
+            $sizeMB = [math]::Round($totalBytes / 1MB, 2)
+            $confirm = Read-Host "Delete $($orphanedFiles.Count) orphaned rule files ($sizeMB MB)? [y/N]"
+            if ($confirm -notmatch '^[Yy]') {
+                $result.Success = $true
+                $result.Error = "Cancelled by user"
+                return $result
+            }
+        }
+        
+        # Delete orphaned files
+        $removedCount = 0
+        foreach ($orphan in $orphanedFiles) {
+            if ($PSCmdlet.ShouldProcess($orphan.Path, "Delete orphaned rule file")) {
+                try {
+                    [System.IO.File]::Delete($orphan.Path)
+                    $removedCount++
+                }
+                catch {
+                    Write-StorageLog -Message "Failed to delete $($orphan.Path): $($_.Exception.Message)" -Level 'WARNING'
+                }
+            }
+        }
+        
+        $result.RemovedCount = $removedCount
+        $result.Success = $true
+        
+        Write-StorageLog -Message "Removed $removedCount orphaned rule files"
+    }
+    catch {
+        $result.Error = "Cleanup failed: $($_.Exception.Message)"
+        Write-StorageLog -Message $result.Error -Level 'ERROR'
+    }
+    
+    return $result
+}
 #endregion
