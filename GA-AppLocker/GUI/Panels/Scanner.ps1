@@ -1429,27 +1429,34 @@ function global:Invoke-LaunchRuleWizard {
     $artifactCount = $script:CurrentScanArtifacts.Count
     Write-Log -Message "Launching Rule Generation Wizard with $artifactCount artifacts"
     
-    # Check if wizard is available (RuleGenerationWizard.ps1 loaded)
-    if (Get-Command -Name 'Initialize-RuleGenerationWizard' -ErrorAction SilentlyContinue) {
+    # Check if wizard overlay exists in XAML (not just the PS function)
+    $wizardOverlay = $Window.FindName('RuleWizardOverlay')
+    
+    if ($wizardOverlay -and (Get-Command -Name 'Initialize-RuleGenerationWizard' -ErrorAction SilentlyContinue)) {
         # Launch the 3-step wizard UI
-        Initialize-RuleGenerationWizard -Artifacts $script:CurrentScanArtifacts
-    } else {
-        # Fallback: Show confirmation dialog before generating
-        $confirmResult = [System.Windows.MessageBox]::Show(
-            "Generate rules from $artifactCount artifacts?`n`nMode: Smart (Publisher for signed, Hash for unsigned)`nAction: Pending (requires approval)`n`nThis may take a minute for large artifact sets.",
-            "Confirm Rule Generation",
-            [System.Windows.MessageBoxButton]::YesNo,
-            [System.Windows.MessageBoxImage]::Question
-        )
-        
-        if ($confirmResult -ne [System.Windows.MessageBoxResult]::Yes) {
-            Write-Log -Message "Rule generation cancelled by user"
+        try {
+            Initialize-RuleGenerationWizard -Artifacts $script:CurrentScanArtifacts
             return
+        } catch {
+            Write-Log -Level Warning -Message "Wizard failed, using confirmation dialog: $($_.Exception.Message)"
         }
-        
-        # User confirmed - proceed with generation
-        Invoke-DirectRuleGeneration -Window $Window
     }
+    
+    # Fallback: Show confirmation dialog before generating (wizard UI not available)
+    $confirmResult = [System.Windows.MessageBox]::Show(
+        "Generate rules from $artifactCount artifacts?`n`nMode: Smart (Publisher for signed, Hash for unsigned)`nAction: Pending (requires approval)`n`nThis may take a minute for large artifact sets.",
+        "Confirm Rule Generation",
+        [System.Windows.MessageBoxButton]::YesNo,
+        [System.Windows.MessageBoxImage]::Question
+    )
+    
+    if ($confirmResult -ne [System.Windows.MessageBoxResult]::Yes) {
+        Write-Log -Message "Rule generation cancelled by user"
+        return
+    }
+    
+    # User confirmed - proceed with generation
+    Invoke-DirectRuleGeneration -Window $Window
 }
 
 function global:Invoke-DirectRuleGeneration {
