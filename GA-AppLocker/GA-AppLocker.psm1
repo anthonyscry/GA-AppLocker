@@ -363,20 +363,17 @@ Export-ModuleMember -Function @(
     'Invoke-RuleHistoryCleanup',
     # Rules - Batch Generation
     'Invoke-BatchRuleGeneration',
-    # Storage module (SQLite)
-    'Initialize-RuleDatabase',
-    'Get-RuleDatabasePath',
-    'Test-RuleDatabaseExists',
-    'Add-RuleToDatabase',
-    'Get-RuleFromDatabase',
-    'Get-RulesFromDatabase',
-    'Update-RuleInDatabase',
-    'Remove-RuleFromDatabase',
-    'Import-RulesToDatabase',
+    # Storage module (JSON-based)
+    'Get-RuleStoragePath',
+    'Get-RuleById',
+    'Get-AllRules',
+    'Add-Rule',
+    'Update-Rule',
     'Get-RuleCounts',
     'Find-RuleByHash',
     'Find-RuleByPublisher',
-    'Get-DuplicateRules',
+    'Rebuild-RulesIndex',
+    'Reset-RulesIndexCache',
     # Storage - Bulk Operations
     'Save-RulesBulk',
     'Add-RulesToIndex',

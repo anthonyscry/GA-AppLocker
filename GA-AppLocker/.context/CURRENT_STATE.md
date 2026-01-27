@@ -1,6 +1,6 @@
 # GA-AppLocker Current State
 
-**Last Updated:** 2026-01-23
+**Last Updated:** 2026-01-27
 
 ---
 
@@ -71,19 +71,22 @@ The only failing test (`Get-OUTree`) is expected - requires LDAP server.
 
 ---
 
-## Recent Session Work (Jan 23, 2026)
+## Recent Session Work (Jan 27, 2026)
 
 ### Bug Fixes
-- Fixed `Get-Rule -Id` in JSON fallback mode
-  - Added missing `Get-RuleFromDatabase` function to `JsonIndexFallback.ps1`
-  - Tests improved from 67/70 to 69/70
+- Fixed `Get-RuleById` not exported from main module
+  - Updated GA-AppLocker.psd1 and .psm1 with correct Storage module exports
+  - Removed outdated SQLite-era function names
+- Fixed `Remove-Rule` function conflict
+  - Rules module's Remove-Rule was calling itself with wrong parameters
+  - Changed to call `Remove-RulesBulk` from Storage module
+- Fixed XAML bullet character encoding (cosmetic)
 
-### Previous Session (Jan 22-23, 2026)
+### Previous Session (Jan 23, 2026)
+- Fixed `Get-Rule -Id` in JSON fallback mode
 - Batch rule generation pipeline (10x faster)
 - 3-step Rule Generation Wizard
 - UI cleanup (removed duplicate controls)
-- Rules DataGrid context menu
-- Performance optimization (async UI, O(1) lookups)
 
 ---
 
@@ -91,9 +94,10 @@ The only failing test (`Get-OUTree`) is expected - requires LDAP server.
 
 | Item | Count |
 |------|-------|
-| Rules in Index | ~8,325 |
+| Rules in Index | 0 (user deleted all on Jan 26) |
 | Test Coverage | 69/70 (98.6%) |
 | TODO Items | 21/21 Complete |
+| Exported Commands | ~170 |
 
 ---
 
@@ -103,6 +107,7 @@ The only failing test (`Get-OUTree`) is expected - requires LDAP server.
 |-------|--------|-------|
 | Get-OUTree fails without LDAP | Expected | No domain environment |
 | Async runspace warnings | Minor | Non-blocking, app works |
+| Empty rules database | Expected | User deleted all rules Jan 26, run new scan to repopulate |
 
 ---
 

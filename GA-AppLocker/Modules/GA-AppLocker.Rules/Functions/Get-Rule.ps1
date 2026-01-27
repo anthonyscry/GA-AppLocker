@@ -259,8 +259,8 @@ function Remove-Rule {
         $rule = Get-RuleById -Id $Id
         $ruleName = if ($rule) { $rule.Name } else { $Id }
         
-        # Use storage layer to remove
-        $deleteResult = Remove-Rule -RuleIds @($Id)
+        # Use storage layer to remove (Remove-RulesBulk accepts RuleIds array)
+        $deleteResult = Remove-RulesBulk -RuleIds @($Id)
         
         if ($deleteResult.Success -and $deleteResult.RemovedCount -gt 0) {
             $result.Success = $true

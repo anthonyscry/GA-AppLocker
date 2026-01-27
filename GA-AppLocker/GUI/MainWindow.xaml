@@ -1215,10 +1215,10 @@
                                                                    TextWrapping="Wrap" Margin="0,0,0,10"/>
                                                         
                                                         <StackPanel Margin="10,0,0,15">
-                                                            <TextBlock Text="• Configure generation mode and options" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,4"/>
-                                                            <TextBlock Text="• Set exclusions (DLLs, scripts, unsigned)" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,4"/>
-                                                            <TextBlock Text="• Preview rules before creating" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,4"/>
-                                                            <TextBlock Text="• Batch generate with progress tracking" Foreground="{StaticResource MutedBrush}"/>
+                                                            <TextBlock Text="&#8226; Configure generation mode and options" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,4"/>
+                                                            <TextBlock Text="&#8226; Set exclusions (DLLs, scripts, unsigned)" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,4"/>
+                                                            <TextBlock Text="&#8226; Preview rules before creating" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,4"/>
+                                                            <TextBlock Text="&#8226; Batch generate with progress tracking" Foreground="{StaticResource MutedBrush}"/>
                                                         </StackPanel>
                                                         
                                                         <Button x:Name="BtnLaunchRuleWizardFromScanner" 
@@ -1423,11 +1423,11 @@
                                         <Border Background="#252526" CornerRadius="4" Padding="12" Margin="0,0,0,15">
                                             <StackPanel>
                                                 <TextBlock Text="The wizard provides:" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,8"/>
-                                                <TextBlock Text="• Smart, Publisher, Hash, or Path modes" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,3"/>
-                                                <TextBlock Text="• Exclusions (DLLs, scripts, unsigned)" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,3"/>
-                                                <TextBlock Text="• Deduplication options" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,3"/>
-                                                <TextBlock Text="• Preview before generation" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,3"/>
-                                                <TextBlock Text="• Progress tracking" Foreground="{StaticResource MutedBrush}"/>
+                                                <TextBlock Text="&#8226; Smart, Publisher, Hash, or Path modes" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,3"/>
+                                                <TextBlock Text="&#8226; Exclusions (DLLs, scripts, unsigned)" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,3"/>
+                                                <TextBlock Text="&#8226; Deduplication options" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,3"/>
+                                                <TextBlock Text="&#8226; Preview before generation" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,3"/>
+                                                <TextBlock Text="&#8226; Progress tracking" Foreground="{StaticResource MutedBrush}"/>
                                             </StackPanel>
                                         </Border>
                                         

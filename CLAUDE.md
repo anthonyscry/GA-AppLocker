@@ -924,11 +924,13 @@ Async runspace operations occasionally log warnings because isolated runspaces d
 
 These happen in background operations but don't affect app functionality. The main UI thread works correctly.
 
-## Current App Status (Jan 24, 2026)
+## App Status History (Jan 24, 2026)
 
-**Working:**
+> **Note:** See "Current App Status (Jan 27, 2026)" section below for latest status.
+
+**Working as of Jan 24:**
 - All 8 panels initialize (Dashboard, Discovery, Credentials, Scanner, Rules, Policy, Deployment, Setup)
-- 8,177 rules in index (6,097 approved, 2,080 pending)
+- At that time: 8,177 rules in index (6,097 approved, 2,080 pending)
 - Keyboard shortcuts registered (Ctrl+1-9 navigation, F5 refresh, etc.)
 - Drag-drop handlers registered
 - Session state save/restore
@@ -938,30 +940,6 @@ These happen in background operations but don't affect app functionality. The ma
 - Global search functionality
 - Theme manager (dark/light mode)
 - All index sync operations wired (Set-RuleStatus, Remove-Rule, Restore-RuleVersion)
-
-**Startup Sequence (from logs):**
-```
-1. All nested modules loaded successfully
-2. Starting GA-AppLocker Dashboard v1.0.0
-3. Code-behind loaded successfully
-4. Toast helpers loaded successfully
-5. Main window loaded successfully
-6. Navigation initialized
-7. [Storage] Loaded JSON index with 8325 rules (~8 sec)
-8. Dashboard panel initialized
-9. Discovery panel initialized
-10. Credentials panel initialized
-11. Scanner panel initialized
-12. Rules panel initialized
-13. Policy panel initialized
-14. Deployment panel initialized
-15. Setup panel initialized
-16. Session state restored
-17. Keyboard shortcuts registered
-18. Drag-drop handlers registered
-19. Main window initialized
-20. Window Loaded event fired
-```
 
 ## Debugging Tips
 
@@ -1106,7 +1084,7 @@ GA-AppLocker/GA-AppLocker.psm1                  # Re-export all functions
 ```powershell
 # Verify module loads correctly
 Import-Module '.\GA-AppLocker\GA-AppLocker.psd1' -Force
-(Get-Command -Module GA-AppLocker).Count  # Should be 182
+(Get-Command -Module GA-AppLocker).Count  # Should be ~170
 
 # Verify index sync
 $rule = New-HashRule -Hash ('A' * 64) -SourceFileName 'test.exe' -SourceFileLength 1000 -Save
@@ -1115,4 +1093,102 @@ Set-RuleStatus -Id $rule.Data.Id -Status Approved
 (Get-Rule -Id $rule.Data.Id).Data.Status  # Should be 'Approved'
 Remove-Rule -Id $rule.Data.Id
 Get-RuleCounts  # Should show -1
+```
+
+## Recent Changes (Jan 27, 2026)
+
+### Bug Fixes - Module Export and Remove-Rule
+
+**Issue 1: `Get-RuleById` Not Exported**
+
+The Storage module defined `Get-RuleById` but it wasn't re-exported from the main module. This caused `Remove-Rule` to fail with "Get-RuleById is not recognized".
+
+**Root Cause:** The main module's export lists (both `.psd1` and `.psm1`) had outdated SQLite-era function names that didn't match the current JSON-based Storage module.
+
+**Fix:** Updated both `GA-AppLocker.psd1` and `GA-AppLocker.psm1` to export the correct Storage module functions:
+
+```powershell
+# Old (SQLite-era - no longer exists):
+'Initialize-RuleDatabase', 'Get-RuleDatabasePath', 'Add-RuleToDatabase', ...
+
+# New (JSON-based):
+'Get-RuleStoragePath', 'Get-RuleById', 'Add-Rule', 'Update-Rule', ...
+```
+
+**Issue 2: `Remove-Rule` Function Conflict**
+
+Both the Storage and Rules modules defined `Remove-Rule` with different signatures:
+- **Storage module:** `Remove-Rule -RuleIds @('id1', 'id2')` (bulk delete)
+- **Rules module:** `Remove-Rule -Id 'single-id'` (single delete with logging)
+
+The Rules module's version was calling the Storage version incorrectly, causing parameter binding errors.
+
+**Fix:** Changed Rules module's `Remove-Rule` to call `Remove-RulesBulk` instead:
+
+```powershell
+# Before (broken - recursive call with wrong params):
+$deleteResult = Remove-Rule -RuleIds @($Id)
+
+# After (correct - calls Storage bulk function):
+$deleteResult = Remove-RulesBulk -RuleIds @($Id)
+```
+
+### Files Modified
+
+```
+GA-AppLocker/GA-AppLocker.psd1           # Updated Storage module exports
+GA-AppLocker/GA-AppLocker.psm1           # Updated Storage module exports
+GA-AppLocker/Modules/GA-AppLocker.Rules/Functions/Get-Rule.ps1  # Fixed Remove-Rule
+GA-AppLocker/GUI/MainWindow.xaml         # Cosmetic: bullet character encoding
+```
+
+### Current App Status (Jan 27, 2026)
+
+**Working:**
+- All 8 panels initialize correctly
+- Full CRUD lifecycle works (Create, Read, Update, Delete rules)
+- Index sync operations work
+- Module loads with ~170 exported commands
+- App launches and runs normally
+
+**Data Status:**
+- Rules database is empty (user deleted all 8,207 rules on Jan 26)
+- This is expected state, not a bug
+- Run a new scan to repopulate rules
+
+**Startup Sequence (from logs):**
+```
+1. All nested modules loaded successfully
+2. Starting GA-AppLocker Dashboard v1.0.0
+3. Code-behind loaded successfully
+4. Toast helpers loaded successfully
+5. Main window loaded successfully
+6. Navigation initialized
+7. [Storage] Loaded JSON index with 0 rules
+8. All panels initialized
+9. Session state restored
+10. Window Loaded event fired
+```
+
+### Quick Verification
+
+```powershell
+# Test full rule lifecycle
+Import-Module '.\GA-AppLocker\GA-AppLocker.psd1' -Force
+
+# Create
+$rule = New-HashRule -Hash ('A' * 64) -SourceFileName 'test.exe' -SourceFileLength 1000 -Save
+Write-Host "Created: $($rule.Success)"
+
+# Read
+$retrieved = Get-Rule -Id $rule.Data.Id
+Write-Host "Retrieved: $($retrieved.Success)"
+
+# Update
+$updated = Set-RuleStatus -Id $rule.Data.Id -Status 'Approved'
+Write-Host "Updated: $($updated.Success)"
+
+# Delete (this was broken before the fix)
+$deleted = Remove-Rule -Id $rule.Data.Id
+Write-Host "Deleted: $($deleted.Success)"
 ```
