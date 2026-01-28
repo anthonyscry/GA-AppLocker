@@ -30,22 +30,15 @@ function Get-RuleStoragePath {
     [OutputType([string])]
     param()
     
-    $dataPath = if (Get-Command -Name 'Get-AppLockerDataPath' -ErrorAction SilentlyContinue) {
-        Get-AppLockerDataPath
-    } else {
-        Join-Path $env:LOCALAPPDATA 'GA-AppLocker'
-    }
-    
+    # Use try-catch instead of Get-Command (Get-Command fails in WPF context)
+    $dataPath = try { Get-AppLockerDataPath } catch { Join-Path $env:LOCALAPPDATA 'GA-AppLocker' }
     return Join-Path $dataPath 'Rules'
 }
 
 function script:Get-JsonIndexPath {
     if (-not $script:JsonIndexPath) {
-        $dataPath = if (Get-Command -Name 'Get-AppLockerDataPath' -ErrorAction SilentlyContinue) {
-            Get-AppLockerDataPath
-        } else {
-            Join-Path $env:LOCALAPPDATA 'GA-AppLocker'
-        }
+        # Use try-catch instead of Get-Command (Get-Command fails in WPF context)
+        $dataPath = try { Get-AppLockerDataPath } catch { Join-Path $env:LOCALAPPDATA 'GA-AppLocker' }
         $script:JsonIndexPath = Join-Path $dataPath 'rules-index.json'
     }
     return $script:JsonIndexPath

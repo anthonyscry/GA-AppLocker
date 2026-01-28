@@ -60,12 +60,8 @@ function Save-RulesBulk {
     $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 
     try {
-        # Get rules storage path
-        $dataPath = if (Get-Command -Name 'Get-AppLockerDataPath' -ErrorAction SilentlyContinue) {
-            Get-AppLockerDataPath
-        } else {
-            Join-Path $env:LOCALAPPDATA 'GA-AppLocker'
-        }
+        # Get rules storage path (use try-catch - Get-Command fails in WPF context)
+        $dataPath = try { Get-AppLockerDataPath } catch { Join-Path $env:LOCALAPPDATA 'GA-AppLocker' }
         $rulesPath = Join-Path $dataPath 'Rules'
 
         if (-not (Test-Path $rulesPath)) {
@@ -159,11 +155,8 @@ function Add-RulesToIndex {
         # Ensure index is loaded
         Initialize-JsonIndex
 
-        $dataPath = if (Get-Command -Name 'Get-AppLockerDataPath' -ErrorAction SilentlyContinue) {
-            Get-AppLockerDataPath
-        } else {
-            Join-Path $env:LOCALAPPDATA 'GA-AppLocker'
-        }
+        # Use try-catch instead of Get-Command (Get-Command fails in WPF context)
+        $dataPath = try { Get-AppLockerDataPath } catch { Join-Path $env:LOCALAPPDATA 'GA-AppLocker' }
         $rulesPath = Join-Path $dataPath 'Rules'
 
         $skipped = 0

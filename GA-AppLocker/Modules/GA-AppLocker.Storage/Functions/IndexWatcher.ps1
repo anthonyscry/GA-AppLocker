@@ -54,13 +54,9 @@ function Start-RuleIndexWatcher {
             Stop-RuleIndexWatcher | Out-Null
         }
 
-        # Determine path to watch
+        # Determine path to watch (use try-catch - Get-Command fails in WPF context)
         if (-not $RulesPath) {
-            $dataPath = if (Get-Command -Name 'Get-AppLockerDataPath' -ErrorAction SilentlyContinue) {
-                Get-AppLockerDataPath
-            } else {
-                Join-Path $env:LOCALAPPDATA 'GA-AppLocker'
-            }
+            $dataPath = try { Get-AppLockerDataPath } catch { Join-Path $env:LOCALAPPDATA 'GA-AppLocker' }
             $RulesPath = Join-Path $dataPath 'Rules'
         }
 
