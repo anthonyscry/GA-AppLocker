@@ -4,29 +4,28 @@
 function Initialize-DashboardPanel {
     param([System.Windows.Window]$Window)
 
-    # Wire up quick action buttons
+    # Wire up navigation buttons
     $btnGoToScanner = $Window.FindName('BtnDashGoToScanner')
     if ($btnGoToScanner) { $btnGoToScanner.Add_Click({ Invoke-ButtonAction -Action 'NavScanner' }) }
 
     $btnGoToRules = $Window.FindName('BtnDashGoToRules')
     if ($btnGoToRules) { $btnGoToRules.Add_Click({ Invoke-ButtonAction -Action 'NavRules' }) }
 
-    $btnQuickScan = $Window.FindName('BtnDashQuickScan')
-    if ($btnQuickScan) { $btnQuickScan.Add_Click({ Invoke-ButtonAction -Action 'NavScanner' }) }
+    # Wire up Getting Started buttons
+    $btnGS1 = $Window.FindName('BtnGettingStarted1')
+    if ($btnGS1) { $btnGS1.Add_Click({ Invoke-ButtonAction -Action 'NavDiscovery' }) }
 
-    $btnQuickImport = $Window.FindName('BtnDashQuickImport')
-    if ($btnQuickImport) { $btnQuickImport.Add_Click({ Invoke-ButtonAction -Action 'NavScanner' }) }
+    $btnGS2 = $Window.FindName('BtnGettingStarted2')
+    if ($btnGS2) { $btnGS2.Add_Click({ Invoke-ButtonAction -Action 'NavScanner' }) }
 
-    $btnQuickDeploy = $Window.FindName('BtnDashQuickDeploy')
-    if ($btnQuickDeploy) { $btnQuickDeploy.Add_Click({ Invoke-ButtonAction -Action 'NavDeploy' }) }
+    $btnGS3 = $Window.FindName('BtnGettingStarted3')
+    if ($btnGS3) { $btnGS3.Add_Click({ Invoke-ButtonAction -Action 'NavRules' }) }
 
-    # Bulk approve trusted vendors button
-    $btnApproveTrusted = $Window.FindName('BtnDashApproveTrusted')
-    if ($btnApproveTrusted) { $btnApproveTrusted.Add_Click({ Invoke-ButtonAction -Action 'ApproveTrustedVendors' }) }
+    $btnGS4 = $Window.FindName('BtnGettingStarted4')
+    if ($btnGS4) { $btnGS4.Add_Click({ Invoke-ButtonAction -Action 'NavPolicy' }) }
 
-    # Remove duplicates button
-    $btnRemoveDuplicates = $Window.FindName('BtnDashRemoveDuplicates')
-    if ($btnRemoveDuplicates) { $btnRemoveDuplicates.Add_Click({ Invoke-ButtonAction -Action 'RemoveDuplicateRules' }) }
+    $btnGS5 = $Window.FindName('BtnGettingStarted5')
+    if ($btnGS5) { $btnGS5.Add_Click({ Invoke-ButtonAction -Action 'NavDeploy' }) }
 
     # Load dashboard data
     Update-DashboardStats -Window $Window

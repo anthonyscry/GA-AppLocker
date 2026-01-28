@@ -214,9 +214,7 @@ function Import-RulesFromXml {
             $message += " ($skippedCount duplicates skipped)"
         }
         
-        if (Get-Command -Name 'Write-AppLockerLog' -ErrorAction SilentlyContinue) {
-            Write-AppLockerLog -Message $message -Level 'INFO'
-        }
+        try { Write-AppLockerLog -Message $message -Level 'INFO' } catch { }
         
         return @{
             Success = $true
@@ -227,9 +225,7 @@ function Import-RulesFromXml {
         }
     }
     catch {
-        if (Get-Command -Name 'Write-AppLockerLog' -ErrorAction SilentlyContinue) {
-            Write-AppLockerLog -Message "Failed to import rules from XML: $($_.Exception.Message)" -Level 'ERROR'
-        }
+        try { Write-AppLockerLog -Message "Failed to import rules from XML: $($_.Exception.Message)" -Level 'ERROR' } catch { }
         return @{
             Success = $false
             Error = $_.Exception.Message

@@ -116,6 +116,7 @@ function global:Invoke-ButtonAction {
         'CreateManualRule' { Invoke-CreateManualRule -Window $win }
         'ExportRulesXml' { Invoke-ExportRulesToXml -Window $win }
         'ExportRulesCsv' { Invoke-ExportRulesToCsv -Window $win }
+        'ImportRulesXml' { Invoke-ImportRulesFromXmlFile -Window $win }
         'RefreshRules' { Update-RulesDataGrid -Window $win -Async }
         'SelectAllRules' { Invoke-SelectAllRules -Window $win }
         'ApproveRule' { Set-SelectedRuleStatus -Window $win -Status 'Approved' }

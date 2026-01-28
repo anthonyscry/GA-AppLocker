@@ -790,65 +790,58 @@
                         </Border>
                         
                         <!-- Column 3: Quick Actions + Activity -->
-                        <Grid Grid.Column="4">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="*"/>
-                            </Grid.RowDefinitions>
-                            
-                            <!-- Quick Actions -->
-                            <Border Grid.Row="0" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="15" Margin="0,0,0,15">
-                                <StackPanel>
-                                    <TextBlock Text="QUICK ACTIONS" FontSize="11" FontWeight="SemiBold" 
-                                               Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
-                                    
-                                    <Button x:Name="BtnDashQuickScan" Content="Start New Scan" 
-                                            Style="{StaticResource ActionButtonStyle}" Background="{StaticResource PrimaryBrush}"
-                                            HorizontalAlignment="Stretch" Margin="0,0,0,8"/>
-                                    
-                                    <Button x:Name="BtnDashQuickImport" Content="Import Artifacts" 
-                                            Style="{StaticResource ActionButtonStyle}" Background="{StaticResource SecondaryBrush}"
-                                            HorizontalAlignment="Stretch" Margin="0,0,0,8"/>
-                                    
-                                    <Button x:Name="BtnDashQuickDeploy" Content="Deploy Policy" 
-                                            Style="{StaticResource ActionButtonStyle}" Background="{StaticResource SuccessBrush}"
-                                            HorizontalAlignment="Stretch" Margin="0,0,0,8"/>
-                                    
-                                    <Separator Background="#3E3E42" Margin="0,4,0,8"/>
-                                    
-                                    <Button x:Name="BtnDashApproveTrusted" Content="[+] Approve Trusted" 
-                                            Style="{StaticResource ActionButtonStyle}" Background="#2D7D46"
-                                            HorizontalAlignment="Stretch" Margin="0,0,0,8"
-                                            ToolTip="Approve all rules from trusted vendors (Microsoft, Adobe, etc.)"/>
-                                    
-                                    <Button x:Name="BtnDashRemoveDuplicates" Content="[-] Remove Duplicates" 
-                                            Style="{StaticResource ActionButtonStyle}" Background="#8B5A2B"
-                                            HorizontalAlignment="Stretch"
-                                            ToolTip="Find and remove duplicate rules"/>
-                                </StackPanel>
-                            </Border>
-                            
-                            <!-- Recent Activity -->
-                            <Border Grid.Row="1" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="15">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="*"/>
-                                    </Grid.RowDefinitions>
-                                    
-                                    <TextBlock Grid.Row="0" Text="RECENT ACTIVITY" FontSize="11" FontWeight="SemiBold" 
-                                               Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
-                                    
-                                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                                        <TextBlock x:Name="RecentActivityText"
-                                                   Text="No recent activity.&#x0a;&#x0a;Get started:&#x0a;1. Go to AD Discovery&#x0a;2. Scan for machines&#x0a;3. Generate rules&#x0a;4. Build policies&#x0a;5. Deploy to GPOs"
-                                                   Foreground="{StaticResource MutedBrush}"
-                                                   TextWrapping="Wrap"
-                                                   LineHeight="20"/>
-                                    </ScrollViewer>
-                                </Grid>
-                            </Border>
-                        </Grid>
+                        <!-- Getting Started -->
+                        <Border Grid.Column="4" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="15">
+                            <StackPanel>
+                                <TextBlock Text="GETTING STARTED" FontSize="11" FontWeight="SemiBold" 
+                                           Foreground="{StaticResource MutedBrush}" Margin="0,0,0,15"/>
+                                
+                                <Button x:Name="BtnGettingStarted1" Tag="NavDiscovery"
+                                        HorizontalAlignment="Stretch" Margin="0,0,0,8" Padding="12,10"
+                                        Background="Transparent" BorderThickness="0" Cursor="Hand">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="1." Foreground="{StaticResource PrimaryBrush}" FontWeight="Bold" Width="20"/>
+                                        <TextBlock Text="Discover machines in AD" Foreground="{StaticResource ForegroundBrush}"/>
+                                    </StackPanel>
+                                </Button>
+                                
+                                <Button x:Name="BtnGettingStarted2" Tag="NavScanner"
+                                        HorizontalAlignment="Stretch" Margin="0,0,0,8" Padding="12,10"
+                                        Background="Transparent" BorderThickness="0" Cursor="Hand">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="2." Foreground="{StaticResource PrimaryBrush}" FontWeight="Bold" Width="20"/>
+                                        <TextBlock Text="Scan machines for software" Foreground="{StaticResource ForegroundBrush}"/>
+                                    </StackPanel>
+                                </Button>
+                                
+                                <Button x:Name="BtnGettingStarted3" Tag="NavRules"
+                                        HorizontalAlignment="Stretch" Margin="0,0,0,8" Padding="12,10"
+                                        Background="Transparent" BorderThickness="0" Cursor="Hand">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="3." Foreground="{StaticResource PrimaryBrush}" FontWeight="Bold" Width="20"/>
+                                        <TextBlock Text="Generate AppLocker rules" Foreground="{StaticResource ForegroundBrush}"/>
+                                    </StackPanel>
+                                </Button>
+                                
+                                <Button x:Name="BtnGettingStarted4" Tag="NavPolicy"
+                                        HorizontalAlignment="Stretch" Margin="0,0,0,8" Padding="12,10"
+                                        Background="Transparent" BorderThickness="0" Cursor="Hand">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="4." Foreground="{StaticResource PrimaryBrush}" FontWeight="Bold" Width="20"/>
+                                        <TextBlock Text="Build policies from rules" Foreground="{StaticResource ForegroundBrush}"/>
+                                    </StackPanel>
+                                </Button>
+                                
+                                <Button x:Name="BtnGettingStarted5" Tag="NavDeploy"
+                                        HorizontalAlignment="Stretch" Margin="0,0,0,8" Padding="12,10"
+                                        Background="Transparent" BorderThickness="0" Cursor="Hand">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="5." Foreground="{StaticResource PrimaryBrush}" FontWeight="Bold" Width="20"/>
+                                        <TextBlock Text="Deploy to Group Policy" Foreground="{StaticResource ForegroundBrush}"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </Border>
                     </Grid>
                 </Grid>
 
@@ -1493,9 +1486,30 @@
                                     </StackPanel>
                                 </TabItem>
                                 
-                                <!-- Tab 3: Export Options -->
-                                <TabItem Header="Export">
+                                <!-- Tab 3: Import / Export -->
+                                <TabItem Header="Import / Export">
                                     <StackPanel Margin="15">
+                                        <!-- Import Section -->
+                                        <TextBlock Text="IMPORT FROM XML" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
+
+                                        <CheckBox x:Name="ChkImportSkipDuplicates" 
+                                                  Content="Skip duplicate rules"
+                                                  IsChecked="True"
+                                                  Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,10"/>
+
+                                        <TextBlock Text="Initial Status:" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,5"/>
+                                        <ComboBox x:Name="CboImportStatus" Style="{StaticResource ComboBoxStyle}" Margin="0,0,0,10">
+                                            <ComboBoxItem Content="Pending" Tag="Pending" IsSelected="True"/>
+                                            <ComboBoxItem Content="Approved" Tag="Approved"/>
+                                            <ComboBoxItem Content="Review" Tag="Review"/>
+                                        </ComboBox>
+
+                                        <Button x:Name="BtnImportRulesXml" 
+                                                Content="Import AppLocker XML..."
+                                                Style="{StaticResource PrimaryButtonStyle}"
+                                                Tag="ImportRulesXml" Margin="0,0,0,20"/>
+
+                                        <!-- Export Section -->
                                         <TextBlock Text="EXPORT OPTIONS" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
 
                                         <CheckBox x:Name="ChkExportApprovedOnly" 

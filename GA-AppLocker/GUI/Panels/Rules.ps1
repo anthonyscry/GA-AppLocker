@@ -850,11 +850,6 @@ function global:Invoke-RemoveDuplicateRules {
 function global:Invoke-ExportRulesToXml {
     param([System.Windows.Window]$Window)
 
-    if (-not (Get-Command -Name 'Export-RulesToXml' -ErrorAction SilentlyContinue)) {
-        Show-Toast -Message 'Export-RulesToXml function not available.' -Type 'Error'
-        return
-    }
-
     $approvedOnly = $Window.FindName('ChkExportApprovedOnly').IsChecked
 
     Add-Type -AssemblyName System.Windows.Forms
@@ -942,11 +937,6 @@ function global:Invoke-ImportRulesFromXmlFile {
         Opens file dialog and imports rules from AppLocker XML.
     #>
     param([System.Windows.Window]$Window)
-
-    if (-not (Get-Command -Name 'Import-RulesFromXml' -ErrorAction SilentlyContinue)) {
-        Show-Toast -Message 'Import-RulesFromXml function not available.' -Type 'Error'
-        return
-    }
 
     # Get import options from UI
     $skipDuplicates = $Window.FindName('ChkImportSkipDuplicates').IsChecked
