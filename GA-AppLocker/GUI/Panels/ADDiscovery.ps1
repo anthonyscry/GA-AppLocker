@@ -121,9 +121,24 @@ function global:Invoke-DomainRefresh {
             }
         }
         else {
+            $errorMsg = $Result.DomainResult.Error
             if ($domainLabel) {
-                $domainLabel.Text = "Domain: Error - $($Result.DomainResult.Error)"
+                # Show short error in label
+                $shortError = if ($errorMsg.Length -gt 50) { $errorMsg.Substring(0, 50) + '...' } else { $errorMsg }
+                $domainLabel.Text = "Domain: Error - $shortError"
                 $domainLabel.Foreground = [System.Windows.Media.Brushes]::OrangeRed
+            }
+            # Update tree view to show error state
+            if ($treeView) {
+                $treeView.Items.Clear()
+                $errorItem = [System.Windows.Controls.TreeViewItem]::new()
+                $errorItem.Header = "Unable to connect to domain"
+                $errorItem.Foreground = [System.Windows.Media.Brushes]::OrangeRed
+                $treeView.Items.Add($errorItem)
+            }
+            # Show full error in toast
+            if (Get-Command -Name 'Show-Toast' -ErrorAction SilentlyContinue) {
+                Show-Toast -Message "Domain discovery failed: $errorMsg" -Type 'Error' -Duration 8000
             }
         }
     }.GetNewClosure()
@@ -131,24 +146,46 @@ function global:Invoke-DomainRefresh {
     $onError = {
         param($ErrorMessage)
         if ($domainLabel) {
-            $domainLabel.Text = "Domain: Error - $ErrorMessage"
+            # Show short error in label
+            $shortError = if ($ErrorMessage.Length -gt 50) { $ErrorMessage.Substring(0, 50) + '...' } else { $ErrorMessage }
+            $domainLabel.Text = "Domain: Error - $shortError"
             $domainLabel.Foreground = [System.Windows.Media.Brushes]::OrangeRed
+        }
+        # Update tree view to show error state
+        if ($treeView) {
+            $treeView.Items.Clear()
+            $errorItem = [System.Windows.Controls.TreeViewItem]::new()
+            $errorItem.Header = "Unable to connect to domain"
+            $errorItem.Foreground = [System.Windows.Media.Brushes]::OrangeRed
+            $treeView.Items.Add($errorItem)
+        }
+        # Show full error in toast
+        if (Get-Command -Name 'Show-Toast' -ErrorAction SilentlyContinue) {
+            Show-Toast -Message "Domain discovery failed: $ErrorMessage" -Type 'Error' -Duration 8000
         }
     }.GetNewClosure()
 
-    # Use async if requested and available
-    if ($Async -and (Get-Command -Name 'Invoke-AsyncOperation' -ErrorAction SilentlyContinue)) {
-        Invoke-AsyncOperation -ScriptBlock $discoveryWork -LoadingMessage 'Discovering domain...' -LoadingSubMessage 'Querying Active Directory' -OnComplete $onComplete -OnError $onError
+    # Run domain discovery synchronously - async runspaces have module import issues
+    # Domain discovery is quick and doesn't need background execution
+    try {
+        # Show loading indicator
+        if (Get-Command -Name 'Show-LoadingOverlay' -ErrorAction SilentlyContinue) {
+            Show-LoadingOverlay -Message 'Discovering domain...' -SubMessage 'Querying Active Directory'
+        }
+
+        $result = & $discoveryWork
+
+        if (Get-Command -Name 'Hide-LoadingOverlay' -ErrorAction SilentlyContinue) {
+            Hide-LoadingOverlay
+        }
+
+        & $onComplete -Result $result
     }
-    else {
-        # Synchronous fallback
-        try {
-            $result = & $discoveryWork
-            & $onComplete -Result $result
+    catch {
+        if (Get-Command -Name 'Hide-LoadingOverlay' -ErrorAction SilentlyContinue) {
+            Hide-LoadingOverlay
         }
-        catch {
-            & $onError -ErrorMessage $_.Exception.Message
-        }
+        & $onError -ErrorMessage $_.Exception.Message
     }
 }
 
@@ -262,17 +299,27 @@ function global:Invoke-ConnectivityTest {
         }
     }.GetNewClosure()
 
-    # Use async if requested and available
-    if ($Async -and (Get-Command -Name 'Invoke-AsyncOperation' -ErrorAction SilentlyContinue)) {
-        Invoke-AsyncOperation -ScriptBlock {
-            param($Machines)
-            Test-MachineConnectivity -Machines $Machines
-        } -Arguments @{ Machines = $machines } -LoadingMessage 'Testing connectivity...' -LoadingSubMessage "Checking $($machines.Count) machines" -OnComplete $onComplete
-    }
-    else {
-        # Synchronous fallback
+    # Run connectivity test synchronously - async runspaces have module import issues
+    try {
+        if (Get-Command -Name 'Show-LoadingOverlay' -ErrorAction SilentlyContinue) {
+            Show-LoadingOverlay -Message 'Testing connectivity...' -SubMessage "Checking $($machines.Count) machines"
+        }
+
         $testResult = Test-MachineConnectivity -Machines $machines
+
+        if (Get-Command -Name 'Hide-LoadingOverlay' -ErrorAction SilentlyContinue) {
+            Hide-LoadingOverlay
+        }
+
         & $onComplete -Result $testResult
+    }
+    catch {
+        if (Get-Command -Name 'Hide-LoadingOverlay' -ErrorAction SilentlyContinue) {
+            Hide-LoadingOverlay
+        }
+        if ($machineCount) {
+            $machineCount.Text = "Error: $($_.Exception.Message)"
+        }
     }
 }
 
