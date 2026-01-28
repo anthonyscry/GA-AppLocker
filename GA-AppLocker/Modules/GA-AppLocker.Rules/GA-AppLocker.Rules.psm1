@@ -211,51 +211,64 @@ function script:ConvertTo-AppLockerXmlRule {
     <#
     .SYNOPSIS
         Converts a rule object to AppLocker XML format.
+    .DESCRIPTION
+        Produces XML compatible with Windows Set-AppLockerPolicy / GPMC import.
+        All attributes are guaranteed to have valid non-empty values.
     #>
     param([PSCustomObject]$Rule)
 
-    # Default to 'Allow' if Action is missing, empty, or whitespace (required by AppLocker schema)
+    # --- Shared defaults (required by AppLocker schema) ---
     $action = 'Allow'
     if ($Rule.Action) {
         $trimmed = "$($Rule.Action)".Trim()
-        if ($trimmed -eq 'Allow' -or $trimmed -eq 'Deny') {
-            $action = $trimmed
-        }
+        if ($trimmed -eq 'Allow' -or $trimmed -eq 'Deny') { $action = $trimmed }
     }
 
-    $userOrGroupSid = $Rule.UserOrGroupSid
-    if ([string]::IsNullOrWhiteSpace($userOrGroupSid)) {
-        $userOrGroupSid = 'S-1-1-0'  # Everyone
-    }
-    
+    $userOrGroupSid = if (-not [string]::IsNullOrWhiteSpace($Rule.UserOrGroupSid)) { $Rule.UserOrGroupSid } else { 'S-1-1-0' }
+    $name = if (-not [string]::IsNullOrWhiteSpace($Rule.Name)) { [System.Security.SecurityElement]::Escape($Rule.Name) } else { 'Unnamed Rule' }
+    $description = if ($Rule.Description) { [System.Security.SecurityElement]::Escape($Rule.Description) } else { '' }
+    $id = $Rule.Id
+
     switch ($Rule.RuleType) {
         'Publisher' {
+            $publisherName = if (-not [string]::IsNullOrWhiteSpace($Rule.PublisherName)) { [System.Security.SecurityElement]::Escape($Rule.PublisherName) } else { '*' }
+            $productName   = if (-not [string]::IsNullOrWhiteSpace($Rule.ProductName))   { [System.Security.SecurityElement]::Escape($Rule.ProductName) }   else { '*' }
+            $binaryName    = if (-not [string]::IsNullOrWhiteSpace($Rule.BinaryName))    { [System.Security.SecurityElement]::Escape($Rule.BinaryName) }    else { '*' }
+            $minVersion    = if (-not [string]::IsNullOrWhiteSpace($Rule.MinVersion))    { $Rule.MinVersion } else { '*' }
+            $maxVersion    = if (-not [string]::IsNullOrWhiteSpace($Rule.MaxVersion))    { $Rule.MaxVersion } else { '*' }
+
             @"
-    <FilePublisherRule Id="$($Rule.Id)" Name="$([System.Security.SecurityElement]::Escape($Rule.Name))" Description="$([System.Security.SecurityElement]::Escape($Rule.Description))" UserOrGroupSid="$userOrGroupSid" Action="$action">
+    <FilePublisherRule Id="$id" Name="$name" Description="$description" UserOrGroupSid="$userOrGroupSid" Action="$action">
       <Conditions>
-        <FilePublisherCondition PublisherName="$([System.Security.SecurityElement]::Escape($Rule.PublisherName))" ProductName="$([System.Security.SecurityElement]::Escape($Rule.ProductName))" BinaryName="$([System.Security.SecurityElement]::Escape($Rule.BinaryName))">
-          <BinaryVersionRange LowSection="$($Rule.MinVersion)" HighSection="$($Rule.MaxVersion)" />
+        <FilePublisherCondition PublisherName="$publisherName" ProductName="$productName" BinaryName="$binaryName">
+          <BinaryVersionRange LowSection="$minVersion" HighSection="$maxVersion" />
         </FilePublisherCondition>
       </Conditions>
     </FilePublisherRule>
 "@
         }
         'Hash' {
+            $hash           = if ($Rule.Hash) { $Rule.Hash.ToUpper() } else { '0' * 64 }
+            $sourceFileName = if (-not [string]::IsNullOrWhiteSpace($Rule.SourceFileName)) { [System.Security.SecurityElement]::Escape($Rule.SourceFileName) } else { 'Unknown' }
+            $sourceFileLen  = if ($Rule.SourceFileLength -and $Rule.SourceFileLength -gt 0) { $Rule.SourceFileLength } else { 0 }
+
             @"
-    <FileHashRule Id="$($Rule.Id)" Name="$([System.Security.SecurityElement]::Escape($Rule.Name))" Description="$([System.Security.SecurityElement]::Escape($Rule.Description))" UserOrGroupSid="$userOrGroupSid" Action="$action">
+    <FileHashRule Id="$id" Name="$name" Description="$description" UserOrGroupSid="$userOrGroupSid" Action="$action">
       <Conditions>
         <FileHashCondition>
-          <FileHash Type="SHA256" Data="0x$($Rule.Hash.ToUpper())" SourceFileName="$([System.Security.SecurityElement]::Escape($Rule.SourceFileName))" SourceFileLength="$($Rule.SourceFileLength)" />
+          <FileHash Type="SHA256" Data="0x$hash" SourceFileName="$sourceFileName" SourceFileLength="$sourceFileLen" />
         </FileHashCondition>
       </Conditions>
     </FileHashRule>
 "@
         }
         'Path' {
+            $path = if (-not [string]::IsNullOrWhiteSpace($Rule.Path)) { [System.Security.SecurityElement]::Escape($Rule.Path) } else { '*' }
+
             @"
-    <FilePathRule Id="$($Rule.Id)" Name="$([System.Security.SecurityElement]::Escape($Rule.Name))" Description="$([System.Security.SecurityElement]::Escape($Rule.Description))" UserOrGroupSid="$userOrGroupSid" Action="$action">
+    <FilePathRule Id="$id" Name="$name" Description="$description" UserOrGroupSid="$userOrGroupSid" Action="$action">
       <Conditions>
-        <FilePathCondition Path="$([System.Security.SecurityElement]::Escape($Rule.Path))" />
+        <FilePathCondition Path="$path" />
       </Conditions>
     </FilePathRule>
 "@

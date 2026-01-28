@@ -90,7 +90,7 @@ function Import-RulesFromXml {
                     if ($conditions) {
                         $publisherName = $conditions.PublisherName
                         $productName = $conditions.ProductName
-                        
+
                         # Check for duplicate
                         if ($SkipDuplicates -and $publisherName -and $productName) {
                             $key = "$publisherName|$productName".ToLower()
@@ -99,26 +99,33 @@ function Import-RulesFromXml {
                                 continue
                             }
                         }
-                        
-                        $action = $rule.Action
-                        $userOrGroupSid = $rule.UserOrGroupSid
-                        
-                        # Get version info
+
+                        # Default empty values to prevent parameter binding errors
+                        $action = if (-not [string]::IsNullOrWhiteSpace($rule.Action)) { $rule.Action } else { 'Allow' }
+                        $userOrGroupSid = if (-not [string]::IsNullOrWhiteSpace($rule.UserOrGroupSid)) { $rule.UserOrGroupSid } else { 'S-1-1-0' }
+                        $binaryName = if (-not [string]::IsNullOrWhiteSpace($conditions.BinaryName)) { $conditions.BinaryName } else { '*' }
+                        if ([string]::IsNullOrWhiteSpace($productName)) { $productName = '*' }
+
+                        # Get version info - default empty to '*'
                         $binaryVersionRange = $conditions.SelectSingleNode('BinaryVersionRange')
-                        $minVersion = if ($binaryVersionRange) { $binaryVersionRange.LowSection } else { '*' }
-                        $maxVersion = if ($binaryVersionRange) { $binaryVersionRange.HighSection } else { '*' }
-                        
+                        $minVersion = '*'
+                        $maxVersion = '*'
+                        if ($binaryVersionRange) {
+                            if (-not [string]::IsNullOrWhiteSpace($binaryVersionRange.LowSection))  { $minVersion = $binaryVersionRange.LowSection }
+                            if (-not [string]::IsNullOrWhiteSpace($binaryVersionRange.HighSection)) { $maxVersion = $binaryVersionRange.HighSection }
+                        }
+
                         $newRule = New-PublisherRule -PublisherName $publisherName `
                             -ProductName $productName `
-                            -BinaryName ($conditions.BinaryName) `
-                            -MinimumVersion $minVersion `
-                            -MaximumVersion $maxVersion `
+                            -BinaryName $binaryName `
+                            -MinVersion $minVersion `
+                            -MaxVersion $maxVersion `
                             -Action $action `
                             -UserOrGroupSid $userOrGroupSid `
                             -CollectionType $collectionType `
                             -Description "Imported from $([System.IO.Path]::GetFileName($Path))" `
                             -Save
-                        
+
                         if ($newRule.Success) {
                             # Set initial status if not Pending
                             if ($Status -ne 'Pending' -and $newRule.Data.Id) {
@@ -140,10 +147,12 @@ function Import-RulesFromXml {
                     $conditions = $rule.SelectNodes('Conditions/FileHashCondition/FileHash')
                     foreach ($fileHash in $conditions) {
                         $hash = $fileHash.Data
-                        $hashType = $fileHash.Type
                         $sourceFileName = $fileHash.SourceFileName
                         $sourceFileLength = $fileHash.SourceFileLength
-                        
+
+                        # Strip 0x prefix if present (New-HashRule expects raw hex)
+                        if ($hash) { $hash = $hash -replace '^0x', '' }
+
                         # Check for duplicate
                         if ($SkipDuplicates -and $hash) {
                             if ($existingHashes.ContainsKey($hash.ToUpper())) {
@@ -151,20 +160,23 @@ function Import-RulesFromXml {
                                 continue
                             }
                         }
-                        
-                        $action = $rule.Action
-                        $userOrGroupSid = $rule.UserOrGroupSid
-                        
+
+                        # Default empty values to prevent parameter binding errors
+                        $action = if (-not [string]::IsNullOrWhiteSpace($rule.Action)) { $rule.Action } else { 'Allow' }
+                        $userOrGroupSid = if (-not [string]::IsNullOrWhiteSpace($rule.UserOrGroupSid)) { $rule.UserOrGroupSid } else { 'S-1-1-0' }
+                        if ([string]::IsNullOrWhiteSpace($sourceFileName)) { $sourceFileName = $rule.Name; if ([string]::IsNullOrWhiteSpace($sourceFileName)) { $sourceFileName = 'Unknown' } }
+                        $fileLengthInt = 0
+                        if ($sourceFileLength -and $sourceFileLength -match '^\d+$') { $fileLengthInt = [int64]$sourceFileLength }
+
                         $newRule = New-HashRule -Hash $hash `
-                            -HashType $hashType `
                             -SourceFileName $sourceFileName `
-                            -SourceFileLength $sourceFileLength `
+                            -SourceFileLength $fileLengthInt `
                             -Action $action `
                             -UserOrGroupSid $userOrGroupSid `
                             -CollectionType $collectionType `
                             -Description "Imported from $([System.IO.Path]::GetFileName($Path))" `
                             -Save
-                        
+
                         if ($newRule.Success) {
                             if ($Status -ne 'Pending' -and $newRule.Data.Id) {
                                 Set-RuleStatus -Id $newRule.Data.Id -Status $Status | Out-Null
@@ -184,11 +196,11 @@ function Import-RulesFromXml {
                 try {
                     $conditions = $rule.SelectSingleNode('Conditions/FilePathCondition')
                     if ($conditions) {
-                        $path = $conditions.Path
-                        $action = $rule.Action
-                        $userOrGroupSid = $rule.UserOrGroupSid
-                        
-                        $newRule = New-PathRule -Path $path `
+                        $rulePath = $conditions.Path
+                        $action = if (-not [string]::IsNullOrWhiteSpace($rule.Action)) { $rule.Action } else { 'Allow' }
+                        $userOrGroupSid = if (-not [string]::IsNullOrWhiteSpace($rule.UserOrGroupSid)) { $rule.UserOrGroupSid } else { 'S-1-1-0' }
+
+                        $newRule = New-PathRule -Path $rulePath `
                             -Action $action `
                             -UserOrGroupSid $userOrGroupSid `
                             -CollectionType $collectionType `

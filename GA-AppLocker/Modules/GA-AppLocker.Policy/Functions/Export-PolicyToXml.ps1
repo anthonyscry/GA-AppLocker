@@ -233,12 +233,11 @@ function Build-PolicyRuleCollectionXml {
 
         switch ($rule.RuleType) {
             'Publisher' {
-                $publisher = [System.Security.SecurityElement]::Escape($rule.PublisherName)
-                $product = if ($rule.ProductName) { [System.Security.SecurityElement]::Escape($rule.ProductName) } else { '*' }
-                $binaryName = if ($rule.BinaryName) { [System.Security.SecurityElement]::Escape($rule.BinaryName) } else { '*' }
-                # Canonical: MinVersion/MaxVersion (not BinaryVersionLow/BinaryVersionHigh)
-                $minVersion = if ($rule.MinVersion) { $rule.MinVersion } else { '*' }
-                $maxVersion = if ($rule.MaxVersion) { $rule.MaxVersion } else { '*' }
+                $publisher = if (-not [string]::IsNullOrWhiteSpace($rule.PublisherName)) { [System.Security.SecurityElement]::Escape($rule.PublisherName) } else { '*' }
+                $product = if (-not [string]::IsNullOrWhiteSpace($rule.ProductName)) { [System.Security.SecurityElement]::Escape($rule.ProductName) } else { '*' }
+                $binaryName = if (-not [string]::IsNullOrWhiteSpace($rule.BinaryName)) { [System.Security.SecurityElement]::Escape($rule.BinaryName) } else { '*' }
+                $minVersion = if (-not [string]::IsNullOrWhiteSpace($rule.MinVersion)) { $rule.MinVersion } else { '*' }
+                $maxVersion = if (-not [string]::IsNullOrWhiteSpace($rule.MaxVersion)) { $rule.MaxVersion } else { '*' }
 
                 $xml += @"
     <FilePublisherRule Id="$id" Name="$name" Description="$description" UserOrGroupSid="$userSid" Action="$action">
@@ -252,11 +251,9 @@ function Build-PolicyRuleCollectionXml {
 "@
             }
             'Hash' {
-                # Canonical: Hash, SourceFileName, SourceFileLength
-                # Hash must be uppercase with 0x prefix
-                $hash = if ($rule.Hash) { "0x$($rule.Hash.ToUpper())" } else { '' }
-                $fileName = if ($rule.SourceFileName) { [System.Security.SecurityElement]::Escape($rule.SourceFileName) } else { '' }
-                $fileLength = if ($rule.SourceFileLength) { $rule.SourceFileLength } else { '0' }
+                $hash = if ($rule.Hash) { "0x$($rule.Hash.ToUpper())" } else { '0x' + ('0' * 64) }
+                $fileName = if (-not [string]::IsNullOrWhiteSpace($rule.SourceFileName)) { [System.Security.SecurityElement]::Escape($rule.SourceFileName) } else { 'Unknown' }
+                $fileLength = if ($rule.SourceFileLength -and $rule.SourceFileLength -gt 0) { $rule.SourceFileLength } else { 0 }
 
                 $xml += @"
     <FileHashRule Id="$id" Name="$name" Description="$description" UserOrGroupSid="$userSid" Action="$action">
@@ -270,7 +267,7 @@ function Build-PolicyRuleCollectionXml {
 "@
             }
             'Path' {
-                $path = [System.Security.SecurityElement]::Escape($rule.Path)
+                $path = if (-not [string]::IsNullOrWhiteSpace($rule.Path)) { [System.Security.SecurityElement]::Escape($rule.Path) } else { '*' }
 
                 $xml += @"
     <FilePathRule Id="$id" Name="$name" Description="$description" UserOrGroupSid="$userSid" Action="$action">
