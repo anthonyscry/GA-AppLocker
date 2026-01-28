@@ -19,7 +19,7 @@ function global:Start-RuleGenerationAsync {
         [array]$Artifacts,
         [string]$Mode = 'Smart',
         [string]$Action = 'Allow',
-        [string]$TargetGroupSid = 'S-1-1-0',
+        [string]$TargetGroupSid = 'S-1-5-11',
         [string]$PublisherLevel = 'PublisherProduct',
         [scriptblock]$OnComplete
     )

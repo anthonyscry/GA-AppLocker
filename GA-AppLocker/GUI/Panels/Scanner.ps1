@@ -1581,7 +1581,8 @@ function global:Show-RuleGenerationConfigDialog {
             <TextBlock Text="Target Group" Foreground="{StaticResource FgBrush}" FontWeight="SemiBold" Margin="0,0,0,5"/>
             <ComboBox x:Name="CboTargetGroup" Background="{StaticResource ControlBg}" Foreground="{StaticResource FgBrush}" 
                       BorderBrush="{StaticResource BorderBrush}" Padding="8,6" Margin="0,0,0,15">
-                <ComboBoxItem Content="Everyone" Tag="S-1-1-0" IsSelected="True"/>
+                <ComboBoxItem Content="Authenticated Users" Tag="S-1-5-11" IsSelected="True"/>
+                <ComboBoxItem Content="Everyone" Tag="S-1-1-0"/>
                 <ComboBoxItem Content="Administrators" Tag="S-1-5-32-544"/>
                 <ComboBoxItem Content="Users" Tag="S-1-5-32-545"/>
             </ComboBox>
@@ -1772,7 +1773,7 @@ function global:Invoke-DirectRuleGeneration {
         $targetSid = if ($targetCombo -and $targetCombo.SelectedItem -and $targetCombo.SelectedItem.Tag) {
             $targetCombo.SelectedItem.Tag
         } else {
-            'S-1-1-0'  # Everyone
+            'S-1-5-11'  # Authenticated Users
         }
         Write-Log -Message "Target Group SID: $targetSid"
         

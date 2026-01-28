@@ -222,7 +222,7 @@ function Build-PolicyRuleCollectionXml {
         $name = [System.Security.SecurityElement]::Escape($rule.Name)
         $description = if ($rule.Description) { [System.Security.SecurityElement]::Escape($rule.Description) } else { '' }
         $id = $rule.Id  # Canonical: Id (not RuleId)
-        $userSid = if ($rule.UserOrGroupSid) { $rule.UserOrGroupSid } else { 'S-1-1-0' }
+        $userSid = if ($rule.UserOrGroupSid) { $rule.UserOrGroupSid } else { 'S-1-5-11' }  # Authenticated Users
 
         switch ($rule.RuleType) {
             'Publisher' {
