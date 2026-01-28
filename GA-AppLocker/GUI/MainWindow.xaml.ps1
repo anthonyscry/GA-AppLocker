@@ -425,9 +425,11 @@ function script:Update-WorkflowBreadcrumb {
     $rulesCount = $Window.FindName('StageRulesCount')
     $ruleCount = 0
     if (Get-Command -Name 'Get-AllRules' -ErrorAction SilentlyContinue) {
-        $rulesResult = Get-AllRules
+        # Use -Take 1 to minimize data transfer, rely on Total for actual count
+        $rulesResult = Get-AllRules -Take 1
         if ($rulesResult.Success) {
-            $ruleCount = $rulesResult.Data.Count
+            # Use Total (full count) not Data.Count (paginated)
+            $ruleCount = $rulesResult.Total
         }
     }
     if ($rulesStage) {

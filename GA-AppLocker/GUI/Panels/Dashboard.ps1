@@ -97,9 +97,10 @@ function Update-DashboardStats {
             $pendingList = $Window.FindName('DashPendingRules')
             if ($pendingList) {
                 if (Get-Command -Name 'Get-RulesFromDatabase' -ErrorAction SilentlyContinue) {
-                    $pendingResult = Get-RulesFromDatabase -Status 'Pending' -Take 10
-                    if ($pendingResult.Success) {
-                        $pendingRules = @($pendingResult.Data | ForEach-Object {
+                    # Get-RulesFromDatabase returns array directly (not result object)
+                    $pendingData = Get-RulesFromDatabase -Status 'Pending' -Take 10
+                    if ($pendingData -and $pendingData.Count -gt 0) {
+                        $pendingRules = @($pendingData | ForEach-Object {
                             [PSCustomObject]@{
                                 Type = $_.RuleType
                                 Name = $_.Name
