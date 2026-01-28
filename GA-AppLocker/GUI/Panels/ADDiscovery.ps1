@@ -189,7 +189,7 @@ function global:Invoke-DomainRefresh {
     }
 }
 
-function Update-OUTreeView {
+function global:Update-OUTreeView {
     param(
         [System.Windows.Controls.TreeView]$TreeView,
         [array]$OUs
@@ -206,7 +206,7 @@ function Update-OUTreeView {
     }
 }
 
-function New-TreeViewItem {
+function global:New-TreeViewItem {
     param($OU, $AllOUs)
 
     $icon = switch ($OU.MachineType) {
@@ -241,7 +241,7 @@ function New-TreeViewItem {
     return $item
 }
 
-function Update-MachineDataGrid {
+function global:Update-MachineDataGrid {
     param(
         [System.Windows.Window]$Window,
         [array]$Machines
