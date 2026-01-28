@@ -218,7 +218,8 @@ function Build-PolicyRuleCollectionXml {
 
     $xml = ''
     foreach ($rule in $Rules) {
-        $action = $rule.Action
+        # Default to 'Allow' if Action is missing or empty (required by AppLocker schema)
+        $action = if ($rule.Action -and $rule.Action -ne '') { $rule.Action } else { 'Allow' }
         $name = [System.Security.SecurityElement]::Escape($rule.Name)
         $description = if ($rule.Description) { [System.Security.SecurityElement]::Escape($rule.Description) } else { '' }
         $id = $rule.Id  # Canonical: Id (not RuleId)
