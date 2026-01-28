@@ -424,14 +424,14 @@ function script:Update-WorkflowBreadcrumb {
     $rulesStage = $Window.FindName('StageRules')
     $rulesCount = $Window.FindName('StageRulesCount')
     $ruleCount = 0
-    if (Get-Command -Name 'Get-AllRules' -ErrorAction SilentlyContinue) {
+    try {
         # Use -Take 1 to minimize data transfer, rely on Total for actual count
         $rulesResult = Get-AllRules -Take 1
         if ($rulesResult.Success) {
             # Use Total (full count) not Data.Count (paginated)
             $ruleCount = $rulesResult.Total
         }
-    }
+    } catch { }
     if ($rulesStage) {
         $rulesStage.Fill = if ($ruleCount -gt 0) { $successBrush } else { $inactiveBrush }
     }
@@ -443,12 +443,12 @@ function script:Update-WorkflowBreadcrumb {
     $policyStage = $Window.FindName('StagePolicy')
     $policyCount = $Window.FindName('StagePolicyCount')
     $polCount = 0
-    if (Get-Command -Name 'Get-AllPolicies' -ErrorAction SilentlyContinue) {
+    try {
         $policiesResult = Get-AllPolicies
         if ($policiesResult.Success) {
             $polCount = $policiesResult.Data.Count
         }
-    }
+    } catch { }
     if ($policyStage) {
         $policyStage.Fill = if ($polCount -gt 0) { $successBrush } else { $inactiveBrush }
     }
