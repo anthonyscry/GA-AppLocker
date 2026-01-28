@@ -281,7 +281,7 @@ Export-ModuleMember -Function @(
     'New-PathRule',
     'ConvertFrom-Artifact',
     'Get-Rule',
-    'Get-AllRules',
+    # NOTE: Get-AllRules is exported from GA-AppLocker.Storage only (avoids shadowing)
     'Remove-Rule',
     'Export-RulesToXml',
     'Set-RuleStatus',

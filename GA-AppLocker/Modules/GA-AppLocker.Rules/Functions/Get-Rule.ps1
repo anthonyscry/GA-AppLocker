@@ -171,53 +171,13 @@ function Get-Rule {
 .OUTPUTS
     [PSCustomObject] Result with Success and Data.
 #>
-function Get-AllRules {
-    [CmdletBinding()]
-    [OutputType([PSCustomObject])]
-    param(
-        [Parameter()]
-        [ValidateSet('RuleType', 'CollectionType', 'Status', 'Publisher')]
-        [string]$GroupBy,
-        
-        [Parameter()]
-        [int]$Take = 0,
-        
-        [Parameter()]
-        [int]$Skip = 0
-    )
-
-    # Try using Storage layer for fast queries
-    $useStorage = Get-Command -Name 'Get-RulesFromDatabase' -ErrorAction SilentlyContinue
-    
-    if ($useStorage) {
-        # Use indexed storage for fast retrieval
-        $takeParam = if ($Take -gt 0) { $Take } else { 100000 }  # Large default to get all
-        $queryResult = Get-RulesFromDatabase -Take $takeParam -Skip $Skip -FullPayload
-        
-        $result = [PSCustomObject]@{
-            Success = $queryResult.Success
-            Data    = $queryResult.Data
-            Total   = $queryResult.Total
-            Error   = $queryResult.Error
-        }
-    }
-    else {
-        # Fallback to Get-Rule (slow path)
-        $result = Get-Rule
-    }
-
-    if ($result.Success -and $GroupBy -and $result.Data) {
-        $grouped = switch ($GroupBy) {
-            'RuleType' { $result.Data | Group-Object RuleType }
-            'CollectionType' { $result.Data | Group-Object CollectionType }
-            'Status' { $result.Data | Group-Object Status }
-            'Publisher' { $result.Data | Where-Object { $_.RuleType -eq 'Publisher' } | Group-Object PublisherName }
-        }
-        $result.Data = $grouped
-    }
-
-    return $result
-}
+# NOTE: Get-AllRules is now defined ONLY in GA-AppLocker.Storage module (RuleStorage.ps1)
+# This avoids function shadowing issues that caused output pollution.
+# The Storage module's Get-AllRules is exported and available when the parent module loads.
+# 
+# If you need grouping functionality, use:
+#   $result = Get-AllRules
+#   $grouped = $result.Data | Group-Object RuleType
 
 <#
 .SYNOPSIS

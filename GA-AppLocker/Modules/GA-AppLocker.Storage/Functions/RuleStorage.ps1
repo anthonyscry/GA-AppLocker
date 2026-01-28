@@ -90,16 +90,16 @@ function script:Initialize-JsonIndex {
             $script:RuleById = @{}
             
             foreach ($rule in $script:JsonIndex.Rules) {
-                $script:RuleById[$rule.Id] = $rule
+                $null = $script:RuleById[$rule.Id] = $rule
                 
                 if ($rule.Hash) {
-                    $script:HashIndex[$rule.Hash.ToUpper()] = $rule.Id
+                    $null = $script:HashIndex[$rule.Hash.ToUpper()] = $rule.Id
                 }
                 if ($rule.PublisherName) {
                     $key = "$($rule.PublisherName)|$($rule.ProductName)".ToLower()
-                    $script:PublisherIndex[$key] = $rule.Id
+                    $null = $script:PublisherIndex[$key] = $rule.Id
                     $pubOnlyKey = $rule.PublisherName.ToLower()
-                    $script:PublisherOnlyIndex[$pubOnlyKey] = $rule.Id
+                    $null = $script:PublisherOnlyIndex[$pubOnlyKey] = $rule.Id
                 }
             }
             
@@ -239,15 +239,15 @@ function Rebuild-RulesIndex {
         $script:RuleById = @{}
         
         foreach ($rule in $rules) {
-            $script:RuleById[$rule.Id] = $rule
+            $null = $script:RuleById[$rule.Id] = $rule
             if ($rule.Hash) {
-                $script:HashIndex[$rule.Hash.ToUpper()] = $rule.Id
+                $null = $script:HashIndex[$rule.Hash.ToUpper()] = $rule.Id
             }
             if ($rule.PublisherName) {
                 $key = "$($rule.PublisherName)|$($rule.ProductName)".ToLower()
-                $script:PublisherIndex[$key] = $rule.Id
+                $null = $script:PublisherIndex[$key] = $rule.Id
                 $pubOnlyKey = $rule.PublisherName.ToLower()
-                $script:PublisherOnlyIndex[$pubOnlyKey] = $rule.Id
+                $null = $script:PublisherOnlyIndex[$pubOnlyKey] = $rule.Id
             }
         }
         
@@ -365,7 +365,7 @@ function Get-AllRules {
         Error = $null
     }
     
-    Initialize-JsonIndex
+    $null = Initialize-JsonIndex
     
     $rules = $script:JsonIndex.Rules
     if (-not $rules) {
