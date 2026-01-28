@@ -321,40 +321,144 @@ catch {
 
 ## Testing
 
-### Running Tests
-```powershell
-.\Test-AllModules.ps1
+GA-AppLocker has a comprehensive testing infrastructure covering unit tests, integration tests, and UI automation.
+
+### Test Structure
+
+```
+Tests/
+├── Unit/                           # Pester unit tests
+│   ├── Rules.Tests.ps1             # Rule module tests
+│   ├── Storage.Tests.ps1           # Storage module tests
+│   ├── GUI.RulesPanel.Tests.ps1    # GUI logic tests (mocked)
+│   └── ...
+├── Integration/                    # Integration tests
+│   ├── AD.Discovery.Tests.ps1      # Live AD tests
+│   └── Export.PhaseFiltering.Tests.ps1
+├── Automation/                     # Automated test suites
+│   ├── Run-AutomatedTests.ps1      # Unified test runner
+│   ├── UI/
+│   │   └── FlaUIBot.ps1            # UI automation bot
+│   ├── Workflows/
+│   │   └── Test-FullWorkflow.ps1   # E2E workflow tests
+│   └── MockData/
+│       └── New-MockTestData.psm1   # Mock data generator
+└── Performance/                    # Benchmarks
+    └── Benchmark-RuleGeneration.ps1
 ```
 
-### Adding New Tests
-
-Add tests to `Test-AllModules.ps1` following this pattern:
+### Running Tests
 
 ```powershell
-# Test: Description of what's being tested
-try {
-    $result = Your-Function -Param "value"
-    $hasResult = $result.Success -eq $true
-    Write-TestResult -TestName "Your-Function" -Passed $hasResult -Message "Description"
+# Quick module tests
+.\Test-AllModules.ps1
+
+# Pester unit tests
+Invoke-Pester -Path Tests\Unit\ -Output Detailed
+
+# UI automation (requires interactive session)
+.\Tests\Automation\UI\FlaUIBot.ps1 -TestMode Standard
+
+# Full automated suite
+.\Tests\Automation\Run-AutomatedTests.ps1 -All
+
+# With mock data (no AD required)
+.\Tests\Automation\Run-AutomatedTests.ps1 -Workflows -UseMockData
+```
+
+### UI Automation Testing
+
+The `FlaUIBot.ps1` uses Windows UIAutomation to test the WPF GUI:
+
+```powershell
+# Quick navigation test
+.\Tests\Automation\UI\FlaUIBot.ps1 -TestMode Quick
+
+# Standard test (navigation + panel interactions)
+.\Tests\Automation\UI\FlaUIBot.ps1 -TestMode Standard
+
+# Full test (all panels + workflows)
+.\Tests\Automation\UI\FlaUIBot.ps1 -TestMode Full
+
+# Keep dashboard open after tests
+.\Tests\Automation\UI\FlaUIBot.ps1 -TestMode Standard -KeepOpen
+```
+
+**FlaUIBot Features:**
+- `Wait-ForElement`: Retry logic with configurable timeout
+- `Capture-Screenshot`: Auto-screenshot on test failure (saved to `TestResults/`)
+- `Get-DataGridRowCount`: Verify data grid population
+- `Assert-Condition`: Assertions with auto-screenshot on failure
+
+**Important**: UI tests require an interactive PowerShell session. They cannot run in CI/CD pipelines without desktop access.
+
+### Pester Unit Tests
+
+Unit tests use Pester 5+ with mocking for GUI logic:
+
+```powershell
+# Run specific test file
+Invoke-Pester -Path Tests\Unit\GUI.RulesPanel.Tests.ps1 -Output Detailed
+
+# Run all unit tests
+Invoke-Pester -Path Tests\Unit\ -Output Detailed
+```
+
+**Mocking WPF Components:**
+```powershell
+# Create mock window for testing
+$mockWindow = [PSCustomObject]@{}
+$mockWindow | Add-Member -MemberType ScriptMethod -Name 'FindName' -Value {
+    param($name)
+    switch ($name) {
+        'RulesDataGrid' { [PSCustomObject]@{ SelectedItems = @() } }
+        default { $null }
+    }
 }
-catch {
-    Write-TestResult -TestName "Your-Function" -Passed $false -Message "Exception" -Details $_.Exception.Message
-}
+
+# Mock external functions
+Mock -CommandName 'Show-Toast' -MockWith { }
+Mock -CommandName 'Remove-Rules' -MockWith { @{ Success = $true } }
 ```
 
 ### Test Categories
 
-| Category | Tests |
-|----------|-------|
-| Core | 5 tests |
-| Discovery | 4 tests |
-| Credentials | 6 tests |
-| Scanning | 7 tests |
-| Rules | 5 tests |
-| Policy | 6 tests |
-| Deployment | 6 tests |
-| GUI | 5 tests |
-| **Total** | **44 tests** |
+| Category | Location | Framework | CI-Compatible |
+|----------|----------|-----------|---------------|
+| Unit Tests | `Tests/Unit/` | Pester 5+ | ✅ Yes |
+| Integration | `Tests/Integration/` | Pester 5+ | ⚠️ Requires AD |
+| UI Automation | `Tests/Automation/UI/` | UIAutomation | ❌ Interactive only |
+| Workflows | `Tests/Automation/Workflows/` | Custom | ✅ With mock data |
+| Performance | `Tests/Performance/` | Custom | ✅ Yes |
+
+### Adding New Tests
+
+**Pester Unit Test:**
+```powershell
+Describe 'MyFeature' {
+    BeforeAll {
+        Import-Module "$PSScriptRoot\..\..\GA-AppLocker\GA-AppLocker.psd1" -Force
+    }
+    
+    Context 'Function behavior' {
+        It 'Should return success' {
+            $result = My-Function -Param 'value'
+            $result.Success | Should -BeTrue
+        }
+    }
+}
+```
+
+**UI Automation Test (add to FlaUIBot.ps1):**
+```powershell
+# Navigate to panel
+Invoke-Button -Parent $script:Window -Name "My Panel" | Out-Null
+Start-Sleep -Milliseconds $DelayMs
+
+# Find and verify element
+$element = Wait-ForElement -Parent $script:Window -Name "MyButton" -TimeoutSec 10
+Assert-Condition -TestName "MyFeature: Button exists" -Condition ($element -ne $null) -ScreenshotOnFail
+```
 
 ## Data Storage
 
@@ -470,6 +574,23 @@ $result | ConvertTo-Json -Depth 3
 ### "Function not found in closure"
 **Problem**: Button click handlers can't access module functions.
 **Solution**: Make the function global with `function global:FunctionName`.
+
+### "Get-Command fails in WPF dispatcher context"
+**Problem**: `Get-Command -Name 'FunctionName'` returns `$null` when called from WPF event handlers, even though the function exists.
+**Cause**: WPF dispatcher context has limited access to PowerShell command discovery.
+**Solution**: Use try-catch instead of Get-Command checks:
+
+```powershell
+# BAD - fails in WPF context
+if (Get-Command -Name 'SomeFunction' -ErrorAction SilentlyContinue) {
+    SomeFunction
+}
+
+# GOOD - works in WPF context
+try { SomeFunction } catch { }
+```
+
+This pattern was applied across the codebase in commits `be3c62f` through `c261d61`.
 
 ### "XAML parsing error"
 **Problem**: Missing style or resource reference.

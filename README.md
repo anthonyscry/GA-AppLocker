@@ -219,12 +219,31 @@ High-performance indexed storage for rules (handles 35k+ rules efficiently).
 - `Remove-RulesBulk`: Bulk rule deletion with index sync.
 
 ## Testing
-The project includes a comprehensive test suite covering all modules.
+The project includes a comprehensive test suite with unit tests, integration tests, and UI automation.
 
 ```powershell
+# Quick module tests
 .\Test-AllModules.ps1
+
+# Pester unit tests
+Invoke-Pester -Path Tests\Unit\ -Output Detailed
+
+# UI automation (requires interactive session)
+.\Tests\Automation\UI\FlaUIBot.ps1 -TestMode Standard
+
+# Full automated suite
+.\Tests\Automation\Run-AutomatedTests.ps1 -All
 ```
-The suite runs 70 tests (69 passing) to ensure functional correctness and API consistency.
+
+**Test Infrastructure:**
+
+| Type | Location | Description |
+|------|----------|-------------|
+| Unit Tests | `Tests/Unit/` | Pester 5+ tests for module logic |
+| Integration | `Tests/Integration/` | AD and E2E tests |
+| UI Automation | `Tests/Automation/UI/` | WPF GUI testing with UIAutomation |
+| Workflows | `Tests/Automation/Workflows/` | End-to-end workflow tests |
+| Performance | `Tests/Performance/` | Benchmarks for large datasets |
 
 **Test Coverage:**
 - Core module (logging, config, cache, events, validation)
@@ -235,7 +254,10 @@ The suite runs 70 tests (69 passing) to ensure functional correctness and API co
 - Policy module (creation, comparison, snapshots)
 - Deployment module (GPO management)
 - Storage module (index operations, bulk I/O)
+- GUI logic (selection state, filters, navigation)
 - E2E workflow tests
+
+See [DEVELOPMENT.md](DEVELOPMENT.md#testing) for detailed testing documentation.
 
 ## Data Storage
 All application data is stored in: `%LOCALAPPDATA%\GA-AppLocker\`
