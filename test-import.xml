@@ -1,0 +1,2149 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<AppLockerPolicy Version="1">
+  <RuleCollection Type="Exe" EnforcementMode="AuditOnly">    <FileHashRule Id="22e38e4d-f873-4b56-a3db-ec8c4a7efe86" Name="Hash: 7z.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x254CF6411D38903B2440819F7E0A847F0CFEE7F8096CFAD9E90FEA62F42B0C23" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="6073c2f6-1e34-4023-a185-ff094cb402cf" Name="Hash: 7zFM.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x018D74FF917692124DEE0A8A7E6302AECD219D79B049AD95F2F4EEDEA41B4A45" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="8a9dae8a-ab9f-4348-a2cd-5bb17817a8eb" Name="Hash: 7zG.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xEB775B0E8CC349032187C2329FEFCF64F5FEED4D148034C060E227ADF6D38500" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="13d391dc-a04f-42e5-bd24-196c6d360b2c" Name="Hash: Uninstall.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x266BF84CC110ED4B34AEDF904B36B60E29DE0901978B0AA10C7E58CC072C2444" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FilePublisherRule Id="09bc06e7-2133-445d-a482-c4bf9a41b2d4" Name="Publisher: Acer Incorporated - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="E=kevin.liang@acer.com, CN=Acer Incorporated, O=Acer Incorporated, STREET=&quot;7F.-5, No.369, Fuxing N. Rd., Songshan Dist.&quot;, L=Taipei, S=Taipei, C=TW, OID.1.3.6.1.4.1.311.60.2.1.3=TW, SERIALNUMBER=20828393, OID.2.5.4.15=Private Organization" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FilePublisherRule Id="01ad079f-9473-43f0-9da2-0a4dfbc5c03d" Name="Publisher: Acer Incorporated - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=Acer Incorporated, O=Acer Incorporated, STREET=&quot;7F.-5, NO.369, FUXING N. RD., SONGSHAN DIST.&quot;, L=Taipei, S=Taipei, C=TW, OID.1.3.6.1.4.1.311.60.2.1.3=TW, SERIALNUMBER=20828393, OID.2.5.4.15=Private Organization" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FilePublisherRule Id="d27ca3cc-d420-47e6-bb15-3510f991b266" Name="Publisher: Acer Incorporated - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=Acer Incorporated, O=Acer Incorporated, L=Taipei, S=Taipei, C=TW" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FilePublisherRule Id="b268eb2d-043f-4925-93fd-93e7a0ec2f15" Name="Publisher: Adobe Inc. - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=Adobe Inc., OU=Acrobat DC, O=Adobe Inc., L=San Jose, S=ca, C=US, SERIALNUMBER=2748129, OID.2.5.4.15=Private Organization, OID.1.3.6.1.4.1.311.60.2.1.2=Delaware, OID.1.3.6.1.4.1.311.60.2.1.3=US" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FilePublisherRule Id="8fee65c9-0b0e-4da5-a28e-19d8ca0ef4be" Name="Publisher: Shenzhen Tuozhu Technology Co. - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=&quot;Shenzhen Tuozhu Technology Co., Ltd.&quot;, O=&quot;Shenzhen Tuozhu Technology Co., Ltd.&quot;, STREET=前海深港合作区前湾一路1号A栋201室（入驻深圳市前海商务秘书有限公司）, L=Shenzhen, S=Guangdong, C=CN, OID.1.3.6.1.4.1.311.60.2.1.1=SHENZHEN, OID.1.3.6.1.4.1.311.60.2.1.2=GUANGDONG, OID.1.3.6.1.4.1.311.60.2.1.3=CN, SERIALNUMBER=91440300MA5GFQKC9F, OID.2.5.4.15=Private Organization" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FilePublisherRule Id="a328d190-7057-4a96-9e86-635d765bacfa" Name="Publisher: NortonLifeLock Inc. - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=NortonLifeLock Inc., OU=Norton Product Engineering - CM, O=NortonLifeLock Inc., STREET=60 E. Rio Salado Pkwy Suite 600, L=Tempe, S=Arizona, PostalCode=85281, C=US" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FilePublisherRule Id="41cece24-b1c4-4df6-bf51-32f87370baaf" Name="Publisher: Microsoft Windows - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=Microsoft Windows, O=Microsoft Corporation, L=Redmond, S=Washington, C=US" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FilePublisherRule Id="13ab6fb1-da29-4a55-9239-fe85030bc8fc" Name="Publisher: Docker Inc - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=Docker Inc, O=Docker Inc, L=Palo Alto, S=California, C=US, SERIALNUMBER=4817464, OID.2.5.4.15=Private Organization, OID.1.3.6.1.4.1.311.60.2.1.2=Delaware, OID.1.3.6.1.4.1.311.60.2.1.3=US" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FilePublisherRule Id="b7fd7147-d8dd-4bbd-b6bd-1aa1462041f2" Name="Publisher: .NET - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=.NET, O=Microsoft Corporation, L=Redmond, S=Washington, C=US" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FilePublisherRule Id="94e3011a-953d-445f-b042-344f30bfb28b" Name="Publisher: Acer Incorporated - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=Acer Incorporated, O=Acer Incorporated, L=New Taipei, S=New Taipei, C=TW" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FilePublisherRule Id="c0a22fe7-00b2-4a57-9c55-26c7b2ec865e" Name="Publisher: Johannes Schindelin - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=Johannes Schindelin, O=Johannes Schindelin, S=Nordrhein-Westfalen, C=DE" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FileHashRule Id="c02ddefc-a6c8-4723-9581-6b03165d4bb5" Name="Hash: git-receive-pack.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x9F31D88D0A30FD6F22809992964B612AF8FD6F828B7CD904642ECC8AFA4B1AD8" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="b8357bfa-19c5-472d-98d9-59a5ad669be5" Name="Hash: git-upload-pack.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xAC3E2C7B602DB3C3D994963DD8F3711C5CAC9CDF05FAF9B75D29D804E7A5AD99" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="8cc43879-2344-4dff-989b-8f127c66f64e" Name="Hash: adig.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x2CD7602BA595F779AA5AA2B053C732E7BEC02C7730123E383EEC802CFB936AAF" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="bd597a06-e1a7-4917-b87e-ba7164459f06" Name="Hash: ahost.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x65AD9721B581765DE66CB1D0B576732D303A35DF244E591BE75BBE0E7054E8E0" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="8866142f-877a-4591-a0b4-519c47c820a3" Name="Hash: antiword.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xD30A37489C64ADA474D8D5AA5ABB0778A6955D3CE6CDBB7C8C659E37B89D3DA9" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="ad9fa422-1d9e-476c-9a6c-9886b11b5f58" Name="Hash: blocked-file-util.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x93140C0D1B6E4B438EEE64F4C43C564D915CAE75BC56B8486511B831F4E0B64F" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="fe812d11-2617-4737-b06c-5b9077764f7e" Name="Hash: brotli.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xBA1FB21BDACC911FB2BECB98739EEABD87295C646A21B7F2E500DB566EB30DEE" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="ade2933b-9e25-4bcc-a315-8d9a7e2089de" Name="Hash: bunzip2.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x4DD06837CCCA65BB3BE00D9F10BF4350143551D22A068E29345ACFF290A4A6B6" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="b681cffe-4617-431d-97ff-88848ef2fe16" Name="Hash: bzip2recover.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x288E19B3B6AA826FD650C308F4C0756954E5EAD10B4F4AA9DC0E8ADC34B446BB" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="b7126c5c-2aaa-4821-b993-187cb26ef37d" Name="Hash: connect.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xCEB2FD60CD2BB94CE37C875CA502094208C2BFD04B96CDE9A4F994F1D08A3318" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="49dbb725-42c7-41fe-ba4c-908f5f5aa074" Name="Hash: create-shortcut.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xB6B9C18D54274392C0C685148E781E1E5871F5A8DCB19EAF5B5DB1D184C48587" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="a2ac1138-46cb-438d-a806-ebfd8eac74b2" Name="Hash: curl.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x80CFDCC6A9BAB19F3CCACDD8FDA532FD7F4BBE7AE9593FF64E231300E9B4149C" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="e38a1fad-5289-4296-abd7-c47c666a2566" Name="Hash: edit_test.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x041D2342207A248B50AC8EC5AD05FB658FE64FD2DF171480D7D909646DC48B76" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="e082ed8a-1f86-45b0-b258-a55ebed40449" Name="Hash: edit_test_dll.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xD4016CC79B26D37DED3F6B32891501C7F2A0AB5DE6B3831BC7B3616526F9955A" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="712784e8-ec0a-4f0b-b6d1-504f43bcaebf" Name="Hash: envsubst.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x839D966C023AB910F6036A4A0187E696A91F7D4DFA30ADA76B79FCAB1A7DB032" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="a5880d27-5843-4843-83fe-8a933e57a0f6" Name="Hash: gettext.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x1139EE6661321DC593A720441454B9AC1731A1E6DFF7FBC2DC6B49B04666FEAF" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="f69ae14e-c6b9-4cad-8323-215674fe717e" Name="Hash: git-askpass.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x219EE10809E95DC3457B53AF10CBCBE5ED20DCD24CE89E18A7BA3A7A30426FB8" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="0d299e6e-d87c-43b9-b57c-66a6846ea984" Name="Hash: git-askyesno.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x96752FCA8935DF8213BEDE6729C15014A9737927440A5B9F902E734C8DC3110E" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="d9ce367c-6fcf-4a33-a766-ec75840e4221" Name="Hash: git-credential-helper-selector.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xCA826E6C0C07CC457216010F41D32376A5F95737C4EBA25B87434AF1361D40C7" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FilePublisherRule Id="ca217aad-0fcb-4cfc-aae8-78a7f0f03ac2" Name="Publisher: GitHub - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=GitHub, O=GitHub, L=San Francisco, S=California, C=US" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FilePublisherRule Id="02245a7f-70d6-47dd-87b9-30bf46165db2" Name="Publisher: GitHub - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=&quot;GitHub, Inc.&quot;, O=&quot;GitHub, Inc.&quot;, L=San Francisco, S=California, C=US" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FileHashRule Id="d19a5bb9-07ab-4e56-adb2-9d7c63f8b4a9" Name="Hash: lzmadec.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x3A5E1F674438AFE0690BB1BADCE4DF41F952674DA1C82923A21CB65C6270C8FE" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="89f333ad-6195-4cea-ac0e-be67c8d4a9a0" Name="Hash: lzmainfo.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x84C7A6FAEBA0ACA5BCFAC56670773969B499ED48F758EAC12B54DA960C87FC03" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="0fd76322-47b2-4717-ac8c-38fadb04d9cd" Name="Hash: odt2txt.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x9F48F3E03C4A0132D643B959913769C9BB4AF9EB0D5B491C4B7303308928954B" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="6f15690a-db5e-404e-94a2-430bbd281fbc" Name="Hash: openssl.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x060B787EFC1E058068BFE4FF1C162FC40173DF33FFF8CEAC6543D1EBAF340424" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="6271a730-85ff-4c73-9dd6-4b1c49c7f1c8" Name="Hash: p11-kit.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x76C0C8719884C72770811400698B810DC6CAE2329877113BDDAAD1D4467061FB" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="236e1739-f73e-4642-bebd-0944d69de742" Name="Hash: pdftotext.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x252D2B345662BA6D3705D79D53DAD059AA8EF14F9DCF3AFE015FACBF1CA995E0" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="28784944-48a7-45d0-aa51-7a35236b2780" Name="Hash: pkcs1-conv.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x138452AC38683B855DD9F17AFBC67A7F4A6F4FB37A7910528CFB0C56631AC4FD" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="c382a619-a1bc-4b07-9b8d-f3124fe337c9" Name="Hash: printf_gettext.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x9F1AC9370131838F95E508CBF9B7A401797664A0801A75818D0F6C66FBC59D34" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="61a4147a-d382-4f4a-823c-bf996f8ef408" Name="Hash: printf_ngettext.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x1CD5795BDB99463409D7CFA84AAF3855ECADCABF804F134B5E740A971AE6FE69" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="02750fb6-2bf2-4b9e-a2a5-6f1901a758c1" Name="Hash: proxy-lookup.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xDC149A6A04CE503CE7E5A7B98B345260D169031469E55DAD49A0D112ADD339D7" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="ccfd0d60-075a-4e41-b63e-f16f9dca5d33" Name="Hash: psl.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x0BB58F7D75C4D2F52483C9EDA2B910D8ACD1D817F5A716646E231D15940B0DF9" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="532fce13-196e-4cc2-844d-0269d36daa97" Name="Hash: scalar.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x6BCAEBCB424CAD839C7FB9A671DF67BB37B2AE2DF635D154D87C9F593700C5F8" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="eb35e89c-e4ea-40c0-8527-cca0e06e07c8" Name="Hash: sexp-conv.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x5E1DBB245FAD6F9F8300268EAF1D18D6A410912F02BF4C07F9ABF422AB729747" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="ceff4ce6-0f59-42b9-97d2-d962a164683b" Name="Hash: tclsh.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xC578744CFF44C336662EF2D47041A360FE515139DFEDC77294CDC7E227F1ADAE" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="d81b1f35-7360-457f-9370-fde1ecee2c35" Name="Hash: trust.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x30842A072F3EA5203CD7A8A64A659A5E0E3C28ACCFD9915CB834553410D249E7" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="fe18a929-8c17-44b9-8f9a-071ebc48c132" Name="Hash: unxz.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x36DAE09FF6D617E2718C287533B6910FCB6E755519792993633A529533E2BFC4" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="31784d83-7a9c-48e2-8f6a-8ea067e3746e" Name="Hash: WhoUses.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xF9445E10009B905B8B0C846DAFB0136CB2E3B6C8E311EC52C46D91A8BC77329E" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="0ad11f4f-6071-4721-af96-0840bd6f326b" Name="Hash: wish.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xB4BB95512CD24127DB3F170FA377C7A21CF2C348700358AA1E7EAA6DFD3668C8" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="7cd98342-9f90-4de8-9404-40d92cf4444b" Name="Hash: x86_64-w64-mingw32-agrep.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x7FBE3F377D49298A360E7C88DA6B9EE9D90348D4650FFB2CA0E2763E2D1BEC20" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="b09a1d8e-6b9e-4b0b-8cf8-90017f88db70" Name="Hash: xmlwf.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xF29F58A7E6E11986D73D93A665B1CD92CE3AD5B0419E08E20794F44FF260F97C" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="20c1c08e-7120-47c4-a69d-99ee31286b4c" Name="Hash: xzdec.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xB81C45F11404FF4550FD9BF0C7756B05BB5587E4AE1ED8D764201BF73A1CE1C1" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="670eb02e-bac4-4d27-b894-6d176c23ed24" Name="Hash: p11-kit-remote.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xA518ECCB32890EF486CDAB227E38B6785C0FE467E359F655E94DCD5A201F1E51" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="15a95e53-4b58-4cfa-b0e3-9df5259a24f6" Name="Hash: p11-kit-server.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x45CC14503DA774C7A3FDC7758ED0B13AF7A0DF9A879B74D959EEFAEB2F195B5D" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="a94635cb-976d-4a96-99de-138b88612b73" Name="Hash: arch.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xC63DC7B8D578A9A418C3F57CE4172AF9A527901A335A73B542F839D1B1CE4488" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="0eb4d6d8-c45b-41fc-a1d7-b33434f9e63e" Name="Hash: awk.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x4C134A5FB53875692C9422AB068380923E04EA6D4A767D3FBFD8C66CD747BB16" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="4ffbbd26-20f7-48c6-a3cc-1a460025ecc4" Name="Hash: b2sum.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x604DEB03FC039E3588A782010774A9D7B4F785F015323A4F4739AC26070569A4" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="afb283ae-6790-403e-b0ea-930f86be0397" Name="Hash: base32.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xA54E521EFB9C1564607E46BA09CD1C9E33572AACEDB7D249F780FDD2BCA27641" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="8f22cab4-30e2-4fe0-96c8-7099c1f7305b" Name="Hash: base64.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xEF4877B2E3F929FA3E9671FF421FE64A8E50C89B3E11C2263D9B802604586E7C" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="cd18b075-268e-4b61-93ed-b764646556fc" Name="Hash: basename.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x6FE2E201A956304503F808D0909A26D9B49E1A7E99F6EE6D93721AC4A76A7C6E" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="60c2a3d5-d95e-48f5-b759-5ac088cdab65" Name="Hash: basenc.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x39A435A6A46A997417630BBC5374E89F3D34673EB10E65CEE6122A6BB547D47E" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="903b3e2d-7249-4378-b071-25fa001c3b38" Name="Hash: bunzip2.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xAC027E648F7D4BB8172D13A1BC27AC71784D193109AA48E76EFF703AEB0F520D" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="23c1d7c4-ffd0-462d-bee4-4727ae2a7798" Name="Hash: bzip2recover.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x65DBAE306BEFE1505E3ED9079E42E6EC8C08D72FD7A8A95D2BAA25D09BAA75EC" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="fb09d862-5e53-4366-9d90-6caa43c8a1d7" Name="Hash: captoinfo.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x1C2EA16E7B10FC7CC4D057FB144867048978CE5CF3FC2B5D1CEB1472B807CD2A" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="2b1ac600-33e9-47e6-8606-46f8f22bdbff" Name="Hash: cat.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xF1B37048EE5C70FDC31DDE509E562261C9B2D102D94C903393F55B45E883EF90" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="1652b538-5a7f-4014-899a-3e2c01012aa2" Name="Hash: chattr.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xC6ABE8F59AD9244E5F0CA26B00B3325AE24C363336A2497B131930AC8D4CEDC1" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="65edef94-2489-4303-8029-c6e5e7cd7bd0" Name="Hash: chcon.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x97AC075C9B7FBBA4C18EEFE29B5BA2870A047B676E263425C8F4CD83A9607BB0" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="fa4e19cd-11e8-4048-8a24-4957b9b9df7b" Name="Hash: chgrp.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xA73833F67A4493939325B27D8D1B31F53B5B18310EE18139EDCD6D22AC57EF31" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="8c9cf0a5-3bef-4a44-a9b4-eee9974f262d" Name="Hash: chmod.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xFD765E24D91B94DCEDF9B4C070047A964F866C0F079AD47D7462559302736F1C" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="51a3a116-7929-4d67-91de-8398d0804a06" Name="Hash: chown.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x601ACF672040AA81CC8FA07F43D06F44B33C7F6E3396276C94410BF9BA72DE41" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="53d7a4d3-df37-4cd0-99b1-0205222b82b9" Name="Hash: chroot.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x67D990CA052D293FBDB3AABDC417EC3A6E5E04155B9E5497F101AA5E094938D8" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="a7dda0f4-36be-4e70-bd11-bf516647b8ab" Name="Hash: cksum.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xDC8779DD90181C9A74D3FB26B671DA4D5D5B93C9BE59287B9244AB66653B8073" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="fcf537df-9fc8-44bf-a1a4-d27f763286c8" Name="Hash: clear.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xABE4A4AE2C7138EAEBFBAA25A8518CA63D935E79B5A57E0852D0570ED0F6B664" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="8861bb64-e90e-4f22-a894-47d2e4f9f994" Name="Hash: cmp.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x9436E2A0A92E8F31E02077785F075FB62D05074D4CE257C53434B93497B0EB2D" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="a154094a-76d5-4a08-8d79-48e0152559ec" Name="Hash: column.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x30712DA3849A25B0EAD46212B7F2E6279519D62CFC796CBD7E465D2EFF1F0DFD" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="fd1b6e14-ecf1-47c0-b700-d79c0c3e150c" Name="Hash: comm.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x7B1A630ADB1D85B4F3DD8247A45A914EAD7BC34E8B72B8C4A1F12BAA82AA80F4" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="879500e4-de18-4956-b408-1ee506d2d15b" Name="Hash: cp.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x5F91E0B445EDB4E4C17E9A660AC29239F6CAC5A821A173A86D4332B9EAA8CEA3" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="4420bba2-a529-44c8-8b67-f0605b4176ea" Name="Hash: csplit.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x730846A83BC6C4F4EB4675B373D9204E8E5961876E17AC6B0BD9F9755559FBD6" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="41ee5774-ac06-46ff-bf40-bb9e11bbd2cf" Name="Hash: cut.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x63FCFB76C80D57538312A9637429D5A4B99AC83E8B00D95684609B4C045471E9" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="fc795271-4f17-43ed-b2c3-fca3238ea7ba" Name="Hash: cygcheck.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x776FEF97C75A0913947AD6F7D21053FCEE8325B429CC520899F718E0EC2EE8BE" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="daa96a04-59d3-493f-91aa-0eda4c39e93c" Name="Hash: cygpath.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x5E701F516240EF651896DE22DA94C3DD72C603108201276920DFCF3FAE6502BD" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="198dc703-66d8-4d7c-af8a-7de0b49fafe2" Name="Hash: cygwin-console-helper.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x49EEC19FACBA8AC86D0A0882877843AA6CF7DB8EF3C1D0194651CAA23DFE2A06" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="c49925b1-5368-47f1-95b6-a5ea1cb5a49d" Name="Hash: d2u.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x016BF8C58A780EC950CB4766A481FBC575137E74F22AD92F59053F56EE5A6C83" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="50e7069c-5588-4692-8193-f57b3df5e651" Name="Hash: dash.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x7FB63FA67033DDB4B44153B418CCAAD45EF787A93FC588D9B7C88DAAE245A4FA" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="0f01e1fa-6958-48e6-8375-96132bec5e26" Name="Hash: date.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x743228AE082E1128A2AFF02414E114DC45A51F7461775BC5750D89307F3CCDAC" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="d703daa5-aa71-4396-95bd-72cacb86e6c2" Name="Hash: dd.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xFC825633D2B831517253092A1E4A10B5B68452BA3A2AF0B5F2A5A0D2C180A752" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="55b71a15-7284-490d-8202-55aa0d209075" Name="Hash: df.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x66D5C328F71C47F8311BD579F84114932D708788E831F320A50C5831777DE047" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="29da6725-b247-4766-81fb-84a106a09249" Name="Hash: diff.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xD64621F766D8910A92CB3D99BD7F23C0B1C736EECE0E19DCCBCCEAD93AA81854" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="4d3a047c-4bcf-4d19-9afa-be48f1614a96" Name="Hash: diff3.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x913E23FF6B2F9DC204B92A181AC993E3CE7C8C5BCD68DB3F7662224A1896A975" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="26e3dccf-da1a-43bf-9e74-13eb4177c09c" Name="Hash: dir.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x0ED6CCC9669FCB28E6C29086623EF7DDB5BDDF8E73D427F7E890CEE6436CFB51" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="77b652fb-83f8-4571-99a8-281fe9fdb253" Name="Hash: dircolors.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x368A44254CFEDDB273C75CD181F0F6BF99EC1EEB3F223120B111112CE0FE9EFC" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="0df02ef3-d76a-44d2-9a9e-2b67119e4516" Name="Hash: dirmngr-client.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xF864FDBE2ECFEE9FDE5C05F9B4686C983B2EDBEBDF010CB4D33B131DEDBF0624" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="d130f5f0-0a00-4c3b-ae16-61368c4e003d" Name="Hash: dirmngr.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x1FE34E2AAC8DBF8E7428E6D69324DB8CD4FD5DC17AAE87247DE6085CEE65E5CE" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="0999e0ec-015e-4582-8948-7dc824d492ad" Name="Hash: dirname.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x53896FDA354605A1A1D1F5E6802DABA5BA6C05961F3074B892194E068AA82772" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="48a1a334-af41-4a53-aadf-1640d484118d" Name="Hash: du.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xDC22867DA6D50648FD627C549EDC906D97FDECF2F7956B2F3E05FE619976B07E" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="60b77920-7a83-48c6-b8d0-cf1b497018d8" Name="Hash: dumpsexp.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x91411355DFA79BD67A4FD9DD97E69F923996A7EDEEC99C8D8DA6C3EC3EB5BE0A" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="4ba53bf2-4d8c-4586-9ef0-971214378ad5" Name="Hash: echo.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x629697EA64FAD72BCEDA3B2A6FE3C60C79E1A55E0A79DE54F04DDF840907CF41" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="e645603d-515b-49d6-8d39-ae8e1d35e48c" Name="Hash: env.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xB5D80F13E6B4B422A8C22D32BE9CC1F5FD9B482FC60008ED80E513A2FA938CDC" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="a70eeba8-15dc-4356-9977-8c17ef99a6e9" Name="Hash: ex.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xDC541B4416858F5DBC781A0F0976219B63A9C46A67374EDFCE628549D131FA99" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="04ec0d19-e416-4bb7-8856-30befffd30aa" Name="Hash: expand.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xD4DD802D17F6F0801D8DF622235C41CA30DADBB8EEB0EA35837D2312E2CE9D2B" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="610dc0c3-6816-406f-8af6-f46a39063ae7" Name="Hash: expr.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xE1608F26781374B67F180370DC50C833BFC61946AADFB433E48536590BB79219" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="1df2b91f-44b5-4ddf-b95c-82ab194173bf" Name="Hash: factor.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x8A9DEAEA51CB45AA7AFC6BD8914F5937F9DBF64AB98AABEF1B1A02677D5EA4FE" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="3eeea8bd-ea06-4e88-a900-145257689caf" Name="Hash: false.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x71314347CF1355D1FD818D62FE11CF6B58373E70170A273335D38A8BACB987D6" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="b4867c23-ba52-4aaa-84b8-f941405f5433" Name="Hash: file.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x6E20E8A0A681A46EF2C6E87C67502754FA2DF7DD6DA907B4E4720623F7C4B163" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="cd41feea-3e48-4d1e-8e15-4e7080bcfb28" Name="Hash: find.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xE198602F4B8DADB8A6FA78899CB8DED460A63778BBEDF7700985B24DD48031B4" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="385276e4-089b-46c8-8b3f-19fe470d91f9" Name="Hash: fmt.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x578C22331E778A2827D67A5563AFCA8C4B9DE3AF9031B78ECF31CBFFCE120E5B" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="efda6a2c-ae57-4a33-8b80-e15b00365a30" Name="Hash: fold.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x391D6F86FB796D5BE5E87AB4D47D2376405795119DE9968CFC2788CF3CB9A2F0" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="dae1628f-6053-453c-905b-b4dd50bfc758" Name="Hash: funzip.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x45E648BD3BE4FEE5C7C05B7A758B85FC6D284A027EC504A80F687483A7335FB6" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="a5deaaa0-8db6-4cd6-890a-d469709ade78" Name="Hash: gencat.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xC6747EF68B35C483F45B3C6055998F68DAA691B753CF8E9D03DFE4B477DCF090" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="f4e3dbbf-bf92-495e-b6a1-e758a3ec78ce" Name="Hash: getconf.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x38F8C6694DFB25BA2572971205B8ECBAC98BF38169BB9BF2E3B6C7023DA5E69B" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="d0bb2577-5eac-40ae-991c-df24beb56cb5" Name="Hash: getfacl.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x811E9F02A468A58BDB08C8D11BF4E7936E8C15983E1DADD07308E386933D6802" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="ec287cdf-c35c-4b8d-a855-1ee58ae21a92" Name="Hash: getopt.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x9AB321A755847A5CB427246EF063B2B6CD74673FF866A0836F6D56B90F8FE41F" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="0a2dbdd9-a64c-43bf-a05d-95413a9cc5f3" Name="Hash: gkill.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x17630EBB06517F269BCEA82C3584C3EC10F2F09AA44C7046E89D732C9FB4405F" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="ff3421df-3c4a-45be-bd53-0cbbcd0bf750" Name="Hash: gmondump.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x23B7D09EF966FAFAF0C2A466EA0EFDEE4DE0ABB267FB620E623B879BB552DEBC" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="564472d3-5dd2-4c99-b22a-ade9166a4d14" Name="Hash: gpg-agent.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xE2AE0295C45B4E4B67BD4AE0BD6F3D064936384241D00F59C18AFFE91CBD3716" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="5e460290-466c-41c9-824e-1a479743b7c4" Name="Hash: gpg-card.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x12235FD018A752F607AD0FCA822B0B7F5E93A31319222144C29850CBFF67A056" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="bf621076-7616-4603-bbc9-4aec78374dd6" Name="Hash: gpg-connect-agent.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x377190ED249C201B2C0C5267FE914604526E355A8C0508D5065D55A202885B8F" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="45125f99-31a6-4eef-a63d-9a06bc579839" Name="Hash: gpg-error.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xC8FD7D6E1B714CD8F7FE4206E1FB64F1F9D47C9736A1E46D16A9E46ECA17B224" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="6225493b-4558-4853-86d2-681bfd2f4336" Name="Hash: gpg-mail-tube.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xEAFE87EB0DB38AACC75530154747DAEA09218D4043E0E76DFED67524C477F058" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="12a54d85-a91b-440e-95c9-f14e4209cebe" Name="Hash: gpg-wks-client.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xCD5927BCA591E873F50A0095C6B3FCE2784E39B5211CFC1528987F630A5C74E8" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="1f0d1fec-eb25-49e7-89ed-a1ba77db5077" Name="Hash: gpg-wks-server.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x187E5974AF5BC1018CD49DB9589A4FF206E51A30AC48DDD5EBFC8BC90A5594B3" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="f29a1d29-4074-4a9d-9f2a-24eba1c6aa20" Name="Hash: gpg.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xC4B1C046067316B7ECE757D255814785690AA8A7134C768AA19A27458ECADC7A" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="4208e050-86f7-4525-8ec6-89472fb56739" Name="Hash: gpgconf.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x4650952C70E7444D511857D277B80327D621B2547E03E2158E5CCCB93214C021" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="829485be-f3af-42f8-aea0-95956da27cae" Name="Hash: gpgparsemail.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x4076D2309399B28FF13BCE5726E6DE3FC722AEBF79BE38BFBA74DECF4C50DA94" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="c0239a9c-b36a-4748-ba88-478ee439f7cf" Name="Hash: gpgscm.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xD61A723898DF260EB91B578CA7C7AEE398AA31C7FC393ABCE99E873D3B77FEB3" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="140fb060-fafa-42f5-9f83-1ab0a2a84a49" Name="Hash: gpgsm.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x5B4923003FB0C179E6FA083B9456577C1B0449F604C6FD9C13727A2C09617C4C" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="4a60e64a-d648-40b3-bd06-0fad27d7ac51" Name="Hash: gpgsplit.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x9230AF756AA4F9590C59DECA1B9BDA040B24E5F4382B1EC7F0E82239778FEA4B" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="605a9e35-9900-48ea-86f8-01b08c0fb76e" Name="Hash: gpgtar.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x337685B14CC4D42815E3336AF44F518472E32E908ECA5857FD17842D0E90BACC" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="f91fe41e-431a-482d-95bb-843363abeb46" Name="Hash: gpgv.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x3A66AD34A2C99AC1647B236FD1FB3DA5F29D32C67B19D3F332FC0C97D68BD17E" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="b32efd9a-1738-42c0-b0c8-9812326fdc7c" Name="Hash: grep.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x497202418334F8A48D9F34CD2E1B2C03C4F957E02304B613E10931C0457E8D4A" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="a72b5ce9-f099-40e9-8993-1f0e2d2312fc" Name="Hash: groups.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x18BB936D12BAA55CB9CC240FB4AFB088AF2784FBDE8A6DD5D3537448A5263046" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="e7f6c58b-dec5-425b-86c4-d766afd4148b" Name="Hash: gzip.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xB30DF4D89223E1477DF01F48E70739E9A13FAE0E8F753C7B2A99A990DE3514DC" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="aa322db8-26a8-474b-b6ac-957d86c3a2be" Name="Hash: head.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xC82AE2EF72235A34DB7007580628CD5183CB350878A10FCC98B6EF26B92A3537" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="042379b5-145d-47ba-8b28-0be1fcc35dc3" Name="Hash: hmac256.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x117CD93767A80C9A0A6A8115B40EC5A99AF154043E0B3CF5D188824B150F1FB9" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="7c35f3a2-2938-408c-bed4-2d3c39e67ddd" Name="Hash: hostid.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x9C93D1B5C9DFFCAE583E524D3023A8FA6382048D217DE697B96F5C805E4DA474" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="1025592b-0e3d-4167-af3b-f97f6d052eb0" Name="Hash: hostname.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x99D3B0B660717C412334ADBF2AC5C52AE491EB504DF12197C35EC91918AE00B2" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="d8d572b9-49d7-4160-8916-d577f6f44a15" Name="Hash: iconv.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x7BC1C1A749B1872B2C93708526D8C49E7FA94497D4D5B005E62264DE3F6B7C99" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="be19e7d6-ed1c-4623-afa9-cd850d029931" Name="Hash: id.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x7E5A847D3D4745879DB5CB8997045355334ED888F22965B59423EE05150ED371" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="02754e81-0010-4dd7-9c47-0a2a847c2f78" Name="Hash: infocmp.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xCBF44D75FA9F2A7009F51DAA37524472BD1103EB33FE314237467B06CE760ED2" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="c339f61b-94b9-485b-8caf-06235e16400c" Name="Hash: install.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x23B01A97C735F224F76804B306E19B5BA15649D0A9DB620A172E480BA80533AB" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="8c2b0cc2-c77b-47a4-a40e-4a7c4f906848" Name="Hash: join.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x6E30A08D2BC2CB1FEA56E41CEE45C44F1C16272ED670D7C6138CBFF5A00608C1" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="98bdfb99-9b84-459d-974b-cce0a0c74a37" Name="Hash: kbxutil.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x77D3BC2705605D36D5EDC9F7E2C935FF98E1D162DEC06DA3F7EE92995794B09F" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="32f77ce0-0386-4970-ac33-41f0108eed94" Name="Hash: kill.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x071DF83556FA9C80901A58A06D0B555D25FF9CD202DEFDC8A4FF76E4A4EDA4F6" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="e0f19b89-b41f-473b-a82a-297a25d37232" Name="Hash: ldd.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x19C80C79B0CA7F9DB26F1799AA4D73F7DB2F18D98D9395914A8B93B4972B0C96" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="f2ce05b8-d991-4db0-a910-9382dc6aa530" Name="Hash: ldh.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x945366E1C8E1C93DC5109AF5D09A0E9ADA23328E7A78BDB066EC9382252D316C" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="d429e4da-7994-4fb4-bf99-0890a5c65010" Name="Hash: less.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x18E3EC224D233FECF5C1DDBE8F31092946362B17E980035BC90EE87A382A7DFC" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="94c59dc0-504a-4e7b-9d2d-aa53b5c6aae3" Name="Hash: lessecho.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x7221B8C77CDE0116047E7E6EFDAE62E4F654912547E559586EC043ADD1AEFB73" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="5685be4c-4a9c-4c35-b8b7-1a69f69f6ed7" Name="Hash: lesskey.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x5225E043EFE66DA1AC30B1B8909E8BC5E8466A9EEDCEC34905659B5829231FDD" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="0e5b84b6-d5ff-4927-aa7e-d5a9c4fd15b5" Name="Hash: link.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x070B43C6E5DFB7A92FAFA30206FA4DD6361C3BAD52E7D533A2827C3918C73D93" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="ac14aa0d-7799-4813-8f20-3a97e60841f2" Name="Hash: ln.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x28F25F435E02867E685E115E78554F585CD81DB4EF9B66F4364FD342857BDAF6" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="574c06f0-ab41-4ffe-8d7c-564ee38401b9" Name="Hash: locale.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xE4F62F96E271C88E759261B9C299EDA8DB874B6D70F834483499D060D67281E5" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="4b9a694c-0647-4720-8024-78cd0841f501" Name="Hash: locate.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x1EF93D9865639CD38BF26A05158B90414A2845DC3A2C941730F5F6FB9498B127" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="60d9f985-b6d1-41ce-b33c-e1825db64635" Name="Hash: logname.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xB9938523B459BFA37F0547A3D321570EB63D9FC6BECD7A94BADFC4021F06F4B5" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="754bdebd-06d0-4e88-b1c6-12538354764c" Name="Hash: ls.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xB45981580702029CFEEFFC8CA69E2A4D1E9C68914009E94C31FFEC9CBC544AA5" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="f245e1d7-5079-418e-9d0c-aec6a8e8a37f" Name="Hash: lsattr.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x99898D820DF8EE4755F8AF87119D8FD64351DD9098B450379AA3AF03EBC31197" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="2a88e74f-c9ff-4e4c-b110-f878d5ac988b" Name="Hash: md5sum.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x9327E6F33E2D58CFE675A33453E17297C44DC0839584F33670BDF375F339A5EE" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="8e8ad364-4420-4b50-82db-a5da31297455" Name="Hash: minidumper.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xEB3B82C67B85D69E51547630E304FF1BD964BD6B6B21C291E367ABB6BCF302B8" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="2f7c2b84-fb7b-41e0-b298-5785edab6df9" Name="Hash: mintty.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x9166D809DA151A8299EE1759372CBDFC6AD16C21D8ED592B440F022B3F7EE0CB" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="24aab3a5-d2b5-4634-a0ca-5d4866bf4327" Name="Hash: mkdir.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xFC9B9E49FD6496CDDDFC5681208D74BD649AC934818EAFDFD50A9571BDCB4861" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="e0d41240-d1ff-4ffa-813d-7faa00a56df7" Name="Hash: mkfifo.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xEFD816DD4D0764B2DF695B9AD8CC4CD2DA68C7564CABEF993DC9BC39AE0A97F0" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="3315c10d-8f6c-48bc-aea8-1d93ab0dc96a" Name="Hash: mkgroup.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x61ACC9F37B66FCBE4F420A52F3F23ACBACC5215BB7E877439786A328446DDB8E" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="fc6d291d-0120-4b88-acce-846425841910" Name="Hash: mknod.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xAC12A4C60B0C1BA56DE562249729E5E1EF747C322EEC7A5B7CA8C1E4ED3E2FD7" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="be92d4fb-0078-4f72-8337-1ba9c00100f8" Name="Hash: mkpasswd.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x874CC499D63AD854A5644C316E2001F8EFC035E6DE7024F50AEB7DD20C2DD9C7" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="915aaf15-6f8b-454b-89b1-a22b8b9af622" Name="Hash: mktemp.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xBD6474B0404E52B195296438342F38E510FE1A4C1C0D91CEB83CF8411959FECB" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="8ddfde79-185f-4378-bdfd-187239e2c9d3" Name="Hash: mount.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x0DACF924816A73B268D176852E9BD1BC4053909B958D3D158E79D88D4BA37568" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="e69c858e-0103-4bbf-b7b4-c028bd16ba5d" Name="Hash: mpicalc.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xCD41C7EFD18C0219F6F482C86EDE32CF937B991D719C94E256C3C834C0267E8D" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="dca7cf9a-37b5-4e34-98e4-d3c8a5551d4b" Name="Hash: mv.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x0E990F9314E17EAF2EED168561313E0B6E1D21DAF8FB6400387026C6DA7277A1" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="f4842df5-7347-4bad-8aa4-1ba1330f1d71" Name="Hash: nano.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x8B3F9B423CE37FFA6A7CE30F7B98B67381ED73D23A40634237E241079D6E7FD4" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="38bc0974-8b43-47b5-bba9-ffed803030ba" Name="Hash: nettle-hash.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xE906661C261434A886375911CA55AED07AE7E417CE0C17862B05ADBBBEB89447" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="8746860a-2f8c-4d89-8b47-25a72cb2df9d" Name="Hash: nettle-lfib-stream.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x018422ED26B3ED596106E401ED7EADBA4BC1F917A3C63709F165E45245AE786D" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="09266bfd-e636-4cae-81ba-4dbef9a9d55a" Name="Hash: nettle-pbkdf2.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x4FDAAC4876DDB2962F93F62F9197D6275C44E22B854869FCE29AA38FDB8EC64B" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="6f811ad9-d2e2-4294-a1b7-7b217028b0ab" Name="Hash: newgrp.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x0443BCD4BCEFA7FC7D05EE65697E050B8C829181637A8ABF438109C2ECC80822" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="6b3b6028-033f-44ca-9ee2-dffeacd77979" Name="Hash: nice.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x9801B3B6DEF5C0F5C1FC19081C6629F0E2A54E4C5A32574BF2220BC9D7DC602C" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="f3b7bb21-98f2-4847-9a60-cab184fe66b7" Name="Hash: nl.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x925D98A835AD3D5484AD8A628E259E763573381E695D76A278A6C048C715BAA5" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="d9132f55-a57e-4b37-8241-8657f1dec9f5" Name="Hash: nohup.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x215A3FA276E08704DA190F3F3E9184746B35273835031939F9830978609BDE7E" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="3c7099c9-cc50-4536-9c15-8e003348c0d8" Name="Hash: nproc.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x0B1029AD4B71140A7EC31CC0A1F6495264CDB380CEF4FBC91701E431C703D525" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="29cd1796-17f4-4a30-965c-2b6d7894059b" Name="Hash: numfmt.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xA56E3FDEB73DA651BE49CE132342B645BA8F5D0B4FB7E348744367272930277B" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="78d8b61c-f10c-40a1-9465-50a4db18c109" Name="Hash: od.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x5533B3EDB4B47590A3279653475F12CB6DEC11A3B8A289E93C613A06C30B99D2" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="c73ab729-94a1-4874-832a-c2b50350d37e" Name="Hash: openssl.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x2C6F2C64612CF45349F15850E4647B2FE594C2759DE63A695EC4CBE13B2404DA" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="11401c05-78fa-49f1-9a95-553d9eb97984" Name="Hash: p11-kit.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x1A073424FBB2A3BAB5D8D5C4C34EB8950035AAF5BCF133ED3C38F340CB86C8A4" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="921ddceb-efaf-45d8-8eaa-340aa0933bfd" Name="Hash: passwd.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x6933B2B20F01687581C81EBB72C8D5B1E69136DB488AD81E729D60012AA290CA" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="1c0c832e-3150-4023-93d4-cfd92bdd2022" Name="Hash: paste.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xDBE30811AFD9A26DB96291C86DA04A655011CB600EF075F961230B5A111A336C" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="8092a24c-a7bc-4ccb-9d52-65f5e2f9f072" Name="Hash: patch.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xD77A8F8499909A711D343FEA72235B8DE473C4928243B976589073EFAFA941D7" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="dcf01950-3421-4652-b03b-4e87088b4332" Name="Hash: pathchk.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x36AFCCC7251E0B1A5B2A7C54FE022D13A122C2479028B0F01E653084E79281E9" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="83f28e19-d368-4128-b26c-22d5793770c6" Name="Hash: perl.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xBA92B05B95B2A8C70534B7517D23623332E15B3395641C30ECC1DEFFC1ED5F27" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="b283fc84-8bc0-4259-9cf2-a25974412850" Name="Hash: pinentry-w32.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x95A49C7B02CFA93DFDEC7F7E122D703E6A6003B2AE064B0EB61C22AB7C79410D" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="2c11163a-4f13-4afa-8287-8a03bfbff0e3" Name="Hash: pinky.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x7BF3D57F6874C4C50AEE67F7C2E6C4A22545A098B5CBE9E8A276EC41A8A0E666" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="41c35ed2-530c-41e9-bfb8-7a02af37e1d5" Name="Hash: pkcs1-conv.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x3FACC2BF79EF84392C989C6DEBA181D31213040D4013C6D98B09FCCCF2CE7AC7" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="af647400-d6c6-4676-8b5c-4b308de49955" Name="Hash: pldd.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x969512C80AD6CE5EA4C6CF3DB430206E034137A2008E760FA73BC731ABC0B28B" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="7c3bfcc9-ac55-4498-9551-c017a751c435" Name="Hash: pluginviewer.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x49ACE33D3FEE1A901C9014F320B5FF75702536D8D785C4467C8A85AD1A20EED0" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="17b0e3b4-db53-4c35-aa53-cdb5db780c46" Name="Hash: pr.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x6E88EA48531904F8D85A122426989F616BDD465D96F5B2FD8C269B4D86C47A21" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="fcee0a95-20fc-49b4-9d35-dcb5578ef994" Name="Hash: printenv.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x0C2C6C2141E1A54B526BCC3E426719651CCDC16790A7734BD7F6AB6A8D635C1F" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="60f15576-6ac9-41b5-b156-98fcf0f45095" Name="Hash: printf.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xDBC52EE41A9D2FC4CDAD6D690E430C6B630CE5FB5837D66D6B47CF59EA63B198" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="7d2bb632-b8b9-4263-9abf-a2c0036164d2" Name="Hash: profiler.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x9A0F94B38067C3C4B500080EB5254BF7BA3A5A4459CCDD4EC88B06AF8DFDD6FC" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="82e33ac7-feed-4047-ab2b-118800ccd81b" Name="Hash: ps.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x7257952811E638CB747149BAD299A708A5525BA11D90ECA24B004A7703582622" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="e77b15b3-62fc-4438-86b6-f8dc16cd95e5" Name="Hash: psl.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x35E0A8972C19DA68D1D43C7765C98382C7FDC86A23C9D211DA1A90DD95D6BDA2" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="e343f0ef-2e13-4249-bd18-a8a270749cff" Name="Hash: ptx.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xADAC7303D0A6E283EB76F30CB4833FF084E20B17315EB17606FBB558C6C989FF" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="b9a74bad-3f8b-4f78-a99a-a7d362ce41d4" Name="Hash: pwd.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xD1281CECCE65FC76750381698FACA130216FFACC6396886D63A85AD28A3071AA" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="8425677c-4c7c-4e11-9ca5-d8fa0c237e56" Name="Hash: readlink.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x3617334C256348026305E7A978BB803C45C31E2F4D24C763E1F11361CEB1D58C" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="eb2f4293-116b-4136-bfa6-695b32f882cd" Name="Hash: realpath.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xE780C23D5D6BF60D7E80E073586BE5F4D7F91FAA0A0D1F07B3088B5D710F8395" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="fc64368a-2e6d-4e7b-9821-59d4b55d0849" Name="Hash: rebase.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xECCC5D1189F6AE079B461BEE498E784C7F1516A7AAAE08ACC8306C669675DEE6" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="b2e7a29f-d30a-4f76-afb7-513dd5efa3d8" Name="Hash: regtool.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x0D59978DAD184D9AE79AFC65786E09942B5109CE7A21E1756581005E1D6D7308" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="1d250786-da4f-4292-ae31-bafd4d1f74ce" Name="Hash: reset.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x1014B7A24DC0E7E96E0103A5E7AB628EB54162F87DB8D301CF50CDADDF82D4D4" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="22b37652-623f-437c-9245-b33ccb436fd2" Name="Hash: rm.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xA845F7517A49B49726E056DA8A8F65A6D9CE96FBE79C3664C082521EEA0F80E7" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="1cdadc12-2705-47d6-9715-53a8556d49e8" Name="Hash: rmdir.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x7D91CC7B4E7A297A74DCDB621FF19B495DB14A8A96612A737FC870403FC6775C" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="36b2b06c-e479-4df6-a187-e4f692bffee7" Name="Hash: runcon.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x8F3881BAAC0CA03F32A974CFABEE077AE87F9ED8A566249A110775C015D219A8" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="b52253e4-32ac-4ddd-bbe9-87a4456ba0c2" Name="Hash: scp.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x4DD7C84A1373054DFE1C8233A7FE7BAF8D4D0B8ECDA03A24AF322DCD4ADB603F" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="b23a174d-9c96-48a9-9cd5-d1db6ddd45bd" Name="Hash: sdiff.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x1EBF31BDFE552D728C940866FFB0753A745E9699B69C79013D8766242D6714A6" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="cd04d752-eb37-4c9c-bd25-81fa6fc90474" Name="Hash: sed.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x8D54E322DFC3FAA60F0464691ABA8634197406E53367AA8942409181C0808BE8" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="2748b71d-8272-4d1b-b82d-03c3b81028aa" Name="Hash: seq.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x6E5C79FCE1D50D888B38F5A0A02A314265E733F151E8B9D2C953B363A60D27D0" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="9a78d679-d923-490f-869d-e3211b60dc73" Name="Hash: setfacl.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xDBE1A8AA1A3D6247DBDCD3D5450F87B8B1BCE53C79F8291666ABBE236999B6A6" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="741b90ae-f664-47d1-a847-9ba91478e8ee" Name="Hash: setmetamode.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x4D753600F4350B798C2E2B28C0CD30B25BA0F4EDFDFFF4B3241746F315154081" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="5223cab6-614c-4740-97e1-d103e69a74c0" Name="Hash: sexp-conv.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x8D3FB30132B9E6C4E19FC50904CD78DB69D030B68090F9632D2A51EA985FC498" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="2a113afa-610d-462a-b657-7d1ecf650da2" Name="Hash: sftp.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x9CE53571078A998EFB890AD5232D0CE3B0BB2083DD9A10A1EA8E5B7B6DD8A6DB" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="9c6fe896-174d-4159-8122-91d3af268bf2" Name="Hash: sha1sum.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x2FDBABC61355F77BEDBC426C3D23E4D6A0D7A0E8A9F69CA0BD70E1AA4347B13D" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="65fc06de-8dfe-4a42-becb-ed80431d289d" Name="Hash: sha224sum.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x42026C118285367E9612235FAFD2AB971ECB32C4C3B130782BA95D1002C6D21E" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="2704b46b-4764-4bdc-a477-506fa940567e" Name="Hash: sha256sum.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xAD199FB8A1104B5AC86EB49D775E2AEAEA8396C4C8818BEDA074DDB0D359ACC4" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="e1a89bb6-6e64-4925-bd42-73f3f9637ebc" Name="Hash: sha384sum.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x1A14F45FCF0F3212071FC14FE2E0C340F403A52BC00F302F8B1D81D62011FE93" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="642a86b2-74f6-4ee5-b3b1-b3a5e38f8f75" Name="Hash: sha512sum.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x19B1BD5CE7F1124F0BC5C73E0DEE25130119FE24D4D7577AB6C3E41EDAB67AA7" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="8d0aba9c-1882-486d-84ad-2662c2906862" Name="Hash: shred.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x0B5368364B3EC25A0AEBFFDC5A87EC4AA3E49E9FEE6FF982434329AA4C388E8F" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="56c46f66-886c-4a12-996e-a56889eb4723" Name="Hash: shuf.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xD36625FD75BCCB007442995CE0D2B51257FA6B08B472C0F2709E736F3505B967" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="06bb8520-04b0-4cb3-be09-b493e7d995c4" Name="Hash: sleep.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x3DFA2435317339E861121C1BD22E57B7B67C204705F00A88B5AC10A0CBA87514" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="cf733bf0-4c4b-4cbb-9c40-eaa4b2fa0014" Name="Hash: sort.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x7C5DF851D821E23988641F35442A06652CE834ED724456511798CE60314CAB9A" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="b2d36e4f-9554-4f02-aa66-b9c630ed2e01" Name="Hash: split.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x2C37E1474CCC2C73C6E2A82F04AC2F1943753EE9AE1DAC17D605CCC82B0222AF" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="9f061dc2-5e85-4f86-96b1-b432cd8d7786" Name="Hash: ssh-add.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x213A81BD485E5FEF59C32A08335EDB654FCFCFCD58B64250866A9EB879C6C8FB" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="9783eb15-c97f-43e0-bf9c-14133805f1fa" Name="Hash: ssh-agent.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x473DF3DDE2E0007437DB4655A71AA0DF63C48481D3698FDCD85EA179CD88CCD0" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="9094b52b-7a23-4057-a15f-855ab48224c9" Name="Hash: ssh-keygen.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x42EF9E7516A7188022BEB7C496CE74986FC595BDDAB767159F9A142F69EE520A" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="dc1c42e1-68a6-4112-8257-0b33c116af4d" Name="Hash: ssh-keyscan.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x5F84C4AC2208A04766AA3112C057D98724F9366DFABB3C6642C954022514ECA2" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="6b19923a-6dd2-4e4f-bff0-a551f2536848" Name="Hash: ssh-pageant.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x83D06CD7922BDDA6B49DF5C1E1B2325D5FFF930C8D4A2FF2BAF654061F2B14D5" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="0aef5623-d486-47e4-b8b9-a866d0975de4" Name="Hash: ssh.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x118091CB71F2FB42E99000D62A9FFC200A6D97E776346A537E443DB985BB3BAA" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="79ce6d7e-2e96-4566-82d7-37d2bb46f9b5" Name="Hash: ssp.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xB9B5B7BA67945F3F1B8345BC02527150E3EEF2042000BAE792876DB51EBB209D" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="2d048604-cf07-48e6-a67a-3c8fdaaf74bb" Name="Hash: stat.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x84468965A541829728D1FA02D32E987AB1A844EC4A23644058EF477FF8B3264A" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="58ca336f-23d2-4d9f-bdfb-d79added0bd8" Name="Hash: stdbuf.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x8926989B60CA00F78FF9E841F580D59647AA6BDB58BA86EA8169A6BDD559483F" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="cde6c803-77ec-486a-b34f-2c12b499bed1" Name="Hash: strace.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x3FA290515E45EFA99B03080D14EBD328A1B6150ABA4E62D6BAEC25FD262D6650" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="a3902217-8adb-408b-94c6-2f35cd1f8286" Name="Hash: stty.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x9FB3079C682D78511383767763973C307659B2AFE68F806E8C3DD50A01FAB533" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="934e4759-506f-4ddf-959a-88cca0ccbd62" Name="Hash: sum.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x994A8C3A1D3A5A8008B2E283ADFEED3FAE01E5C5E6DB34CD8C9978F065E96D89" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="30fa5248-30d2-42f4-97c4-c84dd881a856" Name="Hash: sync.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x24312A69A33D40956C52317D415F4170395F7FACB6379FE20B045EC386CD985F" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="f1c45c89-d1be-4cf4-8024-ef2901b3ab51" Name="Hash: tabs.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xDB9017575B402C700C2E5EB061CCE60537622F2BA2385B1D3AD7478B513FBD33" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="c35d6df4-7c9b-420e-93a8-cd9a13075a5c" Name="Hash: tac.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x894FB8D6685818676116552CCD01B5FF7DFD72E961DFC9196E73BDBFC9D1ADDC" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="ac28524b-5578-4b3e-afbf-f642c1836e86" Name="Hash: tail.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x8608C4138642DE6DCA0806B266B3009C137DC373171978CF47418056A5E05C55" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="7289c330-05f6-4b67-a734-64335470527d" Name="Hash: tar.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xDF0582941D1F451A76337863BA1DC8D8986AD0FAF44F0E5F5C34AFEB43C36453" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="fac63421-1a71-4c1e-be45-e1971423b8e0" Name="Hash: tee.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x5B956AC9D6BB6D457665709BBCF71326ECD66BB5111B280C124A68405CE5DA46" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="b4dfbc50-a008-43b2-ac79-c3b9d48733c2" Name="Hash: test.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xBC151F331DBBE8D8558014BC55B983D20EFFD4EBBEA04D2A29B6BADF879CE423" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="5b6c389d-7a24-4c8d-bef9-498ad08cd888" Name="Hash: tig.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x70246C22260ACAA86B739728CA120B1800F80E3A887E2122D96F394900151862" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="da8e96ba-6c52-46be-881e-a4947029d8e0" Name="Hash: timeout.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x01DA440D63161065D9522E6D5DF96804BEB1C1EA1B52E6B925BE9510653F41D1" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="59a839fc-0396-42a0-a408-a8e85439a253" Name="Hash: toe.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x54AF9F8402C5F121323986E9B18D99E8E155A064125D201E6E25B54E58E8586A" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="3694c308-aab3-4e30-ae3e-b81b73528a77" Name="Hash: touch.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x1D895E0F77CBC8B77C3A38DA009E8AD8D23A371AFD398DA5408BDEFFCDDF5FC0" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="bb801a20-b21d-44d3-a3f4-c251e4e6507d" Name="Hash: tput.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x57F0193657DDF00B36306F764AFD543DC9B1E834FDCA4CEA1177337B7E48767A" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="5d939ec1-e49b-460d-a263-05cd2f448d1d" Name="Hash: tr.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x7CF90BE63820BA9EC66A10C0C4AF84F0A2E3EC90A722EA6904219EC0B93BF1C1" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="1b27cb6c-57b6-482c-aeda-1e38032e69fc" Name="Hash: true.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xE3CE235425032CC3E1262F46B414B1B88F971724104916690F24E25C4663D474" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="6a5e89e7-bc88-4ab8-be58-346e0874afc9" Name="Hash: truncate.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xD91DFEA756B366DA4C3000A2D9DA2408E0EAF25D7573EDFC7EFD61C60C87DA2A" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="cab15681-3828-4f94-8f6d-8561f760e394" Name="Hash: trust.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x9E6C38388DF11DEE6407C1E69C284BC7B5B60FD3DBB2EBACB81F2A65ADA847B4" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="5c513452-0f6f-4fb3-8607-97c863a2d211" Name="Hash: tsort.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xD9513D0D97EC9B5EBA4356502642EBAAA6D95444A530F1FC82EA3FF150823F65" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="84ddf1be-e2e6-4007-b631-6d2261148392" Name="Hash: tty.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xB76E6139C92D5004B2B07B75687AFC25DA2838E843012CFCA05927E974328E21" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="7377342e-8e5e-48bc-a053-edbb92772dc6" Name="Hash: tzset.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xC0B798D3328C46F029CB1A06E84EFF4DF52193751E725F3F15EB15703EC84558" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="7c2433ef-88ff-4ba2-8c28-9a27657b1634" Name="Hash: u2d.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xC6506F1B8EE93578A1F70262BDCD180C4A3553061331B2135BBD2929BBDE080E" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="c10e807f-2830-43fa-9450-2675b8b42889" Name="Hash: umount.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x9A8CF3172A88D5D62CCBEEFC24C1B940AECC06D534114CAF34B6261B01515D63" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="7ad2ed09-d565-4b08-b705-7cc25e82528b" Name="Hash: uname.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x1CBA275FF8E0C81F48898F017758C558EE5951CB0448C36628580BEFFDF4EF89" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="11413271-8843-4257-aebe-bebaf45aaf80" Name="Hash: unexpand.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x1952DF1CA35316C5FC0721B798325CFC065ACAD9BB790276A8D0BE4A4E5A8DD5" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="0223b77a-7b9f-429f-9697-e9346ea82b7d" Name="Hash: uniq.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x07E78095A79870B52AC988989FAA5FF8446E1A8CDC861165D7EB93904FFF5211" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="7842e1c5-f2da-4539-8872-036b6780354d" Name="Hash: unlink.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xB520D67AA204EE5E88548554DC51C1B1DBCDF4C2BFA9F94D682879084167A7A3" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="cad690fa-5bf4-4567-a291-154ca533c966" Name="Hash: unzip.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x57AA56A798AACC0638F83E60ECC2EF8598F3C99970303928DBBF0809C424C808" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="1c8f518b-5ffb-4b1d-aa22-9fbadcb10067" Name="Hash: unzipsfx.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x07570A95FCCFAA5ED2A3BFFE9B9D4788FE0EAE07A845D9F84C09C9BD74D12E23" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="5d182a96-0417-4cee-b462-ded6f216a4c5" Name="Hash: users.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x2D0D68763854D37568C9DACD3FBDD0A1B02BB50C83192E39542224BB777E083D" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="14708f08-ea27-4d33-b538-711904d04ad2" Name="Hash: vdir.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xEB95CA4EB646C1684E849B0A77776087FA880197905E5E59192DC439D95F4673" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="7e2d8d78-7acd-4dae-b0fe-e9359cbff734" Name="Hash: watchgnupg.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xA4AF7F75BEBA1AD7BB5AEB122622BE4CB7027E12D2A502F41A01B48F7C90DE84" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="74336d2c-5244-468a-b1e6-71cc07132578" Name="Hash: wc.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x3AB05EFC4703295F0D36FD48DA17F2021219494FB932A062A535AE17EA9F45B3" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="3824bc8b-ac61-4fd6-a11e-095360f36590" Name="Hash: which.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xAF9EFFD62F2F0A5C20A4248C99A5ABFB2DE6C0677F42275C268E95AF012FF2E4" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="2c07841f-38f8-4d04-8a45-dc9d003f052a" Name="Hash: who.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xB5660EE09997D4E1BBFA48FC2F61761B6A670B4B035246EE21DC5259140A12E6" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="c6ba6b4a-4c6f-476a-ad45-0db2200f0030" Name="Hash: whoami.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x1A93F1D417AA80D12BAE7C0CC37779EE864C148BEFD8518AB4FADB0B960D23E6" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="3f6dec4b-0011-4d11-a864-1cf5102d0b34" Name="Hash: winpty-agent.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x84F6CE4535F7F3E09B2AEF7D833B9A99BA675B304576D188A1DB349246E41378" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="f19b61a7-e59c-40be-bf59-6f91b0e28ebb" Name="Hash: winpty-debugserver.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xDC52844AB79097E30CC30F02760C9F4CED35C309A0580DF6F15372DA039B3419" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="beb64312-262b-450d-bd39-41f2314457d5" Name="Hash: winpty.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x1A8E92E0B03F7F83AA344B0DCFD141354B5BDAF6C824EDBE872A95AB996D87B6" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="5a493736-c448-4003-8e14-773e473d4fe7" Name="Hash: xargs.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xCAC1D603D48ECE8D86301D9E0F9F3F3EB6A1A9864A39A9524FE76A3E5F5C76CB" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="4476cb0d-aca6-4642-8299-3899996e6da5" Name="Hash: xxd.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xFE83922AFB9CDD4BD00E3642875B1C99426D884DC80015FF67464386E7520948" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="c5ee5516-db57-44b3-888a-246676e94b25" Name="Hash: yat2m.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xFF95D57B4ED10C3A59E590205DE13182D7CF890FF085734FCD619A0F99521528" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="850befd7-3f9c-4b1b-b265-b677aa5569ee" Name="Hash: yes.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xD7FAFC94AEB84BE6A6D7DFB6037677638FA49848B1F750CBB735070428209CBD" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="f65dbea8-22be-4027-9455-c3afb1f31b17" Name="Hash: zipinfo.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x1559876BF7E0E828070B66DBDD318383389CE60F37117827E417C567D845FC82" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="65e34ac6-72ca-4e06-b7c3-e4814dc5ebb4" Name="Hash: grcat.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x8603FB442B57E029585D099882CD19E460A6EDC3481F86CFF0F53B2F1B2A49A0" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="9e7ef522-f5f0-48c7-9237-48b54b225d76" Name="Hash: pwcat.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x1672D40D591A5B87FB2218EBA8D23EFFEDE89FA54326F18CA4ADF09A88CBC7F1" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="5cb01e9e-ec9a-4b53-b5c9-8d03a3761da0" Name="Hash: gpg-auth.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xBC9F4C778A69A32A772D4999CD677568CACE00AB892760EE3899454E0F032AFD" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="52cc8fe8-8def-4465-8d0f-1ddc82ef2ead" Name="Hash: gpg-check-pattern.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x9EF382DA27E366BF774B2AFC2621B6099AC04A26537EC594655688DDB11B848B" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="ad4ff7fb-1859-4737-ae98-dae7a2fb12db" Name="Hash: gpg-pair-tool.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x01C9AD84BD321BFEEDF048E84DD42FD93F49BF38D1C0816E9B7106FEF6E4EB21" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="dafacd52-ab18-4a69-90de-5a905a45b815" Name="Hash: gpg-preset-passphrase.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x08A652D3667B610B1F3D4C0EAAE63863BAC9D29CA2E5F0D2BEA433F9ED3E1012" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="a3e0acef-65cf-4f6c-992f-9d0d356c23e3" Name="Hash: gpg-protect-tool.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x8714EF72670A5D92C70F3BE639C5B4F2F980F35A18EB86400D392350D9E4E269" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="a73b8d66-3bf7-47b3-8758-a247d6c64d2c" Name="Hash: keyboxd.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x98DDD1ED324EABC8C8827EBDF3366D5ADC65D8BEC2FE8187BAFB116239CDA0E5" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="943893ca-956c-4f6e-bc78-fab39191aa1e" Name="Hash: scdaemon.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x8271A830C9B93E9F9569FDC581F6BC414C88E29F05E3BC42C766D52D0DA83A13" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="8ad48721-0659-4e6e-b134-a889fca62e79" Name="Hash: sftp-server.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x6B3353A37D2C50CC99E7E3277B4749718FF91D2678185E4C17FAD69BA7997987" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="077d8a23-6a95-47bf-97de-28ff1f859126" Name="Hash: ssh-keysign.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x2BD9E9728BA45124FCE5DDE78576850BE58DA45305A8A5135345B3AAFC59825F" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="31f6f891-f397-4aeb-ab6e-c76d6748450d" Name="Hash: ssh-pkcs11-helper.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x3151D735587770A10005325BD214FCAB6A4784C6720BFAF3AE68F77AF638001A" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="fb88689d-33ec-4288-b7d6-a63cb66d6ab2" Name="Hash: ssh-sk-helper.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xBC86FF95CECEBAF42AFA5C069C7D89BA6132935E3FCD428F98AAA371FE49DC00" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="55b29778-7d34-4930-9578-4c72c8c3c337" Name="Hash: rmt.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x12529AB31728FEB60358136CBBE11E67C9A1C8F8C691BE16A5587FCAEE38F1DE" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="c1755d86-2fb4-44dd-b49f-092d8e442b54" Name="Hash: p11-kit-remote.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xC2A05C05B11D3D31E9D22C20688C66C30DACAB612392C2A6CFC40E631687F28A" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="d3270efa-56f5-41b1-8218-29b3ab365a4f" Name="Hash: p11-kit-server.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xF10C021369B9F863ED4598EE1CF5AD38D2881A45D8C3E95B982963355BA6EC88" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="fd1197bd-e768-4368-bd0c-18e6d9d7a9c3" Name="Hash: frcode.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x30C22B7FAB1B9CE72D8064AF914A5CD3BB2719EF5C6A5397A1951CD0E762F521" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="58a2ce29-f162-42cb-b619-f218df540e9d" Name="Hash: getprocaddr32.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xB55A57D12587A5CCBBB8ECA29446D2737CF89B0DF1080605DFBDA8431529F1EB" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="3096d601-3a1c-44e9-8dc1-c8998aad3a9d" Name="Hash: getprocaddr64.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xB2423CACEB243FFF8AB6D2130057748AFAC7BA00AD420155EDC2BD5115C85560" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FilePublisherRule Id="33dd79c7-dc94-423d-bd6d-e83e4a0c69d1" Name="Publisher: Google LLC - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=Google LLC, O=Google LLC, L=Mountain View, S=California, C=US, SERIALNUMBER=3582691, OID.2.5.4.15=Private Organization, OID.1.3.6.1.4.1.311.60.2.1.2=Delaware, OID.1.3.6.1.4.1.311.60.2.1.3=US" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FilePublisherRule Id="e57f6be2-f66c-4aea-9984-00de09fc3a4d" Name="Publisher: Open Source Developer - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="E=getgreenshot@gmail.com, CN=&quot;Open Source Developer, Robin Krom&quot;, O=Open Source Developer, C=DE" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FilePublisherRule Id="1d6c9789-893b-4ed1-b3b3-dc7730e48d73" Name="Publisher: Oracle America - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=&quot;Oracle America, Inc.&quot;, O=&quot;Oracle America, Inc.&quot;, L=Redwood City, S=California, C=US" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FilePublisherRule Id="1ea21d8f-0da8-4c91-bc9d-983d3bcca4d8" Name="Publisher: Microsoft Windows Hardware Compatibility Publisher - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FileHashRule Id="16b27780-8b80-4d82-9b48-e36b665f7162" Name="Hash: eqnedt32.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xE3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FilePublisherRule Id="90e44bd1-706c-40ec-be29-ed30f964dd16" Name="Publisher: OpenJS Foundation - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=OpenJS Foundation, O=OpenJS Foundation, L=San Francisco, S=California, C=US" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FilePublisherRule Id="14507fd0-391b-43c1-9311-cea3e0fe77b4" Name="Publisher: NVIDIA Corporation - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=NVIDIA Corporation, OU=2-J, O=NVIDIA Corporation, L=Santa Clara, S=California, C=US" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FilePublisherRule Id="d34c80ba-5710-4d42-a76d-63822af992cd" Name="Publisher: NVIDIA Corporation - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=NVIDIA Corporation, OU=1-G, O=NVIDIA Corporation, L=Santa Clara, S=California, C=US" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FilePublisherRule Id="2d60be97-31b4-4e3b-aab5-7789f9c51366" Name="Publisher: OpenVPN Inc. - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=OpenVPN Inc., O=OpenVPN Inc., L=Pleasanton, S=California, C=US" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FileHashRule Id="663ac3de-2919-4a45-a072-48906f6c92b9" Name="Hash: os2_util.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x2A6CCDA445B9AD6DD1AB61B12B6CEFC6452B8804E1DEBD7DFA63F12337B8F793" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FilePublisherRule Id="5898a5b6-cc7d-444a-beb2-88e97a3046be" Name="Publisher: Parsec Cloud - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=&quot;Parsec Cloud, Inc.&quot;, O=&quot;Parsec Cloud, Inc.&quot;, L=New York, S=New York, C=US, SERIALNUMBER=6033210, OID.2.5.4.15=Private Organization, OID.1.3.6.1.4.1.311.60.2.1.2=Delaware, OID.1.3.6.1.4.1.311.60.2.1.3=US" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FileHashRule Id="e4dd8ede-2892-4842-acb5-e4fa71e694c1" Name="Hash: parsecd.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xA0FE7AF829AEF549AB876B6F95CA3406B35335FAFB4C06A2D5CD407E6BC6C677" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="b2f160e0-df75-427d-aa96-d788b03b94f8" Name="Hash: pservice.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xD054E3D51ACA109EE08E0DBA5ECF187548CF9F87DFD4ABA8C54848014E5BA602" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FilePublisherRule Id="c13912fd-a5af-4525-b9ea-0dee5853675f" Name="Publisher: Unity Technologies SF - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=Unity Technologies SF, O=Unity Technologies SF, L=San Francisco, S=California, C=US" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FilePublisherRule Id="b08057ed-c778-4a02-8b14-87a8f4f89cb2" Name="Publisher: Red Hat - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=&quot;Red Hat, Inc&quot;, OU=Podman, O=&quot;Red Hat, Inc&quot;, L=RALEIGH, S=North Carolina, C=US, SERIALNUMBER=2945436, OID.2.5.4.15=Private Organization, OID.1.3.6.1.4.1.311.60.2.1.2=Delaware, OID.1.3.6.1.4.1.311.60.2.1.3=US" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FileHashRule Id="6b1d956c-1479-4edd-895a-1a12e873a425" Name="Hash: roots.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xF6436DC45C8356D26174A2A8C67523217EF6024197E61AF10EDFA137A90A1C65" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FilePublisherRule Id="98a861c0-7a0e-4a9f-bb35-6b687d190196" Name="Publisher: Sony Interactive Entertainment LLC - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=Sony Interactive Entertainment LLC, O=Sony Interactive Entertainment LLC, L=San Mateo, S=California, C=US, SERIALNUMBER=201635710028, OID.2.5.4.15=Private Organization, OID.1.3.6.1.4.1.311.60.2.1.2=California, OID.1.3.6.1.4.1.311.60.2.1.3=US" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FileHashRule Id="5906395c-f161-4082-85be-908c90680168" Name="Hash: uninstall.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x9688E690947D9E5FA9D0F871C39742E29EF14F391D9301FC82C6EB7F7534F916" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FilePublisherRule Id="42d03e6a-bcfa-44d6-8c69-31c5bfc0a81e" Name="Publisher: VideoLAN - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=VideoLAN, O=VideoLAN, L=Paris, C=FR" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FilePublisherRule Id="acf62d1b-0a88-4952-a1c2-a21be3c40701" Name="Publisher: Acer Incorporated - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=Acer Incorporated, O=Acer Incorporated, L=Taipei, S=Taipei, C=TW, OID.1.3.6.1.4.1.311.60.2.1.3=TW, SERIALNUMBER=20828393, OID.2.5.4.15=Private Organization" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FileHashRule Id="597b0787-44ac-49ef-a852-0e0590a7070b" Name="Hash: runcmdu.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x57028FA2BDDCE3B68A9BDC6DBCA2A6BD2AC1B30C88D1D4C08295A9E923D6C9E3" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="0ee14d2a-e349-43f3-9594-77e13df58c1e" Name="Hash: smartctl-nc.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x31AA82589E213C7B3B51CAF803159BDA30EA9A2B8BF24AFC7C517169E67C9942" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="65fcc1ec-5e02-429a-880e-d85dcd6e7372" Name="Hash: smartctl.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xA79DE501C2DC9B5EB3524D527F8AF50DAF4903AED0095A57EB72B4CB4EB89244" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="47865bc6-9a00-4004-b074-8bcc4516d551" Name="Hash: smartd.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x3BA8036338CEDD71052503EC5ED536EB17069BC8DE1E184DDC04CCC4CFE30595" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="2fe8f15c-f4dc-40f6-8fe4-e872630a0e8e" Name="Hash: update-smart-drivedb.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xEB77044CE76462F381DE8AE58ECDD5C9174CF972C8919908FFAB742E6EA374CB" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="2bd68650-8e8b-4086-a326-b13adaf20ff9" Name="Hash: wtssendmsg.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x79B7FEEA0A2B1687111B1A4E5DBF917A4D02B388E113D289E7AA70D435D742D0" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FilePublisherRule Id="da3de4c9-ea19-4d34-bae4-b663d1c0651c" Name="Publisher: AUTOIT CONSULTING LTD - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=AUTOIT CONSULTING LTD, O=AUTOIT CONSULTING LTD, L=Worcestershire, S=West Midlands, C=GB" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FileHashRule Id="8b29af6a-cbcc-425a-bda3-cc1f762e9ef8" Name="Hash: upx.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x0C3DC789D0A46493BD097526B920D913D930D96B1052CB331EEC3AC560C89996" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="5e8d90d9-0206-4b30-a85b-dba27fbf8044" Name="Hash: MyProg.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x91DE3A2577B3CA0F9A59CF9503CB567D7BD0165455D75C03EE44A4130C0A8CC1" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="3ab627d7-577c-41fc-a4c0-4f06097de785" Name="Hash: SciTE.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x39EEC8BC58E371220F4CDBB5ABF4D5A73CA8D090CD94AFA34C128CE7ED59D2DA" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="d8a54100-121c-4e96-97bc-47b1a434b2c3" Name="Hash: Uninstall.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x645B4759FB94C64CC97ADE05CB7D5D224F5E379BD7A0DB232219B423E0049865" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FilePublisherRule Id="561d9339-41c5-4d52-8178-d4fc7689427f" Name="Publisher: Valve Corp. - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=Valve Corp., O=Valve Corp., L=Bellevue, S=Washington, C=US" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FilePublisherRule Id="9bd02b21-c6fd-4402-bebe-a0c5a62da059" Name="Publisher: Intel Corporation - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=Intel Corporation, OU=OWR EV, O=Intel Corporation, STREET=2200 Mission College Blvd, L=Santa Clara, S=California, PostalCode=95054, C=US, OID.2.5.4.15=Private Organization, OID.1.3.6.1.4.1.311.60.2.1.2=Delaware, OID.1.3.6.1.4.1.311.60.2.1.3=US, SERIALNUMBER=2189074" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FilePublisherRule Id="7f97b78b-7a18-4e69-ac22-21a72dfae967" Name="Publisher: Microsoft Corporation - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=Microsoft Corporation, OU=MOPR, O=Microsoft Corporation, L=Redmond, S=Washington, C=US" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FilePublisherRule Id="9dfb8d34-bf40-466d-837b-32e169e3f964" Name="Publisher: Realtek Semiconductor Corp. - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=Realtek Semiconductor Corp., O=Realtek Semiconductor Corp., L=HSINCHU, C=TW, SERIALNUMBER=22671299, OID.1.3.6.1.4.1.311.60.2.1.3=TW, OID.2.5.4.15=Private Organization" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FilePublisherRule Id="bd923b5f-1a0c-4c6c-a870-5a87ca82196e" Name="Publisher: Realtek Semiconductor Corp. - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=Realtek Semiconductor Corp., O=Realtek Semiconductor Corp., L=Hsinchu, S=Taiwan, C=TW, PostalCode=300, STREET=&quot;No. 2, Innovation Road II, Hsinchu Science Park&quot;, SERIALNUMBER=22671299, OID.1.3.6.1.4.1.311.60.2.1.3=TW, OID.2.5.4.15=Private Organization" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FilePublisherRule Id="78ab2a4b-d678-4109-8ac4-05172c5aa444" Name="Publisher: Valve - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=Valve, O=Valve, L=Bellevue, S=WA, C=US" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FilePublisherRule Id="1c7b1092-a91a-41bd-8a6e-4addeba92d3b" Name="Publisher: Bethesda Softworks LLC - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=Bethesda Softworks LLC, O=Bethesda Softworks LLC, L=Rockville, S=Maryland, C=US" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FilePublisherRule Id="191051a0-14cf-4d5d-8526-d5604d7597c5" Name="Publisher: Epic Games Inc. - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=Epic Games Inc., O=Epic Games Inc., L=Cary, S=North Carolina, C=US" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FilePublisherRule Id="aa4e66d1-cfef-4e72-ac69-ef1b914407ae" Name="Publisher: Valve - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=Valve, OU=Digital ID Class 3 - Microsoft Software Validation v2, O=Valve, S=Washington, C=US" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FilePublisherRule Id="2b82a4c0-3106-4fa3-bb1a-f13d92d46ace" Name="Publisher: Acer Incorporated - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=Acer Incorporated, OU=OS Certification Dept., OU=Digital ID Class 3 - Microsoft Software Validation v2, O=Acer Incorporated, L=Taipei, S=Taiwan, C=TW" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FilePublisherRule Id="bde0cacf-2962-4474-84f2-f7c239891125" Name="Publisher: Acer Incorporated - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=Acer Incorporated, O=Acer Incorporated, L=New Taipei City, S=Taiwan, C=TW" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FileHashRule Id="a56fe8c2-fe2f-4855-8625-e0ccc70e80bd" Name="Hash: AcerDriveUpgradeDetect.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x6A5B4EB72A2726830D3A3CEA420044D9059FEA86C9866F057994D30908510BB8" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="9877aca0-157c-41ab-9471-4a4770d8d3b0" Name="Hash: ALUSNCheck.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x70780939491519254ADA288660F13068DD2419755342AE1B9B351FB3BBBD8B6E" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FilePublisherRule Id="0ee64031-03f4-47d4-94e2-8eca28c68253" Name="Publisher: Microsoft Windows Publisher - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=Microsoft Windows Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FilePublisherRule Id="6537ce97-400c-419f-a886-9ca8255859a2" Name="Publisher: NVIDIA Corporation - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=NVIDIA Corporation, OU=1-F, O=NVIDIA Corporation, L=Santa Clara, S=California, C=US" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FilePublisherRule Id="ca298471-5741-415c-bdde-94ed6891cf33" Name="Publisher: Epic Games Inc. - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=Epic Games Inc., O=Epic Games Inc., L=Raleigh, S=North Carolina, C=US" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FileHashRule Id="827186b9-25fb-43d3-ab62-a46db08c76d9" Name="Hash: GA-AppLocker.exe" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x4E2B2CA53487D433136EBC10AB68DDF2E194F86844B0C148812E1D4B5A1D2B6B" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>
+  </RuleCollection>
+  <RuleCollection Type="Dll" EnforcementMode="AuditOnly">
+  </RuleCollection>
+  <RuleCollection Type="Msi" EnforcementMode="AuditOnly">    <FilePublisherRule Id="f0416c39-b1b3-4b11-9f8e-3d17b9326b12" Name="Publisher: Python Software Foundation - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=Python Software Foundation, O=Python Software Foundation, L=Beaverton, S=Oregon, C=US" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>
+  </RuleCollection>
+  <RuleCollection Type="Script" EnforcementMode="AuditOnly">
+  </RuleCollection>
+  <RuleCollection Type="Appx" EnforcementMode="AuditOnly">    <FilePublisherRule Id="ef99faa8-d51c-42cf-91cb-52d7f01e402b" Name="Publisher: Microsoft Corporation - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FilePublisherRule Id="2715ac4c-eae6-4682-b7e4-7e3400e78e6b" Name="Publisher: Adobe Systems Incorporated - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=Adobe Systems Incorporated, OU=Adobe Systems, O=Adobe Systems Incorporated, L=San Jose, S=California, C=US, PostalCode=95110, STREET=345 Park Avenue, SERIALNUMBER=2748129, OID.1.3.6.1.4.1.311.60.2.1.2=Delaware, OID.1.3.6.1.4.1.311.60.2.1.3=US, OID.2.5.4.15=Private Organization" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FilePublisherRule Id="42b9d3c3-9421-4071-8492-1870afd6b9ae" Name="Publisher: Adobe Inc. - *" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FilePublisherCondition PublisherName="CN=Adobe Inc., OU=Adobe Inc., O=Adobe Inc., L=San Jose, S=ca, C=US, SERIALNUMBER=2748129, OID.2.5.4.15=Private Organization, OID.1.3.6.1.4.1.311.60.2.1.2=Delaware, OID.1.3.6.1.4.1.311.60.2.1.3=US" ProductName="*" BinaryName="">
+          <BinaryVersionRange LowSection="" HighSection="" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>    <FileHashRule Id="ef01886e-6593-4991-b41b-86ace4b04044" Name="Hash: en-us_macos.appx" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0x96A14A575D862D8D8FC32A2C9B5C261D696A06C527F6ED93B6C76AA76550631E" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>    <FileHashRule Id="207b3dff-d4c4-42a3-94c1-15b22a7fa2e4" Name="Hash: 6771f4fb5fe944c8bf71d03cd1765768.appx" Description="" UserOrGroupSid="S-1-1-0" Action="">
+      <Conditions>
+        <FileHashCondition>
+          <FileHash Type="SHA256" Data="0xE9ECF682AED1C9CB6AC89912B732F05AA25CA5155223790034AC7FA23BBBFFD0" SourceFileName="" SourceFileLength="" />
+        </FileHashCondition>
+      </Conditions>
+    </FileHashRule>
+  </RuleCollection>
+</AppLockerPolicy>

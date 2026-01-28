@@ -1584,26 +1584,27 @@
                                 </Grid>
 
                                 <!-- Type/Status Filter Buttons -->
-                                <WrapPanel Grid.Row="1" Margin="0,0,0,10">
+                                <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
                                     <Button x:Name="BtnFilterAllRules" Content="All" 
-                                            Style="{StaticResource ButtonStyle}" MinWidth="50" Margin="0,0,5,5" Tag="FilterRulesAll"/>
-                                    <Button x:Name="BtnFilterPublisher" Content="Publisher" 
-                                            Style="{StaticResource ButtonStyle}" MinWidth="70" Margin="0,0,5,5" Tag="FilterRulesPublisher"/>
+                                            Style="{StaticResource ButtonStyle}" Padding="8,4" Margin="0,0,3,0" Tag="FilterRulesAll"/>
+                                    <Button x:Name="BtnFilterPublisher" Content="Pub" 
+                                            Style="{StaticResource ButtonStyle}" Padding="8,4" Margin="0,0,3,0" Tag="FilterRulesPublisher"
+                                            ToolTip="Publisher Rules"/>
                                     <Button x:Name="BtnFilterHash" Content="Hash" 
-                                            Style="{StaticResource ButtonStyle}" MinWidth="50" Margin="0,0,5,5" Tag="FilterRulesHash"/>
+                                            Style="{StaticResource ButtonStyle}" Padding="8,4" Margin="0,0,3,0" Tag="FilterRulesHash"/>
                                     <Button x:Name="BtnFilterPath" Content="Path" 
-                                            Style="{StaticResource ButtonStyle}" MinWidth="50" Margin="0,0,5,5" Tag="FilterRulesPath"/>
-                                    <Border Width="1" Background="{StaticResource BorderBrush}" Margin="5,0,10,5"/>
+                                            Style="{StaticResource ButtonStyle}" Padding="8,4" Margin="0,0,8,0" Tag="FilterRulesPath"/>
+                                    <Border Width="1" Background="{StaticResource BorderBrush}" Margin="0,2,8,2"/>
                                     <Button x:Name="BtnFilterPending" Content="Pending" 
-                                            Style="{StaticResource ButtonStyle}" MinWidth="60" Margin="0,0,5,5" 
+                                            Style="{StaticResource ButtonStyle}" Padding="8,4" Margin="0,0,3,0" 
                                             Background="{StaticResource PendingBrush}" Tag="FilterRulesPending"/>
                                     <Button x:Name="BtnFilterApproved" Content="Approved" 
-                                            Style="{StaticResource ButtonStyle}" MinWidth="70" Margin="0,0,5,5" 
+                                            Style="{StaticResource ButtonStyle}" Padding="8,4" Margin="0,0,3,0" 
                                             Background="{StaticResource ApprovedBrush}" Tag="FilterRulesApproved"/>
                                     <Button x:Name="BtnFilterRejected" Content="Rejected" 
-                                            Style="{StaticResource ButtonStyle}" MinWidth="65" Margin="0,0,5,5" 
+                                            Style="{StaticResource ButtonStyle}" Padding="8,4" Margin="0,0,0,0" 
                                             Background="#8B0000" Tag="FilterRulesRejected"/>
-                                </WrapPanel>
+                                </StackPanel>
 
                                 <!-- Rules DataGrid -->
                                 <DataGrid x:Name="RulesDataGrid" Grid.Row="2"

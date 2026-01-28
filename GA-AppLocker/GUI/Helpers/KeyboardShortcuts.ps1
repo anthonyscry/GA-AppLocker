@@ -61,7 +61,7 @@ function Register-KeyboardShortcuts {
     Write-Log -Message "Keyboard shortcuts registered"
 }
 
-function Invoke-KeyboardShortcut {
+function global:Invoke-KeyboardShortcut {
     <#
     .SYNOPSIS
         Processes keyboard input and triggers appropriate actions.

@@ -182,19 +182,29 @@ function global:Update-SelectedPolicyInfo {
     param([System.Windows.Window]$Window)
 
     $dataGrid = $Window.FindName('PoliciesDataGrid')
+    if (-not $dataGrid) { return }
     $selectedItem = $dataGrid.SelectedItem
 
     if ($selectedItem) {
         $script:SelectedPolicyId = $selectedItem.PolicyId
-        $Window.FindName('TxtSelectedPolicyName').Text = $selectedItem.Name
-        $Window.FindName('TxtSelectedPolicyName').FontStyle = 'Normal'
-        $Window.FindName('TxtSelectedPolicyName').Foreground = [System.Windows.Media.Brushes]::White
+        
+        $txtName = $Window.FindName('TxtSelectedPolicyName')
+        if ($txtName) {
+            $txtName.Text = $selectedItem.Name
+            $txtName.FontStyle = 'Normal'
+            $txtName.Foreground = [System.Windows.Media.Brushes]::White
+        }
+        
         $ruleCount = if ($selectedItem.RuleIds) { $selectedItem.RuleIds.Count } else { 0 }
-        $Window.FindName('TxtPolicyRuleCount').Text = "$ruleCount rules"
+        $txtRuleCount = $Window.FindName('TxtPolicyRuleCount')
+        if ($txtRuleCount) { $txtRuleCount.Text = "$ruleCount rules" }
 
         # Update target fields
-        $Window.FindName('TxtTargetGPO').Text = if ($selectedItem.TargetGPO) { $selectedItem.TargetGPO } else { '' }
-        $Window.FindName('PolicyTargetOUsList').ItemsSource = if ($selectedItem.TargetOUs) { $selectedItem.TargetOUs } else { @() }
+        $txtGPO = $Window.FindName('TxtTargetGPO')
+        if ($txtGPO) { $txtGPO.Text = if ($selectedItem.TargetGPO) { $selectedItem.TargetGPO } else { '' } }
+        
+        $ouList = $Window.FindName('PolicyTargetOUsList')
+        if ($ouList) { $ouList.ItemsSource = if ($selectedItem.TargetOUs) { $selectedItem.TargetOUs } else { @() } }
         
         # Update Export tab
         $txtExportName = $Window.FindName('TxtExportPolicyName')
@@ -235,12 +245,22 @@ function global:Update-SelectedPolicyInfo {
     }
     else {
         $script:SelectedPolicyId = $null
-        $Window.FindName('TxtSelectedPolicyName').Text = '(Select a policy)'
-        $Window.FindName('TxtSelectedPolicyName').FontStyle = 'Italic'
-        $Window.FindName('TxtSelectedPolicyName').Foreground = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.Color]::FromRgb(158, 158, 158))
-        $Window.FindName('TxtPolicyRuleCount').Text = '0 rules'
-        $Window.FindName('TxtTargetGPO').Text = ''
-        $Window.FindName('PolicyTargetOUsList').ItemsSource = $null
+        
+        $txtName = $Window.FindName('TxtSelectedPolicyName')
+        if ($txtName) {
+            $txtName.Text = '(Select a policy)'
+            $txtName.FontStyle = 'Italic'
+            $txtName.Foreground = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.Color]::FromRgb(158, 158, 158))
+        }
+        
+        $txtRuleCount = $Window.FindName('TxtPolicyRuleCount')
+        if ($txtRuleCount) { $txtRuleCount.Text = '0 rules' }
+        
+        $txtGPO = $Window.FindName('TxtTargetGPO')
+        if ($txtGPO) { $txtGPO.Text = '' }
+        
+        $ouList = $Window.FindName('PolicyTargetOUsList')
+        if ($ouList) { $ouList.ItemsSource = $null }
         
         # Reset Export tab
         $txtExportName = $Window.FindName('TxtExportPolicyName')
