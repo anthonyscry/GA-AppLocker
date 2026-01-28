@@ -213,8 +213,16 @@ function script:ConvertTo-AppLockerXmlRule {
         Converts a rule object to AppLocker XML format.
     #>
     param([PSCustomObject]$Rule)
-    
-    $action = $Rule.Action
+
+    # Default to 'Allow' if Action is missing, empty, or whitespace (required by AppLocker schema)
+    $action = 'Allow'
+    if ($Rule.Action) {
+        $trimmed = "$($Rule.Action)".Trim()
+        if ($trimmed -eq 'Allow' -or $trimmed -eq 'Deny') {
+            $action = $trimmed
+        }
+    }
+
     $userOrGroupSid = $Rule.UserOrGroupSid
     if ([string]::IsNullOrWhiteSpace($userOrGroupSid)) {
         $userOrGroupSid = 'S-1-1-0'  # Everyone
@@ -237,7 +245,7 @@ function script:ConvertTo-AppLockerXmlRule {
     <FileHashRule Id="$($Rule.Id)" Name="$([System.Security.SecurityElement]::Escape($Rule.Name))" Description="$([System.Security.SecurityElement]::Escape($Rule.Description))" UserOrGroupSid="$userOrGroupSid" Action="$action">
       <Conditions>
         <FileHashCondition>
-          <FileHash Type="SHA256" Data="0x$($Rule.Hash)" SourceFileName="$([System.Security.SecurityElement]::Escape($Rule.SourceFileName))" SourceFileLength="$($Rule.SourceFileLength)" />
+          <FileHash Type="SHA256" Data="0x$($Rule.Hash.ToUpper())" SourceFileName="$([System.Security.SecurityElement]::Escape($Rule.SourceFileName))" SourceFileLength="$($Rule.SourceFileLength)" />
         </FileHashCondition>
       </Conditions>
     </FileHashRule>

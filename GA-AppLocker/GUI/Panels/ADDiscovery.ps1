@@ -195,25 +195,114 @@ function global:Update-OUTreeView {
         [array]$OUs
     )
 
-    $TreeView.Items.Clear()
+    try {
+        $TreeView.Items.Clear()
 
-    # Build hierarchical tree
-    $root = $OUs | Where-Object { $_.Depth -eq 0 } | Select-Object -First 1
-    if ($root) {
-        $rootItem = New-TreeViewItem -OU $root -AllOUs $OUs
-        $TreeView.Items.Add($rootItem)
-        $rootItem.IsExpanded = $true
+        if (-not $OUs -or $OUs.Count -eq 0) {
+            $emptyItem = [System.Windows.Controls.TreeViewItem]::new()
+            $emptyItem.Header = "No OUs found"
+            $emptyItem.Foreground = [System.Windows.Media.Brushes]::Gray
+            $TreeView.Items.Add($emptyItem)
+            return
+        }
+
+        # Build hierarchical tree
+        $root = $OUs | Where-Object { $_.Depth -eq 0 } | Select-Object -First 1
+        if ($root) {
+            # Create TreeViewItem directly here instead of calling another function
+            $rootItem = [System.Windows.Controls.TreeViewItem]::new()
+            $rootIcon = switch ($root.MachineType) {
+                'DomainController' { [char]0x1F3E2 }
+                'Server' { [char]0x1F5A7 }
+                'Workstation' { [char]0x1F5A5 }
+                default { [char]0x1F4C1 }
+            }
+            $rootHeader = "$rootIcon $($root.Name)"
+            if ($root.ComputerCount -gt 0) { $rootHeader += " ($($root.ComputerCount))" }
+            $rootItem.Header = $rootHeader
+            $rootItem.Tag = $root.DistinguishedName
+            $rootItem.Foreground = [System.Windows.Media.Brushes]::White
+
+            # Add child OUs recursively
+            Add-ChildOUsToTreeItem -ParentItem $rootItem -ParentOU $root -AllOUs $OUs
+
+            $TreeView.Items.Add($rootItem)
+            $rootItem.IsExpanded = $true
+        }
+        else {
+            $noRootItem = [System.Windows.Controls.TreeViewItem]::new()
+            $noRootItem.Header = "No root OU found"
+            $noRootItem.Foreground = [System.Windows.Media.Brushes]::Gray
+            $TreeView.Items.Add($noRootItem)
+        }
+    }
+    catch {
+        # Show error in tree
+        $TreeView.Items.Clear()
+        $errorItem = [System.Windows.Controls.TreeViewItem]::new()
+        $errorItem.Header = "Error building tree: $($_.Exception.Message)"
+        $errorItem.Foreground = [System.Windows.Media.Brushes]::OrangeRed
+        $TreeView.Items.Add($errorItem)
+    }
+}
+
+function global:Add-ChildOUsToTreeItem {
+    <#
+    .SYNOPSIS
+        Recursively adds child OUs to a TreeViewItem.
+    .DESCRIPTION
+        Helper function that builds the OU tree structure inline
+        to avoid function resolution issues in closure contexts.
+    #>
+    param(
+        [System.Windows.Controls.TreeViewItem]$ParentItem,
+        $ParentOU,
+        [array]$AllOUs
+    )
+
+    # Find direct children
+    $children = $AllOUs | Where-Object {
+        $_.DistinguishedName -ne $ParentOU.DistinguishedName -and
+        $_.DistinguishedName -like "*,$($ParentOU.DistinguishedName)" -and
+        $_.Depth -eq ($ParentOU.Depth + 1)
+    }
+
+    foreach ($child in $children) {
+        $childItem = [System.Windows.Controls.TreeViewItem]::new()
+
+        $icon = switch ($child.MachineType) {
+            'DomainController' { [char]0x1F3E2 }
+            'Server' { [char]0x1F5A7 }
+            'Workstation' { [char]0x1F5A5 }
+            default { [char]0x1F4C1 }
+        }
+
+        $header = "$icon $($child.Name)"
+        if ($child.ComputerCount -gt 0) { $header += " ($($child.ComputerCount))" }
+
+        $childItem.Header = $header
+        $childItem.Tag = $child.DistinguishedName
+        $childItem.Foreground = [System.Windows.Media.Brushes]::White
+
+        # Recursively add grandchildren
+        Add-ChildOUsToTreeItem -ParentItem $childItem -ParentOU $child -AllOUs $AllOUs
+
+        $ParentItem.Items.Add($childItem)
     }
 }
 
 function global:New-TreeViewItem {
+    <#
+    .SYNOPSIS
+        Creates a TreeViewItem for an OU (legacy function kept for compatibility).
+    #>
     param($OU, $AllOUs)
 
     $icon = switch ($OU.MachineType) {
-        'DomainController' { '&#x1F3E2;' }
-        'Server' { '&#x1F5A7;' }
-        'Workstation' { '&#x1F5A5;' }
-        default { '&#x1F4C1;' }
+        'DomainController' { [char]0x1F3E2 }
+        'Server' { [char]0x1F5A7 }
+        'Workstation' { [char]0x1F5A5 }
+        default { [char]0x1F4C1 }
     }
 
     $header = "$icon $($OU.Name)"
@@ -226,17 +315,8 @@ function global:New-TreeViewItem {
     $item.Tag = $OU.DistinguishedName
     $item.Foreground = [System.Windows.Media.Brushes]::White
 
-    # Add child OUs
-    $children = $AllOUs | Where-Object {
-        $_.DistinguishedName -ne $OU.DistinguishedName -and
-        $_.DistinguishedName -like "*,$($OU.DistinguishedName)" -and
-        $_.Depth -eq ($OU.Depth + 1)
-    }
-
-    foreach ($child in $children) {
-        $childItem = New-TreeViewItem -OU $child -AllOUs $AllOUs
-        $item.Items.Add($childItem)
-    }
+    # Add child OUs using the helper function
+    Add-ChildOUsToTreeItem -ParentItem $item -ParentOU $OU -AllOUs $AllOUs
 
     return $item
 }
