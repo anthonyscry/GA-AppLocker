@@ -141,7 +141,7 @@ function global:Invoke-DomainRefresh {
                 Show-Toast -Message "Domain discovery failed: $errorMsg" -Type 'Error' -Duration 8000
             }
         }
-    }.GetNewClosure()
+    }
 
     $onError = {
         param($ErrorMessage)
@@ -163,7 +163,7 @@ function global:Invoke-DomainRefresh {
         if (Get-Command -Name 'Show-Toast' -ErrorAction SilentlyContinue) {
             Show-Toast -Message "Domain discovery failed: $ErrorMessage" -Type 'Error' -Duration 8000
         }
-    }.GetNewClosure()
+    }
 
     # Run domain discovery synchronously - async runspaces have module import issues
     # Domain discovery is quick and doesn't need background execution
@@ -377,7 +377,7 @@ function global:Invoke-ConnectivityTest {
                 $machineCount.Text = "$($summary.OnlineCount)/$($summary.TotalMachines) online, $($summary.WinRMAvailable) WinRM"
             }
         }
-    }.GetNewClosure()
+    }
 
     # Run connectivity test synchronously - async runspaces have module import issues
     try {

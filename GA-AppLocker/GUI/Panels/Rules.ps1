@@ -783,7 +783,7 @@ function global:Invoke-ApproveTrustedVendors {
             Update-RulesDataGrid -Window $Window -Async
             # Refresh dashboard stats and sidebar counts
             Update-DashboardStats -Window $Window
-            Update-WorkflowBreadcrumb -Window $Window
+            try { Update-WorkflowBreadcrumb -Window $Window } catch { }
         }
         else {
             Show-Toast -Message "Failed to approve rules: $($Result.Error)" -Type 'Error'
