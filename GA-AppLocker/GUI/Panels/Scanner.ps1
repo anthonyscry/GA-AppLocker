@@ -930,7 +930,16 @@ function global:Invoke-SelectMachinesForScan {
         return
     }
 
-    $selectedMachines = Show-MachineSelectionDialog -ParentWindow $Window -Machines $script:DiscoveredMachines
+    # First check if any machines are checked in the Discovery DataGrid
+    $checkedMachines = Get-CheckedMachines -Window $Window
+    if ($checkedMachines.Count -gt 0) {
+        # Use the checked machines directly — no dialog needed
+        $selectedMachines = $checkedMachines
+    }
+    else {
+        # No checkboxes checked — fall back to selection dialog with all machines
+        $selectedMachines = Show-MachineSelectionDialog -ParentWindow $Window -Machines $script:DiscoveredMachines
+    }
     
     if ($null -eq $selectedMachines -or $selectedMachines.Count -eq 0) { return }
     

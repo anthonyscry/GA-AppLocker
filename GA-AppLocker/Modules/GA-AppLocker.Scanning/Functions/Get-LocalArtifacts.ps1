@@ -64,9 +64,37 @@ function Get-LocalArtifacts {
     try {
         Write-ScanLog -Message "Starting local artifact scan on $env:COMPUTERNAME"
         
+        # Defensive: If $Paths is null (can happen in runspace contexts where
+        # Get-DefaultScanPaths is not resolved when parameter defaults evaluate),
+        # fall back to hardcoded defaults.
+        if (-not $Paths -or $Paths.Count -eq 0) {
+            $Paths = @(
+                'C:\Program Files',
+                'C:\Program Files (x86)',
+                'C:\Windows\System32',
+                'C:\Windows\SysWOW64',
+                'C:\ProgramData'
+            )
+            Write-ScanLog -Level Warning -Message "Paths parameter was null; using hardcoded fallback paths"
+        }
+        
+        # Defensive: If $Extensions is null (can happen in runspace contexts where
+        # $script:ArtifactExtensions is not yet set when parameter defaults evaluate),
+        # fall back to a hardcoded list.
+        if (-not $Extensions -or $Extensions.Count -eq 0) {
+            $Extensions = @(
+                '.exe', '.dll', '.msi', '.msp',
+                '.ps1', '.psm1', '.psd1',
+                '.bat', '.cmd',
+                '.vbs', '.js', '.wsf',
+                '.appx', '.msix'
+            )
+            Write-ScanLog -Level Warning -Message "Extensions parameter was null; using hardcoded fallback list"
+        }
+        
         # Filter out DLL extensions if SkipDllScanning is enabled
         if ($SkipDllScanning) {
-            $Extensions = $Extensions | Where-Object { $_ -ne '.dll' }
+            $Extensions = @($Extensions | Where-Object { $_ -ne '.dll' })
             Write-ScanLog -Message "Skipping DLL scanning (performance optimization)"
         }
         
@@ -148,6 +176,10 @@ function Get-LocalArtifacts {
         
         foreach ($file in $allFiles) {
             try {
+                if (-not $file -or -not $file.FullName) {
+                    $stats.Errors++
+                    continue
+                }
                 $artifact = Get-FileArtifact -FilePath $file.FullName
                 if ($artifact) {
                     $artifacts.Add($artifact)
@@ -156,7 +188,8 @@ function Get-LocalArtifacts {
             }
             catch {
                 $stats.Errors++
-                Write-ScanLog -Level Warning -Message "Error processing file: $($file.FullName)"
+                $errFile = if ($file) { $file.FullName } else { '(null)' }
+                Write-ScanLog -Level Warning -Message "Error processing file: $errFile - $($_.Exception.Message)"
             }
             
             # Update progress every 100 files or at end (unified across all paths)

@@ -211,11 +211,12 @@ function global:Update-OUTreeView {
         if ($root) {
             # Create TreeViewItem directly here instead of calling another function
             $rootItem = [System.Windows.Controls.TreeViewItem]::new()
+            # Use BMP-safe chars (PS 5.1 [char] is 16-bit, cannot represent emoji > 0xFFFF)
             $rootIcon = switch ($root.MachineType) {
-                'DomainController' { [char]0x1F3E2 }
-                'Server' { [char]0x1F5A7 }
-                'Workstation' { [char]0x1F5A5 }
-                default { [char]0x1F4C1 }
+                'DomainController' { [char]0x2302 }  # ⌂
+                'Server'           { [char]0x25A3 }  # ▣
+                'Workstation'      { [char]0x25A1 }  # □
+                default            { [char]0x25C7 }  # ◇
             }
             $rootHeader = "$rootIcon $($root.Name)"
             if ($root.ComputerCount -gt 0) { $rootHeader += " ($($root.ComputerCount))" }
@@ -270,11 +271,12 @@ function global:Add-ChildOUsToTreeItem {
     foreach ($child in $children) {
         $childItem = [System.Windows.Controls.TreeViewItem]::new()
 
+        # Use BMP-safe chars (PS 5.1 [char] is 16-bit, cannot represent emoji > 0xFFFF)
         $icon = switch ($child.MachineType) {
-            'DomainController' { [char]0x1F3E2 }
-            'Server' { [char]0x1F5A7 }
-            'Workstation' { [char]0x1F5A5 }
-            default { [char]0x1F4C1 }
+            'DomainController' { [char]0x2302 }  # ⌂
+            'Server'           { [char]0x25A3 }  # ▣
+            'Workstation'      { [char]0x25A1 }  # □
+            default            { [char]0x25C7 }  # ◇
         }
 
         $header = "$icon $($child.Name)"
@@ -298,11 +300,12 @@ function global:New-TreeViewItem {
     #>
     param($OU, $AllOUs)
 
+    # Use BMP-safe chars (PS 5.1 [char] is 16-bit, cannot represent emoji > 0xFFFF)
     $icon = switch ($OU.MachineType) {
-        'DomainController' { [char]0x1F3E2 }
-        'Server' { [char]0x1F5A7 }
-        'Workstation' { [char]0x1F5A5 }
-        default { [char]0x1F4C1 }
+        'DomainController' { [char]0x2302 }  # ⌂
+        'Server'           { [char]0x25A3 }  # ▣
+        'Workstation'      { [char]0x25A1 }  # □
+        default            { [char]0x25C7 }  # ◇
     }
 
     $header = "$icon $($OU.Name)"
@@ -329,7 +332,7 @@ function global:Update-MachineDataGrid {
 
     $dataGrid = $Window.FindName('MachineDataGrid')
     if ($dataGrid) {
-        # Add status icon property
+        # Add status icon + IsChecked property for checkbox binding
         # Wrap in @() to ensure array for DataGrid ItemsSource (PS 5.1 compatible)
         $machinesWithIcon = @($Machines | ForEach-Object {
             $statusIcon = switch ($_.IsOnline) {
@@ -337,11 +340,34 @@ function global:Update-MachineDataGrid {
                 $false { [char]0x2716 }   # ✖ (offline)
                 default { [char]0x2013 }  # – (unknown)
             }
-            $_ | Add-Member -NotePropertyName 'StatusIcon' -NotePropertyValue $statusIcon -PassThru -Force
+            $_ | Add-Member -NotePropertyName 'StatusIcon' -NotePropertyValue $statusIcon -Force
+            # Add IsChecked for checkbox binding (default unchecked)
+            if (-not ($_.PSObject.Properties.Name -contains 'IsChecked')) {
+                $_ | Add-Member -NotePropertyName 'IsChecked' -NotePropertyValue $false -Force
+            }
+            # Output the object once (do NOT use -PassThru above, it causes duplicate output)
+            $_
         })
 
         $dataGrid.ItemsSource = $machinesWithIcon
     }
+}
+
+function global:Get-CheckedMachines {
+    <#
+    .SYNOPSIS
+        Returns machines with IsChecked = $true from the MachineDataGrid.
+    .DESCRIPTION
+        If no machines are checked, returns an empty array.
+        Used by Test Connectivity and Scanner to operate on selected machines only.
+    #>
+    param([System.Windows.Window]$Window)
+
+    $dataGrid = $Window.FindName('MachineDataGrid')
+    if (-not $dataGrid -or -not $dataGrid.ItemsSource) { return @() }
+
+    $checked = @($dataGrid.ItemsSource | Where-Object { $_.IsChecked -eq $true })
+    return $checked
 }
 
 function global:Invoke-ConnectivityTest {
@@ -363,7 +389,15 @@ function global:Invoke-ConnectivityTest {
     $machineCount = $Window.FindName('DiscoveryMachineCount')
     if ($machineCount) { $machineCount.Text = 'Testing connectivity...' }
 
-    $machines = $script:DiscoveredMachines
+    # Use checked machines if any are checked; otherwise fall back to all discovered machines
+    $checkedMachines = Get-CheckedMachines -Window $Window
+    if ($checkedMachines.Count -gt 0) {
+        $machines = $checkedMachines
+        if ($machineCount) { $machineCount.Text = "Testing $($machines.Count) checked machines..." }
+    }
+    else {
+        $machines = $script:DiscoveredMachines
+    }
 
     $onComplete = {
         param($Result)

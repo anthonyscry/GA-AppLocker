@@ -1011,7 +1011,7 @@
                                               HeadersVisibility="Column"
                                               SelectionMode="Extended"
                                               CanUserAddRows="False"
-                                              IsReadOnly="True">
+                                              CanUserDeleteRows="False">
                                         <DataGrid.ColumnHeaderStyle>
                                             <Style TargetType="DataGridColumnHeader">
                                                 <Setter Property="Background" Value="#1E1E1E"/>
@@ -1034,13 +1034,13 @@
                                             </Style>
                                         </DataGrid.CellStyle>
                                         <DataGrid.Columns>
-                                            <DataGridCheckBoxColumn Width="40"/>
-                                            <DataGridTextColumn Header="Status" Width="50" Binding="{Binding StatusIcon}"/>
-                                            <DataGridTextColumn Header="Type" Width="80" Binding="{Binding MachineType}"/>
-                                            <DataGridTextColumn Header="Hostname" Width="160" Binding="{Binding Hostname}"/>
-                                            <DataGridTextColumn Header="Operating System" Width="*" Binding="{Binding OperatingSystem}"/>
-                                            <DataGridTextColumn Header="Last Logon" Width="100" Binding="{Binding LastLogon, StringFormat='{}{0:yyyy-MM-dd}'}"/>
-                                            <DataGridTextColumn Header="WinRM" Width="70" Binding="{Binding WinRMStatus}"/>
+                                            <DataGridCheckBoxColumn Width="40" Binding="{Binding IsChecked, UpdateSourceTrigger=PropertyChanged}"/>
+                                            <DataGridTextColumn Header="Status" Width="50" Binding="{Binding StatusIcon}" IsReadOnly="True"/>
+                                            <DataGridTextColumn Header="Type" Width="80" Binding="{Binding MachineType}" IsReadOnly="True"/>
+                                            <DataGridTextColumn Header="Hostname" Width="160" Binding="{Binding Hostname}" IsReadOnly="True"/>
+                                            <DataGridTextColumn Header="Operating System" Width="*" Binding="{Binding OperatingSystem}" IsReadOnly="True"/>
+                                            <DataGridTextColumn Header="Last Logon" Width="100" Binding="{Binding LastLogon, StringFormat='{}{0:yyyy-MM-dd}'}" IsReadOnly="True"/>
+                                            <DataGridTextColumn Header="WinRM" Width="70" Binding="{Binding WinRMStatus}" IsReadOnly="True"/>
                                         </DataGrid.Columns>
                                     </DataGrid>
                                 </Border>
