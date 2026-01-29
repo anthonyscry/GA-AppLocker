@@ -333,9 +333,9 @@ function global:Update-MachineDataGrid {
         # Wrap in @() to ensure array for DataGrid ItemsSource (PS 5.1 compatible)
         $machinesWithIcon = @($Machines | ForEach-Object {
             $statusIcon = switch ($_.IsOnline) {
-                $true { '&#x1F7E2;' }
-                $false { '&#x1F534;' }
-                default { '&#x26AA;' }
+                $true  { [char]0x2714 }   # ✔ (online)
+                $false { [char]0x2716 }   # ✖ (offline)
+                default { [char]0x2013 }  # – (unknown)
             }
             $_ | Add-Member -NotePropertyName 'StatusIcon' -NotePropertyValue $statusIcon -PassThru -Force
         })

@@ -380,7 +380,7 @@ function script:Restore-PreviousSessionState {
     }
 }
 
-function script:Update-WorkflowBreadcrumb {
+function global:Update-WorkflowBreadcrumb {
     param([System.Windows.Window]$Window)
     
     if (-not $Window) { $Window = $global:GA_MainWindow }
