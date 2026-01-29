@@ -82,7 +82,7 @@ function Get-AppLockerEventLogs {
         )
         #endregion
 
-        $allEvents = @()
+        $allEvents = [System.Collections.Generic.List[PSCustomObject]]::new()
         $isRemote = ($ComputerName -ne $env:COMPUTERNAME)
 
         foreach ($logName in $logNames) {
@@ -156,7 +156,7 @@ function Get-AppLockerEventLogs {
                             IsBlocked    = ($event.Id -in @(8003, 8004, 8007, 8022, 8025))
                             IsAudit      = ($event.Id -in @(8002, 8006, 8021, 8024))
                         }
-                        $allEvents += $eventData
+                        $allEvents.Add($eventData)
                     }
                 }
                 #endregion
@@ -168,15 +168,15 @@ function Get-AppLockerEventLogs {
 
         #region --- Build summary ---
         $result.Success = $true
-        $result.Data = $allEvents
+        $result.Data = $allEvents.ToArray()
         $result.Summary = [PSCustomObject]@{
             ComputerName    = $ComputerName
             CollectionDate  = Get-Date
             TotalEvents     = $allEvents.Count
-            BlockedEvents   = ($allEvents | Where-Object { $_.IsBlocked }).Count
-            AuditEvents     = ($allEvents | Where-Object { $_.IsAudit }).Count
-            AllowedEvents   = ($allEvents | Where-Object { -not $_.IsBlocked -and -not $_.IsAudit }).Count
-            EventsByType    = $allEvents | Group-Object EventType | Select-Object Name, Count
+            BlockedEvents   = @($allEvents | Where-Object { $_.IsBlocked }).Count
+            AuditEvents     = @($allEvents | Where-Object { $_.IsAudit }).Count
+            AllowedEvents   = @($allEvents | Where-Object { -not $_.IsBlocked -and -not $_.IsAudit }).Count
+            EventsByType    = @($allEvents | Group-Object EventType | Select-Object Name, Count)
         }
         #endregion
 

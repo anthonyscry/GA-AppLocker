@@ -243,7 +243,10 @@ Describe 'Test-MachineConnectivity (Mocked)' -Tag 'Unit', 'AD', 'Mock' {
 
     Context 'When machine is reachable with WinRM' {
         BeforeAll {
-            Mock Test-Connection { $true } -ModuleName 'GA-AppLocker.Discovery'
+            # Mock Get-WmiObject for Win32_PingStatus (sequential path, <=5 machines)
+            Mock Get-WmiObject {
+                [PSCustomObject]@{ StatusCode = 0 }
+            } -ModuleName 'GA-AppLocker.Discovery'
             Mock Test-WSMan { [PSCustomObject]@{ ProductVersion = 'OS: 10.0.19041' } } -ModuleName 'GA-AppLocker.Discovery'
             Mock Write-AppLockerLog { } -ModuleName 'GA-AppLocker.Discovery'
         }
@@ -272,7 +275,10 @@ Describe 'Test-MachineConnectivity (Mocked)' -Tag 'Unit', 'AD', 'Mock' {
 
     Context 'When machine is unreachable' {
         BeforeAll {
-            Mock Test-Connection { $false } -ModuleName 'GA-AppLocker.Discovery'
+            # StatusCode 11010 = Request Timed Out (offline)
+            Mock Get-WmiObject {
+                [PSCustomObject]@{ StatusCode = 11010 }
+            } -ModuleName 'GA-AppLocker.Discovery'
             Mock Write-AppLockerLog { } -ModuleName 'GA-AppLocker.Discovery'
         }
 
@@ -299,7 +305,9 @@ Describe 'Test-MachineConnectivity (Mocked)' -Tag 'Unit', 'AD', 'Mock' {
 
     Context 'When WinRM is disabled' {
         BeforeAll {
-            Mock Test-Connection { $true } -ModuleName 'GA-AppLocker.Discovery'
+            Mock Get-WmiObject {
+                [PSCustomObject]@{ StatusCode = 0 }
+            } -ModuleName 'GA-AppLocker.Discovery'
             Mock Test-WSMan { throw 'WinRM not available' } -ModuleName 'GA-AppLocker.Discovery'
             Mock Write-AppLockerLog { } -ModuleName 'GA-AppLocker.Discovery'
         }
@@ -322,9 +330,17 @@ Describe 'Test-MachineConnectivity (Mocked)' -Tag 'Unit', 'AD', 'Mock' {
 
     Context 'When testing multiple machines' {
         BeforeAll {
-            Mock Test-Connection { 
-                param($ComputerName)
-                $ComputerName -eq 'ONLINE-PC'
+            # Simulate selective connectivity: use -Filter param to determine hostname
+            Mock Get-WmiObject {
+                param($Class, $Filter)
+                # Extract hostname from WMI filter: "Address='HOSTNAME' AND Timeout=5000"
+                if ($Filter -match "Address='([^']+)'") {
+                    $hostname = $Matches[1]
+                    if ($hostname -eq 'ONLINE-PC') {
+                        return [PSCustomObject]@{ StatusCode = 0 }
+                    }
+                }
+                return [PSCustomObject]@{ StatusCode = 11010 }
             } -ModuleName 'GA-AppLocker.Discovery'
             Mock Test-WSMan { [PSCustomObject]@{ ProductVersion = 'OS: 10.0.19041' } } -ModuleName 'GA-AppLocker.Discovery'
             Mock Write-AppLockerLog { } -ModuleName 'GA-AppLocker.Discovery'

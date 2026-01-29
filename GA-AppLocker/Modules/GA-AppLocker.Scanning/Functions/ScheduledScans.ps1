@@ -308,13 +308,15 @@ function Invoke-ScheduledScan {
 
         $schedule = Get-Content $filePath -Raw | ConvertFrom-Json
 
-        # Build scan parameters
+        # Build scan parameters matching Start-ArtifactScan's actual parameter names
         $scanParams = @{
-            ScanLocal = $true
+            ScanLocal   = $true
+            SaveResults = $true
+            ScanName    = "Scheduled_$($schedule.Name)_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
         }
 
         if ($schedule.ScanPaths) {
-            $scanParams.ScanPaths = $schedule.ScanPaths
+            $scanParams.Paths = $schedule.ScanPaths
         }
 
         if ($schedule.SkipDllScanning) {
@@ -322,8 +324,16 @@ function Invoke-ScheduledScan {
         }
 
         if ($schedule.TargetMachines -and $schedule.TargetMachines.Count -gt 0) {
-            $scanParams.ScanRemote = $true
-            $scanParams.Computers = $schedule.TargetMachines
+            # Start-ArtifactScan expects -Machines as array of objects with Hostname/MachineType,
+            # not bare computer name strings. Convert strings to minimal machine objects.
+            $scanParams.Machines = @($schedule.TargetMachines | ForEach-Object {
+                [PSCustomObject]@{
+                    Hostname    = $_
+                    MachineType = 'Unknown'
+                    IsOnline    = $null
+                    WinRMStatus = $null
+                }
+            })
         }
 
         # Execute scan
@@ -449,6 +459,7 @@ try {
     # Find GA-AppLocker module
     `$modulePath = `$null
     `$searchPaths = @(
+        'C:\Projects\GA-AppLocker3\GA-AppLocker\GA-AppLocker.psd1',
         'C:\Projects\GA-AppLocker2\GA-AppLocker\GA-AppLocker.psd1',
         "`$env:ProgramFiles\GA-AppLocker\GA-AppLocker.psd1",
         "`$env:LOCALAPPDATA\GA-AppLocker\Module\GA-AppLocker.psd1"

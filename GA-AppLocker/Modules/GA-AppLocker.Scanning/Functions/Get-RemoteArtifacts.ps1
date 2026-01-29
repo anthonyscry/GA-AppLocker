@@ -16,13 +16,19 @@
     Array of paths to scan on remote machines.
 
 .PARAMETER Extensions
-    File extensions to collect.
+    File extensions to collect. Defaults to all AppLocker-relevant extensions.
 
 .PARAMETER Recurse
     Scan subdirectories recursively.
 
+.PARAMETER SkipDllScanning
+    Skip DLL files during scanning for performance.
+
 .PARAMETER ThrottleLimit
     Maximum concurrent remote sessions.
+
+.PARAMETER BatchSize
+    Number of machines per batch for large-scale scans.
 
 .EXAMPLE
     Get-RemoteArtifacts -ComputerName 'Server01', 'Server02'
@@ -32,11 +38,15 @@
     Get-RemoteArtifacts -ComputerName 'Workstation01' -Credential $cred -Recurse
 
 .OUTPUTS
-    [PSCustomObject] Result with Success, Data (artifacts array), and Summary.
+    [PSCustomObject] Result with Success, Data (artifacts array), Summary, and PerMachine.
 
 .NOTES
     Author: GA-AppLocker Team
-    Version: 1.0.0
+    Version: 1.1.0
+    Fixed: C1 - Results now properly returned (was returning empty array)
+    Fixed: C2 - Extensions aligned with $script:ArtifactExtensions (14 types)
+    Fixed: C3 - Non-recursive scans now use -Filter instead of -Include
+    Fixed: H3 - Remote scriptblock uses List<T> instead of O(n²) array concat
 #>
 function Get-RemoteArtifacts {
     [CmdletBinding()]
@@ -52,7 +62,7 @@ function Get-RemoteArtifacts {
         [string[]]$Paths = (Get-DefaultScanPaths),
 
         [Parameter()]
-        [string[]]$Extensions = @('.exe', '.dll', '.msi', '.ps1'),
+        [string[]]$Extensions = $script:ArtifactExtensions,
 
         [Parameter()]
         [switch]$Recurse,
@@ -68,23 +78,35 @@ function Get-RemoteArtifacts {
     )
 
     $result = [PSCustomObject]@{
-        Success  = $false
-        Data     = @()
-        Error    = $null
-        Summary  = $null
+        Success    = $false
+        Data       = @()
+        Error      = $null
+        Summary    = $null
         PerMachine = @{}
     }
 
     try {
         Write-ScanLog -Message "Starting remote artifact scan on $($ComputerName.Count) machine(s)"
 
+        # Defensive: if $Extensions is null (runspace context), fall back to hardcoded list
+        if (-not $Extensions -or $Extensions.Count -eq 0) {
+            $Extensions = @(
+                '.exe', '.dll', '.msi', '.msp',
+                '.ps1', '.psm1', '.psd1',
+                '.bat', '.cmd',
+                '.vbs', '.js', '.wsf',
+                '.appx', '.msix'
+            )
+            Write-ScanLog -Level Warning -Message "Extensions parameter was null; using hardcoded fallback list"
+        }
+
         # Filter out DLL extensions if SkipDllScanning is enabled
         if ($SkipDllScanning) {
-            $Extensions = $Extensions | Where-Object { $_ -ne '.dll' }
+            $Extensions = @($Extensions | Where-Object { $_ -ne '.dll' })
             Write-ScanLog -Message "Skipping DLL scanning for remote machines (performance optimization)"
         }
 
-        $allArtifacts = @()
+        $allArtifacts = [System.Collections.Generic.List[PSCustomObject]]::new()
         $machineResults = @{}
 
         #region --- Define remote script block ---
@@ -95,7 +117,6 @@ function Get-RemoteArtifacts {
             function Get-RemoteArtifactType {
                 param([string]$Extension)
                 
-                # Return UI-compatible artifact type values
                 switch ($Extension.ToLower()) {
                     '.exe' { 'EXE' }
                     '.dll' { 'DLL' }
@@ -125,7 +146,7 @@ function Get-RemoteArtifacts {
                         $versionInfo = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($FilePath)
                     }
                     catch { 
-                        # Version info not available for some files - acceptable, continue with null
+                        # Version info not available for some files - acceptable
                     }
                     
                     $signature = Get-AuthenticodeSignature -FilePath $FilePath -ErrorAction SilentlyContinue
@@ -158,34 +179,50 @@ function Get-RemoteArtifacts {
                 }
             }
 
-            $artifacts = @()
-            $extensionFilter = $FileExtensions | ForEach-Object { "*$_" }
+            # Use List<T> to avoid O(n²) array concatenation on remote machines
+            $artifacts = [System.Collections.Generic.List[PSCustomObject]]::new()
+            $extensionFilter = @($FileExtensions | ForEach-Object { "*$_" })
 
             foreach ($path in $ScanPaths) {
                 if (-not (Test-Path $path)) { continue }
 
                 $params = @{
                     Path        = $path
-                    Include     = $extensionFilter
                     File        = $true
                     ErrorAction = 'SilentlyContinue'
                 }
 
                 if ($DoRecurse) {
+                    # -Include works with -Recurse in PS 5.1
                     $params.Recurse = $true
+                    $params.Include = $extensionFilter
+                }
+                else {
+                    # PS 5.1 quirk: -Include requires -Recurse to work.
+                    # For non-recursive scans, enumerate files and filter manually.
+                    $params.Recurse = $false
                 }
 
                 $files = Get-ChildItem @params
 
+                # If non-recursive, apply extension filter manually
+                if (-not $DoRecurse -and $files) {
+                    $extSet = [System.Collections.Generic.HashSet[string]]::new(
+                        [System.StringComparer]::OrdinalIgnoreCase
+                    )
+                    foreach ($ext in $FileExtensions) { [void]$extSet.Add($ext) }
+                    $files = @($files | Where-Object { $extSet.Contains($_.Extension) })
+                }
+
                 foreach ($file in $files) {
                     $artifact = Get-RemoteFileArtifact -FilePath $file.FullName
                     if ($artifact) {
-                        $artifacts += $artifact
+                        $artifacts.Add($artifact)
                     }
                 }
             }
 
-            return $artifacts
+            return @(,$artifacts.ToArray())
         }
         #endregion
 
@@ -206,18 +243,16 @@ function Get-RemoteArtifacts {
         }
 
         # Process machines in batches to handle large-scale scans
-        $batchedResults = @()
+        $batchedResults = [System.Collections.Generic.List[PSCustomObject]]::new()
         $batchNumber = 0
         $batches = [System.Collections.ArrayList]::new()
 
         if ($ComputerName.Count -le $BatchSize) {
-            # Small enough for single batch
-            $null = $batches.Add($ComputerName)
+            [void]$batches.Add($ComputerName)
         } else {
-            # Split into batches
             for ($i = 0; $i -lt $ComputerName.Count; $i += $BatchSize) {
                 $batch = $ComputerName[$i..[Math]::Min($i + $BatchSize - 1, $ComputerName.Count - 1)]
-                $null = $batches.Add($batch)
+                [void]$batches.Add($batch)
             }
         }
 
@@ -230,20 +265,69 @@ function Get-RemoteArtifacts {
             $invokeParams.ComputerName = $batch
             $batchResults = Invoke-Command @invokeParams
             if ($batchResults) {
-                $batchedResults += $batchResults
+                foreach ($item in $batchResults) {
+                    $batchedResults.Add($item)
+                }
             }
             Start-Sleep -Milliseconds 100  # Brief pause between batches
         }
+        #endregion
 
-        $remoteResults = $batchedResults
+        #region --- Process results into allArtifacts and machineResults (C1 fix) ---
+        # Invoke-Command returns artifacts with PSComputerName property added by PS remoting.
+        # Group results by source machine and build per-machine tracking.
+        $succeededMachines = [System.Collections.Generic.HashSet[string]]::new(
+            [System.StringComparer]::OrdinalIgnoreCase
+        )
+
+        foreach ($artifact in $batchedResults) {
+            if ($null -eq $artifact) { continue }
+            $allArtifacts.Add($artifact)
+
+            # Track which machine returned results
+            $machineName = if ($artifact.PSComputerName) { $artifact.PSComputerName }
+                           elseif ($artifact.ComputerName) { $artifact.ComputerName }
+                           else { 'Unknown' }
+            [void]$succeededMachines.Add($machineName)
+        }
+
+        # Build per-machine results
+        foreach ($name in $ComputerName) {
+            $machineArtifacts = @($allArtifacts | Where-Object {
+                ($_.PSComputerName -eq $name) -or ($_.ComputerName -eq $name)
+            })
+            $machineResults[$name] = [PSCustomObject]@{
+                Success        = $succeededMachines.Contains($name)
+                ArtifactCount  = $machineArtifacts.Count
+            }
+        }
+
+        # Check for remote errors to identify failed machines
+        if ($remoteErrors) {
+            foreach ($err in $remoteErrors) {
+                $errTarget = if ($err.TargetObject) { $err.TargetObject.ToString() } else { 'Unknown' }
+                Write-ScanLog -Level Warning -Message "Remote scan error on ${errTarget}: $($err.Exception.Message)"
+                # If the machine isn't in succeededMachines, mark it as failed
+                foreach ($name in $ComputerName) {
+                    if ($errTarget -match [regex]::Escape($name) -and -not $succeededMachines.Contains($name)) {
+                        $machineResults[$name] = [PSCustomObject]@{
+                            Success       = $false
+                            ArtifactCount = 0
+                            Error         = $err.Exception.Message
+                        }
+                    }
+                }
+            }
+        }
         #endregion
 
         #region --- Build summary ---
-        $successCount = ($machineResults.Values | Where-Object { $_.Success }).Count
-        $failCount = ($machineResults.Values | Where-Object { -not $_.Success }).Count
+        $successCount = @($machineResults.Values | Where-Object { $_.Success }).Count
+        $failCount = $ComputerName.Count - $successCount
 
-        $result.Success = ($successCount -gt 0)
-        $result.Data = $allArtifacts
+        # Success if at least one machine returned results, OR if no errors occurred
+        $result.Success = ($successCount -gt 0) -or ($allArtifacts.Count -gt 0)
+        $result.Data = $allArtifacts.ToArray()
         $result.PerMachine = $machineResults
         $result.Summary = [PSCustomObject]@{
             ScanDate           = Get-Date
@@ -251,7 +335,7 @@ function Get-RemoteArtifacts {
             MachinesSucceeded  = $successCount
             MachinesFailed     = $failCount
             TotalArtifacts     = $allArtifacts.Count
-            ArtifactsByMachine = $allArtifacts | Group-Object ComputerName | Select-Object Name, Count
+            ArtifactsByMachine = @($allArtifacts | Group-Object ComputerName | Select-Object Name, Count)
         }
         #endregion
 

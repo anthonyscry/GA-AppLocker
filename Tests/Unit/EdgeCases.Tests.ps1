@@ -25,7 +25,16 @@ Describe 'Large Dataset Handling' -Tag 'Unit', 'EdgeCase', 'Performance' {
 
     Context 'Test-MachineConnectivity with many machines' {
         BeforeAll {
-            Mock Test-Connection { $true } -ModuleName 'GA-AppLocker.Discovery'
+            # Mock the extracted Test-PingConnectivity function which handles both
+            # sequential (<=5) and parallel (>5) paths internally.
+            # Returns a hashtable of hostname -> $true (all online).
+            Mock Test-PingConnectivity {
+                $results = @{}
+                foreach ($h in $Hostnames) {
+                    $results[$h] = $true
+                }
+                return $results
+            } -ModuleName 'GA-AppLocker.Discovery'
             Mock Test-WSMan { [PSCustomObject]@{ ProductVersion = 'OS: 10.0.19041' } } -ModuleName 'GA-AppLocker.Discovery'
             Mock Write-AppLockerLog { } -ModuleName 'GA-AppLocker.Discovery'
         }
@@ -234,15 +243,19 @@ Describe 'Network Timeout Handling' -Tag 'Unit', 'EdgeCase', 'Network' {
 
     Context 'Test-MachineConnectivity timeout behavior' {
         BeforeAll {
-            # Mock Test-Connection to simulate timeout (returns false after delay)
-            Mock Test-Connection {
-                param($ComputerName)
-                # Simulate some hosts timing out
-                if ($ComputerName -match 'TIMEOUT') {
-                    Start-Sleep -Milliseconds 100  # Small delay to simulate slow response
-                    return $false
+            # Mock Get-WmiObject Win32_PingStatus (sequential path, <=5 machines)
+            # Simulate: TIMEOUT hosts return non-zero StatusCode, others succeed
+            Mock Get-WmiObject {
+                param($Class, $Filter)
+                if ($Filter -match "Address='([^']+)'") {
+                    $hostname = $Matches[1]
+                    if ($hostname -match 'TIMEOUT') {
+                        Start-Sleep -Milliseconds 100  # Small delay to simulate slow response
+                        return [PSCustomObject]@{ StatusCode = 11010 }
+                    }
+                    return [PSCustomObject]@{ StatusCode = 0 }
                 }
-                return $true
+                return [PSCustomObject]@{ StatusCode = 11010 }
             } -ModuleName 'GA-AppLocker.Discovery'
             
             Mock Test-WSMan { [PSCustomObject]@{ ProductVersion = 'OS: 10.0.19041' } } -ModuleName 'GA-AppLocker.Discovery'
@@ -278,7 +291,10 @@ Describe 'Network Timeout Handling' -Tag 'Unit', 'EdgeCase', 'Network' {
 
     Context 'WinRM connection failures' {
         BeforeAll {
-            Mock Test-Connection { $true } -ModuleName 'GA-AppLocker.Discovery'
+            # All machines ping successfully (StatusCode = 0)
+            Mock Get-WmiObject {
+                [PSCustomObject]@{ StatusCode = 0 }
+            } -ModuleName 'GA-AppLocker.Discovery'
             Mock Test-WSMan {
                 param($ComputerName)
                 if ($ComputerName -match 'WINRM-FAIL') {

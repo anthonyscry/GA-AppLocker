@@ -318,6 +318,7 @@ Export-ModuleMember -Function @(
     'Get-OUTree',
     'Get-ComputersByOU',
     'Test-MachineConnectivity',
+    'Test-PingConnectivity',
     # LDAP fallback functions
     'Resolve-LdapServer',
     'Get-LdapConnection',

@@ -119,18 +119,35 @@ function Get-ComputersByOU {
 }
 
 #region ===== HELPER FUNCTIONS =====
+
+# Module-level cache for tier mapping config (H2 fix - avoid N reads in loop)
+$script:CachedTierMapping = $null
+$script:TierMappingCacheTime = $null
+
+function Get-CachedTierMapping {
+    # Cache for 60 seconds to avoid per-machine config disk I/O
+    $now = Get-Date
+    if ($null -eq $script:CachedTierMapping -or $null -eq $script:TierMappingCacheTime -or ($now - $script:TierMappingCacheTime).TotalSeconds -gt 60) {
+        try {
+            $config = Get-AppLockerConfig
+            $script:CachedTierMapping = $config.TierMapping
+        }
+        catch {
+            $script:CachedTierMapping = $null
+        }
+        $script:TierMappingCacheTime = $now
+    }
+    return $script:CachedTierMapping
+}
+
 function Get-MachineTypeFromComputer {
     param($Computer)
 
     $dnLower = $Computer.DistinguishedName.ToLower()
     $osLower = if ($Computer.OperatingSystem) { $Computer.OperatingSystem.ToLower() } else { '' }
 
-    $tierMapping = $null
-    try {
-        $config = Get-AppLockerConfig
-        $tierMapping = $config.TierMapping
-    }
-    catch { }
+    # Use cached tier mapping instead of reading config per machine (H2 fix)
+    $tierMapping = Get-CachedTierMapping
 
     $tier0Patterns = if ($tierMapping.Tier0Patterns) { $tierMapping.Tier0Patterns } else { @('domain controllers') }
     $tier0OSPatterns = if ($tierMapping.Tier0OSPatterns) { $tierMapping.Tier0OSPatterns } else { @() }

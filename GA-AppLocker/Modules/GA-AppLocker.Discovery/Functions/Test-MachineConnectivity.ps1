@@ -3,17 +3,22 @@
     Tests network connectivity and WinRM availability for machines.
 
 .DESCRIPTION
-    Performs ping and WinRM connectivity tests on a list of machines.
+    Performs parallel ping and WinRM connectivity tests on a list of machines.
     Updates IsOnline and WinRMStatus properties on each machine object.
+    Uses parallel jobs for pings to avoid O(n * timeout) sequential delays.
 
 .PARAMETER Machines
-    Array of machine objects to test.
+    Array of machine objects to test (must have Hostname property).
 
 .PARAMETER TestWinRM
     Also test WinRM connectivity. Default: $true
 
 .PARAMETER TimeoutSeconds
-    Timeout for each test in seconds. Default: 5
+    Timeout for each connectivity test in seconds. Default: 5.
+    Applied as WMI Timeout parameter in milliseconds.
+
+.PARAMETER ThrottleLimit
+    Maximum concurrent ping jobs. Default: 20.
 
 .EXAMPLE
     $machines = (Get-ComputersByOU -OUDistinguishedNames @('OU=Workstations,DC=corp,DC=local')).Data
@@ -21,12 +26,122 @@
     $tested.Data | Where-Object IsOnline | Format-Table Hostname, WinRMStatus
 
 .OUTPUTS
-    [PSCustomObject] Result object with Success, Data (tested machines), and Error.
+    [PSCustomObject] Result object with Success, Data (tested machines), Error, and Summary.
 
 .NOTES
     Author: GA-AppLocker Team
-    Version: 1.0.0
+    Version: 1.2.0
+    Fixed: H1 - Parallel ping using PS jobs instead of sequential Test-Connection
+    Fixed: H1 - $TimeoutSeconds now wired to actual timeout behavior
+    Refactored: Extracted Test-PingConnectivity for testability
 #>
+
+function Test-PingConnectivity {
+    <#
+    .SYNOPSIS
+        Tests ping connectivity for a list of hostnames. Returns hashtable of hostname -> $true/$false.
+    .DESCRIPTION
+        For small lists (<=5), uses sequential Get-WmiObject Win32_PingStatus.
+        For larger lists, uses parallel Start-Job with throttled batches.
+        Extracted from Test-MachineConnectivity for testability.
+    #>
+    [CmdletBinding()]
+    [OutputType([hashtable])]
+    param(
+        [Parameter(Mandatory)]
+        [AllowEmptyCollection()]
+        [string[]]$Hostnames,
+
+        [Parameter()]
+        [int]$TimeoutMs = 5000,
+
+        [Parameter()]
+        [int]$TimeoutSeconds = 5,
+
+        [Parameter()]
+        [int]$ThrottleLimit = 20
+    )
+
+    $pingResults = @{}
+
+    if (-not $Hostnames -or $Hostnames.Count -eq 0) {
+        return $pingResults
+    }
+
+    # For small lists (<=5), use simple sequential to avoid job overhead
+    if ($Hostnames.Count -le 5) {
+        foreach ($hostname in $Hostnames) {
+            try {
+                $ping = Get-WmiObject -Class Win32_PingStatus -Filter "Address='$hostname' AND Timeout=$TimeoutMs" -ErrorAction SilentlyContinue
+                $pingResults[$hostname] = ($null -ne $ping -and $ping.StatusCode -eq 0)
+            }
+            catch {
+                $pingResults[$hostname] = $false
+            }
+        }
+    }
+    else {
+        # Parallel: launch pings as background jobs in throttled batches
+        $jobs = [System.Collections.Generic.List[object]]::new()
+
+        foreach ($hostname in $Hostnames) {
+            # Throttle: wait for a slot if at capacity
+            while ($jobs.Count -ge $ThrottleLimit) {
+                $completed = @($jobs | Where-Object { $_.State -ne 'Running' })
+                if ($completed.Count -gt 0) {
+                    foreach ($job in $completed) {
+                        $jobResult = Receive-Job -Job $job -ErrorAction SilentlyContinue
+                        $pingResults[$job.Name] = ($jobResult -eq $true)
+                        Remove-Job -Job $job -Force -ErrorAction SilentlyContinue
+                        $jobs.Remove($job)
+                    }
+                }
+                else {
+                    Start-Sleep -Milliseconds 50
+                }
+            }
+
+            $job = Start-Job -Name $hostname -ScriptBlock {
+                param($h, $t)
+                try {
+                    $ping = Get-WmiObject -Class Win32_PingStatus -Filter "Address='$h' AND Timeout=$t" -ErrorAction Stop
+                    return ($null -ne $ping -and $ping.StatusCode -eq 0)
+                }
+                catch {
+                    return $false
+                }
+            } -ArgumentList $hostname, $TimeoutMs
+            $jobs.Add($job)
+        }
+
+        # Wait for remaining jobs with overall timeout
+        $overallTimeout = [datetime]::Now.AddSeconds($TimeoutSeconds + 10)
+        while ($jobs.Count -gt 0 -and [datetime]::Now -lt $overallTimeout) {
+            $completed = @($jobs | Where-Object { $_.State -ne 'Running' })
+            if ($completed.Count -gt 0) {
+                foreach ($job in $completed) {
+                    $jobResult = Receive-Job -Job $job -ErrorAction SilentlyContinue
+                    $pingResults[$job.Name] = ($jobResult -eq $true)
+                    Remove-Job -Job $job -Force -ErrorAction SilentlyContinue
+                    $jobs.Remove($job)
+                }
+            }
+            else {
+                Start-Sleep -Milliseconds 100
+            }
+        }
+
+        # Force-stop any timed-out jobs
+        foreach ($job in $jobs) {
+            $pingResults[$job.Name] = $false
+            Stop-Job -Job $job -ErrorAction SilentlyContinue
+            Remove-Job -Job $job -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    return $pingResults
+}
+
 function Test-MachineConnectivity {
     [CmdletBinding()]
     [OutputType([PSCustomObject])]
@@ -39,7 +154,10 @@ function Test-MachineConnectivity {
         [bool]$TestWinRM = $true,
 
         [Parameter()]
-        [int]$TimeoutSeconds = 5
+        [int]$TimeoutSeconds = 5,
+
+        [Parameter()]
+        [int]$ThrottleLimit = 20
     )
 
     $result = [PSCustomObject]@{
@@ -64,28 +182,31 @@ function Test-MachineConnectivity {
     }
 
     try {
-        $testedMachines = [System.Collections.ArrayList]::new()
         $onlineCount = 0
         $winrmCount = 0
 
+        #region --- Ping Test (delegates to Test-PingConnectivity) ---
+        $timeoutMs = $TimeoutSeconds * 1000
+        $hostnames = @($Machines | ForEach-Object { $_.Hostname })
+
+        $pingResults = Test-PingConnectivity `
+            -Hostnames $hostnames `
+            -TimeoutMs $timeoutMs `
+            -TimeoutSeconds $TimeoutSeconds `
+            -ThrottleLimit $ThrottleLimit
+        #endregion
+
+        #region --- Apply Ping Results + WinRM Test ---
+        $testedMachines = [System.Collections.ArrayList]::new()
+
         foreach ($machine in $Machines) {
-            #region --- Ping Test ---
-            # Note: PS 5.1 Test-Connection doesn't have TimeoutSeconds parameter
-            $pingResult = Test-Connection -ComputerName $machine.Hostname `
-                -Count 1 `
-                -Quiet `
-                -ErrorAction SilentlyContinue
+            $isOnline = if ($pingResults.ContainsKey($machine.Hostname)) { $pingResults[$machine.Hostname] } else { $false }
+            $machine.IsOnline = $isOnline
+            if ($isOnline) { $onlineCount++ }
 
-            $machine.IsOnline = $pingResult
-            if ($pingResult) { $onlineCount++ }
-            #endregion
-
-            #region --- WinRM Test ---
-            if ($TestWinRM -and $pingResult) {
+            if ($TestWinRM -and $isOnline) {
                 try {
-                    $winrmTest = Test-WSMan -ComputerName $machine.Hostname `
-                        -ErrorAction Stop
-
+                    $null = Test-WSMan -ComputerName $machine.Hostname -ErrorAction Stop
                     $machine.WinRMStatus = 'Available'
                     $winrmCount++
                 }
@@ -93,21 +214,21 @@ function Test-MachineConnectivity {
                     $machine.WinRMStatus = 'Unavailable'
                 }
             }
-            elseif (-not $pingResult) {
+            elseif (-not $isOnline) {
                 $machine.WinRMStatus = 'Offline'
             }
-            #endregion
 
             [void]$testedMachines.Add($machine)
         }
+        #endregion
 
         #region --- Build Summary ---
         $result.Data = $testedMachines.ToArray()
         $result.Summary = [PSCustomObject]@{
-            TotalMachines  = $Machines.Count
-            OnlineCount    = $onlineCount
-            OfflineCount   = $Machines.Count - $onlineCount
-            WinRMAvailable = $winrmCount
+            TotalMachines    = $Machines.Count
+            OnlineCount      = $onlineCount
+            OfflineCount     = $Machines.Count - $onlineCount
+            WinRMAvailable   = $winrmCount
             WinRMUnavailable = $onlineCount - $winrmCount
         }
         #endregion
