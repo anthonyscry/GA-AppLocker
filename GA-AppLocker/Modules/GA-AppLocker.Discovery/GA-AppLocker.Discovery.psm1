@@ -46,6 +46,7 @@ Export-ModuleMember -Function @(
     'Get-ComputersByOU',
     'Test-MachineConnectivity',
     # LDAP-specific functions
+    'Resolve-LdapServer',
     'Get-LdapConnection',
     'Get-LdapSearchResult',
     'Get-DomainInfoViaLdap',

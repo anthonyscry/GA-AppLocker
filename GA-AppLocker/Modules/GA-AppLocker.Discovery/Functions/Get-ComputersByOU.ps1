@@ -68,6 +68,10 @@ function Get-ComputersByOU {
             $allComputers = [System.Collections.ArrayList]::new()
             $searchScope = if ($IncludeNestedOUs) { 'Subtree' } else { 'OneLevel' }
 
+            # Cache domain info once outside the loop (B6 fix — was N+1 AD queries)
+            $adDomain = Get-ADDomain -ErrorAction Stop
+            $dnsRoot = $adDomain.DNSRoot
+
             foreach ($ouDN in $OUDistinguishedNames) {
                 $computers = Get-ADComputer -Filter * `
                     -SearchBase $ouDN `
@@ -79,7 +83,7 @@ function Get-ComputersByOU {
                     $machineObject = [PSCustomObject]@{
                         Id                = [guid]::NewGuid().ToString()
                         Hostname          = $computer.Name
-                        FQDN              = "$($computer.Name).$((Get-ADDomain).DNSRoot)"
+                        FQDN              = "$($computer.Name).$dnsRoot"
                         DNSHostName       = $computer.DNSHostName
                         DistinguishedName = $computer.DistinguishedName
                         OU                = $ouDN

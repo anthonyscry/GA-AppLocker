@@ -57,9 +57,10 @@ function Get-OUTree {
         try {
             Import-Module ActiveDirectory -ErrorAction Stop
 
+            # Cache domain info once (B7 fix — was 3 separate Get-ADDomain calls)
+            $adDomain = Get-ADDomain -ErrorAction Stop
             if (-not $SearchBase) {
-                $domain = Get-ADDomain -ErrorAction Stop
-                $SearchBase = $domain.DistinguishedName
+                $SearchBase = $adDomain.DistinguishedName
             }
 
             $ous = Get-ADOrganizationalUnit -Filter * -SearchBase $SearchBase -Properties CanonicalName |
@@ -87,10 +88,10 @@ function Get-OUTree {
             }
 
             $rootObject = [PSCustomObject]@{
-                Name              = (Get-ADDomain).Name
+                Name              = $adDomain.Name
                 DistinguishedName = $SearchBase
-                CanonicalName     = (Get-ADDomain).DNSRoot
-                Path              = (Get-ADDomain).DNSRoot
+                CanonicalName     = $adDomain.DNSRoot
+                Path              = $adDomain.DNSRoot
                 Depth             = 0
                 ComputerCount     = 0
                 MachineType       = 'Mixed'
