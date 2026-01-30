@@ -941,9 +941,14 @@ function global:Invoke-SelectMachinesForScan {
         $selectedMachines = Show-MachineSelectionDialog -ParentWindow $Window -Machines $script:DiscoveredMachines
     }
     
-    if ($null -eq $selectedMachines -or $selectedMachines.Count -eq 0) { return }
-    
-    $script:SelectedScanMachines = $selectedMachines
+    if ($null -eq $selectedMachines) { return }
+    # Ensure we have an array of valid machine objects with Hostname
+    $script:SelectedScanMachines = @($selectedMachines | Where-Object {
+        $_ -ne $null -and
+        $_.PSObject -ne $null -and
+        $_.PSObject.Properties.Name -contains 'Hostname'
+    })
+    if ($script:SelectedScanMachines.Count -eq 0) { return }
 
     $machineList = $Window.FindName('ScanMachineList')
     $machineCount = $Window.FindName('ScanMachineCount')

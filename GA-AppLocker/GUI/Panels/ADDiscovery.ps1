@@ -25,22 +25,134 @@ function Initialize-DiscoveryPanel {
     }
 
     # Wire up DataGrid row-click to toggle checkbox (Bug 6: UX enhancement)
+    # Use PreviewMouseLeftButtonUp instead of CurrentCellChanged to avoid
+    # phantom items from DataGrid internal cell navigation events
     $dataGrid = $Window.FindName('MachineDataGrid')
     if ($dataGrid) {
         $script:ADDiscovery_Handlers['dataGridMouseUp'] = {
             param($sender, $e)
-            # Only toggle when clicking on non-checkbox cells
-            $cell = $sender.CurrentCell
-            if ($null -eq $cell -or $null -eq $cell.Item) { return }
-            # Skip if the user clicked directly on the checkbox column (column index 0)
-            if ($null -ne $cell.Column -and $sender.Columns.IndexOf($cell.Column) -eq 0) { return }
-            $item = $cell.Item
+            # Find the DataGridRow that was clicked
+            $source = $e.OriginalSource
+            $row = $null
+            $element = $source
+            while ($null -ne $element) {
+                if ($element -is [System.Windows.Controls.DataGridRow]) {
+                    $row = $element
+                    break
+                }
+                if ($element -is [System.Windows.Controls.CheckBox]) {
+                    # User clicked directly on checkbox — let WPF handle it natively
+                    return
+                }
+                $element = [System.Windows.Media.VisualTreeHelper]::GetParent($element)
+            }
+            if ($null -eq $row) { return }
+            $item = $row.Item
+            if ($null -eq $item) { return }
             if ($item.PSObject.Properties.Name -contains 'IsChecked') {
                 $item.IsChecked = -not $item.IsChecked
                 $sender.Items.Refresh()
             }
         }
-        $dataGrid.Add_CurrentCellChanged($script:ADDiscovery_Handlers['dataGridMouseUp'])
+        $dataGrid.Add_PreviewMouseLeftButtonUp($script:ADDiscovery_Handlers['dataGridMouseUp'])
+    }
+
+    # Wire up text filter box for machine search
+    $filterBox = $Window.FindName('MachineFilterBox')
+    if ($filterBox) {
+        $script:ADDiscovery_Handlers['filterBox'] = {
+            param($sender, $e)
+            if (-not $script:DiscoveredMachines -or $script:DiscoveredMachines.Count -eq 0) { return }
+
+            $text = $sender.Text.Trim()
+            if ([string]::IsNullOrEmpty($text)) {
+                $filtered = $script:DiscoveredMachines
+            } else {
+                $filtered = @($script:DiscoveredMachines | Where-Object {
+                    $_.Hostname -like "*$text*" -or
+                    $_.Type -like "*$text*" -or
+                    $_.OperatingSystem -like "*$text*" -or
+                    $_.DistinguishedName -like "*$text*"
+                })
+            }
+
+            Update-MachineDataGrid -Window $script:MainWindow -Machines $filtered
+
+            $machineCount = $script:MainWindow.FindName('DiscoveryMachineCount')
+            if ($machineCount) {
+                if ([string]::IsNullOrEmpty($text)) {
+                    $machineCount.Text = "$($filtered.Count) machines"
+                } else {
+                    $machineCount.Text = "$($filtered.Count) of $($script:DiscoveredMachines.Count) machines (filter: '$text')"
+                }
+            }
+        }.GetNewClosure()
+        $filterBox.Add_TextChanged($script:ADDiscovery_Handlers['filterBox'])
+    }
+
+    # Wire up machine type filter buttons (All, Workstations, Servers, DCs, Online)
+    $filterButtons = @{
+        'BtnFilterAll'          = { $null }
+        'BtnFilterWorkstations' = { 'Workstation' }
+        'BtnFilterServers'      = { 'Server' }
+        'BtnFilterDCs'          = { 'DomainController' }
+        'BtnFilterOnline'       = { 'Online' }
+    }
+    foreach ($btnName in $filterButtons.Keys) {
+        $btn = $Window.FindName($btnName)
+        if ($btn) {
+            $filterValue = $filterButtons[$btnName]
+            $script:ADDiscovery_Handlers[$btnName] = {
+                param($sender, $e)
+                if (-not $script:DiscoveredMachines -or $script:DiscoveredMachines.Count -eq 0) { return }
+
+                # Determine filter type from button name
+                $clickedName = $sender.Name
+                $filterType = switch ($clickedName) {
+                    'BtnFilterAll'          { $null }
+                    'BtnFilterWorkstations' { 'Workstation' }
+                    'BtnFilterServers'      { 'Server' }
+                    'BtnFilterDCs'          { 'DomainController' }
+                    'BtnFilterOnline'       { 'Online' }
+                }
+
+                # Apply filter
+                if (-not $filterType) {
+                    $filtered = $script:DiscoveredMachines
+                } elseif ($filterType -eq 'Online') {
+                    $filtered = @($script:DiscoveredMachines | Where-Object { $_.IsOnline -eq $true })
+                } else {
+                    $filtered = @($script:DiscoveredMachines | Where-Object { $_.Type -eq $filterType })
+                }
+
+                Update-MachineDataGrid -Window $script:MainWindow -Machines $filtered
+
+                $machineCount = $script:MainWindow.FindName('DiscoveryMachineCount')
+                if ($machineCount) {
+                    if (-not $filterType) {
+                        $machineCount.Text = "$($filtered.Count) machines"
+                    } else {
+                        $machineCount.Text = "$($filtered.Count) of $($script:DiscoveredMachines.Count) machines ($filterType)"
+                    }
+                }
+
+                # Update button visual states — highlight active filter
+                $allBtnNames = @('BtnFilterAll','BtnFilterWorkstations','BtnFilterServers','BtnFilterDCs','BtnFilterOnline')
+                foreach ($name in $allBtnNames) {
+                    $b = $script:MainWindow.FindName($name)
+                    if ($b) {
+                        if ($name -eq $clickedName) {
+                            $b.Background = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.Color]::FromRgb(0x3E, 0x3E, 0x42))
+                            $b.Foreground = [System.Windows.Media.Brushes]::White
+                        } else {
+                            $b.Background = [System.Windows.Media.Brushes]::Transparent
+                            $b.Foreground = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.Color]::FromRgb(0x99, 0x99, 0x99))
+                        }
+                    }
+                }
+            }.GetNewClosure()
+            $btn.Add_Click($script:ADDiscovery_Handlers[$btnName])
+        }
     }
 
     # Wire up OUTreeView selection to filter machines (Bug 3: missing feature)
@@ -101,11 +213,29 @@ function Unregister-DiscoveryPanelEvents {
         }
     }
     
+    # Remove filter box handler
+    if ($script:ADDiscovery_Handlers['filterBox']) {
+        $filterBox = $Window.FindName('MachineFilterBox')
+        if ($filterBox) {
+            try { $filterBox.Remove_TextChanged($script:ADDiscovery_Handlers['filterBox']) } catch { }
+        }
+    }
+    
+    # Remove filter button handlers
+    foreach ($btnName in @('BtnFilterAll','BtnFilterWorkstations','BtnFilterServers','BtnFilterDCs','BtnFilterOnline')) {
+        if ($script:ADDiscovery_Handlers[$btnName]) {
+            $btn = $Window.FindName($btnName)
+            if ($btn) {
+                try { $btn.Remove_Click($script:ADDiscovery_Handlers[$btnName]) } catch { }
+            }
+        }
+    }
+
     # Remove DataGrid row-click handler
     if ($script:ADDiscovery_Handlers['dataGridMouseUp']) {
         $dataGrid = $Window.FindName('MachineDataGrid')
         if ($dataGrid) {
-            try { $dataGrid.Remove_CurrentCellChanged($script:ADDiscovery_Handlers['dataGridMouseUp']) } catch { }
+            try { $dataGrid.Remove_PreviewMouseLeftButtonUp($script:ADDiscovery_Handlers['dataGridMouseUp']) } catch { }
         }
     }
     
@@ -422,6 +552,7 @@ function global:Get-CheckedMachines {
         Returns machines with IsChecked = $true from the MachineDataGrid.
     .DESCRIPTION
         If no machines are checked, returns an empty array.
+        Filters out non-machine objects (e.g. WPF NewItemPlaceholder or phantom items).
         Used by Test Connectivity and Scanner to operate on selected machines only.
     #>
     param([System.Windows.Window]$Window)
@@ -429,7 +560,13 @@ function global:Get-CheckedMachines {
     $dataGrid = $Window.FindName('MachineDataGrid')
     if (-not $dataGrid -or -not $dataGrid.ItemsSource) { return @() }
 
-    $checked = @($dataGrid.ItemsSource | Where-Object { $_.IsChecked -eq $true })
+    $checked = @($dataGrid.ItemsSource | Where-Object {
+        $_ -ne $null -and
+        $_.PSObject -ne $null -and
+        $_.PSObject.Properties.Name -contains 'IsChecked' -and
+        $_.PSObject.Properties.Name -contains 'Hostname' -and
+        $_.IsChecked -eq $true
+    })
     return $checked
 }
 
@@ -465,8 +602,20 @@ function global:Invoke-ConnectivityTest {
     $onComplete = {
         param($Result)
         if ($Result.Success) {
-            $script:DiscoveredMachines = $Result.Data
-            Update-MachineDataGrid -Window $Window -Machines $Result.Data
+            # Merge tested results back into the full machine list (don't overwrite)
+            # This preserves untested machines when only a subset was checked
+            $testedByHost = @{}
+            foreach ($m in $Result.Data) {
+                $testedByHost[$m.Hostname] = $m
+            }
+            for ($i = 0; $i -lt $script:DiscoveredMachines.Count; $i++) {
+                $host_ = $script:DiscoveredMachines[$i].Hostname
+                if ($testedByHost.ContainsKey($host_)) {
+                    $script:DiscoveredMachines[$i] = $testedByHost[$host_]
+                }
+            }
+
+            Update-MachineDataGrid -Window $Window -Machines $script:DiscoveredMachines
             Update-WorkflowBreadcrumb -Window $Window
 
             $summary = $Result.Summary
