@@ -2,6 +2,18 @@
 
 All notable changes to GA-AppLocker will be documented in this file.
 
+## [1.2.6] - 2026-01-30
+
+### New Features
+
+- **Common Deny Path Rules** — New "+ Deny Paths" button in the Rules panel bulk actions toolbar. One click creates 21 deny rules (7 user-writable directories × 3 collection types: Exe, Msi, Script) with Action=Deny, Status=Approved, SID=Everyone (S-1-1-0). Covers: `%OSDRIVE%\Users\*\AppData\Local\Temp\*`, `Downloads\*`, `Desktop\*`, `Documents\*`, `Users\Public\*`, `Windows\Temp\*`, `PerfLogs\*`.
+
+- **AppLocker AD groups in target group dropdowns** — Manual Rule and Scanner Batch Config target group ComboBoxes now include 6 AppLocker AD groups (AppLocker-Users, AppLocker-Admins, AppLocker-Exempt, AppLocker-Audit, AppLocker-Installers, AppLocker-Developers) with `RESOLVE:` prefix tags for lazy SID resolution.
+
+- **Resolve-GroupSid helper** — New Core module function for .NET-based AD group SID resolution. Strips `RESOLVE:` prefix, checks well-known SIDs, tries `NTAccount.Translate()` without domain prefix then with `$env:USERDOMAIN\` prefix. Falls back to `UNRESOLVED:GroupName` placeholder when group cannot be resolved.
+
+---
+
 ## [1.2.5] - 2026-01-30
 
 ### AD Discovery & UX Fixes

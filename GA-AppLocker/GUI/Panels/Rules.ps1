@@ -31,7 +31,7 @@ function Initialize-RulesPanel {
         'BtnLaunchRuleWizard', 'BtnCreateManualRule', 'BtnExportRulesXml', 'BtnExportRulesCsv',
         'BtnImportRulesXml', 'BtnRefreshRules', 'BtnApproveRule', 'BtnRejectRule', 'BtnReviewRule',
         'BtnDeleteRule', 'BtnViewRuleDetails', 'BtnViewRuleHistory', 'BtnAddRuleToPolicy',
-        'BtnApproveTrustedRules', 'BtnRemoveDuplicateRules'
+        'BtnApproveTrustedRules', 'BtnRemoveDuplicateRules', 'BtnAddCommonDenyRules'
     )
 
     foreach ($btnName in $actionButtons) {
@@ -506,10 +506,15 @@ function global:Invoke-CreateManualRule {
     $desc = $Window.FindName('TxtManualRuleDesc').Text
     $action = if ($Window.FindName('RbManualRuleAllow').IsChecked) { 'Allow' } else { 'Deny' }
 
-    # Get target group SID
+    # Get target group SID (resolve AD group names if needed)
     $targetGroupCombo = $Window.FindName('CboManualRuleTargetGroup')
     $targetGroupSid = if ($targetGroupCombo -and $targetGroupCombo.SelectedItem) {
-        $targetGroupCombo.SelectedItem.Tag
+        $rawTag = $targetGroupCombo.SelectedItem.Tag
+        if ($rawTag -and $rawTag.ToString().StartsWith('RESOLVE:')) {
+            try { Resolve-GroupSid -GroupName $rawTag } catch { $rawTag }
+        } else {
+            $rawTag
+        }
     }
     else {
         'S-1-1-0'  # Everyone
@@ -1125,6 +1130,101 @@ function global:Invoke-RulesContextAction {
         default {
             Write-Log -Level Warning -Message "Unknown context menu action: $Action"
         }
+    }
+}
+
+function global:Invoke-AddCommonDenyRules {
+    <#
+    .SYNOPSIS
+        Creates deny path rules for common user-writable directories.
+    .DESCRIPTION
+        Generates deny rules for 7 user-writable paths across Exe, Msi, and Script
+        collection types. These paths are commonly exploited for malware execution.
+    #>
+    param([System.Windows.Window]$Window)
+
+    # Confirm action with the user
+    $confirm = [System.Windows.MessageBox]::Show(
+        "This will create Deny rules for 7 user-writable paths:`n`n" +
+        "  - %OSDRIVE%\Users\*\AppData\Local\Temp\*`n" +
+        "  - %OSDRIVE%\Users\*\Downloads\*`n" +
+        "  - %OSDRIVE%\Users\*\Desktop\*`n" +
+        "  - %OSDRIVE%\Users\*\Documents\*`n" +
+        "  - %OSDRIVE%\Users\Public\*`n" +
+        "  - %OSDRIVE%\Windows\Temp\*`n" +
+        "  - %OSDRIVE%\PerfLogs\*`n`n" +
+        "Rules will be created for Exe, Msi, and Script collections.`n" +
+        "Status: Approved | Action: Deny | Target: Everyone`n`n" +
+        "Do you want to continue?",
+        'Create Common Deny Rules',
+        'YesNo',
+        'Question'
+    )
+
+    if ($confirm -ne 'Yes') { return }
+
+    Show-LoadingOverlay -Message 'Creating common deny rules...' -SubMessage 'Please wait'
+
+    try {
+        $denyPaths = @(
+            @{ Path = '%OSDRIVE%\Users\*\AppData\Local\Temp\*'; Desc = 'User AppData Temp folder' }
+            @{ Path = '%OSDRIVE%\Users\*\Downloads\*';          Desc = 'User Downloads folder' }
+            @{ Path = '%OSDRIVE%\Users\*\Desktop\*';            Desc = 'User Desktop folder' }
+            @{ Path = '%OSDRIVE%\Users\*\Documents\*';          Desc = 'User Documents folder' }
+            @{ Path = '%OSDRIVE%\Users\Public\*';               Desc = 'Public user folder' }
+            @{ Path = '%OSDRIVE%\Windows\Temp\*';               Desc = 'Windows Temp folder' }
+            @{ Path = '%OSDRIVE%\PerfLogs\*';                   Desc = 'PerfLogs folder' }
+        )
+
+        $collectionTypes = @('Exe', 'Msi', 'Script')
+        $created = 0
+        $errors = @()
+
+        foreach ($entry in $denyPaths) {
+            foreach ($collection in $collectionTypes) {
+                try {
+                    $ruleName = "Deny: $($entry.Desc) ($collection)"
+                    $ruleDesc = "Deny execution from user-writable path: $($entry.Path) [$collection]"
+
+                    $result = New-PathRule `
+                        -Path $entry.Path `
+                        -Action 'Deny' `
+                        -CollectionType $collection `
+                        -Name $ruleName `
+                        -Description $ruleDesc `
+                        -UserOrGroupSid 'S-1-1-0' `
+                        -Status 'Approved' `
+                        -Save
+
+                    if ($result.Success) {
+                        $created++
+                    }
+                    else {
+                        $errors += "$ruleName`: $($result.Error)"
+                    }
+                }
+                catch {
+                    $errors += "$($entry.Path) ($collection): $($_.Exception.Message)"
+                }
+            }
+        }
+    }
+    finally {
+        Hide-LoadingOverlay
+    }
+
+    # Refresh rules grid and counters
+    Reset-RulesSelectionState -Window $Window
+    Update-RulesDataGrid -Window $Window
+    Update-DashboardStats -Window $Window
+    Update-WorkflowBreadcrumb -Window $Window
+
+    if ($created -gt 0) {
+        Show-Toast -Message "Created $created common deny rules ($($denyPaths.Count) paths x $($collectionTypes.Count) collections)." -Type 'Success'
+    }
+    if ($errors.Count -gt 0) {
+        Write-Log -Level Warning -Message "Errors creating deny rules: $($errors -join '; ')"
+        Show-Toast -Message "$($errors.Count) rule(s) failed to create." -Type 'Warning'
     }
 }
 

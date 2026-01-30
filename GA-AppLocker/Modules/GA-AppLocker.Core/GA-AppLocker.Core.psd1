@@ -77,6 +77,9 @@
         'Restore-AppLockerData',
         'Get-BackupHistory',
         
+        # Group SID Resolution
+        'Resolve-GroupSid',
+        
         # Cache Management
         'Get-CachedValue',
         'Set-CachedValue',

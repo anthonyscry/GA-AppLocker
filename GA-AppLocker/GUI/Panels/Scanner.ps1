@@ -1714,6 +1714,12 @@ function global:Show-RuleGenerationConfigDialog {
                 <ComboBoxItem Content="Everyone" Tag="S-1-1-0"/>
                 <ComboBoxItem Content="Administrators" Tag="S-1-5-32-544"/>
                 <ComboBoxItem Content="Users" Tag="S-1-5-32-545"/>
+                <ComboBoxItem Content="AppLocker-Users" Tag="RESOLVE:AppLocker-Users"/>
+                <ComboBoxItem Content="AppLocker-Admins" Tag="RESOLVE:AppLocker-Admins"/>
+                <ComboBoxItem Content="AppLocker-Exempt" Tag="RESOLVE:AppLocker-Exempt"/>
+                <ComboBoxItem Content="AppLocker-Audit" Tag="RESOLVE:AppLocker-Audit"/>
+                <ComboBoxItem Content="AppLocker-Installers" Tag="RESOLVE:AppLocker-Installers"/>
+                <ComboBoxItem Content="AppLocker-Developers" Tag="RESOLVE:AppLocker-Developers"/>
             </ComboBox>
             
             <!-- Unsigned File Handling -->
@@ -1781,7 +1787,11 @@ function global:Show-RuleGenerationConfigDialog {
             $result.Confirmed = $true
             $result.PublisherLevel = $cboPublisherLevel.SelectedItem.Tag
             $result.Action = if ($rbAllow.IsChecked) { 'Allow' } else { 'Deny' }
-            $result.TargetSid = $cboTargetGroup.SelectedItem.Tag
+            $rawSid = $cboTargetGroup.SelectedItem.Tag
+            if ($rawSid -and $rawSid.ToString().StartsWith('RESOLVE:')) {
+                try { $rawSid = Resolve-GroupSid -GroupName $rawSid } catch { }
+            }
+            $result.TargetSid = $rawSid
             $result.UnsignedMode = $cboUnsignedMode.SelectedItem.Tag
             $result.Status = $cboStatus.SelectedItem.Tag
             $result.SkipDlls = $chkSkipDlls.IsChecked

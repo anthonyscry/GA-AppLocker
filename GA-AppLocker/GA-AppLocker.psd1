@@ -9,7 +9,7 @@
     RootModule = 'GA-AppLocker.psm1'
 
     # Version number of this module
-    ModuleVersion = '1.2.5'
+    ModuleVersion = '1.2.6'
 
     # ID used to uniquely identify this module
     GUID = 'f1e2d3c4-b5a6-7890-1234-567890abcdef'
@@ -253,6 +253,8 @@ Features:
         'Backup-AppLockerData',
         'Restore-AppLockerData',
         'Get-BackupHistory',
+        # Group SID Resolution
+        'Resolve-GroupSid',
         # Cache Management
         'Get-CachedValue',
         'Set-CachedValue',

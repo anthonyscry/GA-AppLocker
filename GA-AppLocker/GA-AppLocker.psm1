@@ -480,6 +480,8 @@ Export-ModuleMember -Function @(
     'Backup-AppLockerData',
     'Restore-AppLockerData',
     'Get-BackupHistory',
+    # Group SID Resolution
+    'Resolve-GroupSid',
     # Validation module
     'Test-AppLockerXmlSchema',
     'Test-AppLockerRuleGuids',

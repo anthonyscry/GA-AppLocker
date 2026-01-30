@@ -131,6 +131,8 @@ Export-ModuleMember -Function @(
     # Backup & Restore
     'Backup-AppLockerData',
     'Restore-AppLockerData',
-    'Get-BackupHistory'
+    'Get-BackupHistory',
+    # Group SID Resolution
+    'Resolve-GroupSid'
 )
 #endregion

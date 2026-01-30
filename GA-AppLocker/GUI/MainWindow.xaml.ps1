@@ -154,6 +154,8 @@ function global:Invoke-ButtonAction {
         'InitializeAppLockerGPOs' { Invoke-InitializeAppLockerGPOs -Window $win }
         'InitializeADStructure' { Invoke-InitializeADStructure -Window $win }
         'InitializeAll' { Invoke-InitializeAll -Window $win }
+        # Rules panel - Common Deny Rules
+        'AddCommonDenyRules' { Invoke-AddCommonDenyRules -Window $win }
         # Dashboard Quick Actions
         'ApproveTrustedVendors' { Invoke-ApproveTrustedVendors -Window $win }
         'RemoveDuplicateRules' { Invoke-RemoveDuplicateRules -Window $win }
