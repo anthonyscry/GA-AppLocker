@@ -153,6 +153,45 @@ function global:Update-RulesDataGrid {
             }
         }
 
+        # Build SID-to-friendly-name cache for Group column display
+        $sidCache = @{
+            'S-1-1-0'      = @{ Name = 'Everyone';           RiskLevel = 'High' }
+            'S-1-5-32-544' = @{ Name = 'Administrators';     RiskLevel = 'Low' }
+            'S-1-5-32-545' = @{ Name = 'Users';              RiskLevel = 'Medium' }
+            'S-1-5-11'     = @{ Name = 'Authenticated Users'; RiskLevel = 'Medium' }
+            'S-1-5-18'     = @{ Name = 'SYSTEM';             RiskLevel = 'Low' }
+            'S-1-5-32-546' = @{ Name = 'Guests';             RiskLevel = 'High' }
+        }
+        # Resolve unique unknown SIDs once (not per-rule)
+        $uniqueSids = @($rules | ForEach-Object { $_.UserOrGroupSid } | Where-Object { $_ } | Sort-Object -Unique)
+        foreach ($sid in $uniqueSids) {
+            if ($sidCache.ContainsKey($sid)) { continue }
+            if ($sid -like 'UNRESOLVED:*') {
+                $sidCache[$sid] = @{ Name = $sid.Substring(11); RiskLevel = 'Low' }
+                continue
+            }
+            if ($sid -like 'S-1-5-21-*-512') {
+                $sidCache[$sid] = @{ Name = 'Domain Admins'; RiskLevel = 'Low' }
+                continue
+            }
+            if ($sid -like 'S-1-5-21-*-513') {
+                $sidCache[$sid] = @{ Name = 'Domain Users'; RiskLevel = 'Medium' }
+                continue
+            }
+            # Try .NET reverse lookup for domain SIDs
+            try {
+                $sidObj = [System.Security.Principal.SecurityIdentifier]::new($sid)
+                $account = $sidObj.Translate([System.Security.Principal.NTAccount])
+                $resolvedName = $account.Value
+                if ($resolvedName -match '\\(.+)$') { $resolvedName = $Matches[1] }
+                $riskLvl = if ($resolvedName -like 'AppLocker-*') { 'Low' } else { 'Medium' }
+                $sidCache[$sid] = @{ Name = $resolvedName; RiskLevel = $riskLvl }
+            } catch {
+                # Show last portion of SID as fallback
+                $sidCache[$sid] = @{ Name = $sid; RiskLevel = $null }
+            }
+        }
+
         # Add display properties and map rule properties for UI
         $displayData = $rules | ForEach-Object {
             $rule = $_
@@ -163,6 +202,18 @@ function global:Update-RulesDataGrid {
             $props['Collection'] = $_.CollectionType
             $props['CreatedAt'] = $_.CreatedDate
             $props['ModifiedAt'] = $_.ModifiedDate
+
+            # Map UserOrGroupSid to friendly GroupName for display
+            $ruleSid = $rule.UserOrGroupSid
+            if (-not $ruleSid) { $ruleSid = 'S-1-1-0' }
+            $sidInfo = $sidCache[$ruleSid]
+            if ($sidInfo) {
+                $props['GroupName'] = $sidInfo.Name
+                if ($sidInfo.RiskLevel) { $props['GroupRiskLevel'] = $sidInfo.RiskLevel }
+            } else {
+                $props['GroupName'] = $ruleSid
+            }
+
             # Safely parse CreatedDate (may be DateTime, string, or PSCustomObject from JSON)
             $createdDisplay = ''
             if ($_.CreatedDate) {

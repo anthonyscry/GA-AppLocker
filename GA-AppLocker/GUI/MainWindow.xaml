@@ -1654,7 +1654,7 @@
                                                             </Ellipse.Style>
                                                         </Ellipse>
                                                         <TextBlock Text="{Binding GroupName}" Foreground="{StaticResource ForegroundBrush}" FontSize="12"
-                                                                   ToolTip="{Binding GroupCategory}"/>
+                                                                   ToolTip="{Binding UserOrGroupSid}"/>
                                                     </StackPanel>
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
