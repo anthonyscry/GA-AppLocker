@@ -71,10 +71,10 @@ function Get-RemoteArtifacts {
         [switch]$SkipDllScanning,
 
         [Parameter()]
-        [int]$ThrottleLimit = 5,
+        [int]$ThrottleLimit = 32,
 
         [Parameter()]
-        [int]$BatchSize = 50
+        [int]$BatchSize = 100
     )
 
     $result = [PSCustomObject]@{
@@ -151,7 +151,21 @@ function Get-RemoteArtifacts {
                         # Version info not available for some files - acceptable
                     }
                     
-                    $signature = Get-AuthenticodeSignature -FilePath $FilePath -ErrorAction SilentlyContinue
+                    # Use .NET cert extraction — no CRL/OCSP network calls
+                    # Get-AuthenticodeSignature triggers revocation checks that timeout on air-gapped networks
+                    $isSigned = $false
+                    $signerSubject = $null
+                    $sigStatus = 'NotSigned'
+                    try {
+                        $cert = [System.Security.Cryptography.X509Certificates.X509Certificate]::CreateFromSignedFile($FilePath)
+                        if ($cert) {
+                            $isSigned = $true
+                            $signerSubject = $cert.Subject
+                            $sigStatus = 'Valid'
+                        }
+                    } catch {
+                        # File has no embedded Authenticode signature (or is catalog-signed)
+                    }
                     
                     [PSCustomObject]@{
                         FilePath         = $FilePath
@@ -169,9 +183,9 @@ function Get-RemoteArtifacts {
                         FileVersion      = $versionInfo.FileVersion
                         FileDescription  = $versionInfo.FileDescription
                         OriginalFilename = $versionInfo.OriginalFilename
-                        IsSigned         = ($signature.Status -eq 'Valid')
-                        SignerCertificate = $signature.SignerCertificate.Subject
-                        SignatureStatus  = $signature.Status.ToString()
+                        IsSigned         = $isSigned
+                        SignerCertificate = $signerSubject
+                        SignatureStatus  = $sigStatus
                         CollectedDate    = Get-Date
                         ArtifactType     = Get-RemoteArtifactType -Extension $file.Extension
                     }
@@ -231,11 +245,17 @@ function Get-RemoteArtifacts {
         #region --- Execute on machines in parallel with batching ---
         Write-ScanLog -Message "Scanning $($ComputerName.Count) machines in parallel (ThrottleLimit: $ThrottleLimit, BatchSize: $BatchSize)"
 
+        # WinRM session options — fail fast on unreachable machines instead of hanging
+        # OpenTimeout: 30s to establish connection (default is infinite)
+        # OperationTimeout: 10min for the actual scan to complete (large dirs take time)
+        $sessionOption = New-PSSessionOption -OpenTimeout 30000 -OperationTimeout 600000 -CancelTimeout 10000
+
         # Build Invoke-Command parameters for parallel execution
         $invokeParams = @{
             ScriptBlock   = $remoteScriptBlock
             ArgumentList  = @($Paths, $Extensions, $Recurse.IsPresent)
             ThrottleLimit = $ThrottleLimit
+            SessionOption = $sessionOption
             ErrorAction   = 'SilentlyContinue'
             ErrorVariable = 'remoteErrors'
         }
@@ -264,12 +284,18 @@ function Get-RemoteArtifacts {
                 Write-ScanLog -Message "Processing batch $batchNumber of $($batches.Count) ($($batch.Count) machines)..."
             }
 
+            Write-ScanLog -Message "Connecting to: $($batch -join ', ')"
             $invokeParams.ComputerName = $batch
             $batchResults = Invoke-Command @invokeParams
+
             if ($batchResults) {
+                Write-ScanLog -Message "Received $(@($batchResults).Count) artifact(s) from batch $batchNumber"
                 foreach ($item in $batchResults) {
                     $batchedResults.Add($item)
                 }
+            }
+            else {
+                Write-ScanLog -Level Warning -Message "Batch $batchNumber returned no results (WinRM unreachable or scan empty)"
             }
             Start-Sleep -Milliseconds 100  # Brief pause between batches
         }

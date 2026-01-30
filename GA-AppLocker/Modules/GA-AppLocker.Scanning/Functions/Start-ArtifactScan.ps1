@@ -70,10 +70,10 @@ function Start-ArtifactScan {
         [string]$ScanName = "Scan_$(Get-Date -Format 'yyyyMMdd_HHmmss')",
 
         [Parameter()]
-        [int]$ThrottleLimit = 5,
+        [int]$ThrottleLimit = 32,
 
         [Parameter()]
-        [int]$BatchSize = 50,
+        [int]$BatchSize = 100,
 
         [Parameter()]
         [switch]$SkipDllScanning,

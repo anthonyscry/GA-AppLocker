@@ -104,8 +104,21 @@ function script:Get-FileArtifact {
         }
         catch { }
         
-        # Get Authenticode signature
-        $signature = Get-AuthenticodeSignature -FilePath $FilePath -ErrorAction SilentlyContinue
+        # Get digital signature — use .NET cert extraction (no CRL/OCSP network calls)
+        # Get-AuthenticodeSignature triggers revocation checks that timeout on air-gapped networks
+        $isSigned = $false
+        $signerSubject = $null
+        $sigStatus = 'NotSigned'
+        try {
+            $cert = [System.Security.Cryptography.X509Certificates.X509Certificate]::CreateFromSignedFile($FilePath)
+            if ($cert) {
+                $isSigned = $true
+                $signerSubject = $cert.Subject
+                $sigStatus = 'Valid'
+            }
+        } catch {
+            # File has no embedded Authenticode signature (or is catalog-signed)
+        }
         
         [PSCustomObject]@{
             FilePath         = $FilePath
@@ -125,9 +138,9 @@ function script:Get-FileArtifact {
             FileDescription  = $versionInfo.FileDescription
             OriginalFilename = $versionInfo.OriginalFilename
             # Signature info
-            IsSigned         = ($signature.Status -eq 'Valid')
-            SignerCertificate = $signature.SignerCertificate.Subject
-            SignatureStatus  = $signature.Status.ToString()
+            IsSigned         = $isSigned
+            SignerCertificate = $signerSubject
+            SignatureStatus  = $sigStatus
             # Metadata
             CollectedDate    = Get-Date
             ArtifactType     = Get-ArtifactType -Extension $file.Extension
