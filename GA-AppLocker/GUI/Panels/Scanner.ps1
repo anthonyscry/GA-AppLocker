@@ -551,7 +551,7 @@ function script:Update-ArtifactDataGrid {
                 'DLL' { @($artifacts | Where-Object { $_.ArtifactType -eq 'DLL' }) }
                 'MSI' { @($artifacts | Where-Object { $_.ArtifactType -eq 'MSI' }) }
                 'Script' { @($artifacts | Where-Object { $_.ArtifactType -in @('PS1', 'BAT', 'CMD', 'VBS', 'JS') }) }
-                'Appx' { @($artifacts | Where-Object { $_.CollectionType -eq 'Appx' }) }
+                'Appx' { @($artifacts | Where-Object { $_.CollectionType -eq 'Appx' -or $_.ArtifactType -eq 'APPX' }) }
                 'Signed' { @($artifacts | Where-Object { $_.IsSigned }) }
                 'Unsigned' { @($artifacts | Where-Object { -not $_.IsSigned }) }
                 default { $artifacts }

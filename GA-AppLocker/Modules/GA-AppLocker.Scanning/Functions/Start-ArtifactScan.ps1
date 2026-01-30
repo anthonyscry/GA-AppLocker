@@ -137,15 +137,26 @@ function Start-ArtifactScan {
                 Write-ScanLog -Message "Scanning Appx/MSIX packages..."
                 if ($SyncHash) { 
                     $SyncHash.StatusText = "Scanning Appx/MSIX packages..."
+                    $SyncHash.Progress = 89
                 }
 
-                $appxParams = @{}
+                # Include system apps, frameworks, and all users by default —
+                # AppLocker needs visibility into ALL installed packages to generate rules.
+                # On Server 2019, nearly all Appx packages are system/framework.
+                $appxParams = @{
+                    IncludeSystemApps = $true
+                    IncludeFrameworks = $true
+                    AllUsers          = $true
+                }
                 if ($SyncHash) { $appxParams.SyncHash = $SyncHash }
 
                 $appxResult = Get-AppxArtifacts @appxParams
                 if ($appxResult.Success) {
                     $allArtifacts += $appxResult.Data
                     Write-ScanLog -Message "Found $($appxResult.Data.Count) Appx packages"
+                }
+                else {
+                    Write-ScanLog -Level Warning -Message "Appx enumeration failed: $($appxResult.Error)"
                 }
             }
         }

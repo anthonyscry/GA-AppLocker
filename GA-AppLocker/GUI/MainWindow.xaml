@@ -410,7 +410,7 @@
                                    FontSize="20"
                                    FontWeight="Bold"
                                    Foreground="{StaticResource ForegroundBrush}"/>
-                        <TextBlock x:Name="SidebarSubtitle" Text="Dashboard v1.2.7"
+                        <TextBlock x:Name="SidebarSubtitle" Text="Dashboard v1.2.8"
                                    FontSize="11"
                                    Foreground="{StaticResource MutedBrush}"
                                    Margin="0,2,0,0"/>
@@ -2703,7 +2703,7 @@
                                     </Grid.RowDefinitions>
 
                                     <TextBlock Grid.Row="0" Grid.Column="0" Text="Version:" Foreground="{StaticResource MutedBrush}"/>
-                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="1.0.0" Foreground="{StaticResource ForegroundBrush}" FontWeight="SemiBold"/>
+                                    <TextBlock x:Name="AboutVersionText" Grid.Row="0" Grid.Column="1" Text="Loading..." Foreground="{StaticResource ForegroundBrush}" FontWeight="SemiBold"/>
 
                                     <TextBlock Grid.Row="1" Grid.Column="0" Text="Platform:" Foreground="{StaticResource MutedBrush}" Margin="0,5,0,0"/>
                                     <TextBlock Grid.Row="1" Grid.Column="1" Text="PowerShell 5.1 / WPF" Foreground="{StaticResource ForegroundBrush}" Margin="0,5,0,0"/>

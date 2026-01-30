@@ -157,6 +157,8 @@ function script:Get-ArtifactType {
         '.vbs' { 'VBS' }
         '.js' { 'JS' }
         '.wsf' { 'WSF' }
+        '.appx' { 'APPX' }
+        '.msix' { 'APPX' }
         default { 'Unknown' }
     }
 }

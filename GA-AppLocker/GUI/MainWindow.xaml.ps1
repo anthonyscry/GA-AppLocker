@@ -536,6 +536,8 @@ function Initialize-Navigation {
                     $win.FindName('NavSetupText').Visibility = 'Collapsed'
                     $win.FindName('NavAboutText').Visibility = 'Collapsed'
                     $win.FindName('SidebarFooter').Visibility = 'Collapsed'
+                    $breadcrumb = $win.FindName('WorkflowBreadcrumb')
+                    if ($breadcrumb) { $breadcrumb.Visibility = 'Collapsed' }
                     $win.FindName('NavSeparator').Margin = [System.Windows.Thickness]::new(5, 20, 5, 20)
                 
                     # Change button to expand icon
@@ -565,6 +567,8 @@ function Initialize-Navigation {
                     $win.FindName('NavSetupText').Visibility = 'Visible'
                     $win.FindName('NavAboutText').Visibility = 'Visible'
                     $win.FindName('SidebarFooter').Visibility = 'Visible'
+                    $breadcrumb = $win.FindName('WorkflowBreadcrumb')
+                    if ($breadcrumb) { $breadcrumb.Visibility = 'Visible' }
                     $win.FindName('NavSeparator').Margin = [System.Windows.Thickness]::new(15, 20, 15, 20)
                 
                     # Change button to collapse icon
@@ -692,6 +696,15 @@ function Initialize-MainWindow {
     catch {
         Write-Log -Level Warning -Message "Global search init failed: $($_.Exception.Message)"
     }
+
+    # Set version in About panel and sidebar from module manifest
+    try {
+        $modVersion = (Get-Module GA-AppLocker).Version.ToString()
+        $aboutVer = $Window.FindName('AboutVersionText')
+        if ($aboutVer) { $aboutVer.Text = $modVersion }
+        $sidebarSub = $Window.FindName('SidebarSubtitle')
+        if ($sidebarSub) { $sidebarSub.Text = "Dashboard v$modVersion" }
+    } catch { }
 
     # Update domain info in status bar and dashboard
     try {

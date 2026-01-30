@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Collects installed Appx/MSIX packages for AppLocker rule generation.
 
@@ -60,20 +60,23 @@ function Get-AppxArtifacts {
         
         if ($SyncHash) {
             $SyncHash.StatusText = "Enumerating installed app packages..."
-            $SyncHash.Progress = 10
         }
 
-        # Get Appx packages
-        $getAppxParams = @{
-            ErrorAction = 'SilentlyContinue'
-        }
-        
+        # Get Appx packages — try AllUsers first (needs admin), fall back to current user
+        $packages = $null
         if ($AllUsers) {
-            # Requires admin privileges
-            $getAppxParams.AllUsers = $true
+            try {
+                $packages = Get-AppxPackage -AllUsers -ErrorAction Stop
+                Write-ScanLog -Message "Enumerated Appx packages for all users"
+            }
+            catch {
+                Write-ScanLog -Level Warning -Message "AllUsers enumeration failed (needs admin): $($_.Exception.Message). Falling back to current user."
+                $packages = Get-AppxPackage -ErrorAction SilentlyContinue
+            }
         }
-
-        $packages = Get-AppxPackage @getAppxParams
+        else {
+            $packages = Get-AppxPackage -ErrorAction SilentlyContinue
+        }
 
         if (-not $packages) {
             $result.Success = $true
@@ -105,20 +108,24 @@ function Get-AppxArtifacts {
             
             if ($SyncHash -and $processed % 10 -eq 0) {
                 $pct = [math]::Round(($processed / $totalPackages) * 100)
-                $SyncHash.StatusText = "Processing packages: $processed of $totalPackages"
-                $SyncHash.Progress = 10 + [math]::Round($pct * 0.8)
+                $SyncHash.StatusText = "Appx packages: $processed of $totalPackages"
+                # Use 89-95 range so we don't overwrite file scan progress (26-88)
+                # and leave room for remote scan completion
+                $SyncHash.Progress = [math]::Min(95, 89 + [math]::Round($pct * 0.06))
             }
 
             # Extract publisher info from the package
             $publisherName = $pkg.Publisher
             $publisherDisplayName = $pkg.PublisherDisplayName
             
-            # Create artifact object compatible with rule generation
+            # Create artifact object compatible with rule generation and DataGrid display
             $artifact = [PSCustomObject]@{
-                # Core identification
+                # Core identification (property names match Get-FileArtifact for DataGrid binding)
                 FilePath        = $pkg.InstallLocation
                 FileName        = "$($pkg.Name).appx"
+                Extension       = '.appx'
                 FileExtension   = '.appx'
+                Directory       = $pkg.InstallLocation
                 
                 # Package-specific info
                 PackageName     = $pkg.Name
@@ -127,20 +134,29 @@ function Get-AppxArtifacts {
                 Architecture    = $pkg.Architecture.ToString()
                 
                 # Publisher info (used for Appx rules)
+                Publisher       = if ($publisherDisplayName) { $publisherDisplayName } else { $publisherName }
                 PublisherName   = $publisherName
                 PublisherDisplayName = $publisherDisplayName
                 ProductName     = if ($pkg.DisplayName) { $pkg.DisplayName } else { $pkg.Name }
+                FileVersion     = $pkg.Version.ToString()
+                FileDescription = if ($pkg.DisplayName) { $pkg.DisplayName } else { $pkg.Name }
                 
                 # Signature info
+                SignerCertificate = $publisherName
                 SignatureKind   = $pkg.SignatureKind.ToString()
+                SignatureStatus = 'Valid'
                 IsSigned        = $true  # All Appx packages must be signed
                 IsFramework     = $pkg.IsFramework
                 
-                # Metadata
-                Hash            = $null  # Appx rules typically use publisher, not hash
+                # Metadata (property names match Get-FileArtifact for DataGrid binding)
+                SHA256Hash      = $null  # Appx rules use publisher, not hash
+                SizeBytes       = 0
+                Hash            = $null
                 FileSize        = 0
+                ArtifactType    = 'APPX'
                 CollectionType  = 'Appx'
                 ComputerName    = $env:COMPUTERNAME
+                CollectedDate   = Get-Date
                 ScanDate        = Get-Date
                 
                 # For rule generation
@@ -151,8 +167,9 @@ function Get-AppxArtifacts {
         }
 
         if ($SyncHash) {
-            $SyncHash.StatusText = "Appx enumeration complete"
-            $SyncHash.Progress = 100
+            $SyncHash.StatusText = "Appx enumeration complete: $($artifacts.Count) packages"
+            # Don't set progress to 100 — let the parent scan orchestrator own final progress
+            $SyncHash.Progress = 95
         }
 
         $result.Success = $true

@@ -2,6 +2,18 @@
 
 All notable changes to GA-AppLocker will be documented in this file.
 
+## [1.2.8] - 2026-01-30
+
+### Bug Fixes
+
+- **Dynamic version display** — About panel showed hardcoded "1.0.0". Now reads `ModuleVersion` from the GA-AppLocker module manifest at startup and sets both the About panel and sidebar subtitle dynamically. Version is always correct regardless of which file gets bumped.
+
+- **Hide workflow breadcrumb on sidebar collapse** — When the sidebar was collapsed to icon-only mode, the Workflow Progress indicator (4 stage circles with counts) stayed visible and got squished into 60px, showing as an unreadable jumble of numbers. Now hidden on collapse and restored on expand.
+
+- **APPX scanning returned zero artifacts** — `Get-AppxArtifacts` filtered out all system/framework packages by default (`-IncludeSystemApps=$false`, `-IncludeFrameworks=$false`, `-AllUsers=$false`), leaving zero results on Server 2019 and most Windows 10 machines. Now includes system apps, frameworks, and all-user packages by default with robust `-AllUsers` fallback (tries `Get-AppxPackage -AllUsers` first, falls back to current-user on permission error). Fixed progress bar overwrite where APPX phase set progress to 100% while remote scans were still running (now uses 89-95% range). Added missing `ArtifactType`, `Extension`, `Publisher`, `SHA256Hash`, `SizeBytes`, `CollectedDate` properties to APPX artifact objects so DataGrid columns display correctly. Added `.appx`/`.msix` to artifact type mappings in both local (`Get-ArtifactType`) and remote (`Get-RemoteArtifactType`) — was falling through to `'Unknown'`. `ConvertFrom-Artifact` now respects pre-set `CollectionType` on APPX artifacts instead of re-deriving from extension.
+
+---
+
 ## [1.2.7] - 2026-01-30
 
 ### Bug Fix

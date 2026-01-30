@@ -130,6 +130,8 @@ function Get-RemoteArtifacts {
                     '.vbs' { 'VBS' }
                     '.js' { 'JS' }
                     '.wsf' { 'WSF' }
+                    '.appx' { 'APPX' }
+                    '.msix' { 'APPX' }
                     default { 'Unknown' }
                 }
             }

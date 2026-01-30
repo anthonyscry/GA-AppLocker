@@ -141,12 +141,18 @@ function ConvertFrom-Artifact {
                 
                 $suggestedGroup = if ($groupSuggestion.Success) { $groupSuggestion.Data } else { $null }
 
-                # Get collection type from extension
-                $extension = $art.Extension
-                if (-not $extension) {
-                    $extension = [System.IO.Path]::GetExtension($art.FileName)
+                # Get collection type: use pre-set CollectionType (e.g., Appx artifacts)
+                # or derive from file extension
+                if ($art.CollectionType -and $art.CollectionType -ne '') {
+                    $collectionType = $art.CollectionType
                 }
-                $collectionType = Get-CollectionType -Extension $extension
+                else {
+                    $extension = $art.Extension
+                    if (-not $extension) {
+                        $extension = [System.IO.Path]::GetExtension($art.FileName)
+                    }
+                    $collectionType = Get-CollectionType -Extension $extension
+                }
 
                 switch ($ruleType) {
                     'Publisher' {
