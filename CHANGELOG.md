@@ -12,7 +12,19 @@ All notable changes to GA-AppLocker will be documented in this file.
 
 - **Increased ThrottleLimit and BatchSize defaults** — ThrottleLimit: 5 → 32 concurrent WinRM sessions. BatchSize: 50 → 100 machines per batch. Better utilization for environments with many machines.
 
-- **Better scan logging** — Added "Connecting to: host1, host2, host3" before `Invoke-Command` and result count / warning after each batch completes. Visible in the log file for troubleshooting.
+- **Better scan logging** — Added "Connecting to: host1, host2, host3" before `Invoke-Command` and result count / warning after each batch completes. Added progress logging every 500 files in `Get-LocalArtifacts`. Visible in the log file for troubleshooting.
+
+### Bug Fixes
+
+- **Remote scan nested array bug (critical)** — `Invoke-Command` targeting multiple machines returned nested arrays (one per machine) instead of individual artifacts. A scan of 2 machines returning 5,000 artifacts each showed "2 artifacts" in the summary (counting arrays, not items). Rule generator saw 2 items without artifact properties and created 0 rules. Fixed by removing the `@(,...)` array wrapper from the remote scriptblock return and adding a flatten safety net in the batch result processing loop.
+
+- **No-machines graceful error** — Clicking "Start Remote Scan" without adding machines from AD Discovery threw a null reference exception on `$script:SelectedScanMachines.Count`. Now shows a detailed MessageBox explaining how to add machines first.
+
+- **Module reload on dashboard launch** — `Import-Module -Force` doesn't remove sub-modules. `Run-Dashboard.ps1` now calls `Remove-Module GA-AppLocker -Force` and `Get-Module GA-AppLocker.* | Remove-Module -Force` before import, ensuring the latest code is always loaded.
+
+### Added
+
+- **Troubleshooting scripts** — Three new admin scripts in `Troubleshooting/`: `Enable-WinRM.ps1` (enables WinRM service, configures listener, opens firewall ports 5985/5986), `Disable-WinRM.ps1` (reverts all WinRM changes), and `Force-GPOSync.ps1` (forces AD replication via `repadmin /syncall`, `Invoke-GPUpdate` on all domain computers, local `gpupdate /force`).
 
 ---
 
