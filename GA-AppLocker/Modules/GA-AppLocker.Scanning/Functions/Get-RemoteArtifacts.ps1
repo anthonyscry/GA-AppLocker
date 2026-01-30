@@ -238,7 +238,11 @@ function Get-RemoteArtifacts {
                 }
             }
 
-            return @(,$artifacts.ToArray())
+            # Return individual artifacts — do NOT wrap with @(,...) because
+            # Invoke-Command with multiple computers would nest arrays (1 per machine)
+            # causing "2 artifacts" instead of thousands. Pipeline unrolling is fine here
+            # since Invoke-Command adds PSComputerName to each object.
+            return $artifacts.ToArray()
         }
         #endregion
 
@@ -289,10 +293,20 @@ function Get-RemoteArtifacts {
             $batchResults = Invoke-Command @invokeParams
 
             if ($batchResults) {
-                Write-ScanLog -Message "Received $(@($batchResults).Count) artifact(s) from batch $batchNumber"
+                # Flatten results — Invoke-Command may return nested arrays if remote
+                # scriptblock returns array objects, or flat stream of individual artifacts
+                $flatCount = 0
                 foreach ($item in $batchResults) {
-                    $batchedResults.Add($item)
+                    if ($item -is [System.Array] -or $item -is [System.Collections.IList]) {
+                        # Nested array from a machine — flatten it
+                        foreach ($subItem in $item) {
+                            if ($subItem) { $batchedResults.Add($subItem); $flatCount++ }
+                        }
+                    } else {
+                        if ($item) { $batchedResults.Add($item); $flatCount++ }
+                    }
                 }
+                Write-ScanLog -Message "Received $flatCount artifact(s) from batch $batchNumber"
             }
             else {
                 Write-ScanLog -Level Warning -Message "Batch $batchNumber returned no results (WinRM unreachable or scan empty)"
