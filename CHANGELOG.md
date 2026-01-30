@@ -2,6 +2,20 @@
 
 All notable changes to GA-AppLocker will be documented in this file.
 
+## [1.2.5] - 2026-01-30
+
+### AD Discovery & UX Fixes
+
+- **Filter buttons and text search now work** — Filter handlers used `.GetNewClosure()` which creates a separate module scope. Inside the closure, `$script:DiscoveredMachines` and `$script:MainWindow` resolved to the closure's empty scope (always `$null`), so every filter silently returned immediately. Removed `.GetNewClosure()` and added `$global:GA_MainWindow` fallback.
+
+- **Removed checkboxes from AD Discovery** — Checkbox column removed from DataGrid. `Get-CheckedMachines` now uses DataGrid's built-in `SelectedItems` (blue highlight via click/Shift/Ctrl) instead of `IsChecked` binding.
+
+- **Fixed connectivity test crash** — `Test-MachineConnectivity` used direct property assignment (`$machine.IsOnline = $value`) which fails if the property doesn't exist on the object. Changed to `Add-Member -Force` which creates or overwrites the property safely.
+
+- **Scanner button labels simplified** — "Add from AD Discovery" → "Add", "Remove Selected" → "Remove".
+
+---
+
 ## [1.2.4] - 2026-01-30
 
 ### Critical Fix — WPF Dispatcher Crash (`Get-Date` not recognized)

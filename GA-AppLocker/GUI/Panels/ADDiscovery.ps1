@@ -24,39 +24,6 @@ function Initialize-DiscoveryPanel {
         $btnTest.Add_Click($script:ADDiscovery_Handlers['btnTest'])
     }
 
-    # Wire up DataGrid row-click to toggle checkbox (Bug 6: UX enhancement)
-    # Use PreviewMouseLeftButtonUp instead of CurrentCellChanged to avoid
-    # phantom items from DataGrid internal cell navigation events
-    $dataGrid = $Window.FindName('MachineDataGrid')
-    if ($dataGrid) {
-        $script:ADDiscovery_Handlers['dataGridMouseUp'] = {
-            param($sender, $e)
-            # Find the DataGridRow that was clicked
-            $source = $e.OriginalSource
-            $row = $null
-            $element = $source
-            while ($null -ne $element) {
-                if ($element -is [System.Windows.Controls.DataGridRow]) {
-                    $row = $element
-                    break
-                }
-                if ($element -is [System.Windows.Controls.CheckBox]) {
-                    # User clicked directly on checkbox — let WPF handle it natively
-                    return
-                }
-                $element = [System.Windows.Media.VisualTreeHelper]::GetParent($element)
-            }
-            if ($null -eq $row) { return }
-            $item = $row.Item
-            if ($null -eq $item) { return }
-            if ($item.PSObject.Properties.Name -contains 'IsChecked') {
-                $item.IsChecked = -not $item.IsChecked
-                $sender.Items.Refresh()
-            }
-        }
-        $dataGrid.Add_PreviewMouseLeftButtonUp($script:ADDiscovery_Handlers['dataGridMouseUp'])
-    }
-
     # Wire up text filter box for machine search
     $filterBox = $Window.FindName('MachineFilterBox')
     if ($filterBox) {
@@ -76,9 +43,11 @@ function Initialize-DiscoveryPanel {
                 })
             }
 
-            Update-MachineDataGrid -Window $script:MainWindow -Machines $filtered
+            $win = $script:MainWindow
+            if (-not $win) { $win = $global:GA_MainWindow }
+            Update-MachineDataGrid -Window $win -Machines $filtered
 
-            $machineCount = $script:MainWindow.FindName('DiscoveryMachineCount')
+            $machineCount = $win.FindName('DiscoveryMachineCount')
             if ($machineCount) {
                 if ([string]::IsNullOrEmpty($text)) {
                     $machineCount.Text = "$($filtered.Count) machines"
@@ -86,7 +55,7 @@ function Initialize-DiscoveryPanel {
                     $machineCount.Text = "$($filtered.Count) of $($script:DiscoveredMachines.Count) machines (filter: '$text')"
                 }
             }
-        }.GetNewClosure()
+        }
         $filterBox.Add_TextChanged($script:ADDiscovery_Handlers['filterBox'])
     }
 
@@ -125,9 +94,11 @@ function Initialize-DiscoveryPanel {
                     $filtered = @($script:DiscoveredMachines | Where-Object { $_.MachineType -eq $filterType })
                 }
 
-                Update-MachineDataGrid -Window $script:MainWindow -Machines $filtered
+                $win = $script:MainWindow
+                if (-not $win) { $win = $global:GA_MainWindow }
+                Update-MachineDataGrid -Window $win -Machines $filtered
 
-                $machineCount = $script:MainWindow.FindName('DiscoveryMachineCount')
+                $machineCount = $win.FindName('DiscoveryMachineCount')
                 if ($machineCount) {
                     if (-not $filterType) {
                         $machineCount.Text = "$($filtered.Count) machines"
@@ -139,7 +110,7 @@ function Initialize-DiscoveryPanel {
                 # Update button visual states — highlight active filter
                 $allBtnNames = @('BtnFilterAll','BtnFilterWorkstations','BtnFilterServers','BtnFilterDCs','BtnFilterOnline')
                 foreach ($name in $allBtnNames) {
-                    $b = $script:MainWindow.FindName($name)
+                    $b = $win.FindName($name)
                     if ($b) {
                         if ($name -eq $clickedName) {
                             $b.Background = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.Color]::FromRgb(0x3E, 0x3E, 0x42))
@@ -150,7 +121,7 @@ function Initialize-DiscoveryPanel {
                         }
                     }
                 }
-            }.GetNewClosure()
+            }
             $btn.Add_Click($script:ADDiscovery_Handlers[$btnName])
         }
     }
@@ -231,14 +202,6 @@ function Unregister-DiscoveryPanelEvents {
         }
     }
 
-    # Remove DataGrid row-click handler
-    if ($script:ADDiscovery_Handlers['dataGridMouseUp']) {
-        $dataGrid = $Window.FindName('MachineDataGrid')
-        if ($dataGrid) {
-            try { $dataGrid.Remove_PreviewMouseLeftButtonUp($script:ADDiscovery_Handlers['dataGridMouseUp']) } catch { }
-        }
-    }
-    
     # Remove TreeView selection handler
     if ($script:ADDiscovery_Handlers['treeViewSelected']) {
         $treeView = $Window.FindName('OUTreeView')
@@ -525,7 +488,7 @@ function global:Update-MachineDataGrid {
 
     $dataGrid = $Window.FindName('MachineDataGrid')
     if ($dataGrid) {
-        # Add status icon + IsChecked property for checkbox binding
+        # Add status icon property for display
         # Wrap in @() to ensure array for DataGrid ItemsSource (PS 5.1 compatible)
         $machinesWithIcon = @($Machines | ForEach-Object {
             $statusIcon = switch ($_.IsOnline) {
@@ -534,10 +497,6 @@ function global:Update-MachineDataGrid {
                 default { [char]0x2013 }  # – (unknown)
             }
             $_ | Add-Member -NotePropertyName 'StatusIcon' -NotePropertyValue $statusIcon -Force
-            # Add IsChecked for checkbox binding (default unchecked)
-            if (-not ($_.PSObject.Properties.Name -contains 'IsChecked')) {
-                $_ | Add-Member -NotePropertyName 'IsChecked' -NotePropertyValue $false -Force
-            }
             # Output the object once (do NOT use -PassThru above, it causes duplicate output)
             $_
         })
@@ -549,25 +508,24 @@ function global:Update-MachineDataGrid {
 function global:Get-CheckedMachines {
     <#
     .SYNOPSIS
-        Returns machines with IsChecked = $true from the MachineDataGrid.
+        Returns selected (highlighted) machines from the MachineDataGrid.
     .DESCRIPTION
-        If no machines are checked, returns an empty array.
-        Filters out non-machine objects (e.g. WPF NewItemPlaceholder or phantom items).
+        Uses DataGrid's built-in SelectedItems (blue highlight rows via click/Shift/Ctrl).
+        If no machines are selected, returns an empty array.
+        Filters out non-machine objects (e.g. WPF NewItemPlaceholder).
         Used by Test Connectivity and Scanner to operate on selected machines only.
     #>
     param([System.Windows.Window]$Window)
 
     $dataGrid = $Window.FindName('MachineDataGrid')
-    if (-not $dataGrid -or -not $dataGrid.ItemsSource) { return @() }
+    if (-not $dataGrid -or $dataGrid.SelectedItems.Count -eq 0) { return @() }
 
-    $checked = @($dataGrid.ItemsSource | Where-Object {
+    $selected = @($dataGrid.SelectedItems | Where-Object {
         $_ -ne $null -and
         $_.PSObject -ne $null -and
-        $_.PSObject.Properties.Name -contains 'IsChecked' -and
-        $_.PSObject.Properties.Name -contains 'Hostname' -and
-        $_.IsChecked -eq $true
+        $_.PSObject.Properties.Name -contains 'Hostname'
     })
-    return $checked
+    return $selected
 }
 
 function global:Invoke-ConnectivityTest {

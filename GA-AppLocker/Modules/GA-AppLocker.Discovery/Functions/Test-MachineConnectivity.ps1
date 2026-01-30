@@ -201,21 +201,23 @@ function Test-MachineConnectivity {
 
         foreach ($machine in $Machines) {
             $isOnline = if ($pingResults.ContainsKey($machine.Hostname)) { $pingResults[$machine.Hostname] } else { $false }
-            $machine.IsOnline = $isOnline
+            # Use Add-Member -Force instead of direct assignment — property may not exist
+            # on machine objects from all code paths (AD module, LDAP, DataGrid wrappers)
+            $machine | Add-Member -NotePropertyName 'IsOnline' -NotePropertyValue $isOnline -Force
             if ($isOnline) { $onlineCount++ }
 
             if ($TestWinRM -and $isOnline) {
                 try {
                     $null = Test-WSMan -ComputerName $machine.Hostname -ErrorAction Stop
-                    $machine.WinRMStatus = 'Available'
+                    $machine | Add-Member -NotePropertyName 'WinRMStatus' -NotePropertyValue 'Available' -Force
                     $winrmCount++
                 }
                 catch {
-                    $machine.WinRMStatus = 'Unavailable'
+                    $machine | Add-Member -NotePropertyName 'WinRMStatus' -NotePropertyValue 'Unavailable' -Force
                 }
             }
             elseif (-not $isOnline) {
-                $machine.WinRMStatus = 'Offline'
+                $machine | Add-Member -NotePropertyName 'WinRMStatus' -NotePropertyValue 'Offline' -Force
             }
 
             [void]$testedMachines.Add($machine)
