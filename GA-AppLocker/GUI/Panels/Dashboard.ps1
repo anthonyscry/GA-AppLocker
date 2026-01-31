@@ -99,15 +99,18 @@ function global:Update-DashboardStats {
                     # Get-RulesFromDatabase returns array directly (not result object)
                     $pendingData = Get-RulesFromDatabase -Status 'Pending' -Take 10
                     if ($pendingData -and $pendingData.Count -gt 0) {
-                        $pendingRules = @($pendingData | ForEach-Object {
-                            [PSCustomObject]@{
-                                Type = $_.RuleType
-                                Name = $_.Name
-                            }
-                        })
-                        $pendingList.ItemsSource = $pendingRules
+                        $items = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+                        foreach ($rule in $pendingData) {
+                            $items.Add([PSCustomObject]@{
+                                Type = $rule.RuleType
+                                Name = $rule.Name
+                            })
+                        }
+                        $pendingList.ItemsSource = $items
                     }
-                } catch { }
+                } catch {
+                    Write-AppLockerLog -Message "Failed to populate pending rules list: $($_.Exception.Message)" -Level 'ERROR'
+                }
             }
         }
 

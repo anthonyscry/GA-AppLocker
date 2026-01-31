@@ -2,6 +2,26 @@
 
 All notable changes to GA-AppLocker will be documented in this file.
 
+## [1.2.22] - 2026-01-31
+
+### Bug Fixes
+
+- **Dashboard: Fix Pending Approval list empty** — Software.ps1 had UTF-8 em dashes in string literals that broke PowerShell 5.1 parsing (reads files as Windows-1252). This crashed the entire GUI initialization. Replaced with ASCII hyphens. Also improved pending list to use ObservableCollection for robust WPF binding.
+
+- **DataGrid headers unreadable on some panels** — Software Inventory had no header style (WPF defaults = invisible). Machine/Artifact/Credentials DataGrids had muted gray headers. All 7 DataGrids now use the shared DataGridStyle with white semibold headers matching the Rules panel.
+
+### Enhanced
+
+- **Setup: Remove WinRM GPO button** — New "Remove GPO" button (red text) on the WinRM Configuration card. Calls existing Remove-WinRMGPO with confirmation dialog. The function existed since v1.2.12 but had no UI.
+
+- **About panel redesign** — Added author credit (Tony Tran, CISSP / ISSO, General Atomics), app purpose description for air-gapped/classified/SIPR environments, workflow visualization, key capabilities list, all 10 module badges, and ScrollViewer for content overflow.
+
+### Stats
+
+- **Tests:** 397/397 passing (100%)
+
+---
+
 ## [1.2.21] - 2026-01-31
 
 ### Enhanced

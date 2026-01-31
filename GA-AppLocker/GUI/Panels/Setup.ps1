@@ -10,6 +10,9 @@ function Initialize-SetupPanel {
     $btnToggleWinRM = $Window.FindName('BtnToggleWinRM')
     if ($btnToggleWinRM) { $btnToggleWinRM.Add_Click({ Invoke-ButtonAction -Action 'ToggleWinRM' }) }
 
+    $btnRemoveWinRM = $Window.FindName('BtnRemoveWinRM')
+    if ($btnRemoveWinRM) { $btnRemoveWinRM.Add_Click({ Invoke-ButtonAction -Action 'RemoveWinRM' }) }
+
     $btnInitGPOs = $Window.FindName('BtnInitializeAppLockerGPOs')
     if ($btnInitGPOs) { $btnInitGPOs.Add_Click({ Invoke-ButtonAction -Action 'InitializeAppLockerGPOs' }) }
 
@@ -120,6 +123,47 @@ function global:Invoke-ToggleWinRM {
 
         if ($result.Success) {
             [System.Windows.MessageBox]::Show("WinRM GPO link $action.", 'Success', 'OK', 'Information')
+            Update-SetupStatus -Window $Window
+        }
+        else {
+            [System.Windows.MessageBox]::Show("Failed: $($result.Error)", 'Error', 'OK', 'Error')
+        }
+    }
+    catch {
+        [System.Windows.MessageBox]::Show("Error: $($_.Exception.Message)", 'Error', 'OK', 'Error')
+    }
+}
+
+function global:Invoke-RemoveWinRMGPO {
+    param([System.Windows.Window]$Window)
+
+    try {
+        $status = Get-SetupStatus
+        if (-not $status.Success -or -not $status.Data.WinRM.Exists) {
+            [System.Windows.MessageBox]::Show('WinRM GPO does not exist. Nothing to remove.', 'Not Found', 'OK', 'Warning')
+            return
+        }
+
+        $confirm = [System.Windows.MessageBox]::Show(
+            "This will PERMANENTLY remove the 'AppLocker-EnableWinRM' GPO and all its links.`n`n" +
+            "WinRM service auto-start settings may persist on target machines until manually changed or gpupdate /force is run.`n`n" +
+            "Are you sure?",
+            'Remove WinRM GPO',
+            'YesNo',
+            'Warning'
+        )
+
+        if ($confirm -ne 'Yes') { return }
+
+        $result = Remove-WinRMGPO
+
+        if ($result.Success) {
+            [System.Windows.MessageBox]::Show(
+                "WinRM GPO removed.`n`n$($result.Data.Note)",
+                'Removed',
+                'OK',
+                'Information'
+            )
             Update-SetupStatus -Window $Window
         }
         else {

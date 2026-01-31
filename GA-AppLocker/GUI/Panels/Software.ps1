@@ -54,7 +54,7 @@ function global:Invoke-ScanLocalSoftware {
         if ($statusText) { $statusText.Text = "Scanned $($results.Count) programs on $env:COMPUTERNAME" }
 
         $lastScan = $Window.FindName('TxtSoftwareLastScan')
-        if ($lastScan) { $lastScan.Text = "$env:COMPUTERNAME — $(Get-Date -Format 'MM/dd HH:mm')" }
+        if ($lastScan) { $lastScan.Text = "$env:COMPUTERNAME - $(Get-Date -Format 'MM/dd HH:mm')" }
 
         Show-Toast -Message "Found $($results.Count) installed programs on local machine." -Type 'Success'
     }
@@ -155,7 +155,7 @@ function global:Invoke-ScanRemoteSoftware {
         if ($statusText) { $statusText.Text = "Scanned $($allResults.Count) programs across $($hostnames.Count) machine(s)" }
 
         $lastScan = $Window.FindName('TxtSoftwareLastScan')
-        if ($lastScan) { $lastScan.Text = "$($hostnames.Count) machines — $(Get-Date -Format 'MM/dd HH:mm')" }
+        if ($lastScan) { $lastScan.Text = "$($hostnames.Count) machines - $(Get-Date -Format 'MM/dd HH:mm')" }
 
         Show-Toast -Message "Found $($allResults.Count) installed programs across $($hostnames.Count) machine(s)." -Type 'Success'
     }
@@ -469,7 +469,7 @@ function global:Invoke-ClearSoftwareComparison {
     if ($lastScan) { $lastScan.Text = 'None' }
 
     $statusText = $Window.FindName('TxtSoftwareStatus')
-    if ($statusText) { $statusText.Text = 'Ready — scan local machine or import a CSV to get started.' }
+    if ($statusText) { $statusText.Text = 'Ready - scan local machine or import a CSV to get started.' }
 
     Show-Toast -Message 'Cleared all software inventory data.' -Type 'Info'
 }

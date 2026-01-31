@@ -158,6 +158,7 @@ function global:Invoke-ButtonAction {
         # Setup panel (Settings > Setup tab)
         'InitializeWinRM' { Invoke-InitializeWinRM -Window $win }
         'ToggleWinRM' { Invoke-ToggleWinRM -Window $win }
+        'RemoveWinRM' { Invoke-RemoveWinRMGPO -Window $win }
         'InitializeAppLockerGPOs' { Invoke-InitializeAppLockerGPOs -Window $win }
         'InitializeADStructure' { Invoke-InitializeADStructure -Window $win }
         'InitializeAll' { Invoke-InitializeAll -Window $win }

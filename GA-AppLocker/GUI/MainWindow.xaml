@@ -410,7 +410,7 @@
                                    FontSize="20"
                                    FontWeight="Bold"
                                    Foreground="{StaticResource ForegroundBrush}"/>
-                        <TextBlock x:Name="SidebarSubtitle" Text="Dashboard v1.2.21"
+                        <TextBlock x:Name="SidebarSubtitle" Text="Dashboard v1.2.22"
                                    FontSize="11"
                                    Foreground="{StaticResource MutedBrush}"
                                    Margin="0,2,0,0"/>
@@ -1016,25 +1016,11 @@
                                 <!-- Machine DataGrid -->
                                 <Border Background="#1E1E1E" CornerRadius="4" Padding="0" Margin="0,5,0,0">
                                     <DataGrid x:Name="MachineDataGrid"
+                                              Style="{StaticResource DataGridStyle}"
                                               AutoGenerateColumns="False"
-                                              Background="Transparent"
-                                              BorderThickness="0"
-                                              RowBackground="#252526"
-                                              AlternatingRowBackground="#2D2D30"
-                                              GridLinesVisibility="None"
-                                              HeadersVisibility="Column"
                                               SelectionMode="Extended"
                                               CanUserAddRows="False"
                                               CanUserDeleteRows="False">
-                                        <DataGrid.ColumnHeaderStyle>
-                                            <Style TargetType="DataGridColumnHeader">
-                                                <Setter Property="Background" Value="#1E1E1E"/>
-                                                <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
-                                                <Setter Property="Padding" Value="10,8"/>
-                                                <Setter Property="BorderThickness" Value="0,0,0,1"/>
-                                                <Setter Property="BorderBrush" Value="#3E3E42"/>
-                                            </Style>
-                                        </DataGrid.ColumnHeaderStyle>
                                         <DataGrid.CellStyle>
                                             <Style TargetType="DataGridCell">
                                                 <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}"/>
@@ -1313,39 +1299,10 @@
                                 <!-- Artifact DataGrid -->
                                 <Border Background="#1E1E1E" CornerRadius="4" Padding="0" Margin="0,5,0,0">
                                     <DataGrid x:Name="ArtifactDataGrid"
+                                              Style="{StaticResource DataGridStyle}"
                                               AutoGenerateColumns="False"
-                                              Background="Transparent"
-                                              BorderThickness="0"
-                                              RowBackground="#252526"
-                                              AlternatingRowBackground="#2D2D30"
-                                              GridLinesVisibility="None"
-                                              HeadersVisibility="Column"
                                               SelectionMode="Extended"
-                                              CanUserAddRows="False"
-                                              IsReadOnly="True"
-                                              FontSize="11">
-                                        <DataGrid.ColumnHeaderStyle>
-                                            <Style TargetType="DataGridColumnHeader">
-                                                <Setter Property="Background" Value="#1E1E1E"/>
-                                                <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
-                                                <Setter Property="Padding" Value="8,6"/>
-                                                <Setter Property="BorderThickness" Value="0,0,0,1"/>
-                                                <Setter Property="BorderBrush" Value="#3E3E42"/>
-                                                <Setter Property="FontSize" Value="11"/>
-                                            </Style>
-                                        </DataGrid.ColumnHeaderStyle>
-                                        <DataGrid.CellStyle>
-                                            <Style TargetType="DataGridCell">
-                                                <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}"/>
-                                                <Setter Property="BorderThickness" Value="0"/>
-                                                <Setter Property="Padding" Value="8,6"/>
-                                                <Style.Triggers>
-                                                    <Trigger Property="IsSelected" Value="True">
-                                                        <Setter Property="Background" Value="{StaticResource PrimaryBrush}"/>
-                                                    </Trigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </DataGrid.CellStyle>
+                                              IsReadOnly="True">
                                         <DataGrid.Columns>
                                             <DataGridTextColumn Header="S" Width="40" Binding="{Binding SignedIcon}"/>
                                             <DataGridTextColumn Header="Type" Width="80" Binding="{Binding ArtifactType}"/>
@@ -2472,25 +2429,10 @@
 
                                         <Border Background="#1E1E1E" CornerRadius="4">
                                             <DataGrid x:Name="CredentialsDataGrid"
+                                                      Style="{StaticResource DataGridStyle}"
                                                       AutoGenerateColumns="False"
-                                                      Background="Transparent"
-                                                      BorderThickness="0"
-                                                      RowBackground="#252526"
-                                                      AlternatingRowBackground="#2D2D30"
-                                                      GridLinesVisibility="None"
-                                                      HeadersVisibility="Column"
                                                       SelectionMode="Single"
-                                                      CanUserAddRows="False"
                                                       IsReadOnly="True">
-                                                <DataGrid.ColumnHeaderStyle>
-                                                    <Style TargetType="DataGridColumnHeader">
-                                                        <Setter Property="Background" Value="#1E1E1E"/>
-                                                        <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
-                                                        <Setter Property="Padding" Value="10,8"/>
-                                                        <Setter Property="BorderThickness" Value="0,0,0,1"/>
-                                                        <Setter Property="BorderBrush" Value="#3E3E42"/>
-                                                    </Style>
-                                                </DataGrid.ColumnHeaderStyle>
                                                 <DataGrid.CellStyle>
                                                     <Style TargetType="DataGridCell">
                                                         <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}"/>
@@ -2591,7 +2533,9 @@
 
                                     <StackPanel Orientation="Horizontal">
                                         <Button x:Name="BtnInitializeWinRM" Content="Initialize" Style="{StaticResource PrimaryButtonStyle}" Padding="15,8" Margin="0,0,10,0"/>
-                                        <Button x:Name="BtnToggleWinRM" Content="Toggle Link" Style="{StaticResource ButtonStyle}" Padding="15,8"/>
+                                        <Button x:Name="BtnToggleWinRM" Content="Toggle Link" Style="{StaticResource ButtonStyle}" Padding="15,8" Margin="0,0,10,0"/>
+                                        <Button x:Name="BtnRemoveWinRM" Content="Remove GPO" Style="{StaticResource ButtonStyle}" Padding="15,8"
+                                                Foreground="{StaticResource ErrorBrush}" ToolTip="Completely remove the WinRM GPO and clean up tattooed settings"/>
                                     </StackPanel>
                                 </StackPanel>
                             </Border>
@@ -2692,7 +2636,8 @@
 
                     <TextBlock Grid.Row="0" Text="About" Style="{StaticResource HeaderStyle}"/>
 
-                    <Grid Grid.Row="1">
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="15"/>
@@ -2701,14 +2646,16 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
                         <!-- Card 1: Application Info -->
                         <Border Grid.Row="0" Grid.Column="0" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="20" Margin="0,0,0,15">
                             <StackPanel>
                                 <TextBlock Text="GA-APPLOCKER" FontSize="24" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,5"/>
-                                <TextBlock Text="Enterprise AppLocker Management Dashboard" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,20"/>
+                                <TextBlock Text="Enterprise AppLocker Policy Management" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,20"/>
 
                                 <Grid>
                                     <Grid.ColumnDefinitions>
@@ -2716,6 +2663,7 @@
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
                                     <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
@@ -2728,13 +2676,105 @@
                                     <TextBlock Grid.Row="1" Grid.Column="1" Text="PowerShell 5.1 / WPF" Foreground="{StaticResource ForegroundBrush}" Margin="0,5,0,0"/>
 
                                     <TextBlock Grid.Row="2" Grid.Column="0" Text="Environment:" Foreground="{StaticResource MutedBrush}" Margin="0,5,0,0"/>
-                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="Air-Gapped Ready" Foreground="{StaticResource SuccessBrush}" Margin="0,5,0,0"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="Air-Gapped / SIPR Ready" Foreground="{StaticResource SuccessBrush}" FontWeight="SemiBold" Margin="0,5,0,0"/>
+
+                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Modules:" Foreground="{StaticResource MutedBrush}" Margin="0,5,0,0"/>
+                                    <TextBlock Grid.Row="3" Grid.Column="1" Text="10 sub-modules, ~196 commands" Foreground="{StaticResource ForegroundBrush}" Margin="0,5,0,0"/>
                                 </Grid>
                             </StackPanel>
                         </Border>
 
-                        <!-- Card 2: Data Storage -->
+                        <!-- Card 2: Author -->
                         <Border Grid.Row="0" Grid.Column="2" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="20" Margin="0,0,0,15">
+                            <StackPanel>
+                                <TextBlock Text="DEVELOPED BY" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,15"/>
+
+                                <TextBlock Text="Tony Tran" FontSize="18" FontWeight="Bold" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,3"/>
+                                <TextBlock Text="CISSP / ISSO" FontSize="13" Foreground="{StaticResource PrimaryBrush}" FontWeight="SemiBold" Margin="0,0,0,3"/>
+                                <TextBlock Text="General Atomics" FontSize="13" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,15"/>
+
+                                <Border Background="#2D2D30" CornerRadius="4" Padding="12,10">
+                                    <TextBlock Text="Built for classified and air-gapped environments where commercial tools cannot operate. Zero external dependencies at runtime." 
+                                               Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" FontSize="11" LineHeight="18"/>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Card 3: Purpose -->
+                        <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="20" Margin="0,0,0,15">
+                            <StackPanel>
+                                <TextBlock Text="PURPOSE" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,12"/>
+
+                                <TextBlock TextWrapping="Wrap" Foreground="{StaticResource ForegroundBrush}" FontSize="12" LineHeight="20" Margin="0,0,0,15">
+                                    GA-AppLocker provides end-to-end AppLocker policy lifecycle management for enterprise Windows environments. 
+                                    Designed specifically for air-gapped, classified, and high-security networks (SIPR, JWICS, standalone enclaves) 
+                                    where commercial application whitelisting tools are unavailable or prohibited.
+                                </TextBlock>
+
+                                <TextBlock Text="COMPLETE WORKFLOW" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,12"/>
+
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <Border Grid.Column="0" Background="{StaticResource SecondaryBrush}" CornerRadius="4" Padding="8,6">
+                                        <TextBlock Text="AD Discovery" Foreground="White" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                                    </Border>
+                                    <TextBlock Grid.Column="1" Text="&#x25B6;" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="8,0"/>
+                                    <Border Grid.Column="2" Background="{StaticResource WarningBrush}" CornerRadius="4" Padding="8,6">
+                                        <TextBlock Text="Scanning" Foreground="White" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                                    </Border>
+                                    <TextBlock Grid.Column="3" Text="&#x25B6;" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="8,0"/>
+                                    <Border Grid.Column="4" Background="{StaticResource SuccessBrush}" CornerRadius="4" Padding="8,6">
+                                        <TextBlock Text="Rule Generation" Foreground="White" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                                    </Border>
+                                    <TextBlock Grid.Column="5" Text="&#x25B6;" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="8,0"/>
+                                    <Border Grid.Column="6" Background="{StaticResource PurpleBrush}" CornerRadius="4" Padding="8,6">
+                                        <TextBlock Text="Policy Building" Foreground="White" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                                    </Border>
+                                    <TextBlock Grid.Column="7" Text="&#x25B6;" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="8,0"/>
+                                    <Border Grid.Column="8" Background="{StaticResource ErrorBrush}" CornerRadius="4" Padding="8,6">
+                                        <TextBlock Text="GPO Deployment" Foreground="White" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                                    </Border>
+                                </Grid>
+
+                                <TextBlock Text="KEY CAPABILITIES" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,15,0,12"/>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                        <TextBlock Text="&#x2022;  LDAP fallback when RSAT is unavailable" Foreground="{StaticResource ForegroundBrush}" FontSize="11" Margin="0,0,0,5"/>
+                                        <TextBlock Text="&#x2022;  Local and remote artifact scanning (14 file types)" Foreground="{StaticResource ForegroundBrush}" FontSize="11" Margin="0,0,0,5"/>
+                                        <TextBlock Text="&#x2022;  Publisher, Hash, and Path rule generation" Foreground="{StaticResource ForegroundBrush}" FontSize="11" Margin="0,0,0,5"/>
+                                        <TextBlock Text="&#x2022;  5-stage policy validation pipeline" Foreground="{StaticResource ForegroundBrush}" FontSize="11" Margin="0,0,0,5"/>
+                                        <TextBlock Text="&#x2022;  Phased enforcement (Audit to Enforce)" Foreground="{StaticResource ForegroundBrush}" FontSize="11" Margin="0,0,0,5"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock Text="&#x2022;  Tiered credential management (T0/T1/T2) with DPAPI" Foreground="{StaticResource ForegroundBrush}" FontSize="11" Margin="0,0,0,5"/>
+                                        <TextBlock Text="&#x2022;  GPO deployment with XML export fallback" Foreground="{StaticResource ForegroundBrush}" FontSize="11" Margin="0,0,0,5"/>
+                                        <TextBlock Text="&#x2022;  Software inventory with cross-system comparison" Foreground="{StaticResource ForegroundBrush}" FontSize="11" Margin="0,0,0,5"/>
+                                        <TextBlock Text="&#x2022;  O(1) indexed rule storage (35k+ rules)" Foreground="{StaticResource ForegroundBrush}" FontSize="11" Margin="0,0,0,5"/>
+                                        <TextBlock Text="&#x2022;  Zero internet access required at runtime" Foreground="{StaticResource ForegroundBrush}" FontSize="11" Margin="0,0,0,5"/>
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Card 4: Data Storage -->
+                        <Border Grid.Row="2" Grid.Column="0" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="20" Margin="0,0,0,15">
                             <StackPanel>
                                 <TextBlock Text="DATA STORAGE" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,15"/>
 
@@ -2753,8 +2793,8 @@
                             </StackPanel>
                         </Border>
 
-                        <!-- Card 3: Requirements -->
-                        <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="20" Margin="0,0,0,15">
+                        <!-- Card 5: Requirements -->
+                        <Border Grid.Row="2" Grid.Column="2" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="20" Margin="0,0,0,15">
                             <StackPanel>
                                 <TextBlock Text="SYSTEM REQUIREMENTS" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,15"/>
 
@@ -2762,36 +2802,38 @@
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
 
-                                    <StackPanel Grid.Column="0" Margin="0,0,15,0">
+                                    <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,15,12">
                                         <TextBlock Text="Operating System" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,0,0,5"/>
-                                        <TextBlock Text="Windows 10+" Foreground="{StaticResource ForegroundBrush}"/>
-                                        <TextBlock Text="Server 2019+" Foreground="{StaticResource ForegroundBrush}"/>
+                                        <TextBlock Text="Windows 10+ / Server 2019+" Foreground="{StaticResource ForegroundBrush}"/>
                                     </StackPanel>
 
-                                    <StackPanel Grid.Column="1" Margin="0,0,15,0">
+                                    <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,0,12">
                                         <TextBlock Text="PowerShell" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,0,0,5"/>
                                         <TextBlock Text="Version 5.1+" Foreground="{StaticResource ForegroundBrush}"/>
                                     </StackPanel>
 
-                                    <StackPanel Grid.Column="2" Margin="0,0,15,0">
+                                    <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,15,0">
                                         <TextBlock Text=".NET Framework" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,0,0,5"/>
                                         <TextBlock Text="4.7.2+" Foreground="{StaticResource ForegroundBrush}"/>
                                     </StackPanel>
 
-                                    <StackPanel Grid.Column="3">
-                                        <TextBlock Text="RSAT Tools" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,0,0,5"/>
-                                        <TextBlock Text="AD + GroupPolicy" Foreground="{StaticResource ForegroundBrush}"/>
+                                    <StackPanel Grid.Row="1" Grid.Column="1">
+                                        <TextBlock Text="RSAT (Optional)" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,0,0,5"/>
+                                        <TextBlock Text="AD + GroupPolicy modules" Foreground="{StaticResource ForegroundBrush}"/>
+                                        <TextBlock Text="Graceful fallback if missing" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
                                     </StackPanel>
                                 </Grid>
                             </StackPanel>
                         </Border>
 
-                        <!-- Card 4: Modules -->
-                        <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="20">
+                        <!-- Card 6: Modules -->
+                        <Border Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="20">
                             <StackPanel>
                                 <TextBlock Text="MODULES" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,15"/>
 
@@ -2820,10 +2862,17 @@
                                     <Border Background="#607D8B" CornerRadius="4" Padding="12,8" Margin="0,0,8,8" Width="100">
                                         <TextBlock Text="Setup" Foreground="White" FontWeight="SemiBold" HorizontalAlignment="Center"/>
                                     </Border>
+                                    <Border Background="#455A64" CornerRadius="4" Padding="12,8" Margin="0,0,8,8" Width="100">
+                                        <TextBlock Text="Storage" Foreground="White" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                                    </Border>
+                                    <Border Background="#37474F" CornerRadius="4" Padding="12,8" Margin="0,0,8,8" Width="100">
+                                        <TextBlock Text="Validation" Foreground="White" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                                    </Border>
                                 </WrapPanel>
                             </StackPanel>
                         </Border>
                     </Grid>
+                    </ScrollViewer>
                 </Grid>
 
                 <!-- Software Inventory Panel -->
@@ -2926,18 +2975,9 @@
 
                             <!-- DataGrid -->
                             <DataGrid x:Name="SoftwareDataGrid" Grid.Row="1"
+                                      Style="{StaticResource DataGridStyle}"
                                       AutoGenerateColumns="False" IsReadOnly="True"
-                                      SelectionMode="Extended"
-                                      HeadersVisibility="Column"
-                                      GridLinesVisibility="None"
-                                      CanUserSortColumns="True"
-                                      CanUserReorderColumns="True"
-                                      CanUserResizeColumns="True"
-                                      Background="Transparent"
-                                      Foreground="{StaticResource ForegroundBrush}"
-                                      BorderThickness="0"
-                                      RowBackground="#1E1E1E"
-                                      AlternatingRowBackground="#252526">
+                                      SelectionMode="Extended">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="Machine" Binding="{Binding Machine}" Width="120"/>
                                     <DataGridTextColumn Header="Name" Binding="{Binding DisplayName}" Width="*" MinWidth="200"/>
@@ -2959,7 +2999,7 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <TextBlock x:Name="TxtSoftwareStatus" Grid.Column="0"
-                                       Text="Ready — scan local machine or import a CSV to get started."
+                                       Text="Ready - scan local machine or import a CSV to get started."
                                        Foreground="{StaticResource MutedBrush}" FontSize="11"
                                        VerticalAlignment="Center"/>
                             <StackPanel Grid.Column="1" Orientation="Horizontal">
