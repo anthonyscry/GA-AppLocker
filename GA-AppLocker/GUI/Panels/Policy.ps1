@@ -27,7 +27,7 @@ function Initialize-PolicyPanel {
     $actionButtons = @(
         'BtnCreatePolicy', 'BtnRefreshPolicies', 'BtnActivatePolicy', 
         'BtnArchivePolicy', 'BtnExportPolicy', 'BtnDeletePolicy', 'BtnDeployPolicy',
-        'BtnAddRulesToPolicy', 'BtnRemoveRulesFromPolicy', 'BtnSelectTargetOUs', 'BtnSaveTargets',
+        'BtnAddRulesToPolicy', 'BtnRemoveRulesFromPolicy',
         'BtnSavePolicyChanges', 'BtnComparePolicies', 'BtnExportDiffReport'
     )
 
@@ -39,6 +39,24 @@ function Initialize-PolicyPanel {
                     Invoke-ButtonAction -Action $sender.Tag
                 }.GetNewClosure())
         }
+    }
+
+    # Wire up GPO dropdown to show/hide custom textbox
+    $gpoCombo = $Window.FindName('CboEditTargetGPO')
+    if ($gpoCombo) {
+        $gpoCombo.Add_SelectionChanged({
+                param($sender, $e)
+                $selectedItem = $sender.SelectedItem
+                $customBox = $global:GA_MainWindow.FindName('TxtEditCustomGPO')
+                if ($customBox) {
+                    if ($selectedItem -and $selectedItem.Tag -eq 'Custom') {
+                        $customBox.Visibility = 'Visible'
+                    }
+                    else {
+                        $customBox.Visibility = 'Collapsed'
+                    }
+                }
+            })
     }
 
     # Wire up DataGrid selection changed
@@ -105,6 +123,23 @@ function global:Update-PoliciesDataGrid {
         $displayData = [System.Collections.Generic.List[PSCustomObject]]::new()
         if ($policies) {
             foreach ($policy in $policies) {
+                # Format ModifiedAt for display
+                $modifiedDisplay = ''
+                if ($policy.ModifiedAt) {
+                    try {
+                        $dateValue = $policy.ModifiedAt
+                        if ($dateValue -is [PSCustomObject] -and $dateValue.DateTime) {
+                            $modifiedDisplay = ([datetime]$dateValue.DateTime).ToString('MM/dd HH:mm')
+                        }
+                        elseif ($dateValue -is [datetime]) {
+                            $modifiedDisplay = $dateValue.ToString('MM/dd HH:mm')
+                        }
+                        elseif ($dateValue -is [string] -and $dateValue.Length -gt 0) {
+                            $modifiedDisplay = ([datetime]$dateValue).ToString('MM/dd HH:mm')
+                        }
+                    } catch { }
+                }
+
                 $displayData.Add([PSCustomObject]@{
                     PolicyId        = $policy.PolicyId
                     Name            = $policy.Name
@@ -117,6 +152,7 @@ function global:Update-PoliciesDataGrid {
                     TargetGPO       = $policy.TargetGPO
                     CreatedAt       = $policy.CreatedAt
                     ModifiedAt      = $policy.ModifiedAt
+                    ModifiedDisplay = $modifiedDisplay
                     Version         = $policy.Version
                     RuleCount       = if ($policy.RuleIds) { @($policy.RuleIds).Count } else { 0 }
                 })
@@ -198,29 +234,13 @@ function global:Update-SelectedPolicyInfo {
         $ruleCount = if ($selectedItem.RuleIds) { $selectedItem.RuleIds.Count } else { 0 }
         $txtRuleCount = $Window.FindName('TxtPolicyRuleCount')
         if ($txtRuleCount) { $txtRuleCount.Text = "$ruleCount rules" }
-
-        # Update target fields
-        $txtGPO = $Window.FindName('TxtTargetGPO')
-        if ($txtGPO) { $txtGPO.Text = if ($selectedItem.TargetGPO) { $selectedItem.TargetGPO } else { '' } }
         
-        $ouList = $Window.FindName('PolicyTargetOUsList')
-        if ($ouList) { $ouList.ItemsSource = if ($selectedItem.TargetOUs) { $selectedItem.TargetOUs } else { @() } }
-        
-        # Update Export tab
-        $txtExportName = $Window.FindName('TxtExportPolicyName')
-        if ($txtExportName) {
-            $txtExportName.Text = $selectedItem.Name
-            $txtExportName.FontStyle = 'Normal'
-            $txtExportName.Foreground = [System.Windows.Media.Brushes]::White
-        }
-        
-        # Update Edit tab
+        # Update Edit tab - Name and Description
         $txtEditName = $Window.FindName('TxtEditPolicyName')
-        if ($txtEditName) {
-            $txtEditName.Text = $selectedItem.Name
-            $txtEditName.FontStyle = 'Normal'
-            $txtEditName.Foreground = [System.Windows.Media.Brushes]::White
-        }
+        if ($txtEditName) { $txtEditName.Text = $selectedItem.Name }
+        
+        $txtEditDesc = $Window.FindName('TxtEditPolicyDescription')
+        if ($txtEditDesc) { $txtEditDesc.Text = if ($selectedItem.Description) { $selectedItem.Description } else { '' } }
         
         # Set enforcement mode dropdown
         $cboEnforcement = $Window.FindName('CboEditEnforcement')
@@ -242,6 +262,40 @@ function global:Update-SelectedPolicyInfo {
             if ($phaseIndex -gt 3) { $phaseIndex = 3 }
             $cboPhase.SelectedIndex = $phaseIndex
         }
+        
+        # Set Target GPO dropdown
+        $cboGPO = $Window.FindName('CboEditTargetGPO')
+        $txtCustomGPO = $Window.FindName('TxtEditCustomGPO')
+        if ($cboGPO) {
+            $gpoValue = if ($selectedItem.TargetGPO) { $selectedItem.TargetGPO } else { '' }
+            # Match against known GPO names
+            $matched = $false
+            for ($i = 0; $i -lt $cboGPO.Items.Count; $i++) {
+                $item = $cboGPO.Items[$i]
+                if ($item.Tag -eq $gpoValue) {
+                    $cboGPO.SelectedIndex = $i
+                    $matched = $true
+                    break
+                }
+            }
+            if (-not $matched -and $gpoValue.Length -gt 0) {
+                # Custom GPO name — select "Custom..." and fill textbox
+                for ($i = 0; $i -lt $cboGPO.Items.Count; $i++) {
+                    if ($cboGPO.Items[$i].Tag -eq 'Custom') {
+                        $cboGPO.SelectedIndex = $i
+                        break
+                    }
+                }
+                if ($txtCustomGPO) {
+                    $txtCustomGPO.Text = $gpoValue
+                    $txtCustomGPO.Visibility = 'Visible'
+                }
+            }
+            elseif ($txtCustomGPO) {
+                $txtCustomGPO.Text = ''
+                $txtCustomGPO.Visibility = 'Collapsed'
+            }
+        }
     }
     else {
         $script:SelectedPolicyId = $null
@@ -256,27 +310,18 @@ function global:Update-SelectedPolicyInfo {
         $txtRuleCount = $Window.FindName('TxtPolicyRuleCount')
         if ($txtRuleCount) { $txtRuleCount.Text = '0 rules' }
         
-        $txtGPO = $Window.FindName('TxtTargetGPO')
-        if ($txtGPO) { $txtGPO.Text = '' }
-        
-        $ouList = $Window.FindName('PolicyTargetOUsList')
-        if ($ouList) { $ouList.ItemsSource = $null }
-        
-        # Reset Export tab
-        $txtExportName = $Window.FindName('TxtExportPolicyName')
-        if ($txtExportName) {
-            $txtExportName.Text = '(Select a policy)'
-            $txtExportName.FontStyle = 'Italic'
-            $txtExportName.Foreground = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.Color]::FromRgb(158, 158, 158))
-        }
-        
         # Reset Edit tab
         $txtEditName = $Window.FindName('TxtEditPolicyName')
-        if ($txtEditName) {
-            $txtEditName.Text = '(Select a policy)'
-            $txtEditName.FontStyle = 'Italic'
-            $txtEditName.Foreground = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.Color]::FromRgb(158, 158, 158))
-        }
+        if ($txtEditName) { $txtEditName.Text = '' }
+        
+        $txtEditDesc = $Window.FindName('TxtEditPolicyDescription')
+        if ($txtEditDesc) { $txtEditDesc.Text = '' }
+        
+        $cboGPO = $Window.FindName('CboEditTargetGPO')
+        if ($cboGPO) { $cboGPO.SelectedIndex = 0 }
+        
+        $txtCustomGPO = $Window.FindName('TxtEditCustomGPO')
+        if ($txtCustomGPO) { $txtCustomGPO.Text = ''; $txtCustomGPO.Visibility = 'Collapsed' }
     }
 }
 
@@ -287,6 +332,18 @@ function global:Invoke-SavePolicyChanges {
         Show-Toast -Message 'Please select a policy to edit.' -Type 'Warning'
         return
     }
+    
+    # Get name and description
+    $txtEditName = $Window.FindName('TxtEditPolicyName')
+    $editName = if ($txtEditName) { $txtEditName.Text.Trim() } else { '' }
+    
+    if ([string]::IsNullOrWhiteSpace($editName)) {
+        Show-Toast -Message 'Policy name cannot be empty.' -Type 'Warning'
+        return
+    }
+    
+    $txtEditDesc = $Window.FindName('TxtEditPolicyDescription')
+    $editDesc = if ($txtEditDesc) { $txtEditDesc.Text.Trim() } else { '' }
     
     # Get enforcement mode from dropdown
     $cboEnforcement = $Window.FindName('CboEditEnforcement')
@@ -306,12 +363,27 @@ function global:Invoke-SavePolicyChanges {
         1
     }
     
+    # Get target GPO from dropdown or custom textbox
+    $cboGPO = $Window.FindName('CboEditTargetGPO')
+    $txtCustomGPO = $Window.FindName('TxtEditCustomGPO')
+    $selectedGpoItem = $cboGPO.SelectedItem
+    $targetGPO = if ($selectedGpoItem -and $selectedGpoItem.Tag -eq 'Custom') {
+        if ($txtCustomGPO) { $txtCustomGPO.Text.Trim() } else { '' }
+    }
+    elseif ($selectedGpoItem) {
+        [string]$selectedGpoItem.Tag
+    }
+    else {
+        ''
+    }
+    
     try {
-        $result = Update-Policy -Id $script:SelectedPolicyId -EnforcementMode $enforcement -Phase $phase
+        $result = Update-Policy -Id $script:SelectedPolicyId -Name $editName -Description $editDesc -EnforcementMode $enforcement -Phase $phase -TargetGPO $targetGPO
         
         if ($result.Success) {
             Update-PoliciesDataGrid -Window $Window
-            Show-Toast -Message "Policy updated: Mode=$enforcement, Phase=$phase" -Type 'Success'
+            Update-SelectedPolicyInfo -Window $Window
+            Show-Toast -Message "Policy '$editName' updated successfully." -Type 'Success'
         }
         else {
             Show-Toast -Message "Failed to update policy: $($result.Error)" -Type 'Error'
@@ -484,23 +556,16 @@ function global:Invoke-DeploySelectedPolicy {
     }
 
     $policy = $policyResult.Data
-
-    if (-not $policy.TargetGPO) {
-        [System.Windows.MessageBox]::Show('Please set a Target GPO before deploying.', 'Missing Target', 'OK', 'Warning')
-        return
-    }
+    $gpoInfo = if ($policy.TargetGPO) { " to GPO '$($policy.TargetGPO)'" } else { '' }
 
     $confirm = [System.Windows.MessageBox]::Show(
-        "Deploy policy '$($policy.Name)' to GPO '$($policy.TargetGPO)'?`n`nThis will navigate to the Deployment panel.",
-        'Confirm Deploy',
+        "Navigate to Deployment panel to deploy policy '$($policy.Name)'$gpoInfo?",
+        'Deploy Policy',
         'YesNo',
         'Question'
     )
 
     if ($confirm -eq 'Yes') {
-        # Set status to deployed and navigate to deploy panel
-        Set-PolicyStatus -PolicyId $script:SelectedPolicyId -Status 'Deployed' | Out-Null
-        Update-PoliciesDataGrid -Window $Window
         Set-ActivePanel -PanelName 'PanelDeploy'
     }
 }
@@ -592,68 +657,6 @@ function global:Invoke-RemoveRulesFromPolicy {
         else {
             [System.Windows.MessageBox]::Show("Failed: $($result.Error)", 'Error', 'OK', 'Error')
         }
-    }
-}
-
-function global:Invoke-SelectTargetOUs {
-    param([System.Windows.Window]$Window)
-
-    if (-not $script:SelectedPolicyId) {
-        [System.Windows.MessageBox]::Show('Please select a policy first.', 'No Selection', 'OK', 'Information')
-        return
-    }
-
-    # Use discovered OUs from Discovery panel
-    if ($script:DiscoveredOUs.Count -eq 0) {
-        $confirm = [System.Windows.MessageBox]::Show(
-            "No OUs discovered. Navigate to AD Discovery to scan for OUs?",
-            'No OUs',
-            'YesNo',
-            'Question'
-        )
-
-        if ($confirm -eq 'Yes') {
-            Set-ActivePanel -PanelName 'PanelDiscovery'
-        }
-        return
-    }
-
-    # For now, use all discovered OUs
-    $ouList = $Window.FindName('PolicyTargetOUsList')
-    $ouList.ItemsSource = $script:DiscoveredOUs | Select-Object -ExpandProperty DistinguishedName
-
-    [System.Windows.MessageBox]::Show(
-        "Added $($script:DiscoveredOUs.Count) OUs to target list.`nClick 'Save Targets' to apply.",
-        'OUs Selected',
-        'OK',
-        'Information'
-    )
-}
-
-function global:Invoke-SavePolicyTargets {
-    param([System.Windows.Window]$Window)
-
-    if (-not $script:SelectedPolicyId) {
-        [System.Windows.MessageBox]::Show('Please select a policy first.', 'No Selection', 'OK', 'Information')
-        return
-    }
-
-    $targetGPO = $Window.FindName('TxtTargetGPO').Text
-    $targetOUs = @($Window.FindName('PolicyTargetOUsList').ItemsSource)
-
-    try {
-        $result = Set-PolicyTarget -PolicyId $script:SelectedPolicyId -TargetOUs $targetOUs -TargetGPO $targetGPO
-        
-        if ($result.Success) {
-            Update-PoliciesDataGrid -Window $Window
-            [System.Windows.MessageBox]::Show('Policy targets saved.', 'Success', 'OK', 'Information')
-        }
-        else {
-            [System.Windows.MessageBox]::Show("Failed: $($result.Error)", 'Error', 'OK', 'Error')
-        }
-    }
-    catch {
-        [System.Windows.MessageBox]::Show("Error: $($_.Exception.Message)", 'Error', 'OK', 'Error')
     }
 }
 

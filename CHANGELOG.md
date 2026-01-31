@@ -2,6 +2,34 @@
 
 All notable changes to GA-AppLocker will be documented in this file.
 
+## [1.2.20] - 2026-01-31
+
+### Bug Fixes
+
+- **Policy Builder: Remove dead Export tab** — The Export tab had `BtnExportPolicyXml` and `BtnExportPolicyCsv` buttons with no dispatcher handlers (completely non-functional). The bottom action bar already had a working Export Policy button. Removed the entire Export tab (4 tabs → 3: Create, Rules, Edit).
+
+- **Policy Builder: Fix Modified date column showing nothing** — DataGrid column was bound to `ModifiedDisplay` but only `ModifiedAt` (raw ISO string) existed. Added date parsing and formatting to produce `MM/dd HH:mm` display values.
+
+- **Policy Builder: Enable editing policy Name and Description** — Edit tab only had Enforcement Mode and Phase dropdowns with a read-only name TextBlock. Changed to editable TextBox, added Description TextBox, and wired `Invoke-SavePolicyChanges` to pass Name/Description to `Update-Policy`.
+
+- **Policy Builder: Add Target GPO selection** — `TxtTargetGPO`, `PolicyTargetOUsList`, `BtnSelectTargetOUs`, and `BtnSaveTargets` were all referenced in code but **never existed in the XAML** — completely phantom UI elements. Added `CboEditTargetGPO` ComboBox with presets (AppLocker-DC, AppLocker-Servers, AppLocker-Workstations, Custom) and custom GPO TextBox. Wired selection, population, and save logic.
+
+- **Policy Builder: Unblock Deploy button** — Deploy always failed with "Please set a Target GPO" because `$policy.TargetGPO` was always null (the UI to set it never existed). Now navigates to Deployment panel instead of blocking.
+
+- **Policy Builder: Remove dead code** — Removed `Invoke-SelectTargetOUs` and `Invoke-SavePolicyTargets` functions, their dispatcher entries, and button references that pointed to non-existent XAML elements.
+
+- **Rules/Policy/Deploy: Fix column header sorting** — `DataGridTemplateColumn` (used for colored circles and status badges) does not support automatic WPF sorting. Added `SortMemberPath` to Group column, Status column on Rules panel, Status column on Policy panel, and Status column on Deploy panel.
+
+### Enhanced
+
+- **Update-Policy** now accepts `-Name`, `-Description`, and `-TargetGPO` parameters in addition to existing `-EnforcementMode` and `-Phase`.
+
+### Stats
+
+- **Tests:** 397/397 passing (100%)
+
+---
+
 ## [1.2.19] - 2026-01-31
 
 ### Features

@@ -138,8 +138,6 @@ function global:Invoke-ButtonAction {
         'DeployPolicy' { Invoke-DeploySelectedPolicy -Window $win }
         'AddRulesToPolicy' { Invoke-AddRulesToPolicy -Window $win }
         'RemoveRulesFromPolicy' { Invoke-RemoveRulesFromPolicy -Window $win }
-        'SelectTargetOUs' { Invoke-SelectTargetOUs -Window $win }
-        'SavePolicyTargets' { Invoke-SavePolicyTargets -Window $win }
         'SavePolicyChanges' { Invoke-SavePolicyChanges -Window $win }
         'ComparePolicies' { Invoke-ComparePolicies -Window $win }
         'ExportDiffReport' { Invoke-ExportDiffReport -Window $win }

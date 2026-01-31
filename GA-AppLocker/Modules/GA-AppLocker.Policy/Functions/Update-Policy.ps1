@@ -4,10 +4,16 @@ function Update-Policy {
         Updates an existing AppLocker policy.
 
     .DESCRIPTION
-        Updates policy properties like enforcement mode and phase.
+        Updates policy properties: name, description, enforcement mode, phase, and target GPO.
 
     .PARAMETER Id
         The policy GUID to update.
+
+    .PARAMETER Name
+        New display name for the policy.
+
+    .PARAMETER Description
+        New description for the policy.
 
     .PARAMETER EnforcementMode
         The enforcement mode: NotConfigured, AuditOnly, or Enabled.
@@ -15,8 +21,14 @@ function Update-Policy {
     .PARAMETER Phase
         The deployment phase (1-4).
 
+    .PARAMETER TargetGPO
+        The GPO name to target for deployment.
+
     .EXAMPLE
-        Update-Policy -Id "12345..." -EnforcementMode "Enabled" -Phase 4
+        Update-Policy -Id "12345..." -Name "New Name" -EnforcementMode "Enabled" -Phase 4
+
+    .EXAMPLE
+        Update-Policy -Id "12345..." -TargetGPO "AppLocker-Workstations"
     #>
     [CmdletBinding()]
     param(
@@ -24,12 +36,21 @@ function Update-Policy {
         [string]$Id,
 
         [Parameter(Mandatory = $false)]
+        [string]$Name,
+
+        [Parameter(Mandatory = $false)]
+        [string]$Description,
+
+        [Parameter(Mandatory = $false)]
         [ValidateSet('NotConfigured', 'AuditOnly', 'Enabled')]
         [string]$EnforcementMode,
 
         [Parameter(Mandatory = $false)]
         [ValidateRange(1, 4)]
-        [int]$Phase
+        [int]$Phase,
+
+        [Parameter(Mandatory = $false)]
+        [string]$TargetGPO
     )
 
     try {
@@ -45,6 +66,16 @@ function Update-Policy {
         }
 
         $policy = Get-Content -Path $policyFile -Raw | ConvertFrom-Json
+
+        # Update name if provided
+        if ($PSBoundParameters.ContainsKey('Name') -and -not [string]::IsNullOrWhiteSpace($Name)) {
+            $policy.Name = $Name
+        }
+
+        # Update description if provided
+        if ($PSBoundParameters.ContainsKey('Description')) {
+            $policy.Description = $Description
+        }
 
         # Update enforcement mode if provided
         if ($PSBoundParameters.ContainsKey('EnforcementMode')) {
@@ -63,6 +94,17 @@ function Update-Policy {
             # Apply safety rule for phase change
             if ($Phase -lt 4) {
                 $policy.EnforcementMode = 'AuditOnly'
+            }
+        }
+
+        # Update target GPO if provided
+        if ($PSBoundParameters.ContainsKey('TargetGPO')) {
+            # Add TargetGPO property if it doesn't exist
+            if (-not ($policy.PSObject.Properties.Name -contains 'TargetGPO')) {
+                $policy | Add-Member -NotePropertyName 'TargetGPO' -NotePropertyValue $TargetGPO
+            }
+            else {
+                $policy.TargetGPO = $TargetGPO
             }
         }
 
