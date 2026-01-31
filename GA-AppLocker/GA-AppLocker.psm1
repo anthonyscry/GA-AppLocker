@@ -151,6 +151,27 @@ function Start-AppLockerDashboard {
     $modVer = (Get-Module GA-AppLocker).Version
     Write-AppLockerLog -Message "Starting $script:APP_TITLE v$modVer"
 
+    #region --- Clear Previous Session Rules ---
+    # Wipe rules from previous sessions so the app starts clean and loads fast
+    try {
+        $dataPath = Get-AppLockerDataPath
+        $rulesPath = Join-Path $dataPath 'Rules'
+        if (Test-Path $rulesPath) {
+            $ruleFiles = Get-ChildItem -Path $rulesPath -Filter '*.json' -ErrorAction SilentlyContinue
+            $fileCount = if ($ruleFiles) { @($ruleFiles).Count } else { 0 }
+            if ($fileCount -gt 0) {
+                Remove-Item -Path (Join-Path $rulesPath '*.json') -Force -ErrorAction SilentlyContinue
+                Write-AppLockerLog -Message "Cleared $fileCount rule(s) from previous session"
+            }
+        }
+        # Reset the in-memory index so it doesn't hold stale data
+        try { Clear-RulesIndex } catch { }
+    }
+    catch {
+        Write-AppLockerLog -Level Warning -Message "Failed to clear previous rules: $($_.Exception.Message)"
+    }
+    #endregion
+
     #region --- Prerequisites Check ---
     if (-not $SkipPrerequisites) {
         Write-AppLockerLog -Message 'Validating prerequisites...'
@@ -497,6 +518,7 @@ Export-ModuleMember -Function @(
     'Get-SetupStatus',
     'Enable-WinRMGPO',
     'Disable-WinRMGPO',
+    'Remove-WinRMGPO',
     # Cache Management
     'Get-CachedValue',
     'Set-CachedValue',

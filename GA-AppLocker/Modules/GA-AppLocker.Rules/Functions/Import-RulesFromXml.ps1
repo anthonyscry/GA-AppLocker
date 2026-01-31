@@ -5,6 +5,7 @@
 .DESCRIPTION
     Parses an AppLocker XML policy file and imports rules into the GA-AppLocker database.
     Supports Publisher, Hash, and Path rules from Exe, Msi, Script, and Dll collections.
+    Uses batch save for high performance (single disk write + single index rebuild).
 
 .PARAMETER Path
     Path to the AppLocker XML file to import.
@@ -42,7 +43,7 @@ function Import-RulesFromXml {
         # Load XML
         [xml]$xml = Get-Content -Path $Path -Raw -ErrorAction Stop
         
-        $importedRules = @()
+        $importedRules = [System.Collections.Generic.List[PSCustomObject]]::new()
         $skippedCount = 0
         $errors = @()
         
@@ -75,6 +76,8 @@ function Import-RulesFromXml {
                 Data = @()
             }
         }
+        
+        $fileName = [System.IO.Path]::GetFileName($Path)
         
         # Process each rule collection (Exe, Msi, Script, Dll, Appx)
         $ruleCollections = $appLockerPolicy.SelectNodes('RuleCollection')
@@ -115,6 +118,7 @@ function Import-RulesFromXml {
                             if (-not [string]::IsNullOrWhiteSpace($binaryVersionRange.HighSection)) { $maxVersion = $binaryVersionRange.HighSection }
                         }
 
+                        # Create rule in memory only (no -Save)
                         $newRule = New-PublisherRule -PublisherName $publisherName `
                             -ProductName $productName `
                             -BinaryName $binaryName `
@@ -123,15 +127,11 @@ function Import-RulesFromXml {
                             -Action $action `
                             -UserOrGroupSid $userOrGroupSid `
                             -CollectionType $collectionType `
-                            -Description "Imported from $([System.IO.Path]::GetFileName($Path))" `
-                            -Save
+                            -Status $Status `
+                            -Description "Imported from $fileName"
 
                         if ($newRule.Success) {
-                            # Set initial status if not Pending
-                            if ($Status -ne 'Pending' -and $newRule.Data.Id) {
-                                Set-RuleStatus -Id $newRule.Data.Id -Status $Status | Out-Null
-                            }
-                            $importedRules += $newRule.Data
+                            $importedRules.Add($newRule.Data)
                         }
                     }
                 }
@@ -168,20 +168,18 @@ function Import-RulesFromXml {
                         $fileLengthInt = 0
                         if ($sourceFileLength -and $sourceFileLength -match '^\d+$') { $fileLengthInt = [int64]$sourceFileLength }
 
+                        # Create rule in memory only (no -Save)
                         $newRule = New-HashRule -Hash $hash `
                             -SourceFileName $sourceFileName `
                             -SourceFileLength $fileLengthInt `
                             -Action $action `
                             -UserOrGroupSid $userOrGroupSid `
                             -CollectionType $collectionType `
-                            -Description "Imported from $([System.IO.Path]::GetFileName($Path))" `
-                            -Save
+                            -Status $Status `
+                            -Description "Imported from $fileName"
 
                         if ($newRule.Success) {
-                            if ($Status -ne 'Pending' -and $newRule.Data.Id) {
-                                Set-RuleStatus -Id $newRule.Data.Id -Status $Status | Out-Null
-                            }
-                            $importedRules += $newRule.Data
+                            $importedRules.Add($newRule.Data)
                         }
                     }
                 }
@@ -200,18 +198,16 @@ function Import-RulesFromXml {
                         $action = if (-not [string]::IsNullOrWhiteSpace($rule.Action)) { $rule.Action } else { 'Allow' }
                         $userOrGroupSid = if (-not [string]::IsNullOrWhiteSpace($rule.UserOrGroupSid)) { $rule.UserOrGroupSid } else { 'S-1-1-0' }
 
+                        # Create rule in memory only (no -Save)
                         $newRule = New-PathRule -Path $rulePath `
                             -Action $action `
                             -UserOrGroupSid $userOrGroupSid `
                             -CollectionType $collectionType `
-                            -Description "Imported from $([System.IO.Path]::GetFileName($Path))" `
-                            -Save
+                            -Status $Status `
+                            -Description "Imported from $fileName"
                         
                         if ($newRule.Success) {
-                            if ($Status -ne 'Pending' -and $newRule.Data.Id) {
-                                Set-RuleStatus -Id $newRule.Data.Id -Status $Status | Out-Null
-                            }
-                            $importedRules += $newRule.Data
+                            $importedRules.Add($newRule.Data)
                         }
                     }
                 }
@@ -221,7 +217,19 @@ function Import-RulesFromXml {
             }
         }
         
-        $message = "Imported $($importedRules.Count) rules from $([System.IO.Path]::GetFileName($Path))"
+        # Batch save all rules at once (single disk write + single index rebuild)
+        if ($importedRules.Count -gt 0) {
+            $saveResult = Save-RulesBulk -Rules $importedRules.ToArray() -UpdateIndex
+            if (-not $saveResult.Success) {
+                return @{
+                    Success = $false
+                    Error = "Batch save failed: $($saveResult.Error)"
+                    Data = @()
+                }
+            }
+        }
+        
+        $message = "Imported $($importedRules.Count) rules from $fileName"
         if ($skippedCount -gt 0) {
             $message += " ($skippedCount duplicates skipped)"
         }

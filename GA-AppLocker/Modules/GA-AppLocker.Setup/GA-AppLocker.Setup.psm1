@@ -152,6 +152,7 @@ Export-ModuleMember -Function @(
     'Initialize-AppLockerEnvironment',
     'Get-SetupStatus',
     'Enable-WinRMGPO',
-    'Disable-WinRMGPO'
+    'Disable-WinRMGPO',
+    'Remove-WinRMGPO'
 )
 #endregion

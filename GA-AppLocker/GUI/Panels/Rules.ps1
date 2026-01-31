@@ -214,6 +214,16 @@ function global:Update-RulesDataGrid {
                 $props['GroupName'] = $ruleSid
             }
 
+            # Clean PublisherName for display — truncate after country code (C=XX)
+            # Strips OID/serial junk that appears after C=US in raw cert subjects
+            # Rules created after v1.2.12 are already clean, this handles older rules on disk
+            if ($props['PublisherName']) {
+                $rawPub = $props['PublisherName']
+                if ($rawPub -match '(.*,\s*C=[A-Z]{2})') {
+                    $props['PublisherName'] = $Matches[1]
+                }
+            }
+
             # Safely parse CreatedDate (may be DateTime, string, or PSCustomObject from JSON)
             $createdDisplay = ''
             if ($_.CreatedDate) {

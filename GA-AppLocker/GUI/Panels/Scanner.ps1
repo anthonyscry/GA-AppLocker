@@ -683,16 +683,18 @@ function global:Update-SavedScansList {
     $listBox = $Window.FindName('SavedScansList')
     if (-not $listBox) { return }
 
-    if (-not (Get-Command -Name 'Get-ScanResults' -ErrorAction SilentlyContinue)) {
-        return
+    try {
+        $result = Get-ScanResults
+        if ($result.Success -and $result.Data) {
+            # Wrap in array to ensure WPF binding works with single item
+            $listBox.ItemsSource = @($result.Data)
+        }
+        else {
+            $listBox.ItemsSource = $null
+        }
     }
-
-    $result = Get-ScanResults
-    if ($result.Success -and $result.Data) {
-        # Wrap in array to ensure WPF binding works with single item
-        $listBox.ItemsSource = @($result.Data)
-    }
-    else {
+    catch {
+        Write-Log -Level Error -Message "Failed to refresh saved scans: $($_.Exception.Message)"
         $listBox.ItemsSource = $null
     }
 }

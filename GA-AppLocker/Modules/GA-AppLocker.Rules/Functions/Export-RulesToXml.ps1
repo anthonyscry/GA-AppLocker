@@ -55,7 +55,7 @@ function Export-RulesToXml {
 
     try {
         # Get rules
-        $ruleResult = Get-AllRules
+        $ruleResult = Get-AllRules -Take 100000
         if (-not $ruleResult.Success) {
             $result.Error = "Failed to retrieve rules: $($ruleResult.Error)"
             return $result

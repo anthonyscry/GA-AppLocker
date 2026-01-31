@@ -2,6 +2,36 @@
 
 All notable changes to GA-AppLocker will be documented in this file.
 
+## [1.2.12] - 2026-01-30
+
+### Bug Fixes
+
+- **Publisher rules display junk OID/serial data** — Raw X.509 certificate subjects contain data after the country code (e.g., `SERIALNUMBER=232927, OID.2.5.4.15=Private Organization`). Publisher rules now truncate `PublisherName` at `C=XX` (country code) both at creation time in `New-PublisherRule` and at display time in `Update-RulesDataGrid`. Raw cert data on disk for existing rules is cleaned on display; new rules are stored clean.
+
+- **Saved scans not loading in Scanner History tab** — Two issues: (1) `Update-SavedScansList` had a `Get-Command -Name 'Get-ScanResults'` guard that silently fails in WPF context, replaced with try/catch. (2) `Get-ScanResults` list mode parsed entire multi-MB JSON files (22MB = 2.7s per file) just to read metadata. Rewrote to read only first 1KB via `[System.IO.File]::OpenRead()` and extract fields via regex. **Performance: 2679ms → 103ms (26x faster).**
+
+- **Rule export capped at 1000 rules** — `Export-RulesToXml` called `Get-AllRules` without `-Take`, which defaults to 1000. Added `-Take 100000` to export all rules.
+
+- **Rule XML import extremely slow (1-by-1 saves)** — `Import-RulesFromXml` was saving each rule individually to disk and rebuilding the index after each one. Rewrote to: create rules in memory (no `-Save`), use `List<T>` instead of `@()` array concat, set `-Status` directly on creation, and batch-save all rules with single `Save-RulesBulk` call at the end. Single disk write + single index rebuild.
+
+### Enhancements
+
+- **WinRM GPO enhanced for reliable remote scanning** — `Initialize-WinRMGPO` now configures all settings needed for PowerShell remoting:
+  - `AllowAutoConfig` with IPv4/IPv6 filters (enables WinRM listener via policy)
+  - `LocalAccountTokenFilterPolicy` (allows local admin accounts to have full remote access — **#1 cause of "Access Denied" when credentials are correct**)
+  - Firewall port 5985 inbound allow
+  - WinRM service auto-start
+  - New `-Enforced` parameter (default: `$true`) — enforced at domain root overrides all lower-level GPOs
+  - All policy settings revert automatically when GPO is unlinked/removed (next `gpupdate`)
+
+- **New `Remove-WinRMGPO` function** — Completely removes the WinRM GPO and all its links. Exported from Setup module.
+
+- **Rules cleared on startup** — Previous session rules are deleted from `%LOCALAPPDATA%\GA-AppLocker\Rules\` on every app launch for faster loading and clean state.
+
+- **Enhanced scan credential logging** — Tier scan logs now include the exact username being used and which machines (with their MachineType classification) are in each tier group. Visible in `%LOCALAPPDATA%\GA-AppLocker\Logs\` for credential troubleshooting.
+
+---
+
 ## [1.2.11] - 2026-01-30
 
 ### Bug Fixes

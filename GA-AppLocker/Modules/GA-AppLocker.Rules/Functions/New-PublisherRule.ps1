@@ -112,6 +112,14 @@ function New-PublisherRule {
     }
 
     try {
+        # Clean PublisherName: truncate after country code (C=XX)
+        # Raw cert subjects have OID/serial junk after the country code
+        # e.g., "CN=Microsoft Corp, O=Microsoft Corp, L=Redmond, S=Washington, C=US, SERIALNUMBER=232927, OID.2.5.4.15=..."
+        # becomes "CN=Microsoft Corp, O=Microsoft Corp, L=Redmond, S=Washington, C=US"
+        if ($PublisherName -match '(.*,\s*C=[A-Z]{2})') {
+            $PublisherName = $Matches[1]
+        }
+
         # Check for existing rule with same publisher/product (prevent duplicates)
         if ($Save) {
             $existingRule = Find-ExistingPublisherRule -PublisherName $PublisherName -ProductName $ProductName -CollectionType $CollectionType

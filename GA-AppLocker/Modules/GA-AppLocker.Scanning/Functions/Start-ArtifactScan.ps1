@@ -189,7 +189,8 @@ function Start-ArtifactScan {
                 $tierMachines = $tierGroup.Group
                 $tierIndex++
 
-                Write-ScanLog -Message "Scanning Tier $tier machines ($($tierMachines.Count) hosts)..."
+                $tierTypes = ($tierMachines | ForEach-Object { "$($_.Hostname)[$($_.MachineType)]" }) -join ', '
+                Write-ScanLog -Message "Scanning Tier $tier machines ($($tierMachines.Count) hosts): $tierTypes"
                 
                 # Update progress for UI — show which machines are being scanned
                 if ($SyncHash) {
@@ -226,7 +227,7 @@ function Start-ArtifactScan {
                 }
 
                 if ($credential) {
-                    Write-ScanLog -Message "Using credential: $credSource for $($tierMachines.Count) machine(s)"
+                    Write-ScanLog -Message "Using credential: $credSource (User: $($credential.UserName)) for $($tierMachines.Count) machine(s): $($tierMachines.Hostname -join ', ')"
                 }
                 else {
                     # Last resort: try without explicit credential (uses current Windows identity)
@@ -396,15 +397,45 @@ function Get-ScanResults {
             $targetFile = $scanFiles | Where-Object { $_.BaseName -eq $ScanId }
         }
         else {
-            # Return list of all scans
+            # Return list of all scans — read only first 1KB for metadata (avoid parsing multi-MB files)
             $result.Success = $true
             $result.Data = $scanFiles | ForEach-Object {
-                $content = Get-Content -Path $_.FullName -Raw | ConvertFrom-Json
+                $scanId = $_.BaseName
+                $scanName = $scanId
+                $artifactCount = 0
+                try {
+                    # Read only the first 1024 bytes to extract summary metadata
+                    $stream = [System.IO.File]::OpenRead($_.FullName)
+                    try {
+                        $buffer = New-Object byte[] 1024
+                        $bytesRead = $stream.Read($buffer, 0, 1024)
+                        $header = [System.Text.Encoding]::UTF8.GetString($buffer, 0, $bytesRead)
+                    }
+                    finally {
+                        $stream.Close()
+                        $stream.Dispose()
+                    }
+                    # Extract ScanId from header
+                    if ($header -match '"ScanId"\s*:\s*"([^"]+)"') {
+                        $scanId = $Matches[1]
+                    }
+                    # Extract ScanName from header
+                    if ($header -match '"ScanName"\s*:\s*"([^"]+)"') {
+                        $scanName = $Matches[1]
+                    }
+                    # Extract TotalArtifacts from Summary header
+                    if ($header -match '"TotalArtifacts"\s*:\s*(\d+)') {
+                        $artifactCount = [int]$Matches[1]
+                    }
+                }
+                catch {
+                    # Fallback: use filename as ID
+                }
                 [PSCustomObject]@{
-                    ScanId    = $content.ScanId
-                    ScanName  = $content.ScanName
+                    ScanId    = $scanId
+                    ScanName  = $scanName
                     Date      = $_.LastWriteTime
-                    Artifacts = $content.Artifacts.Count
+                    Artifacts = $artifactCount
                 }
             }
             return $result

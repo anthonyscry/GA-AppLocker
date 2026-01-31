@@ -4,7 +4,7 @@
 
 GA-AppLocker is a PowerShell 5.1 WPF application for enterprise AppLocker policy management in air-gapped, classified, or highly secure environments. Complete workflow: AD Discovery → Artifact Scanning → Rule Generation → Policy Building → GPO Deployment.
 
-**Version:** 1.2.11 | **Tests:** 378/385 passing (98.2%) | **Exported Commands:** ~195
+**Version:** 1.2.12 | **Tests:** 378/385 passing (98.2%) | **Exported Commands:** ~196
 
 ## Quick Start
 
@@ -261,6 +261,7 @@ All rule modifications auto-sync the JSON index:
 
 | Version | Date | Key Changes |
 |---------|------|-------------|
+| 1.2.12 | Jan 30, 2026 | Fix publisher OID junk (truncate at C=XX), scan history 26x faster, export cap removed, import batch rewrite, WinRM GPO enhanced (AllowAutoConfig, LocalAccountTokenFilterPolicy, Enforced), Remove-WinRMGPO, startup rule clearing, credential logging |
 | 1.2.11 | Jan 30, 2026 | Fix Rules DataGrid Group column blank (SID-to-name resolver, circle colors by scope), fix hardcoded v1.2.0 startup log, suppress unapproved verb warnings |
 | 1.2.10 | Jan 30, 2026 | Air-gap scan speedup (replace Get-AuthenticodeSignature with .NET), WinRM 30s timeout, throttle/batch defaults, fix remote scan nested array bug, no-machines null guard, module reload, scan progress logging, troubleshooting scripts |
 | 1.2.9 | Jan 30, 2026 | Fix OU tree (Depth calc, error handling), LDAP LastLogon, scan per-machine progress |
