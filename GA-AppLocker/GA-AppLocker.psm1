@@ -164,8 +164,13 @@ function Start-AppLockerDashboard {
                 Write-AppLockerLog -Message "Cleared $fileCount rule(s) from previous session"
             }
         }
-        # Reset the in-memory index so it doesn't hold stale data
-        try { Clear-RulesIndex } catch { }
+        # Delete the rules-index.json file so Storage module starts empty
+        $indexFile = Join-Path $dataPath 'rules-index.json'
+        if (Test-Path $indexFile) {
+            Remove-Item -Path $indexFile -Force -ErrorAction SilentlyContinue
+        }
+        # Reset the in-memory index cache so it doesn't hold stale data
+        try { Reset-RulesIndexCache } catch { }
     }
     catch {
         Write-AppLockerLog -Level Warning -Message "Failed to clear previous rules: $($_.Exception.Message)"
