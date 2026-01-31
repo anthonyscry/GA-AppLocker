@@ -4,7 +4,7 @@
 
 GA-AppLocker is a PowerShell 5.1 WPF application for enterprise AppLocker policy management in air-gapped, classified, or highly secure environments. Complete workflow: AD Discovery → Artifact Scanning → Rule Generation → Policy Building → GPO Deployment.
 
-**Version:** 1.2.20 | **Tests:** 397/397 passing (100%) | **Exported Commands:** ~196
+**Version:** 1.2.21 | **Tests:** 397/397 passing (100%) | **Exported Commands:** ~196
 
 ## Quick Start
 
@@ -262,6 +262,7 @@ All rule modifications auto-sync the JSON index:
 
 | Version | Date | Key Changes |
 |---------|------|-------------|
+| 1.2.21 | Jan 31, 2026 | Scanner DataGrid: add Product Name column after Publisher (data already collected, just not displayed), Appx/MSIX checked by default and reordered above Event Logs |
 | 1.2.20 | Jan 31, 2026 | Policy Builder fixes (edit name/desc/GPO, ModifiedDate display, remove dead Export tab, Deploy button unblocked, dead code cleanup), Rules/Policy/Deploy column sort fix (SortMemberPath on DataGridTemplateColumns), Update-Policy gains -Name/-Description/-TargetGPO params |
 | 1.2.19 | Jan 31, 2026 | Software Inventory panel (9th panel) — registry-based local/remote scan, CSV export/import, cross-system comparison engine (Only in Scan/Only in Import/Version Diff), full UI with DataGrid, text filter, stats card |
 | 1.2.18 | Jan 30, 2026 | Fix Change Group/Action silent error swallowing (added error logging), consistent ISO 8601 date serialization across all rule CRUD (fixes verbose DateTime JSON objects), AppLocker-Admins default template (allow-all across 4 collection types), RESOLVE: prefix handling in template engine |

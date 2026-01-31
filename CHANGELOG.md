@@ -2,6 +2,20 @@
 
 All notable changes to GA-AppLocker will be documented in this file.
 
+## [1.2.21] - 2026-01-31
+
+### Enhanced
+
+- **Scanner: Add Product Name column** — The artifact DataGrid now shows a "Product" column after Publisher, displaying the `ProductName` from file version info. Data was already collected by `Get-LocalArtifacts` and `Get-RemoteArtifacts` but not displayed.
+
+- **Scanner: Appx/MSIX checked by default** — "Include Appx/MSIX Packages" is now checked by default in the Scanner Config panel and reordered above Event Logs for better visibility.
+
+### Stats
+
+- **Tests:** 397/397 passing (100%)
+
+---
+
 ## [1.2.20] - 2026-01-31
 
 ### Bug Fixes

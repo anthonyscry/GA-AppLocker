@@ -410,7 +410,7 @@
                                    FontSize="20"
                                    FontWeight="Bold"
                                    Foreground="{StaticResource ForegroundBrush}"/>
-                        <TextBlock x:Name="SidebarSubtitle" Text="Dashboard v1.2.20"
+                        <TextBlock x:Name="SidebarSubtitle" Text="Dashboard v1.2.21"
                                    FontSize="11"
                                    Foreground="{StaticResource MutedBrush}"
                                    Margin="0,2,0,0"/>
@@ -1162,13 +1162,13 @@
                                         <TextBlock Text="SCAN OPTIONS" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
                                         <CheckBox x:Name="ChkScanLocal" Content="Scan Local Machine" Foreground="{StaticResource ForegroundBrush}" IsChecked="True" Margin="0,0,0,6"/>
                                         <CheckBox x:Name="ChkScanRemote" Content="Scan Remote Machines" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,6"/>
+                                        <CheckBox x:Name="ChkIncludeAppx" Content="Include Appx/MSIX Packages" 
+                                                  Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,6" IsChecked="True"
+                                                  ToolTip="Enumerate installed Windows App packages (UWP/MSIX)"/>
                                         <CheckBox x:Name="ChkIncludeEventLogs" Content="Include Event Logs" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,6"/>
                                         <CheckBox x:Name="ChkIncludeHighRisk" Content="Include High Risk Paths" 
                                                   Foreground="{StaticResource WarningBrush}" Margin="0,0,0,6"
                                                   ToolTip="Adds Downloads, Desktop, Temp folders to scan"/>
-                                        <CheckBox x:Name="ChkIncludeAppx" Content="Include Appx/MSIX Packages" 
-                                                  Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,6"
-                                                  ToolTip="Enumerate installed Windows App packages (UWP/MSIX)"/>
                                         <TextBlock Text="PERFORMANCE FILTERS" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,10,0,6"/>
                                         <CheckBox x:Name="ChkSkipDllScanning" Content="Skip DLLs (60-70% faster scans)" 
                                                   Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,6" IsChecked="True"
@@ -1351,6 +1351,7 @@
                                             <DataGridTextColumn Header="Type" Width="80" Binding="{Binding ArtifactType}"/>
                                             <DataGridTextColumn Header="File Name" Width="180" Binding="{Binding FileName}"/>
                                             <DataGridTextColumn Header="Publisher" Width="160" Binding="{Binding Publisher}"/>
+                                            <DataGridTextColumn Header="Product" Width="140" Binding="{Binding ProductName}"/>
                                             <DataGridTextColumn Header="Version" Width="70" Binding="{Binding FileVersion}"/>
                                             <DataGridTextColumn Header="Machine" Width="100" Binding="{Binding ComputerName}"/>
                                             <DataGridTextColumn Header="Path" Width="*" Binding="{Binding FilePath}"/>
