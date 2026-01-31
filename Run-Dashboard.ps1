@@ -12,5 +12,12 @@ if (Get-Module GA-AppLocker -ErrorAction SilentlyContinue) {
 # Also remove sub-modules that may be cached from a prior version
 Get-Module GA-AppLocker.* -ErrorAction SilentlyContinue | Remove-Module -Force -ErrorAction SilentlyContinue
 
-Import-Module "$PSScriptRoot\GA-AppLocker\GA-AppLocker.psd1" -Force -DisableNameChecking
+# Support both layouts:
+# 1. Dev/repo:  PSScriptRoot\GA-AppLocker\GA-AppLocker.psd1
+# 2. Flat zip:  PSScriptRoot\GA-AppLocker.psd1
+$modulePath = "$PSScriptRoot\GA-AppLocker\GA-AppLocker.psd1"
+if (-not (Test-Path $modulePath)) {
+    $modulePath = "$PSScriptRoot\GA-AppLocker.psd1"
+}
+Import-Module $modulePath -Force -DisableNameChecking
 Start-AppLockerDashboard -SkipPrerequisites
