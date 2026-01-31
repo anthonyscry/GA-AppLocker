@@ -291,6 +291,11 @@ function global:Set-ActivePanel {
         Write-Log -Message 'Auto-triggering domain refresh on first Discovery panel visit'
         Invoke-DomainRefresh -Window $Window
     }
+
+    # Auto-refresh Deploy policy combo on every navigation to Deploy panel
+    if ($PanelName -eq 'PanelDeploy') {
+        Refresh-DeployPolicyCombo -Window $Window
+    }
     
     # Auto-save session state on panel change
     Save-CurrentSessionState

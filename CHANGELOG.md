@@ -2,6 +2,26 @@
 
 All notable changes to GA-AppLocker will be documented in this file.
 
+## [1.2.24] - 2026-01-31
+
+### Bug Fixes
+
+- **Software Inventory: Fix remote scan credentials** -- `Invoke-ScanRemoteSoftware` called `Get-DefaultCredential` which **does not exist** anywhere in the codebase. The silent `catch {}` meant credentials were never passed to `Invoke-Command`, so remote scans relied on implicit Windows authentication. Replaced with tier-based fallback chain: `Get-CredentialForTier` T2 -> T1 -> T0, then implicit Windows auth. Logs credential source.
+
+### Features
+
+- **Software Inventory: Auto-save CSVs** -- Both local and remote scans auto-save per-hostname CSVs to `%LOCALAPPDATA%\GA-AppLocker\Scans\` as `{HOSTNAME}_softwarelist_{ddMMMYY}.csv`. Created immediately after each machine scan.
+
+### Enhanced
+
+- **Deploy: Policy combo auto-refresh** -- `Refresh-DeployPolicyCombo` now auto-fires on every navigation to the Deploy panel (via `Set-ActivePanel`). Added detailed logging, proper error handling, `Out-Null` on `Items.Add()`.
+- **Setup: WinRM toggle button label** -- Dynamically shows "Disable Link" when GPO is enabled, "Enable Link" when disabled, instead of static "Toggle Link".
+
+### Stats
+
+- **Tests:** 397/397 passing (100%)
+- **Exported Commands:** ~198
+
 ## [1.2.23] - 2026-01-31
 
 ### Bug Fixes

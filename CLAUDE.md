@@ -4,7 +4,7 @@
 
 GA-AppLocker is a PowerShell 5.1 WPF application for enterprise AppLocker policy management in air-gapped, classified, or highly secure environments. Complete workflow: AD Discovery → Artifact Scanning → Rule Generation → Policy Building → GPO Deployment.
 
-**Version:** 1.2.23 | **Tests:** 397/397 passing (100%) | **Exported Commands:** ~198
+**Version:** 1.2.24 | **Tests:** 397/397 passing (100%) | **Exported Commands:** ~198
 
 ## Quick Start
 
@@ -262,6 +262,7 @@ All rule modifications auto-sync the JSON index:
 
 | Version | Date | Key Changes |
 |---------|------|-------------|
+| 1.2.24 | Jan 31, 2026 | Fix Software Inventory credentials (Get-DefaultCredential didn't exist, now uses tier-based fallback), auto-save software CSVs (hostname_softwarelist_ddMMMYY.csv), Deploy policy combo auto-refresh on panel nav + logging/error handling, Setup WinRM toggle button shows Enable/Disable state |
 | 1.2.23 | Jan 31, 2026 | Deploy Edit tab (name/desc/GPO), + Admin Allow & + Deny Browsers buttons, WPF dispatcher crash fix (pure .NET exception handler), dark title bar (DwmSetWindowAttribute), target group dropdowns reordered (AppLocker-Users default), Resolve-GroupSid cache, unified filter bars, troubleshooting scripts updated to match WinRM GPO settings, Force-GPOSync rewrite (filtering, ping check, -Target/-OU params) |
 | 1.2.22 | Jan 31, 2026 | Fix Dashboard pending list (Software.ps1 UTF-8 em dash broke PS 5.1 parsing), uniform DataGrid headers across all 7 panels, Setup: Remove WinRM GPO button, About panel redesign (author credit, purpose, workflow viz) |
 | 1.2.21 | Jan 31, 2026 | Scanner DataGrid: add Product Name column after Publisher (data already collected, just not displayed), Appx/MSIX checked by default and reordered above Event Logs |

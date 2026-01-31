@@ -47,6 +47,20 @@ function Update-SetupStatus {
                 }
             }
 
+            # Update Toggle button label based on current state
+            $btnToggle = $Window.FindName('BtnToggleWinRM')
+            if ($btnToggle -and $status.Data.WinRM) {
+                if ($status.Data.WinRM.Status -eq 'Enabled') {
+                    $btnToggle.Content = 'Disable Link'
+                }
+                elseif ($status.Data.WinRM.Exists) {
+                    $btnToggle.Content = 'Enable Link'
+                }
+                else {
+                    $btnToggle.Content = 'Enable Link'
+                }
+            }
+
             # Update GPO statuses
             foreach ($gpo in $status.Data.AppLockerGPOs) {
                 $statusControl = $Window.FindName("TxtGPO_$($gpo.Type)_Status")

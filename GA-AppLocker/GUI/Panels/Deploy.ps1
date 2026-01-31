@@ -144,21 +144,45 @@ function global:Refresh-DeployPolicyCombo {
     param([System.Windows.Window]$Window)
 
     $policyCombo = $Window.FindName('CboDeployPolicy')
-    if (-not $policyCombo) { return }
-    if (-not (Get-Command -Name 'Get-AllPolicies' -ErrorAction SilentlyContinue)) { return }
+    if (-not $policyCombo) {
+        Write-Log -Message 'Refresh-DeployPolicyCombo: CboDeployPolicy control not found' -Level 'Warning'
+        return
+    }
 
-    $policyCombo.Items.Clear()
+    if (-not (Get-Command -Name 'Get-AllPolicies' -ErrorAction SilentlyContinue)) {
+        Write-Log -Message 'Refresh-DeployPolicyCombo: Get-AllPolicies command not available (Policy module not loaded?)' -Level 'Warning'
+        return
+    }
 
-    # Load Active and Draft policies (anything deployable)
-    $result = Get-AllPolicies
-    if ($result.Success -and $result.Data) {
+    try {
+        $policyCombo.Items.Clear()
+
+        # Load Active and Draft policies (anything deployable)
+        $result = Get-AllPolicies
+        if (-not $result.Success) {
+            Write-Log -Message "Refresh-DeployPolicyCombo: Get-AllPolicies failed: $($result.Error)" -Level 'Warning'
+            return
+        }
+
+        if (-not $result.Data -or @($result.Data).Count -eq 0) {
+            Write-Log -Message 'Refresh-DeployPolicyCombo: No policies found on disk' -Level 'Info'
+            return
+        }
+
         $deployable = @($result.Data | Where-Object { $_.Status -eq 'Active' -or $_.Status -eq 'Draft' })
+        Write-Log -Message "Refresh-DeployPolicyCombo: Found $(@($result.Data).Count) total policies, $($deployable.Count) deployable (Active/Draft)"
+
         foreach ($policy in $deployable) {
             $item = [System.Windows.Controls.ComboBoxItem]::new()
             $item.Content = "$($policy.Name) (Phase $($policy.Phase)) - $($policy.Status)"
             $item.Tag = $policy
-            $policyCombo.Items.Add($item)
+            $policyCombo.Items.Add($item) | Out-Null
         }
+
+        Write-Log -Message "Refresh-DeployPolicyCombo: Loaded $($deployable.Count) policies into dropdown"
+    }
+    catch {
+        Write-Log -Message "Refresh-DeployPolicyCombo: Exception - $($_.Exception.Message)" -Level 'Error'
     }
 }
 

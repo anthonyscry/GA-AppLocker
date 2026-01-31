@@ -56,7 +56,25 @@ function global:Invoke-ScanLocalSoftware {
         $lastScan = $Window.FindName('TxtSoftwareLastScan')
         if ($lastScan) { $lastScan.Text = "$env:COMPUTERNAME - $(Get-Date -Format 'MM/dd HH:mm')" }
 
-        Show-Toast -Message "Found $($results.Count) installed programs on local machine." -Type 'Success'
+        # Auto-save local scan CSV: hostname_softwarelist_ddMMMYY.csv
+        try {
+            $appDataPath = Get-AppLockerDataPath
+            $scansFolder = [System.IO.Path]::Combine($appDataPath, 'Scans')
+            if (-not [System.IO.Directory]::Exists($scansFolder)) {
+                [System.IO.Directory]::CreateDirectory($scansFolder) | Out-Null
+            }
+            $dateSuffix = (Get-Date).ToString('ddMMMyy').ToUpper()
+            $csvName = "$($env:COMPUTERNAME)_softwarelist_${dateSuffix}.csv"
+            $csvPath = [System.IO.Path]::Combine($scansFolder, $csvName)
+            $results |
+                Select-Object Machine, DisplayName, DisplayVersion, Publisher, InstallDate, InstallLocation, Architecture, Source |
+                Export-Csv -Path $csvPath -NoTypeInformation -Encoding UTF8
+            Write-AppLockerLog -Message "Auto-saved software list: $csvName" -Level 'INFO'
+        } catch {
+            Write-AppLockerLog -Message "Failed to auto-save local CSV: $($_.Exception.Message)" -Level 'ERROR'
+        }
+
+        Show-Toast -Message "Found $($results.Count) installed programs on local machine. CSV saved to Scans folder." -Type 'Success'
     }
     catch {
         Write-AppLockerLog -Message "Local software scan failed: $($_.Exception.Message)" -Level 'ERROR'
@@ -90,14 +108,35 @@ function global:Invoke-ScanRemoteSoftware {
     try {
         $allResults = [System.Collections.Generic.List[PSCustomObject]]::new()
 
-        # Get credential for remote access
+        # Get credential using the same tier-based fallback chain as the Scanner panel.
+        # Try tiers in order T2 (workstations) -> T1 (servers) -> T0 (DCs), then implicit Windows auth.
         $cred = $null
+        $credSource = 'implicit Windows auth'
+        foreach ($tryTier in @(2, 1, 0)) {
+            try {
+                $credResult = Get-CredentialForTier -Tier $tryTier
+                if ($credResult.Success -and $credResult.Data) {
+                    $cred = $credResult.Data
+                    $credSource = "Tier $tryTier credential"
+                    break
+                }
+            } catch { }
+        }
+        Write-AppLockerLog -Message "Software remote scan using: $credSource" -Level 'INFO'
+
+        # Ensure Scans folder exists for auto-save
+        $scansFolder = $null
         try {
-            $credResult = Get-DefaultCredential
-            if ($credResult.Success -and $credResult.Data) {
-                $cred = $credResult.Data
+            $appDataPath = Get-AppLockerDataPath
+            $scansFolder = [System.IO.Path]::Combine($appDataPath, 'Scans')
+            if (-not [System.IO.Directory]::Exists($scansFolder)) {
+                [System.IO.Directory]::CreateDirectory($scansFolder) | Out-Null
             }
-        } catch { }
+        } catch {
+            Write-AppLockerLog -Message "Could not create Scans folder: $($_.Exception.Message)" -Level 'ERROR'
+        }
+
+        $dateSuffix = (Get-Date).ToString('ddMMMyy').ToUpper()
 
         foreach ($hostname in $hostnames) {
             try {
@@ -126,8 +165,9 @@ function global:Invoke-ScanRemoteSoftware {
                 if ($cred) { $invokeParams['Credential'] = $cred }
 
                 $remoteResults = @(Invoke-Command @invokeParams)
+                $hostResults = [System.Collections.Generic.List[PSCustomObject]]::new()
                 foreach ($item in $remoteResults) {
-                    $allResults.Add([PSCustomObject]@{
+                    $obj = [PSCustomObject]@{
                         Machine        = $hostname
                         DisplayName    = $item.DisplayName
                         DisplayVersion = $item.DisplayVersion
@@ -136,10 +176,26 @@ function global:Invoke-ScanRemoteSoftware {
                         InstallLocation = $item.InstallLocation
                         Architecture   = $item.Architecture
                         Source         = 'Remote'
-                    })
+                    }
+                    $allResults.Add($obj)
+                    $hostResults.Add($obj)
                 }
 
                 Write-AppLockerLog -Message "Scanned $($remoteResults.Count) programs on $hostname" -Level 'INFO'
+
+                # Auto-save per-hostname CSV: hostname_softwarelist_ddMMMYY.csv
+                if ($scansFolder -and $hostResults.Count -gt 0) {
+                    try {
+                        $csvName = "${hostname}_softwarelist_${dateSuffix}.csv"
+                        $csvPath = [System.IO.Path]::Combine($scansFolder, $csvName)
+                        $hostResults |
+                            Select-Object Machine, DisplayName, DisplayVersion, Publisher, InstallDate, InstallLocation, Architecture, Source |
+                            Export-Csv -Path $csvPath -NoTypeInformation -Encoding UTF8
+                        Write-AppLockerLog -Message "Auto-saved software list: $csvName" -Level 'INFO'
+                    } catch {
+                        Write-AppLockerLog -Message "Failed to auto-save CSV for $hostname`: $($_.Exception.Message)" -Level 'ERROR'
+                    }
+                }
             }
             catch {
                 Write-AppLockerLog -Message "Failed to scan software on $hostname`: $($_.Exception.Message)" -Level 'ERROR'
@@ -157,7 +213,11 @@ function global:Invoke-ScanRemoteSoftware {
         $lastScan = $Window.FindName('TxtSoftwareLastScan')
         if ($lastScan) { $lastScan.Text = "$($hostnames.Count) machines - $(Get-Date -Format 'MM/dd HH:mm')" }
 
-        Show-Toast -Message "Found $($allResults.Count) installed programs across $($hostnames.Count) machine(s)." -Type 'Success'
+        # Summary toast with auto-save info
+        $savedCount = @($hostnames | Where-Object { $allResults | Where-Object { $_.Machine -eq $_ } }).Count
+        $toastMsg = "Found $($allResults.Count) installed programs across $($hostnames.Count) machine(s)."
+        if ($scansFolder) { $toastMsg += " CSVs saved to Scans folder." }
+        Show-Toast -Message $toastMsg -Type 'Success'
     }
     catch {
         Write-AppLockerLog -Message "Remote software scan failed: $($_.Exception.Message)" -Level 'ERROR'
