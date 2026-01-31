@@ -32,8 +32,11 @@
 .PARAMETER SkipUnsigned
     Exclude unsigned artifacts (requires hash rules).
 
-.PARAMETER SkipScripts
-    Exclude script artifacts (PS1, BAT, CMD, VBS, JS).
+.PARAMETER SkipWshScripts
+    Exclude WSH script artifacts (JS, VBS, WSF) — legacy malware vectors.
+
+.PARAMETER SkipShellScripts
+    Exclude shell script artifacts (PS1, BAT, CMD) — admin/management scripts.
 
 .PARAMETER DedupeMode
     Deduplication strategy: Smart, Publisher, Hash, None.
@@ -87,10 +90,10 @@ function Invoke-BatchRuleGeneration {
         [switch]$SkipUnsigned,
 
         [Parameter()]
-        [switch]$SkipScripts,
+        [switch]$SkipWshScripts,
 
         [Parameter()]
-        [switch]$SkipJsOnly,
+        [switch]$SkipShellScripts,
 
         [Parameter()]
         [ValidateSet('Smart', 'Publisher', 'Hash', 'None')]
@@ -157,11 +160,11 @@ function Invoke-BatchRuleGeneration {
                 # Skip unsigned (only if creating publisher rules would fail)
                 if ($SkipUnsigned -and -not $art.IsSigned) { $skip = $true }
                 
-                # Skip scripts
-                if ($SkipScripts -and $art.ArtifactType -in @('PS1', 'BAT', 'CMD', 'VBS', 'JS', 'WSF')) { $skip = $true }
+                # Skip WSH scripts (.js, .vbs, .wsf)
+                if ($SkipWshScripts -and $art.ArtifactType -in @('JS', 'VBS', 'WSF')) { $skip = $true }
                 
-                # Skip JS only (but allow other scripts)
-                if ($SkipJsOnly -and $art.ArtifactType -eq 'JS') { $skip = $true }
+                # Skip shell scripts (.ps1, .bat, .cmd)
+                if ($SkipShellScripts -and $art.ArtifactType -in @('PS1', 'BAT', 'CMD')) { $skip = $true }
                 
                 if ($skip) {
                     $skipCount++

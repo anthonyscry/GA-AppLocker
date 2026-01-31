@@ -237,7 +237,8 @@ function global:Invoke-StartArtifactScan {
     $includeEvents = $Window.FindName('ChkIncludeEventLogs').IsChecked
     $includeHighRisk = $Window.FindName('ChkIncludeHighRisk').IsChecked
     $skipDllScanning = $Window.FindName('ChkSkipDllScanning').IsChecked
-    $skipScriptScanning = $Window.FindName('ChkSkipScriptScanning').IsChecked
+    $skipWshScanning = $Window.FindName('ChkSkipWshScanning').IsChecked
+    $skipShellScanning = $Window.FindName('ChkSkipShellScanning').IsChecked
     $includeAppx = $Window.FindName('ChkIncludeAppx').IsChecked
     $saveResults = $Window.FindName('ChkSaveResults').IsChecked
     $scanName = $Window.FindName('TxtScanName').Text
@@ -295,7 +296,8 @@ function global:Invoke-StartArtifactScan {
     if ($scanLocal) { $scanParams.ScanLocal = $true }
     if ($includeEvents) { $scanParams.IncludeEventLogs = $true }
     if ($skipDllScanning) { $scanParams.SkipDllScanning = $true }
-    if ($skipScriptScanning) { $scanParams.SkipScriptScanning = $true }
+    if ($skipWshScanning) { $scanParams.SkipWshScanning = $true }
+    if ($skipShellScanning) { $scanParams.SkipShellScanning = $true }
     if ($includeAppx) { $scanParams.IncludeAppx = $true }
     if ($paths.Count -gt 0) { $scanParams.Paths = $paths }
     if ($scanRemote -and $script:SelectedScanMachines.Count -gt 0) {
@@ -504,7 +506,7 @@ function global:Invoke-StopArtifactScan {
     $script:ScanCancelled = $true
 }
 
-function Update-ScanUIState {
+function global:Update-ScanUIState {
     param(
         [System.Windows.Window]$Window,
         [bool]$Scanning
@@ -517,7 +519,7 @@ function Update-ScanUIState {
     if ($btnStop) { $btnStop.IsEnabled = $Scanning }
 }
 
-function Update-ScanProgress {
+function global:Update-ScanProgress {
     param(
         [System.Windows.Window]$Window,
         [string]$Text,
@@ -536,7 +538,7 @@ function Update-ScanProgress {
     # Note: Async pattern implemented via runspaces for scanning and deployment operations
 }
 
-function script:Update-ArtifactDataGrid {
+function global:Update-ArtifactDataGrid {
     param([System.Windows.Window]$Window)
 
     try {
@@ -1743,7 +1745,8 @@ function global:Show-RuleGenerationConfigDialog {
             <TextBlock Text="Exclusions" Foreground="{StaticResource FgBrush}" FontWeight="SemiBold" Margin="0,0,0,8"/>
             <StackPanel Margin="0,0,0,15">
                 <CheckBox x:Name="ChkSkipDlls" Content="Skip DLLs (Library files)" Foreground="{StaticResource FgBrush}" Margin="0,0,0,6" IsChecked="True"/>
-                <CheckBox x:Name="ChkSkipScripts" Content="Skip Scripts (PS1, BAT, CMD, VBS, JS)" Foreground="{StaticResource FgBrush}" Margin="0,0,0,6"/>
+                <CheckBox x:Name="ChkSkipWshScripts" Content="Skip WSH Scripts (.js, .vbs, .wsf)" Foreground="{StaticResource FgBrush}" Margin="0,0,0,6" IsChecked="True"/>
+                <CheckBox x:Name="ChkSkipShellScripts" Content="Skip Shell Scripts (.ps1, .bat, .cmd)" Foreground="{StaticResource FgBrush}" Margin="0,0,0,6"/>
                 <CheckBox x:Name="ChkSkipUnsigned" Content="Skip Unsigned files entirely" Foreground="{StaticResource FgBrush}" Margin="0,0,0,0"/>
             </StackPanel>
             
@@ -1781,7 +1784,8 @@ function global:Show-RuleGenerationConfigDialog {
         $cboUnsignedMode = $dialog.FindName('CboUnsignedMode')
         $cboStatus = $dialog.FindName('CboStatus')
         $chkSkipDlls = $dialog.FindName('ChkSkipDlls')
-        $chkSkipScripts = $dialog.FindName('ChkSkipScripts')
+        $chkSkipWshScripts = $dialog.FindName('ChkSkipWshScripts')
+        $chkSkipShellScripts = $dialog.FindName('ChkSkipShellScripts')
         $chkSkipUnsigned = $dialog.FindName('ChkSkipUnsigned')
         $btnCancel = $dialog.FindName('BtnCancel')
         $btnGenerate = $dialog.FindName('BtnGenerate')
@@ -1803,7 +1807,8 @@ function global:Show-RuleGenerationConfigDialog {
             $result.UnsignedMode = $cboUnsignedMode.SelectedItem.Tag
             $result.Status = $cboStatus.SelectedItem.Tag
             $result.SkipDlls = $chkSkipDlls.IsChecked
-            $result.SkipScripts = $chkSkipScripts.IsChecked
+            $result.SkipWshScripts = $chkSkipWshScripts.IsChecked
+            $result.SkipShellScripts = $chkSkipShellScripts.IsChecked
             $result.SkipUnsigned = $chkSkipUnsigned.IsChecked
             $dialog.DialogResult = $true
             $dialog.Close()
@@ -1836,7 +1841,7 @@ function global:Invoke-DirectRuleGenerationWithSettings {
     $artifactCount = $script:CurrentScanArtifacts.Count
     Show-Toast -Message "Generating rules from $artifactCount artifacts..." -Type 'Info'
     Write-Log -Message "Starting batch rule generation for $artifactCount artifacts"
-    Write-Log -Message "Settings: PublisherLevel=$($Settings.PublisherLevel), Action=$($Settings.Action), UnsignedMode=$($Settings.UnsignedMode), SkipDlls=$($Settings.SkipDlls), SkipScripts=$($Settings.SkipScripts), SkipUnsigned=$($Settings.SkipUnsigned)"
+    Write-Log -Message "Settings: PublisherLevel=$($Settings.PublisherLevel), Action=$($Settings.Action), UnsignedMode=$($Settings.UnsignedMode), SkipDlls=$($Settings.SkipDlls), SkipWshScripts=$($Settings.SkipWshScripts), SkipShellScripts=$($Settings.SkipShellScripts), SkipUnsigned=$($Settings.SkipUnsigned)"
     
     # Show loading overlay (use try-catch - Get-Command fails in WPF context)
     try { Show-LoadingOverlay -Message "Generating Rules..." -SubMessage "Processing $artifactCount artifacts..." } catch { }
@@ -1856,7 +1861,8 @@ function global:Invoke-DirectRuleGenerationWithSettings {
         
         # Add skip switches if enabled
         if ($Settings.SkipDlls) { $genParams['SkipDlls'] = $true }
-        if ($Settings.SkipScripts) { $genParams['SkipScripts'] = $true }
+        if ($Settings.SkipWshScripts) { $genParams['SkipWshScripts'] = $true }
+        if ($Settings.SkipShellScripts) { $genParams['SkipShellScripts'] = $true }
         if ($Settings.SkipUnsigned) { $genParams['SkipUnsigned'] = $true }
         
         # Use batch generation with user's settings from dialog

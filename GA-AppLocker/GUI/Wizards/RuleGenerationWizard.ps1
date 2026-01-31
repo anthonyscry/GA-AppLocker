@@ -23,10 +23,10 @@ $script:WizardState = @{
         Action         = 'Allow'
         Status         = 'Pending'
         PublisherLevel = 'PublisherProduct'
-        SkipDlls       = $true
-        SkipUnsigned   = $false
-        SkipScripts    = $false
-        SkipJsOnly     = $false
+        SkipDlls         = $true
+        SkipUnsigned     = $false
+        SkipWshScripts   = $true
+        SkipShellScripts = $false
         DedupeMode     = 'Smart'
     }
     IsGenerating    = $false
@@ -133,7 +133,8 @@ function global:Show-WizardStep1 {
     $cboStatus = $global:GA_MainWindow.FindName('WizardCboStatus')
     $chkSkipDlls = $global:GA_MainWindow.FindName('WizardChkSkipDlls')
     $chkSkipUnsigned = $global:GA_MainWindow.FindName('WizardChkSkipUnsigned')
-    $chkSkipScripts = $global:GA_MainWindow.FindName('WizardChkSkipScripts')
+    $chkSkipWshScripts = $global:GA_MainWindow.FindName('WizardChkSkipWshScripts')
+    $chkSkipShellScripts = $global:GA_MainWindow.FindName('WizardChkSkipShellScripts')
     $cboPubLevel = $global:GA_MainWindow.FindName('WizardCboPubLevel')
     $cboDedupeMode = $global:GA_MainWindow.FindName('WizardCboDedupeMode')
     
@@ -142,7 +143,8 @@ function global:Show-WizardStep1 {
     if ($cboStatus) { $cboStatus.SelectedValue = $script:WizardState.Settings.Status }
     if ($chkSkipDlls) { $chkSkipDlls.IsChecked = $script:WizardState.Settings.SkipDlls }
     if ($chkSkipUnsigned) { $chkSkipUnsigned.IsChecked = $script:WizardState.Settings.SkipUnsigned }
-    if ($chkSkipScripts) { $chkSkipScripts.IsChecked = $script:WizardState.Settings.SkipScripts }
+    if ($chkSkipWshScripts) { $chkSkipWshScripts.IsChecked = $script:WizardState.Settings.SkipWshScripts }
+    if ($chkSkipShellScripts) { $chkSkipShellScripts.IsChecked = $script:WizardState.Settings.SkipShellScripts }
     if ($cboPubLevel) { $cboPubLevel.SelectedValue = $script:WizardState.Settings.PublisherLevel }
     if ($cboDedupeMode) { $cboDedupeMode.SelectedValue = $script:WizardState.Settings.DedupeMode }
     
@@ -163,7 +165,8 @@ function global:Save-WizardStep1Settings {
     $cboStatus = $global:GA_MainWindow.FindName('WizardCboStatus')
     $chkSkipDlls = $global:GA_MainWindow.FindName('WizardChkSkipDlls')
     $chkSkipUnsigned = $global:GA_MainWindow.FindName('WizardChkSkipUnsigned')
-    $chkSkipScripts = $global:GA_MainWindow.FindName('WizardChkSkipScripts')
+    $chkSkipWshScripts = $global:GA_MainWindow.FindName('WizardChkSkipWshScripts')
+    $chkSkipShellScripts = $global:GA_MainWindow.FindName('WizardChkSkipShellScripts')
     $cboPubLevel = $global:GA_MainWindow.FindName('WizardCboPubLevel')
     $cboDedupeMode = $global:GA_MainWindow.FindName('WizardCboDedupeMode')
     
@@ -172,7 +175,8 @@ function global:Save-WizardStep1Settings {
     if ($cboStatus) { $script:WizardState.Settings.Status = $cboStatus.SelectedValue }
     if ($chkSkipDlls) { $script:WizardState.Settings.SkipDlls = $chkSkipDlls.IsChecked }
     if ($chkSkipUnsigned) { $script:WizardState.Settings.SkipUnsigned = $chkSkipUnsigned.IsChecked }
-    if ($chkSkipScripts) { $script:WizardState.Settings.SkipScripts = $chkSkipScripts.IsChecked }
+    if ($chkSkipWshScripts) { $script:WizardState.Settings.SkipWshScripts = $chkSkipWshScripts.IsChecked }
+    if ($chkSkipShellScripts) { $script:WizardState.Settings.SkipShellScripts = $chkSkipShellScripts.IsChecked }
     if ($cboPubLevel) { $script:WizardState.Settings.PublisherLevel = $cboPubLevel.SelectedValue }
     if ($cboDedupeMode) { $script:WizardState.Settings.DedupeMode = $cboDedupeMode.SelectedValue }
 }
@@ -226,7 +230,8 @@ function global:Show-WizardStep2 {
                 -Mode $Settings.Mode `
                 -SkipDlls:$Settings.SkipDlls `
                 -SkipUnsigned:$Settings.SkipUnsigned `
-                -SkipScripts:$Settings.SkipScripts `
+                -SkipWshScripts:$Settings.SkipWshScripts `
+                -SkipShellScripts:$Settings.SkipShellScripts `
                 -DedupeMode $Settings.DedupeMode `
                 -PublisherLevel $Settings.PublisherLevel
         } -ArgumentList @($artifacts, $settings) -OnComplete {
@@ -241,7 +246,8 @@ function global:Show-WizardStep2 {
             -Mode $settings.Mode `
             -SkipDlls:$settings.SkipDlls `
             -SkipUnsigned:$settings.SkipUnsigned `
-            -SkipScripts:$settings.SkipScripts `
+            -SkipWshScripts:$settings.SkipWshScripts `
+            -SkipShellScripts:$settings.SkipShellScripts `
             -DedupeMode $settings.DedupeMode `
             -PublisherLevel $settings.PublisherLevel
         
@@ -373,7 +379,8 @@ function global:Start-WizardBatchGeneration {
                 -PublisherLevel $Settings.PublisherLevel `
                 -SkipDlls:$Settings.SkipDlls `
                 -SkipUnsigned:$Settings.SkipUnsigned `
-                -SkipScripts:$Settings.SkipScripts `
+                -SkipWshScripts:$Settings.SkipWshScripts `
+                -SkipShellScripts:$Settings.SkipShellScripts `
                 -DedupeMode $Settings.DedupeMode
             
         } -ArgumentList @($artifacts, $settings) -OnComplete {
@@ -391,7 +398,8 @@ function global:Start-WizardBatchGeneration {
                 -PublisherLevel $settings.PublisherLevel `
                 -SkipDlls:$settings.SkipDlls `
                 -SkipUnsigned:$settings.SkipUnsigned `
-                -SkipScripts:$settings.SkipScripts `
+                -SkipWshScripts:$settings.SkipWshScripts `
+                -SkipShellScripts:$settings.SkipShellScripts `
                 -DedupeMode $settings.DedupeMode `
                 -OnProgress {
                     param($Pct, $Msg)

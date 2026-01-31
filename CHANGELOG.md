@@ -2,6 +2,25 @@
 
 All notable changes to GA-AppLocker will be documented in this file.
 
+## [1.2.17] - 2026-01-30
+
+### Features
+
+- **Granular script type filters** — Split the single "Skip Scripts" checkbox into two independent filters: **Skip WSH Scripts** (.js, .vbs, .wsf — legacy Windows Script Host, default ON/checked) and **Skip Shell Scripts** (.ps1, .bat, .cmd — admin tools, default OFF/unchecked). Applied across the entire pipeline: Scanner panel, rule generation dialog, `Get-LocalArtifacts`, `Get-RemoteArtifacts`, `Start-ArtifactScan`, `ScheduledScans`, `Invoke-BatchRuleGeneration`, and the Rule Generation Wizard.
+
+- **Increased window height** — MainWindow height increased from 800px to 1050px for better content visibility.
+
+### Bug Fixes
+
+- **Fix WPF dispatcher scope bugs** — Three functions called from the Scanner panel's DispatcherTimer tick handler (`Update-ScanProgress`, `Update-ScanUIState`, `Update-ArtifactDataGrid`) were not visible from WPF dispatcher context because they lacked `global:` scope prefix. This caused "not recognized as a command" errors during scan progress updates and when loading saved scans. All three functions now use `function global:` declarations.
+
+### Stats
+
+- **Tests:** 397/404 passing (98.3%) — 7 pre-existing GUI type-cast failures
+- **Test files:** 15
+
+---
+
 ## [1.2.16] - 2026-01-30
 
 ### Tests

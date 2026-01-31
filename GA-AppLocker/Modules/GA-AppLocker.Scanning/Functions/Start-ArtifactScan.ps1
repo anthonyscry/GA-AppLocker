@@ -79,7 +79,10 @@ function Start-ArtifactScan {
         [switch]$SkipDllScanning,
 
         [Parameter()]
-        [switch]$SkipScriptScanning,
+        [switch]$SkipWshScanning,
+
+        [Parameter()]
+        [switch]$SkipShellScanning,
 
         [Parameter()]
         [switch]$IncludeAppx,
@@ -141,7 +144,8 @@ function Start-ArtifactScan {
             $localParams.Recurse = $true
             if ($SyncHash) { $localParams.SyncHash = $SyncHash }
             if ($SkipDllScanning) { $localParams.SkipDllScanning = $true }
-            if ($SkipScriptScanning) { $localParams.SkipScriptScanning = $true }
+            if ($SkipWshScanning) { $localParams.SkipWshScanning = $true }
+            if ($SkipShellScanning) { $localParams.SkipShellScanning = $true }
 
             $localResult = Get-LocalArtifacts @localParams
             if ($localResult.Success) {
@@ -279,7 +283,8 @@ function Start-ArtifactScan {
                 if ($credential) { $remoteParams.Credential = $credential }
                 if ($Paths) { $remoteParams.Paths = $Paths }
                 if ($SkipDllScanning) { $remoteParams.SkipDllScanning = $true }
-                if ($SkipScriptScanning) { $remoteParams.SkipScriptScanning = $true }
+                if ($SkipWshScanning) { $remoteParams.SkipWshScanning = $true }
+                if ($SkipShellScanning) { $remoteParams.SkipShellScanning = $true }
 
                 $remoteResult = Get-RemoteArtifacts @remoteParams
                 if ($remoteResult.Success) {

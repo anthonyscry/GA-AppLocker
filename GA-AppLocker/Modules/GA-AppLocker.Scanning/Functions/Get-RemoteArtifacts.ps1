@@ -71,7 +71,10 @@ function Get-RemoteArtifacts {
         [switch]$SkipDllScanning,
 
         [Parameter()]
-        [switch]$SkipScriptScanning,
+        [switch]$SkipWshScanning,
+
+        [Parameter()]
+        [switch]$SkipShellScanning,
 
         [Parameter()]
         [int]$ThrottleLimit = 32,
@@ -109,11 +112,18 @@ function Get-RemoteArtifacts {
             Write-ScanLog -Message "Skipping DLL scanning for remote machines (performance optimization)"
         }
         
-        # Filter out script extensions if SkipScriptScanning is enabled
-        if ($SkipScriptScanning) {
-            $scriptExts = @('.ps1', '.psm1', '.psd1', '.bat', '.cmd', '.vbs', '.js', '.wsf')
-            $Extensions = @($Extensions | Where-Object { $_ -notin $scriptExts })
-            Write-ScanLog -Message "Skipping script scanning for remote machines (performance optimization)"
+        # Filter out WSH script extensions if SkipWshScanning is enabled
+        if ($SkipWshScanning) {
+            $wshExts = @('.vbs', '.js', '.wsf')
+            $Extensions = @($Extensions | Where-Object { $_ -notin $wshExts })
+            Write-ScanLog -Message "Skipping WSH script scanning for remote machines (.js, .vbs, .wsf)"
+        }
+        
+        # Filter out shell script extensions if SkipShellScanning is enabled
+        if ($SkipShellScanning) {
+            $shellExts = @('.ps1', '.psm1', '.psd1', '.bat', '.cmd')
+            $Extensions = @($Extensions | Where-Object { $_ -notin $shellExts })
+            Write-ScanLog -Message "Skipping shell script scanning for remote machines (.ps1, .bat, .cmd)"
         }
 
         $allArtifacts = [System.Collections.Generic.List[PSCustomObject]]::new()

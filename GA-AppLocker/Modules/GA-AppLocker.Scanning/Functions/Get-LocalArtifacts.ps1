@@ -51,7 +51,10 @@ function Get-LocalArtifacts {
         [switch]$SkipDllScanning,
 
         [Parameter()]
-        [switch]$SkipScriptScanning,
+        [switch]$SkipWshScanning,
+
+        [Parameter()]
+        [switch]$SkipShellScanning,
 
         [Parameter()]
         [hashtable]$SyncHash = $null
@@ -101,11 +104,18 @@ function Get-LocalArtifacts {
             Write-ScanLog -Message "Skipping DLL scanning (performance optimization)"
         }
         
-        # Filter out script extensions if SkipScriptScanning is enabled
-        if ($SkipScriptScanning) {
-            $scriptExts = @('.ps1', '.psm1', '.psd1', '.bat', '.cmd', '.vbs', '.js', '.wsf')
-            $Extensions = @($Extensions | Where-Object { $_ -notin $scriptExts })
-            Write-ScanLog -Message "Skipping script scanning (performance optimization)"
+        # Filter out WSH script extensions (.js, .vbs, .wsf) if SkipWshScanning is enabled
+        if ($SkipWshScanning) {
+            $wshExts = @('.vbs', '.js', '.wsf')
+            $Extensions = @($Extensions | Where-Object { $_ -notin $wshExts })
+            Write-ScanLog -Message "Skipping WSH script scanning (.js, .vbs, .wsf)"
+        }
+        
+        # Filter out shell script extensions (.ps1, .bat, .cmd) if SkipShellScanning is enabled
+        if ($SkipShellScanning) {
+            $shellExts = @('.ps1', '.psm1', '.psd1', '.bat', '.cmd')
+            $Extensions = @($Extensions | Where-Object { $_ -notin $shellExts })
+            Write-ScanLog -Message "Skipping shell script scanning (.ps1, .bat, .cmd)"
         }
         
         # Use List<T> for O(n) performance instead of array += O(n²)

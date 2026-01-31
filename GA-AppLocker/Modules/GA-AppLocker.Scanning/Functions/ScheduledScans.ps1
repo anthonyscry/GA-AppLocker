@@ -323,6 +323,14 @@ function Invoke-ScheduledScan {
             $scanParams.SkipDllScanning = $true
         }
 
+        if ($schedule.SkipWshScanning) {
+            $scanParams.SkipWshScanning = $true
+        }
+
+        if ($schedule.SkipShellScanning) {
+            $scanParams.SkipShellScanning = $true
+        }
+
         if ($schedule.TargetMachines -and $schedule.TargetMachines.Count -gt 0) {
             # Start-ArtifactScan expects -Machines as array of objects with Hostname/MachineType,
             # not bare computer name strings. Convert strings to minimal machine objects.
