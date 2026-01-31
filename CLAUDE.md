@@ -4,7 +4,7 @@
 
 GA-AppLocker is a PowerShell 5.1 WPF application for enterprise AppLocker policy management in air-gapped, classified, or highly secure environments. Complete workflow: AD Discovery → Artifact Scanning → Rule Generation → Policy Building → GPO Deployment.
 
-**Version:** 1.2.18 | **Tests:** 397/397 passing (100%) | **Exported Commands:** ~196
+**Version:** 1.2.19 | **Tests:** 397/397 passing (100%) | **Exported Commands:** ~196
 
 ## Quick Start
 
@@ -29,7 +29,7 @@ GA-AppLocker/
 ├── GA-AppLocker.psd1              # Module manifest (exports all functions)
 ├── GA-AppLocker.psm1              # Module loader (re-exports sub-modules)
 ├── GUI/
-│   ├── MainWindow.xaml            # WPF UI (dark theme, 8 panels)
+│   ├── MainWindow.xaml            # WPF UI (dark theme, 9 panels)
 │   ├── MainWindow.xaml.ps1        # Core UI (navigation, session state) - 716 lines
 │   ├── ToastHelpers.ps1           # Toast notifications + loading overlay
 │   ├── Helpers/
@@ -43,7 +43,7 @@ GA-AppLocker/
 │   │   ├── RuleGenerationWizard.ps1  # 3-step wizard (Configure→Preview→Generate)
 │   │   └── SetupWizard.ps1        # 7-step first-run setup
 │   ├── Dialogs/                   # Rule/scanner detail dialogs
-│   └── Panels/                    # Per-panel event handlers (8 files)
+│   └── Panels/                    # Per-panel event handlers (9 files)
 │       ├── Dashboard.ps1          # Dashboard stats, quick actions
 │       ├── ADDiscovery.ps1        # AD/OU discovery, machine selection
 │       ├── Credentials.ps1        # Credential management
@@ -51,6 +51,7 @@ GA-AppLocker/
 │       ├── Rules.ps1              # Rule management, context menu, filtering
 │       ├── Policy.ps1             # Policy building, status filters
 │       ├── Deploy.ps1             # GPO deployment, job filters
+│       ├── Software.ps1           # Software inventory, CSV export/import, comparison
 │       └── Setup.ps1              # Environment initialization
 └── Modules/
     ├── GA-AppLocker.Core/         # Logging, config, cache, events, validation helpers
@@ -261,6 +262,7 @@ All rule modifications auto-sync the JSON index:
 
 | Version | Date | Key Changes |
 |---------|------|-------------|
+| 1.2.19 | Jan 31, 2026 | Software Inventory panel (9th panel) — registry-based local/remote scan, CSV export/import, cross-system comparison engine (Only in Scan/Only in Import/Version Diff), full UI with DataGrid, text filter, stats card |
 | 1.2.18 | Jan 30, 2026 | Fix Change Group/Action silent error swallowing (added error logging), consistent ISO 8601 date serialization across all rule CRUD (fixes verbose DateTime JSON objects), AppLocker-Admins default template (allow-all across 4 collection types), RESOLVE: prefix handling in template engine |
 | 1.2.17 | Jan 30, 2026 | Granular script type filters (split "Skip Scripts" into WSH vs Shell across entire pipeline), fix WPF dispatcher scope bugs (Update-ScanProgress, Update-ScanUIState, Update-ArtifactDataGrid → global:), window height increased to 1050px |
 | 1.2.16 | Jan 30, 2026 | Tests & docs update — 15 new tests (ImportExport roundtrip, hash name generation, ConvertFrom-Artifact filename resolution, policy export filename extraction, module loading verification), DEVELOPMENT.md updated to 10 modules with critical warnings, TODO.md and README.md test counts updated |

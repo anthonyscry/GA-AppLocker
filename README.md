@@ -1,4 +1,4 @@
-# GA-AppLocker v1.2.18
+# GA-AppLocker v1.2.19
 
 Enterprise AppLocker policy management for air-gapped, classified, and highly secure Windows environments. Complete workflow from AD discovery through GPO deployment — no internet required.
 
@@ -55,10 +55,11 @@ AD Discovery ──► Artifact Scanning ──► Rule Generation ──► Pol
 - **Policy comparison & snapshots** with restore
 - **Tiered credentials** (T0/T1/T2) with DPAPI encryption
 - **Scheduled scans** with configurable targets
+- **Software inventory** — Scan local/remote installed software, CSV export/import, cross-system comparison
 
 ### User Interface
 - **Dark/light theme** toggle
-- **8 dedicated panels**: Dashboard, AD Discovery, Credentials, Scanner, Rules, Policy, Deploy, Setup
+- **9 dedicated panels**: Dashboard, AD Discovery, Credentials, Scanner, Rules, Policy, Deploy, Software Inventory, Setup
 - **Keyboard shortcuts**: Ctrl+1-9 navigation, F5 refresh, Ctrl+F search, Ctrl+S save
 - **Drag-and-drop**: Drop files to scan or import rules/policies
 - **Context menus**: Right-click rules for approve/reject/delete/copy
@@ -74,13 +75,13 @@ GA-AppLocker/
 ├── GA-AppLocker.psd1              # Module manifest
 ├── GA-AppLocker.psm1              # Module loader
 ├── GUI/
-│   ├── MainWindow.xaml            # WPF UI (dark theme, 8 panels)
+│   ├── MainWindow.xaml            # WPF UI (dark theme, 9 panels)
 │   ├── MainWindow.xaml.ps1        # Core UI logic
 │   ├── ToastHelpers.ps1           # Notifications
 │   ├── Helpers/                   # Async, search, theme, keyboard, drag-drop
 │   ├── Wizards/                   # Rule generation wizard, setup wizard
 │   ├── Dialogs/                   # Rules and scanner dialogs
-│   └── Panels/                    # Per-panel event handlers (8 files)
+│   └── Panels/                    # Per-panel event handlers (9 files)
 └── Modules/
     ├── GA-AppLocker.Core/         # Logging, config, cache, events, validation helpers
     ├── GA-AppLocker.Discovery/    # AD/LDAP discovery, parallel connectivity testing

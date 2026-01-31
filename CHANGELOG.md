@@ -2,6 +2,26 @@
 
 All notable changes to GA-AppLocker will be documented in this file.
 
+## [1.2.19] - 2026-01-31
+
+### Features
+
+- **Software Inventory panel** — New 9th dedicated panel for scanning installed software across local and remote machines. Registry-based detection (HKLM Uninstall + WOW6432Node) returns DisplayName, DisplayVersion, Publisher, InstallDate, Architecture, and Source. Remote scanning via WinRM with credential support from the Credentials panel.
+
+- **CSV export/import** — Export scanned software inventory to CSV with auto-generated filenames. Import CSV files from other systems with column validation and normalization for cross-system comparison workflows.
+
+- **Software comparison engine** — Compare scan results against imported CSV data by DisplayName (case-insensitive). Produces three categories: "Only in Scan" (software missing from import), "Only in Import" (software missing from scan), and "Version Diff" (shows `scanVer → importVer`). Useful for baseline drift detection across air-gapped machines.
+
+- **Full UI integration** — Sidebar navigation (📋 icon), keyboard-accessible, DataGrid with 7 columns (Machine, Name, Version, Publisher, Install Date, Arch, Source), text filter, stats card (Last Scan + Total Count), and status bar. Dark/light theme support.
+
+### Stats
+
+- **Tests:** 397/397 passing (100%)
+- **Panels:** 9 (was 8)
+- **Test files:** 15
+
+---
+
 ## [1.2.18] - 2026-01-30
 
 ### Bug Fixes

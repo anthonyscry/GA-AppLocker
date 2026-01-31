@@ -410,7 +410,7 @@
                                    FontSize="20"
                                    FontWeight="Bold"
                                    Foreground="{StaticResource ForegroundBrush}"/>
-                        <TextBlock x:Name="SidebarSubtitle" Text="Dashboard v1.2.18"
+                        <TextBlock x:Name="SidebarSubtitle" Text="Dashboard v1.2.19"
                                    FontSize="11"
                                    Foreground="{StaticResource MutedBrush}"
                                    Margin="0,2,0,0"/>
@@ -471,6 +471,15 @@
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#x1F680;" FontSize="16" Width="24"/>
                             <TextBlock x:Name="NavDeployText" Text="Deployment" Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Button x:Name="NavSoftware"
+                            Style="{StaticResource NavButtonStyle}"
+                            AutomationProperties.Name="Software Inventory">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#x1F4CB;" FontSize="16" Width="24"/>
+                            <TextBlock x:Name="NavSoftwareText" Text="Software Inventory" Margin="8,0,0,0"/>
                         </StackPanel>
                     </Button>
 
@@ -2816,6 +2825,152 @@
                         </Border>
                     </Grid>
                 </Grid>
+
+                <!-- Software Inventory Panel -->
+                <Grid x:Name="PanelSoftware" Visibility="Collapsed">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Header -->
+                    <TextBlock Grid.Row="0" Text="Software Inventory" Style="{StaticResource HeaderStyle}"/>
+
+                    <!-- Main Content -->
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="260"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Left Sidebar: Actions -->
+                        <Border Grid.Column="0" Background="{StaticResource SidebarBrush}" CornerRadius="8" Margin="0,0,10,0" VerticalAlignment="Stretch">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <StackPanel Margin="15">
+                                    <!-- Scan Section -->
+                                    <TextBlock Text="SCAN" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
+                                    <Button x:Name="BtnScanLocalSoftware" Content="Scan Local Machine"
+                                            Style="{StaticResource PrimaryButtonStyle}" Margin="0,0,0,5"
+                                            Tag="ScanLocalSoftware"/>
+                                    <Button x:Name="BtnScanRemoteSoftware" Content="Scan Remote Machines"
+                                            Style="{StaticResource ButtonStyle}" Margin="0,0,0,5"
+                                            Tag="ScanRemoteSoftware"/>
+
+                                    <!-- Machine Info -->
+                                    <Border Background="#252526" CornerRadius="4" Padding="10" Margin="0,5,0,15">
+                                        <StackPanel>
+                                            <TextBlock Text="Last Scan:" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                                            <TextBlock x:Name="TxtSoftwareLastScan" Text="None" Foreground="{StaticResource ForegroundBrush}" FontSize="11" Margin="0,2,0,5"/>
+                                            <TextBlock Text="Total Software:" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                                            <TextBlock x:Name="TxtSoftwareTotalCount" Text="0" Foreground="{StaticResource ForegroundBrush}" FontSize="11" FontWeight="SemiBold"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Import / Export -->
+                                    <TextBlock Text="IMPORT / EXPORT" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
+                                    <Button x:Name="BtnExportSoftwareCsv" Content="Export to CSV"
+                                            Style="{StaticResource ButtonStyle}" Margin="0,0,0,5"
+                                            Tag="ExportSoftwareCsv"/>
+                                    <Button x:Name="BtnImportSoftwareCsv" Content="Import CSV"
+                                            Style="{StaticResource ButtonStyle}" Margin="0,0,0,15"
+                                            Tag="ImportSoftwareCsv"/>
+
+                                    <!-- Compare -->
+                                    <TextBlock Text="COMPARE" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
+                                    <TextBlock Text="Import a CSV from another system, then compare against the current scan." 
+                                               Foreground="{StaticResource MutedBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                                    <Button x:Name="BtnCompareSoftware" Content="Compare Inventories"
+                                            Style="{StaticResource ButtonStyle}" Margin="0,0,0,5"
+                                            Tag="CompareSoftware"/>
+                                    <Button x:Name="BtnClearComparison" Content="Clear Comparison"
+                                            Style="{StaticResource ButtonStyle}" Margin="0,0,0,5"
+                                            Tag="ClearSoftwareComparison"/>
+
+                                    <!-- Imported File Info -->
+                                    <Border Background="#252526" CornerRadius="4" Padding="10" Margin="0,10,0,0">
+                                        <StackPanel>
+                                            <TextBlock Text="Imported File:" Foreground="{StaticResource MutedBrush}" FontSize="10"/>
+                                            <TextBlock x:Name="TxtSoftwareImportedFile" Text="None" Foreground="{StaticResource ForegroundBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Border>
+
+                        <!-- Right: DataGrid -->
+                        <Grid Grid.Column="1">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Filter Bar -->
+                            <Grid Grid.Row="0" Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="TxtSoftwareFilter" 
+                                         Style="{StaticResource TextBoxStyle}" 
+                                         Tag="Filter by name, publisher, version..."
+                                         Grid.Column="0" Margin="0,0,10,0"/>
+                                <TextBlock x:Name="TxtSoftwareFilteredCount" Grid.Column="1" 
+                                           Text="0" Foreground="{StaticResource ForegroundBrush}" 
+                                           FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                <TextBlock Grid.Column="2" Text="items" 
+                                           Foreground="{StaticResource MutedBrush}" 
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+
+                            <!-- DataGrid -->
+                            <DataGrid x:Name="SoftwareDataGrid" Grid.Row="1"
+                                      AutoGenerateColumns="False" IsReadOnly="True"
+                                      SelectionMode="Extended"
+                                      HeadersVisibility="Column"
+                                      GridLinesVisibility="None"
+                                      CanUserSortColumns="True"
+                                      CanUserReorderColumns="True"
+                                      CanUserResizeColumns="True"
+                                      Background="Transparent"
+                                      Foreground="{StaticResource ForegroundBrush}"
+                                      BorderThickness="0"
+                                      RowBackground="#1E1E1E"
+                                      AlternatingRowBackground="#252526">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Machine" Binding="{Binding Machine}" Width="120"/>
+                                    <DataGridTextColumn Header="Name" Binding="{Binding DisplayName}" Width="*" MinWidth="200"/>
+                                    <DataGridTextColumn Header="Version" Binding="{Binding DisplayVersion}" Width="110"/>
+                                    <DataGridTextColumn Header="Publisher" Binding="{Binding Publisher}" Width="180"/>
+                                    <DataGridTextColumn Header="Install Date" Binding="{Binding InstallDate}" Width="90"/>
+                                    <DataGridTextColumn Header="Arch" Binding="{Binding Architecture}" Width="55"/>
+                                    <DataGridTextColumn Header="Source" Binding="{Binding Source}" Width="70"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                    </Grid>
+
+                    <!-- Status Bar -->
+                    <Border Grid.Row="2" Background="{StaticResource SidebarBrush}" CornerRadius="6" Padding="12,8" Margin="0,10,0,0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="TxtSoftwareStatus" Grid.Column="0"
+                                       Text="Ready — scan local machine or import a CSV to get started."
+                                       Foreground="{StaticResource MutedBrush}" FontSize="11"
+                                       VerticalAlignment="Center"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <TextBlock x:Name="TxtSoftwareMachineCount" Text="0" 
+                                           Foreground="{StaticResource ForegroundBrush}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <TextBlock Text=" machine(s)" Foreground="{StaticResource MutedBrush}" FontSize="11" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </Grid>
+
             </Grid>
         </Border>
 
