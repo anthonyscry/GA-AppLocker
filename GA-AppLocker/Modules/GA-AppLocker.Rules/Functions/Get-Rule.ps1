@@ -311,7 +311,7 @@ function Set-RuleStatus {
         $rule = Get-Content -Path $ruleFile -Raw | ConvertFrom-Json
         $oldStatus = $rule.Status
         $rule.Status = $Status
-        $rule.ModifiedDate = Get-Date
+        $rule.ModifiedDate = Get-Date -Format 'o'
 
         $rule | ConvertTo-Json -Depth 10 | Set-Content -Path $ruleFile -Encoding UTF8
 

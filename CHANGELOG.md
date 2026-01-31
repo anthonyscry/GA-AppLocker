@@ -2,6 +2,27 @@
 
 All notable changes to GA-AppLocker will be documented in this file.
 
+## [1.2.18] - 2026-01-30
+
+### Bug Fixes
+
+- **Fix Change Group/Action silent error swallowing** — Both `Invoke-ChangeSelectedRulesGroup` and `Invoke-ChangeSelectedRulesAction` had empty `catch { }` blocks that silently swallowed errors during JSON write and index rebuild operations. Added `Write-AppLockerLog -Level 'ERROR'` calls so failures are now visible in the log file, making the "rules disappear" bug diagnosable.
+
+- **Consistent ISO 8601 date serialization** — Fixed 8 locations across the codebase where `ModifiedDate = Get-Date` or `CreatedDate = Get-Date` produced verbose DateTime JSON objects (with `value`, `DisplayHint`, `DateTime` sub-properties) instead of clean ISO 8601 strings. All rule CRUD operations now use `Get-Date -Format 'o'` consistently, matching `Invoke-BatchRuleGeneration` which already used ISO format. Affected files: `New-HashRule.ps1`, `New-PathRule.ps1`, `New-PublisherRule.ps1`, `Get-Rule.ps1` (Set-RuleStatus), `RuleHistory.ps1` (Restore-RuleVersion), `Set-BulkRuleStatus.ps1`, and `Rules.ps1` (Change Action/Group/Status context menu handlers).
+
+### Features
+
+- **AppLocker-Admins default template** — Added "AppLocker-Admins Default (Allow All)" template to `RuleTemplates.json` with 4 path rules allowing all execution across Exe, DLL, MSI, and Script collection types for the AppLocker-Admins group.
+
+- **RESOLVE: prefix handling in template engine** — `New-RulesFromTemplate` now detects `RESOLVE:GroupName` prefixes in template `UserOrGroup` fields and calls `Resolve-GroupSid` to translate them to real SIDs at rule creation time. Falls back to `UNRESOLVED:GroupName` when not domain-joined.
+
+### Stats
+
+- **Tests:** 397/397 passing (100%)
+- **Test files:** 15
+
+---
+
 ## [1.2.17] - 2026-01-30
 
 ### Features

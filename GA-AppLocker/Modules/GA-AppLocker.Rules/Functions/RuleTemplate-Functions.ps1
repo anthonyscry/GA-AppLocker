@@ -178,6 +178,9 @@ function New-RulesFromTemplate {
             $sid = if ($UserOrGroupSid) { 
                 $UserOrGroupSid 
             } 
+            elseif ($ruleConfig.UserOrGroup -and $ruleConfig.UserOrGroup.StartsWith('RESOLVE:')) {
+                Resolve-GroupSid -GroupName $ruleConfig.UserOrGroup
+            }
             elseif ($ruleConfig.UserOrGroup -eq 'Everyone') { 
                 'S-1-1-0' 
             }

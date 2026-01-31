@@ -687,7 +687,7 @@ function global:Set-SelectedRuleStatus {
                 if (Test-Path $ruleFile) {
                     $rule = Get-Content -Path $ruleFile -Raw | ConvertFrom-Json
                     $rule.Status = $Status
-                    $rule.ModifiedDate = Get-Date
+                    $rule.ModifiedDate = Get-Date -Format 'o'
                     $rule | ConvertTo-Json -Depth 10 | Set-Content -Path $ruleFile -Encoding UTF8
                     $updatedIds.Add($item.Id)
                     $updated++
@@ -1360,17 +1360,24 @@ function global:Invoke-ChangeSelectedRulesAction {
                 if (Test-Path $ruleFile) {
                     $rule = Get-Content -Path $ruleFile -Raw | ConvertFrom-Json
                     $rule.Action = $newAction
-                    $rule.ModifiedDate = Get-Date
-                    $rule | ConvertTo-Json -Depth 10 | Set-Content -Path $ruleFile -Encoding UTF8
+                    $rule.ModifiedDate = Get-Date -Format 'o'
+                    $json = $rule | ConvertTo-Json -Depth 10
+                    Set-Content -Path $ruleFile -Value $json -Encoding UTF8
                     $updated++
-
                 }
-            } catch { }
+            } catch {
+                Write-AppLockerLog -Message "Failed to update action for rule $($item.Id): $($_.Exception.Message)" -Level 'ERROR'
+            }
         }
 
         # Rebuild index so it picks up the new Action values from disk
         if ($updated -gt 0) {
-            try { Reset-RulesIndexCache; Rebuild-RulesIndex | Out-Null } catch { }
+            try {
+                Reset-RulesIndexCache
+                Rebuild-RulesIndex | Out-Null
+            } catch {
+                Write-AppLockerLog -Message "Failed to rebuild index after action change: $($_.Exception.Message)" -Level 'ERROR'
+            }
         }
     }
     finally {
@@ -1482,17 +1489,24 @@ function global:Invoke-ChangeSelectedRulesGroup {
                 if (Test-Path $ruleFile) {
                     $rule = Get-Content -Path $ruleFile -Raw | ConvertFrom-Json
                     $rule.UserOrGroupSid = $targetSid
-                    $rule.ModifiedDate = Get-Date
-                    $rule | ConvertTo-Json -Depth 10 | Set-Content -Path $ruleFile -Encoding UTF8
+                    $rule.ModifiedDate = Get-Date -Format 'o'
+                    $json = $rule | ConvertTo-Json -Depth 10
+                    Set-Content -Path $ruleFile -Value $json -Encoding UTF8
                     $updated++
-
                 }
-            } catch { }
+            } catch {
+                Write-AppLockerLog -Message "Failed to update group for rule $($item.Id): $($_.Exception.Message)" -Level 'ERROR'
+            }
         }
 
         # Rebuild index so it picks up the new UserOrGroupSid values from disk
         if ($updated -gt 0) {
-            try { Reset-RulesIndexCache; Rebuild-RulesIndex | Out-Null } catch { }
+            try {
+                Reset-RulesIndexCache
+                Rebuild-RulesIndex | Out-Null
+            } catch {
+                Write-AppLockerLog -Message "Failed to rebuild index after group change: $($_.Exception.Message)" -Level 'ERROR'
+            }
         }
     }
     finally {

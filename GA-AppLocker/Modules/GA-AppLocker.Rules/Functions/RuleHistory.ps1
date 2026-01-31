@@ -235,7 +235,7 @@ function Restore-RuleVersion {
         $restoredRule = $versionData.RuleContent
 
         # Update modification date
-        $restoredRule.ModifiedDate = Get-Date
+        $restoredRule.ModifiedDate = Get-Date -Format 'o'
 
         # Save as current rule
         $rulePath = Get-RuleStoragePath

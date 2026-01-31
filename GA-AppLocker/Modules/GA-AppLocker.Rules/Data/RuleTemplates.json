@@ -482,6 +482,45 @@
     ]
   },
 
+  "AppLocker-Admins Default (Allow All)": {
+    "Description": "Default allow-all rules for AppLocker-Admins group across all 4 collection types (EXE, DLL, MSI, Script). Admins can run anything.",
+    "Category": "Baseline",
+    "Rules": [
+      {
+        "Name": "AppLocker-Admins - Allow All EXE",
+        "Type": "Path",
+        "Path": "*",
+        "Action": "Allow",
+        "UserOrGroup": "RESOLVE:AppLocker-Admins",
+        "CollectionType": "Exe"
+      },
+      {
+        "Name": "AppLocker-Admins - Allow All DLL",
+        "Type": "Path",
+        "Path": "*",
+        "Action": "Allow",
+        "UserOrGroup": "RESOLVE:AppLocker-Admins",
+        "CollectionType": "Dll"
+      },
+      {
+        "Name": "AppLocker-Admins - Allow All MSI",
+        "Type": "Path",
+        "Path": "*",
+        "Action": "Allow",
+        "UserOrGroup": "RESOLVE:AppLocker-Admins",
+        "CollectionType": "Msi"
+      },
+      {
+        "Name": "AppLocker-Admins - Allow All Scripts",
+        "Type": "Path",
+        "Path": "*",
+        "Action": "Allow",
+        "UserOrGroup": "RESOLVE:AppLocker-Admins",
+        "CollectionType": "Script"
+      }
+    ]
+  },
+
   "Block Script Locations": {
     "Description": "Block scripts from user-writable locations",
     "Rules": [

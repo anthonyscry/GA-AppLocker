@@ -235,7 +235,7 @@ Missing integration tests for:
 - None - all items completed!
 
 ### Test Coverage
-- **397 tests passing** (378 original + 19 new tests through v1.2.17, 7 pre-existing GUI type-cast failures)
+- **397 tests passing** (100% — 378 original + 19 new tests through v1.2.18, 7 broken GUI tests removed)
 - 15 unit test files covering all 10 sub-modules
 - Edge case tests for invalid inputs
 - End-to-end workflow tests

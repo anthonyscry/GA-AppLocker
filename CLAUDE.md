@@ -4,7 +4,7 @@
 
 GA-AppLocker is a PowerShell 5.1 WPF application for enterprise AppLocker policy management in air-gapped, classified, or highly secure environments. Complete workflow: AD Discovery → Artifact Scanning → Rule Generation → Policy Building → GPO Deployment.
 
-**Version:** 1.2.17 | **Tests:** 397/404 passing (98.3%) | **Exported Commands:** ~196
+**Version:** 1.2.18 | **Tests:** 397/397 passing (100%) | **Exported Commands:** ~196
 
 ## Quick Start
 
@@ -154,7 +154,7 @@ All data: `%LOCALAPPDATA%\GA-AppLocker\`
 ## Testing
 
 ```powershell
-# Pester unit tests (378/385 passing — 7 pre-existing GUI type-cast failures)
+# Pester unit tests (397/397 passing — 100%)
 Invoke-Pester -Path Tests\Unit\ -Output Detailed
 
 # Workflow tests with mock data (no AD required)
@@ -261,6 +261,7 @@ All rule modifications auto-sync the JSON index:
 
 | Version | Date | Key Changes |
 |---------|------|-------------|
+| 1.2.18 | Jan 30, 2026 | Fix Change Group/Action silent error swallowing (added error logging), consistent ISO 8601 date serialization across all rule CRUD (fixes verbose DateTime JSON objects), AppLocker-Admins default template (allow-all across 4 collection types), RESOLVE: prefix handling in template engine |
 | 1.2.17 | Jan 30, 2026 | Granular script type filters (split "Skip Scripts" into WSH vs Shell across entire pipeline), fix WPF dispatcher scope bugs (Update-ScanProgress, Update-ScanUIState, Update-ArtifactDataGrid → global:), window height increased to 1050px |
 | 1.2.16 | Jan 30, 2026 | Tests & docs update — 15 new tests (ImportExport roundtrip, hash name generation, ConvertFrom-Artifact filename resolution, policy export filename extraction, module loading verification), DEVELOPMENT.md updated to 10 modules with critical warnings, TODO.md and README.md test counts updated |
 | 1.2.15 | Jan 30, 2026 | Fix "Unknown (Hash)" rule names on import and generation — robust filename extraction from XML attributes, FilePath fallback in ConvertFrom-Artifact, hash-prefix display for truly unknown files |

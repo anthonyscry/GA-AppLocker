@@ -238,7 +238,7 @@ function Set-BulkRuleStatus {
             try {
                 $oldStatus = $item.Rule.Status
                 $item.Rule.Status = $Status
-                $item.Rule.ModifiedDate = Get-Date
+                $item.Rule.ModifiedDate = Get-Date -Format 'o'
 
                 $item.Rule | ConvertTo-Json -Depth 10 | Set-Content -Path $item.File.FullName -Encoding UTF8
 

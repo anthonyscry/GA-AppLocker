@@ -143,8 +143,8 @@ function New-HashRule {
             CollectionType   = $CollectionType
             UserOrGroupSid   = $UserOrGroupSid
             Status           = $Status
-            CreatedDate      = Get-Date
-            ModifiedDate     = Get-Date
+            CreatedDate      = Get-Date -Format 'o'
+            ModifiedDate     = Get-Date -Format 'o'
             # Hash-specific
             Hash             = $cleanHash.ToUpper()
             SourceFileName   = $SourceFileName
