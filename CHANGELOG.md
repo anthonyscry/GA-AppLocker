@@ -2,6 +2,37 @@
 
 All notable changes to GA-AppLocker will be documented in this file.
 
+## [1.2.16] - 2026-01-30
+
+### Tests
+
+- **New Import/Export tests** — Created `Tests/Unit/ImportExport.Tests.ps1` with 8 tests covering the v1.2.15 filename fallback chain in `Import-RulesFromXml`: empty SourceFileName with Name fallback, "Unknown" SourceFileName override, empty Name/SourceFileName hash-prefix fallback, Description-based filename extraction, and a full Export→Import roundtrip verifying filename preservation through the XML pipeline.
+
+- **Hash rule name generation tests** — Added 4 tests to `Rules.Tests.ps1` verifying `New-HashRule` produces hash-prefix names (e.g., `Hash:DEADBEEF1234...`) when SourceFileName is 'Unknown', and standard names (e.g., `notepad.exe (Hash)`) when a real filename is provided.
+
+- **ConvertFrom-Artifact filename resolution tests** — Added 3 tests to `Rules.Tests.ps1` verifying artifact-to-rule conversion extracts filenames from `FilePath` when `FileName` is null/empty, and gracefully falls back to hash-prefix names when both are unavailable.
+
+- **Policy export filename extraction test** — Added test to `Policy.Phase.Tests.ps1` verifying `Build-PolicyRuleCollectionXml` extracts real filenames from rule Name fields when SourceFileName is 'Unknown', preventing `SourceFileName="Unknown"` in exported XML.
+
+- **Test-PingConnectivity export verification** — Added 2 tests to `AD.Discovery.Mock.Tests.ps1` confirming the function is exported and accepts the `Hostnames` parameter (v1.2.14 fix).
+
+- **Module loading verification** — Added 2 tests to `EdgeCases.Tests.ps1` verifying no manual `Import-Module` calls exist in `GA-AppLocker.psm1` and that all 10 sub-modules are declared in `.psd1` `NestedModules`.
+
+### Documentation
+
+- **DEVELOPMENT.md** — Updated module list from 7 to 10 sub-modules (added Storage, Setup, Validation). Removed obsolete "Avoid DoEvents()" tip. Added Critical Warnings section covering: never use manual Import-Module in .psm1, never use Get-CimInstance in WPF STA thread code, and SID-to-friendly-name resolver pattern from v1.2.11.
+
+- **TODO.md** — Updated test count from 67 to 398+. Added v1.2.11–v1.2.15 work summary table.
+
+- **README.md** — Updated test count to reflect 398+ passing (out of 405 total, 7 pre-existing GUI type-cast failures).
+
+### Stats
+
+- **Tests:** 393/400 passing (98.3%) — 15 new tests, 7 pre-existing GUI failures
+- **Test files:** 15 (new: `ImportExport.Tests.ps1`)
+
+---
+
 ## [1.2.15] - 2026-01-30
 
 ### Bug Fixes

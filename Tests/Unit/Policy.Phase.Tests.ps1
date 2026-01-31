@@ -143,6 +143,48 @@ Describe 'New-Policy Phase Parameter' -Tag 'Unit', 'Policy', 'Phase' {
     }
 }
 
+Describe 'Build-PolicyRuleCollectionXml - SourceFileName Extraction (v1.2.15)' -Tag 'Unit', 'Policy', 'Export' {
+
+    AfterEach {
+        if ($script:testPolicyId) {
+            Remove-Policy -PolicyId $script:testPolicyId -Force -ErrorAction SilentlyContinue | Out-Null
+            $script:testPolicyId = $null
+        }
+    }
+
+    Context 'Export extracts filename from rule Name field' {
+        It 'Should write real filename to SourceFileName in XML, not Unknown' {
+            # Create a hash rule where Name is "myapp.exe (Hash)" but SourceFileName is Unknown
+            $hash = 'AABB' * 16
+            $createResult = New-HashRule -Hash $hash -SourceFileName 'Unknown' -SourceFileLength 4096 -Name 'myapp.exe (Hash)' -Action 'Allow' -CollectionType 'Exe' -Status 'Approved' -Save
+            $createResult.Success | Should -BeTrue
+
+            # Create policy and add rule
+            $policyResult = New-Policy -Name "ExportFilenameTest_$(Get-Random)" -Phase 1
+            $policyResult.Success | Should -BeTrue
+            $script:testPolicyId = $policyResult.Data.PolicyId
+
+            $addResult = Add-RuleToPolicy -PolicyId $script:testPolicyId -RuleId $createResult.Data.Id
+            $addResult.Success | Should -BeTrue
+
+            # Export
+            $exportPath = Join-Path $env:TEMP "policy-export-test-$(Get-Random).xml"
+            try {
+                $exportResult = Export-PolicyToXml -PolicyId $script:testPolicyId -OutputPath $exportPath -SkipValidation
+                $exportResult.Success | Should -BeTrue
+
+                # Verify XML contains real filename
+                $xmlContent = Get-Content $exportPath -Raw
+                $xmlContent | Should -Match 'SourceFileName="myapp.exe"'
+                $xmlContent | Should -Not -Match 'SourceFileName="Unknown"'
+            }
+            finally {
+                Remove-Item -Path $exportPath -Force -ErrorAction SilentlyContinue
+            }
+        }
+    }
+}
+
 Describe 'Policy Schema Backward Compatibility' -Tag 'Unit', 'Policy', 'BackwardCompat' {
     
     Context 'Policies without Phase field' {

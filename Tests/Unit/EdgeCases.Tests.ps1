@@ -409,6 +409,40 @@ Describe 'Input Validation Edge Cases' -Tag 'Unit', 'EdgeCase', 'Validation' {
     }
 }
 
+Describe 'Module Loading - No Duplicate Nested Module Loading (v1.2.14)' -Tag 'Unit', 'EdgeCase', 'ModuleLoading' {
+
+    Context 'Module loads nested modules exactly once' {
+        It 'Should not have manual Import-Module calls in GA-AppLocker.psm1' {
+            $psm1Path = Join-Path $PSScriptRoot '..\..\GA-AppLocker\GA-AppLocker.psm1'
+            $content = Get-Content $psm1Path -Raw
+
+            # There should be NO Import-Module calls for nested sub-modules
+            # NestedModules in .psd1 handles all loading
+            $content | Should -Not -Match 'Import-Module.*GA-AppLocker\.(Core|Storage|Discovery|Credentials|Scanning|Rules|Policy|Deployment|Validation|Setup)'
+        }
+
+        It 'Should declare all 10 sub-modules in .psd1 NestedModules' {
+            $psd1Path = Join-Path $PSScriptRoot '..\..\GA-AppLocker\GA-AppLocker.psd1'
+            $manifest = Import-PowerShellDataFile -Path $psd1Path
+
+            $manifest.NestedModules.Count | Should -Be 10
+
+            # Verify all expected modules are listed
+            $moduleNames = $manifest.NestedModules | ForEach-Object { ($_ -split '\\')[-1] -replace '\.(psd1|psm1)$', '' }
+            $moduleNames | Should -Contain 'GA-AppLocker.Core'
+            $moduleNames | Should -Contain 'GA-AppLocker.Storage'
+            $moduleNames | Should -Contain 'GA-AppLocker.Discovery'
+            $moduleNames | Should -Contain 'GA-AppLocker.Credentials'
+            $moduleNames | Should -Contain 'GA-AppLocker.Scanning'
+            $moduleNames | Should -Contain 'GA-AppLocker.Rules'
+            $moduleNames | Should -Contain 'GA-AppLocker.Policy'
+            $moduleNames | Should -Contain 'GA-AppLocker.Deployment'
+            $moduleNames | Should -Contain 'GA-AppLocker.Validation'
+            $moduleNames | Should -Contain 'GA-AppLocker.Setup'
+        }
+    }
+}
+
 Describe 'Concurrent Operations Safety' -Tag 'Unit', 'EdgeCase', 'Concurrency' {
 
     Context 'Multiple rule creations' {

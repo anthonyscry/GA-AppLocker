@@ -1,4 +1,4 @@
-# GA-AppLocker v1.2.15
+# GA-AppLocker v1.2.16
 
 Enterprise AppLocker policy management for air-gapped, classified, and highly secure Windows environments. Complete workflow from AD discovery through GPO deployment — no internet required.
 
@@ -130,7 +130,7 @@ All data stored locally in `%LOCALAPPDATA%\GA-AppLocker\`:
 ## Testing
 
 ```powershell
-# Pester unit tests (378 passing)
+# Pester unit tests (398+ passing, 7 pre-existing GUI type-cast failures out of 405 total)
 Invoke-Pester -Path Tests\Unit\ -Output Detailed
 
 # UI automation (requires interactive PowerShell session)

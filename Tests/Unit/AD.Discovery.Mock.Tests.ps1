@@ -399,6 +399,22 @@ Describe 'Get-MachineTypeFromOU (Exported via OUTree)' -Tag 'Unit', 'AD', 'Mock'
     }
 }
 
+Describe 'Test-PingConnectivity Export (v1.2.14)' -Tag 'Unit', 'AD', 'Export' {
+
+    Context 'Function is exported and callable' {
+        It 'Should be available as a command' {
+            $cmd = Get-Command -Name 'Test-PingConnectivity' -ErrorAction SilentlyContinue
+            $cmd | Should -Not -BeNullOrEmpty
+            $cmd.CommandType | Should -BeIn @('Function', 'Cmdlet')
+        }
+
+        It 'Should accept Hostnames parameter' {
+            $cmd = Get-Command -Name 'Test-PingConnectivity' -ErrorAction SilentlyContinue
+            $cmd.Parameters.Keys | Should -Contain 'Hostnames'
+        }
+    }
+}
+
 Describe 'Error Message Quality' -Tag 'Unit', 'AD', 'ErrorMessages' {
 
     Context 'LDAP functions provide actionable error messages' {

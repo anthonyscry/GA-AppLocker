@@ -394,6 +394,107 @@ Describe 'Rules Module - Smart Group Assignment' {
     }
 }
 
+Describe 'Rules Module - Hash Rule Name Generation (v1.2.15)' {
+    Context 'New-HashRule with empty SourceFileName' {
+        It 'Should produce hash-prefix name when SourceFileName is Unknown' {
+            $hash = 'A1B2C3D4E5F6' + ('0' * 52)
+            $result = New-HashRule -Hash $hash -SourceFileName 'Unknown' -SourceFileLength 1024 -Action 'Allow' -CollectionType 'Exe'
+
+            $result.Success | Should -BeTrue
+            $result.Data.Name | Should -Match '^Hash:[A-Fa-f0-9]{12}\.\.\.'
+            $result.Data.Name | Should -Not -Be 'Unknown (Hash)'
+        }
+
+        It 'Should produce hash-prefix name when SourceFileName is literally Unknown' {
+            $hash = 'DEADBEEF1234' + ('0' * 52)
+            $result = New-HashRule -Hash $hash -SourceFileName 'Unknown' -SourceFileLength 1024 -Action 'Allow' -CollectionType 'Exe'
+
+            $result.Success | Should -BeTrue
+            $result.Data.Name | Should -Match '^Hash:[A-Fa-f0-9]+'
+            $result.Data.Name | Should -Not -Be 'Unknown (Hash)'
+        }
+
+        It 'Should produce standard name when SourceFileName is valid' {
+            $hash = 'ABCDEF012345' + ('6' * 52)
+            $result = New-HashRule -Hash $hash -SourceFileName 'notepad.exe' -SourceFileLength 2048 -Action 'Allow' -CollectionType 'Exe'
+
+            $result.Success | Should -BeTrue
+            $result.Data.Name | Should -Be 'notepad.exe (Hash)'
+        }
+    }
+
+    Context 'New-HashRule description generation' {
+        It 'Should include SHA256 prefix in description when filename is Unknown' {
+            $hash = 'F' * 64
+            $result = New-HashRule -Hash $hash -SourceFileName 'Unknown' -SourceFileLength 512 -Action 'Allow' -CollectionType 'Exe'
+
+            $result.Success | Should -BeTrue
+            $result.Data.Description | Should -Match 'SHA256'
+        }
+    }
+}
+
+Describe 'Rules Module - ConvertFrom-Artifact Filename Resolution (v1.2.15)' {
+    Context 'Artifact with null FileName but valid FilePath' {
+        It 'Should extract filename from FilePath when FileName is null' {
+            $artifact = [PSCustomObject]@{
+                FileName          = $null
+                FilePath          = 'C:\Windows\System32\cmd.exe'
+                SHA256Hash        = 'AB' * 32
+                SizeBytes         = 4096
+                Extension         = '.exe'
+                IsSigned          = $false
+                SignerCertificate = $null
+                ProductName       = $null
+                ProductVersion    = $null
+            }
+
+            $result = ConvertFrom-Artifact -Artifact $artifact -PreferredRuleType 'Hash'
+            $result.Success | Should -BeTrue
+            $result.Data[0].SourceFileName | Should -Be 'cmd.exe'
+        }
+
+        It 'Should extract filename from FilePath when FileName is empty string' {
+            $artifact = [PSCustomObject]@{
+                FileName          = ''
+                FilePath          = 'D:\Apps\MyApp\setup.msi'
+                SHA256Hash        = 'CD' * 32
+                SizeBytes         = 8192
+                Extension         = '.msi'
+                IsSigned          = $false
+                SignerCertificate = $null
+                ProductName       = $null
+                ProductVersion    = $null
+            }
+
+            $result = ConvertFrom-Artifact -Artifact $artifact -PreferredRuleType 'Hash'
+            $result.Success | Should -BeTrue
+            $result.Data[0].SourceFileName | Should -Be 'setup.msi'
+        }
+    }
+
+    Context 'Artifact with both FileName and FilePath null' {
+        It 'Should fall back to Unknown gracefully' {
+            $artifact = [PSCustomObject]@{
+                FileName          = $null
+                FilePath          = $null
+                SHA256Hash        = 'EF' * 32
+                SizeBytes         = 1024
+                Extension         = '.exe'
+                IsSigned          = $false
+                SignerCertificate = $null
+                ProductName       = $null
+                ProductVersion    = $null
+            }
+
+            $result = ConvertFrom-Artifact -Artifact $artifact -PreferredRuleType 'Hash'
+            $result.Success | Should -BeTrue
+            # Should not throw — rule name should be hash-prefix since filename is Unknown
+            $result.Data[0].Name | Should -Match '^Hash:'
+        }
+    }
+}
+
 Describe 'Rules Module - Error Handling' {
     Context 'Invalid Inputs' {
         It 'Should handle empty name gracefully' {
