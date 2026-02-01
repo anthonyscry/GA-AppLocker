@@ -161,7 +161,7 @@ Describe 'Key Function Exports' -Tag 'Unit', 'Module' {
         'Get-CachedValue', 'Set-CachedValue', 'Publish-AppLockerEvent',
         'Register-AppLockerEvent', 'Test-ValidHash', 'Test-ValidSid',
         'Test-ValidGuid', 'Resolve-GroupSid', 'Write-AuditLog', 'Get-AuditLog',
-        'Invoke-WithRetry', 'Test-Prerequisites',
+        'Test-Prerequisites',
         # Discovery
         'Get-DomainInfo', 'Get-OUTree', 'Get-ComputersByOU',
         'Test-MachineConnectivity', 'Test-PingConnectivity',

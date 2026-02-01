@@ -75,7 +75,7 @@ function Remove-DuplicateRules {
         if ($dbResult.Success -and $dbResult.Data.Count -gt 0) {
             $allRules = [System.Collections.Generic.List[PSCustomObject]]::new()
             foreach ($rule in $dbResult.Data) {
-                $allRules.Add($rule)
+                [void]$allRules.Add($rule)
             }
             Write-RuleLog -Message "Loaded $($allRules.Count) rules from index"
         }
@@ -112,7 +112,7 @@ function Remove-DuplicateRules {
                 try {
                     $rule = Get-Content -Path $file.FullName -Raw | ConvertFrom-Json
                     $rule | Add-Member -NotePropertyName '_FilePath' -NotePropertyValue $file.FullName -Force
-                    $allRules.Add($rule)
+                    [void]$allRules.Add($rule)
                 }
                 catch {
                     Write-RuleLog -Level Warning -Message "Failed to load rule file: $($file.Name)"
@@ -177,10 +177,10 @@ function Remove-DuplicateRules {
                 $sorted = Sort-DuplicateGroup -Rules $group -Strategy $Strategy
                 $keep = $sorted[0]
                 for ($i = 1; $i -lt $sorted.Count; $i++) {
-                    $toRemove.Add($sorted[$i])
+                    [void]$toRemove.Add($sorted[$i])
                     $result.HashDuplicates++
                 }
-                $keptRules.Add([PSCustomObject]@{
+                [void]$keptRules.Add([PSCustomObject]@{
                     Id = $keep.Id
                     Name = $keep.Name
                     Type = 'Hash'
@@ -196,10 +196,10 @@ function Remove-DuplicateRules {
                 $sorted = Sort-DuplicateGroup -Rules $group -Strategy $Strategy
                 $keep = $sorted[0]
                 for ($i = 1; $i -lt $sorted.Count; $i++) {
-                    $toRemove.Add($sorted[$i])
+                    [void]$toRemove.Add($sorted[$i])
                     $result.PublisherDuplicates++
                 }
-                $keptRules.Add([PSCustomObject]@{
+                [void]$keptRules.Add([PSCustomObject]@{
                     Id = $keep.Id
                     Name = $keep.Name
                     Type = 'Publisher'
@@ -215,10 +215,10 @@ function Remove-DuplicateRules {
                 $sorted = Sort-DuplicateGroup -Rules $group -Strategy $Strategy
                 $keep = $sorted[0]
                 for ($i = 1; $i -lt $sorted.Count; $i++) {
-                    $toRemove.Add($sorted[$i])
+                    [void]$toRemove.Add($sorted[$i])
                     $result.PathDuplicates++
                 }
-                $keptRules.Add([PSCustomObject]@{
+                [void]$keptRules.Add([PSCustomObject]@{
                     Id = $keep.Id
                     Name = $keep.Name
                     Type = 'Path'
@@ -276,7 +276,7 @@ function Remove-DuplicateRules {
                 if (Test-Path $filePath) {
                     Remove-Item -Path $filePath -Force
                     $result.RemovedCount++
-                    $removedRules.Add([PSCustomObject]@{
+                    [void]$removedRules.Add([PSCustomObject]@{
                         Id = $rule.Id
                         Name = $rule.Name
                         Type = $rule.RuleType
@@ -410,9 +410,9 @@ function Find-DuplicateRules {
             foreach ($file in $ruleFiles) {
                 try {
                     $rule = Get-Content -Path $file.FullName -Raw | ConvertFrom-Json
-                    $allRules.Add($rule)
+                    [void]$allRules.Add($rule)
                 }
-                catch { }
+                catch { Write-RuleLog -Message "Failed to load rule file '$($file.FullName)': $($_.Exception.Message)" -Level 'DEBUG' }
             }
         }
 
@@ -430,7 +430,7 @@ function Find-DuplicateRules {
             
             foreach ($group in $hashGroups) {
                 $result.HashDuplicates += ($group.Count - 1)  # -1 because one will be kept
-                $duplicateGroups.Add([PSCustomObject]@{
+                [void]$duplicateGroups.Add([PSCustomObject]@{
                     Type = 'Hash'
                     Key = $group.Group[0].Hash
                     Count = $group.Count
@@ -445,7 +445,7 @@ function Find-DuplicateRules {
             
             foreach ($group in $pubGroups) {
                 $result.PublisherDuplicates += ($group.Count - 1)
-                $duplicateGroups.Add([PSCustomObject]@{
+                [void]$duplicateGroups.Add([PSCustomObject]@{
                     Type = 'Publisher'
                     Key = "$($group.Group[0].PublisherName) - $($group.Group[0].ProductName)"
                     Count = $group.Count
@@ -460,7 +460,7 @@ function Find-DuplicateRules {
             
             foreach ($group in $pathGroups) {
                 $result.PathDuplicates += ($group.Count - 1)
-                $duplicateGroups.Add([PSCustomObject]@{
+                [void]$duplicateGroups.Add([PSCustomObject]@{
                     Type = 'Path'
                     Key = $group.Group[0].Path
                     Count = $group.Count
@@ -543,7 +543,7 @@ function Find-ExistingHashRule {
                 }
             }
         }
-        catch { }
+        catch { Write-RuleLog -Message "Failed to parse rule file '$($file.FullName)' during hash check: $($_.Exception.Message)" -Level 'DEBUG' }
     }
 
     return $null
@@ -620,7 +620,7 @@ function Find-ExistingPublisherRule {
                 }
             }
         }
-        catch { }
+        catch { Write-RuleLog -Message "Failed to parse rule file '$($file.FullName)' during publisher check: $($_.Exception.Message)" -Level 'DEBUG' }
     }
 
     return $null

@@ -474,7 +474,7 @@ function Invoke-RuleBatchOperation {
         }
         catch {
             $result.Failed++
-            $result.Errors.Add("Rule $ruleId`: $($_.Exception.Message)")
+            [void]$result.Errors.Add("Rule $ruleId`: $($_.Exception.Message)")
         }
     }
 

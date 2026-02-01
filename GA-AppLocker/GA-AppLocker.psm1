@@ -271,7 +271,6 @@ Export-ModuleMember -Function @(
     'Set-AppLockerConfig',
     'Test-Prerequisites',
     'Get-AppLockerDataPath',
-    'Invoke-WithRetry',
     'Save-SessionState',
     'Restore-SessionState',
     'Clear-SessionState',
@@ -432,15 +431,6 @@ Export-ModuleMember -Function @(
     'Clear-AuditLog',
     'Get-AuditLogPath',
     'Get-AuditLogSummary',
-    # Email Notifications
-    'Get-EmailSettings',
-    'Set-EmailSettings',
-    'Set-EmailNotifyOn',
-    'Send-AppLockerNotification',
-    'Test-EmailSettings',
-    # Reporting Export
-    'Export-AppLockerReport',
-    'Export-ForPowerBI',
     # Backup & Restore
     'Backup-AppLockerData',
     'Restore-AppLockerData',

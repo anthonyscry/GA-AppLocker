@@ -240,14 +240,14 @@ function Get-LocalArtifacts {
                                 $stream.Dispose()
                             }
                         }
-                        catch { }
+                        catch { Write-AppLockerLog -Message "Failed to hash file '$filePath': $($_.Exception.Message)" -Level 'DEBUG' }
                         
                         # Version info
                         $versionInfo = $null
                         try {
                             $versionInfo = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($filePath)
                         }
-                        catch { }
+                        catch { Write-AppLockerLog -Message "Failed to read version info for '$filePath': $($_.Exception.Message)" -Level 'DEBUG' }
                         
                         # Digital signature — .NET cert extraction (no CRL/OCSP)
                         $isSigned = $false
@@ -260,7 +260,7 @@ function Get-LocalArtifacts {
                                 $signerSubject = $cert.Subject
                                 $sigStatus = 'Valid'
                             }
-                        } catch { }
+                        } catch { Write-AppLockerLog -Message "Failed to read certificate for '$filePath': $($_.Exception.Message)" -Level 'DEBUG' }
                         
                         # Artifact type mapping
                         $artType = switch ($file.Extension.ToLower()) {
@@ -281,7 +281,7 @@ function Get-LocalArtifacts {
                             default { 'Unknown' }
                         }
                         
-                        $results.Add([PSCustomObject]@{
+                        [void]$results.Add([PSCustomObject]@{
                             FilePath         = $filePath
                             FileName         = $file.Name
                             Extension        = $file.Extension.ToLower()
@@ -339,7 +339,7 @@ function Get-LocalArtifacts {
                 [void]$ps.AddArgument($env:COMPUTERNAME)
                 $ps.RunspacePool = $pool
                 
-                $handles.Add(@{
+                [void]$handles.Add(@{
                     PowerShell = $ps
                     Handle     = $ps.BeginInvoke()
                     BatchSize  = $batch.Count
@@ -363,7 +363,7 @@ function Get-LocalArtifacts {
                                 }
                             }
                             else {
-                                $artifacts.Add($item)
+                                [void]$artifacts.Add($item)
                             }
                         }
                     }
@@ -412,7 +412,7 @@ function Get-LocalArtifacts {
                     }
                     $artifact = Get-FileArtifact -FilePath $file.FullName
                     if ($artifact) {
-                        $artifacts.Add($artifact)
+                        [void]$artifacts.Add($artifact)
                         $stats.FilesProcessed++
                     }
                 }

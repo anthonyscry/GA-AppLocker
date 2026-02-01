@@ -156,7 +156,7 @@ function Get-AppLockerEventLogs {
                             IsBlocked    = ($event.Id -in @(8003, 8004, 8007, 8022, 8025))
                             IsAudit      = ($event.Id -in @(8002, 8006, 8021, 8024))
                         }
-                        $allEvents.Add($eventData)
+                        [void]$allEvents.Add($eventData)
                     }
                 }
                 #endregion

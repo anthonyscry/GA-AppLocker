@@ -370,7 +370,7 @@ function Approve-TrustedVendorRules {
             foreach ($vendor in $trustedPatterns) {
                 $pattern = $vendor.Pattern.Replace('*', '')
                 if ($publisherUpper.Contains($pattern)) {
-                    $rulesToApprove.Add($rule.Id)
+                    [void]$rulesToApprove.Add($rule.Id)
                     if (-not $result.ByVendor.ContainsKey($vendor.Name)) {
                         $result.ByVendor[$vendor.Name] = 0
                     }

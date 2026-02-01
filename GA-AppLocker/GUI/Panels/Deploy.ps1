@@ -298,9 +298,9 @@ function Update-JobCounters {
     )
 
     $total = if ($Jobs) { $Jobs.Count } else { 0 }
-    $pending = if ($Jobs) { ($Jobs | Where-Object { $_.Status -eq 'Pending' }).Count } else { 0 }
-    $running = if ($Jobs) { ($Jobs | Where-Object { $_.Status -eq 'Running' }).Count } else { 0 }
-    $completed = if ($Jobs) { ($Jobs | Where-Object { $_.Status -eq 'Completed' }).Count } else { 0 }
+    $pending = if ($Jobs) { @($Jobs | Where-Object { $_.Status -eq 'Pending' }).Count } else { 0 }
+    $running = if ($Jobs) { @($Jobs | Where-Object { $_.Status -eq 'Running' }).Count } else { 0 }
+    $completed = if ($Jobs) { @($Jobs | Where-Object { $_.Status -eq 'Completed' }).Count } else { 0 }
 
     $ctrl = $Window.FindName('TxtJobTotalCount');     if ($ctrl) { $ctrl.Text = "$total" }
     $ctrl = $Window.FindName('TxtJobPendingCount');   if ($ctrl) { $ctrl.Text = "$pending" }

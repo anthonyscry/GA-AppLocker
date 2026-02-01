@@ -219,10 +219,10 @@ function Rebuild-RulesIndex {
                         CreatedDate = $rule.CreatedDate
                         FilePath = $filePath
                     }
-                    $rules.Add($indexEntry)
+                    [void]$rules.Add($indexEntry)
                 }
             }
-            catch { }
+            catch { Write-StorageLog -Message "Failed to parse rule file '$filePath': $($_.Exception.Message)" -Level 'DEBUG' }
             
             if ($ProgressCallback -and ($processed % 1000 -eq 0)) {
                 $pct = [math]::Round(($processed / $totalFiles) * 100)
@@ -1060,7 +1060,7 @@ function Remove-OrphanedRuleFiles {
             if (-not $indexedIds.ContainsKey($fileName)) {
                 try {
                     $fileInfo = [System.IO.FileInfo]::new($filePath)
-                    $orphanedFiles.Add([PSCustomObject]@{
+                    [void]$orphanedFiles.Add([PSCustomObject]@{
                         Path = $filePath
                         Name = $fileName
                         Size = $fileInfo.Length

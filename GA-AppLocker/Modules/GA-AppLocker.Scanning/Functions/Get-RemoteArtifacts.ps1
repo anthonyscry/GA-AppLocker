@@ -269,7 +269,7 @@ function Get-RemoteArtifacts {
                 foreach ($file in $files) {
                     $artifact = Get-RemoteFileArtifact -FilePath $file.FullName
                     if ($artifact) {
-                        $artifacts.Add($artifact)
+                        [void]$artifacts.Add($artifact)
                     }
                 }
             }
@@ -360,7 +360,7 @@ function Get-RemoteArtifacts {
 
         foreach ($artifact in $batchedResults) {
             if ($null -eq $artifact) { continue }
-            $allArtifacts.Add($artifact)
+            [void]$allArtifacts.Add($artifact)
 
             # Track which machine returned results
             $machineName = if ($artifact.PSComputerName) { $artifact.PSComputerName }

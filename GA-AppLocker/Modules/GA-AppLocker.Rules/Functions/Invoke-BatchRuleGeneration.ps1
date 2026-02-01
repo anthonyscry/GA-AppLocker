@@ -169,7 +169,7 @@ function Invoke-BatchRuleGeneration {
                 if ($skip) {
                     $skipCount++
                 } else {
-                    $filtered.Add($art)
+                    [void]$filtered.Add($art)
                 }
             }
             
@@ -211,7 +211,7 @@ function Invoke-BatchRuleGeneration {
                 if ($exists) {
                     $existingCount++
                 } else {
-                    $toCreate.Add($art)
+                    [void]$toCreate.Add($art)
                 }
             }
             
@@ -252,11 +252,11 @@ function Invoke-BatchRuleGeneration {
                         -UnsignedMode $UnsignedMode
                     
                     if ($rule) {
-                        $rules.Add($rule)
+                        [void]$rules.Add($rule)
                     }
                 }
                 catch {
-                    $result.Errors.Add("Failed to create rule for $($art.FileName): $($_.Exception.Message)")
+                    [void]$result.Errors.Add("Failed to create rule for $($art.FileName): $($_.Exception.Message)")
                 }
                 
                 # Progress updates every 100 items
@@ -282,7 +282,7 @@ function Invoke-BatchRuleGeneration {
                 $result.Success = $true
                 Write-RuleLog -Message "Batch save complete: $($saveResult.SavedCount) rules saved"
             } else {
-                $result.Errors.Add($saveResult.Error)
+                [void]$result.Errors.Add($saveResult.Error)
                 Write-RuleLog -Level Error -Message "Batch save failed: $($saveResult.Error)"
             }
 
@@ -301,7 +301,7 @@ function Invoke-BatchRuleGeneration {
             Write-RuleLog -Message "Batch generation complete in $($stopwatch.Elapsed.TotalSeconds.ToString('F1'))s"
         }
         catch {
-            $result.Errors.Add("Batch generation failed: $($_.Exception.Message)")
+            [void]$result.Errors.Add("Batch generation failed: $($_.Exception.Message)")
             Write-RuleLog -Level Error -Message "Batch generation error: $($_.Exception.Message)"
         }
 
@@ -385,7 +385,7 @@ function Get-BatchPreview {
         if ($SkipScripts -and $art.ArtifactType -in @('PS1', 'BAT', 'CMD', 'VBS', 'JS', 'WSF')) { $skip = $true }
         
         if (-not $skip) {
-            $filtered.Add($art)
+            [void]$filtered.Add($art)
         }
     }
     $preview.AfterExclusions = $filtered.Count
@@ -419,7 +419,7 @@ function Get-BatchPreview {
         if ($exists) {
             $existingCount++
         } else {
-            $toCreate.Add($art)
+            [void]$toCreate.Add($art)
             switch ($ruleType) {
                 'Publisher' { $pubCount++ }
                 'Hash' { $hashCount++ }
@@ -442,7 +442,7 @@ function Get-BatchPreview {
         $art = $toCreate[$i]
         $ruleType = Get-RuleTypeForArtifact -Artifact $art -Mode $Mode -UnsignedMode $UnsignedMode
         
-        $sampleRules.Add([PSCustomObject]@{
+        [void]$sampleRules.Add([PSCustomObject]@{
             FileName = $art.FileName
             RuleType = $ruleType
             Publisher = if ($art.SignerCertificate) { 
@@ -636,7 +636,7 @@ function script:Get-UniqueArtifactsForBatch {
         
         if ($key -and -not $seen.Contains($key)) {
             $seen.Add($key) | Out-Null
-            $unique.Add($art)
+            [void]$unique.Add($art)
         }
     }
     

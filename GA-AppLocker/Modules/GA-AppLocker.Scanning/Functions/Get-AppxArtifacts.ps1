@@ -163,7 +163,7 @@ function Get-AppxArtifacts {
                 RuleType        = 'Publisher'  # Appx rules are always publisher-based
             }
 
-            $artifacts.Add($artifact)
+            [void]$artifacts.Add($artifact)
         }
 
         if ($SyncHash) {

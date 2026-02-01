@@ -9,7 +9,7 @@
     RootModule = 'GA-AppLocker.psm1'
 
     # Version number of this module
-    ModuleVersion = '1.2.34'
+    ModuleVersion = '1.2.35'
 
     # ID used to uniquely identify this module
     GUID = 'f1e2d3c4-b5a6-7890-1234-567890abcdef'
@@ -67,7 +67,6 @@ Features:
         'Set-AppLockerConfig',
         'Test-Prerequisites',
         'Get-AppLockerDataPath',
-        'Invoke-WithRetry',
         'Save-SessionState',
         'Restore-SessionState',
         'Clear-SessionState',
@@ -244,15 +243,6 @@ Features:
         'Clear-AuditLog',
         'Get-AuditLogPath',
         'Get-AuditLogSummary',
-        # Email Notifications
-        'Get-EmailSettings',
-        'Set-EmailSettings',
-        'Set-EmailNotifyOn',
-        'Send-AppLockerNotification',
-        'Test-EmailSettings',
-        # Reporting Export
-        'Export-AppLockerReport',
-        'Export-ForPowerBI',
         # Backup & Restore
         'Backup-AppLockerData',
         'Restore-AppLockerData',

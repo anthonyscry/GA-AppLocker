@@ -124,7 +124,7 @@ function Get-Rule {
                 foreach ($file in $ruleFiles) {
                     try {
                         $rule = Get-Content -Path $file.FullName -Raw | ConvertFrom-Json
-                        $rules.Add($rule)
+                        [void]$rules.Add($rule)
                     }
                     catch {
                         Write-RuleLog -Level Warning -Message "Failed to load rule file: $($file.Name)"

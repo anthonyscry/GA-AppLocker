@@ -131,7 +131,7 @@ function Import-RulesFromXml {
                             -Description "Imported from $fileName"
 
                         if ($newRule.Success) {
-                            $importedRules.Add($newRule.Data)
+                            [void]$importedRules.Add($newRule.Data)
                         }
                     }
                 }
@@ -220,7 +220,7 @@ function Import-RulesFromXml {
                         $newRule = New-HashRule @newRuleParams
 
                         if ($newRule.Success) {
-                            $importedRules.Add($newRule.Data)
+                            [void]$importedRules.Add($newRule.Data)
                         }
                     }
                 }
@@ -248,7 +248,7 @@ function Import-RulesFromXml {
                             -Description "Imported from $fileName"
                         
                         if ($newRule.Success) {
-                            $importedRules.Add($newRule.Data)
+                            [void]$importedRules.Add($newRule.Data)
                         }
                     }
                 }

@@ -200,7 +200,7 @@ function Get-AuditLog {
             $parsed = [System.Collections.Generic.List[PSCustomObject]]::new()
             foreach ($line in $lines) {
                 if (-not [string]::IsNullOrWhiteSpace($line)) {
-                    try { $parsed.Add(($line | ConvertFrom-Json)) } catch { }
+                    try { $parsed.Add(($line | ConvertFrom-Json)) } catch { Write-AppLockerLog -Message "Failed to parse audit log line: $($_.Exception.Message)" -Level 'DEBUG' }
                 }
             }
             $auditLog = $parsed.ToArray()

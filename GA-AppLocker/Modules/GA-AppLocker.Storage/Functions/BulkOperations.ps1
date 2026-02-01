@@ -194,7 +194,7 @@ function Add-RulesToIndex {
             }
 
             # Collect for batch append
-            $newEntries.Add($indexEntry)
+            [void]$newEntries.Add($indexEntry)
 
             # Update hashtables for O(1) lookup
             $script:RuleById[$rule.Id] = $indexEntry
@@ -359,7 +359,7 @@ function Remove-RulesFromIndex {
         $remaining = [System.Collections.Generic.List[PSCustomObject]]::new()
         foreach ($rule in $script:JsonIndex.Rules) {
             if (-not $idsToRemove.Contains($rule.Id)) {
-                $remaining.Add($rule)
+                [void]$remaining.Add($rule)
             } else {
                 # Remove from hashtables
                 if ($script:RuleById.ContainsKey($rule.Id)) {
@@ -487,7 +487,7 @@ function Get-BatchPreview {
             
             if ($key -and -not $seen.Contains($key)) {
                 $seen.Add($key) | Out-Null
-                $unique.Add($art)
+                [void]$unique.Add($art)
             }
         }
         $result.AfterDedup = $unique.Count
@@ -524,7 +524,7 @@ function Get-BatchPreview {
             if ($exists) {
                 $existingCount++
             } else {
-                $toCreate.Add($art)
+                [void]$toCreate.Add($art)
                 
                 # Count by type
                 if ($ruleType -eq 'Publisher') { $result.EstimatedPublisher++ }

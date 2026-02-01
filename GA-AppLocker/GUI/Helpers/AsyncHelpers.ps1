@@ -284,6 +284,7 @@ function Invoke-UIUpdate {
 .PARAMETER OnComplete
     Optional callback when complete.
 #>
+# UNUSED — Wrapper around Invoke-AsyncOperation, never called directly
 function Start-BackgroundTask {
     [CmdletBinding()]
     param(
@@ -313,6 +314,7 @@ function Start-BackgroundTask {
 .PARAMETER Message
     Optional message to display.
 #>
+# UNUSED — Not called from any panel or helper
 function Update-AsyncProgress {
     [CmdletBinding()]
     param(
@@ -582,6 +584,7 @@ function Invoke-AsyncWithProgress {
 .OUTPUTS
     [hashtable] A synchronized hashtable with Current, Total, Message properties.
 #>
+# UNUSED — Not called from any panel or helper
 function New-ProgressTracker {
     [CmdletBinding()]
     [OutputType([hashtable])]

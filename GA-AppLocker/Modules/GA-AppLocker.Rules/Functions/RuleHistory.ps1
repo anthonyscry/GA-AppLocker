@@ -80,7 +80,7 @@ function Get-RuleHistory {
                 $versionInfo | Add-Member -NotePropertyName 'RuleContent' -NotePropertyValue $versionData.RuleContent
             }
 
-            $versions.Add($versionInfo)
+            [void]$versions.Add($versionInfo)
         }
 
         $result.Success = $true
@@ -352,7 +352,7 @@ function Compare-RuleVersions {
             $val2 = $v2Data.$prop
 
             if ($val1 -ne $val2) {
-                $differences.Add([PSCustomObject]@{
+                [void]$differences.Add([PSCustomObject]@{
                     Property = $prop
                     Version1Value = $val1
                     Version2Value = $val2

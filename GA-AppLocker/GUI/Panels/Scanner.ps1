@@ -770,7 +770,7 @@ function global:Invoke-LoadSelectedScan {
         Update-ArtifactDataGrid -Window $Window
 
         # Update counters
-        $signed = ($script:CurrentScanArtifacts | Where-Object { $_.IsSigned }).Count
+        $signed = @($script:CurrentScanArtifacts | Where-Object { $_.IsSigned }).Count
         $unsigned = $script:CurrentScanArtifacts.Count - $signed
         
         $countLabel = $Window.FindName('ScanArtifactCount')
@@ -895,7 +895,7 @@ function global:Invoke-ImportArtifacts {
             Update-ArtifactDataGrid -Window $Window
 
             # Update counters
-            $signed = ($script:CurrentScanArtifacts | Where-Object { $_.IsSigned }).Count
+            $signed = @($script:CurrentScanArtifacts | Where-Object { $_.IsSigned }).Count
             $unsigned = $script:CurrentScanArtifacts.Count - $signed
             
             $countLabel = $Window.FindName('ScanArtifactCount')

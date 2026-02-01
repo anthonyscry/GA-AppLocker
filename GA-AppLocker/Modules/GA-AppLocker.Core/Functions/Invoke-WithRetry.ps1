@@ -1,3 +1,5 @@
+# DEAD CODE — This function is never called from any production code path.
+# Retained as a tested utility. Removed from module exports.
 <#
 .SYNOPSIS
     Executes a script block with automatic retry logic for transient failures.

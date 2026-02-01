@@ -46,7 +46,6 @@
         
         # Utilities
         'Test-Prerequisites',
-        'Invoke-WithRetry',
         
         # Session State
         'Save-SessionState',
@@ -60,17 +59,6 @@
         'Clear-AuditLog',
         'Get-AuditLogPath',
         'Get-AuditLogSummary',
-        
-        # Email Notifications
-        'Get-EmailSettings',
-        'Set-EmailSettings',
-        'Set-EmailNotifyOn',
-        'Send-AppLockerNotification',
-        'Test-EmailSettings',
-        
-        # Reporting/Export
-        'Export-AppLockerReport',
-        'Export-ForPowerBI',
         
         # Backup/Restore
         'Backup-AppLockerData',

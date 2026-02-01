@@ -116,13 +116,13 @@ function Register-AppLockerEvent {
         RegisteredAt = [DateTime]::UtcNow
     }
 
-    $script:GA_AppLocker_EventHandlers[$EventName].Add($handlerEntry)
+    [void]$script:GA_AppLocker_EventHandlers[$EventName].Add($handlerEntry)
     
     # Sort by priority
     $sorted = $script:GA_AppLocker_EventHandlers[$EventName] | Sort-Object Priority
     $script:GA_AppLocker_EventHandlers[$EventName] = [System.Collections.Generic.List[PSCustomObject]]::new()
     foreach ($h in $sorted) {
-        $script:GA_AppLocker_EventHandlers[$EventName].Add($h)
+        [void]$script:GA_AppLocker_EventHandlers[$EventName].Add($h)
     }
 
     return $HandlerId
@@ -213,7 +213,7 @@ function Publish-AppLockerEvent {
         }
         catch {
             $errorMsg = "Handler $($handlerEntry.Id) failed: $($_.Exception.Message)"
-            $errors.Add($errorMsg)
+            [void]$errors.Add($errorMsg)
             
             # Log error but continue with other handlers
             if (Get-Command -Name 'Write-AppLockerLog' -ErrorAction SilentlyContinue) {
@@ -323,7 +323,7 @@ function Get-AppLockerEventHandlers {
         $handlers = $script:GA_AppLocker_EventHandlers[$evt]
         if ($handlers) {
             foreach ($h in $handlers) {
-                $results.Add([PSCustomObject]@{
+                [void]$results.Add([PSCustomObject]@{
                     EventName = $evt
                     HandlerId = $h.Id
                     Priority = $h.Priority

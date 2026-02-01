@@ -1,4 +1,6 @@
-#region ===== REPORTING & POWERBI EXPORT =====
+# DEAD CODE — These functions are never called from the GUI or any module.
+# Retained for potential future CLI usage. Removed from module exports.
+#region ===== REPORTING & POWERBI EXPORT (UNUSED) =====
 <#
 .SYNOPSIS
     Reporting and PowerBI export functionality for GA-AppLocker.

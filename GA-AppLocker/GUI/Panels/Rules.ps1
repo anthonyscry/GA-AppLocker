@@ -308,9 +308,9 @@ function global:Update-RuleCounters {
     )
 
     $total = if ($Rules) { $Rules.Count } else { 0 }
-    $pending = if ($Rules) { ($Rules | Where-Object { $_.Status -eq 'Pending' }).Count } else { 0 }
-    $approved = if ($Rules) { ($Rules | Where-Object { $_.Status -eq 'Approved' }).Count } else { 0 }
-    $rejected = if ($Rules) { ($Rules | Where-Object { $_.Status -eq 'Rejected' }).Count } else { 0 }
+    $pending = if ($Rules) { @($Rules | Where-Object { $_.Status -eq 'Pending' }).Count } else { 0 }
+    $approved = if ($Rules) { @($Rules | Where-Object { $_.Status -eq 'Approved' }).Count } else { 0 }
+    $rejected = if ($Rules) { @($Rules | Where-Object { $_.Status -eq 'Rejected' }).Count } else { 0 }
 
     # Update counter elements if they exist (graceful fallback if XAML doesn't have them)
     $txtTotal = $Window.FindName('TxtRuleTotalCount')

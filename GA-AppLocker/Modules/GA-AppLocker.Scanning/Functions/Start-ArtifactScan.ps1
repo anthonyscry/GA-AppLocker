@@ -205,7 +205,7 @@ function Start-ArtifactScan {
                     $config.MachineTypeTiers.PSObject.Properties | ForEach-Object { $machineTypeTiers[$_.Name] = $_.Value }
                 }
             }
-            catch { }
+            catch { Write-AppLockerLog -Message "Failed to load MachineTypeTiers config: $($_.Exception.Message)" -Level 'DEBUG' }
 
             # Group machines by tier for credential selection
             $machinesByTier = $Machines | Group-Object { 
@@ -333,8 +333,8 @@ function Start-ArtifactScan {
         $endTime = Get-Date
         $duration = $endTime - $startTime
 
-        $successfulMachines = ($machineResults.Values | Where-Object { $_.Success }).Count
-        $failedMachines = ($machineResults.Values | Where-Object { -not $_.Success }).Count
+        $successfulMachines = @($machineResults.Values | Where-Object { $_.Success }).Count
+        $failedMachines = @($machineResults.Values | Where-Object { -not $_.Success }).Count
 
         $result.Success = ($successfulMachines -gt 0 -or $ScanLocal)
         $result.Data.Artifacts = $allArtifacts
@@ -350,10 +350,10 @@ function Start-ArtifactScan {
             FailedMachines      = $failedMachines
             TotalArtifacts      = $allArtifacts.Count
             TotalEvents         = $allEvents.Count
-            UniquePublishers    = ($allArtifacts | Where-Object { $_.Publisher } | Select-Object -Unique Publisher).Count
-            SignedArtifacts     = ($allArtifacts | Where-Object { $_.IsSigned }).Count
-            UnsignedArtifacts   = ($allArtifacts | Where-Object { -not $_.IsSigned }).Count
-            AppxArtifacts       = ($allArtifacts | Where-Object { $_.CollectionType -eq 'Appx' }).Count
+            UniquePublishers    = @($allArtifacts | Where-Object { $_.Publisher } | Select-Object -Unique Publisher).Count
+            SignedArtifacts     = @($allArtifacts | Where-Object { $_.IsSigned }).Count
+            UnsignedArtifacts   = @($allArtifacts | Where-Object { -not $_.IsSigned }).Count
+            AppxArtifacts       = @($allArtifacts | Where-Object { $_.CollectionType -eq 'Appx' }).Count
             MachineResults      = $machineResults
             ArtifactsByType     = $allArtifacts | Group-Object ArtifactType | Select-Object Name, Count
         }

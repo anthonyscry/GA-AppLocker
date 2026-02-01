@@ -1,4 +1,6 @@
-#region ===== EMAIL NOTIFICATIONS =====
+# DEAD CODE — These functions are never called from the GUI or any module.
+# Retained for potential future CLI usage. Removed from module exports.
+#region ===== EMAIL NOTIFICATIONS (UNUSED) =====
 <#
 .SYNOPSIS
     Email notification system for GA-AppLocker.

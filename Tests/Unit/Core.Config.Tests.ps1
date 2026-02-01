@@ -239,10 +239,16 @@ Describe 'Write-AppLockerLog' -Tag 'Unit', 'Core' {
 }
 
 # ============================================================================
-# INVOKE-WITHRETRY
+# INVOKE-WITHRETRY (not exported — dot-source directly for testing)
 # ============================================================================
 
 Describe 'Invoke-WithRetry' -Tag 'Unit', 'Core' {
+
+    BeforeAll {
+        # Invoke-WithRetry is no longer exported (dead code) but we test it directly
+        $retryPath = Join-Path $PSScriptRoot '..\..\GA-AppLocker\Modules\GA-AppLocker.Core\Functions\Invoke-WithRetry.ps1'
+        . $retryPath
+    }
 
     It 'Should execute scriptblock and return result on first try' {
         $result = Invoke-WithRetry -ScriptBlock { 42 } -MaxRetries 3

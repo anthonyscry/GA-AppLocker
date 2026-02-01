@@ -324,7 +324,7 @@ function Invoke-CacheCleanup {
         if ($entry -and $entry.TTLSeconds) {
             $age = ($now - $entry.CreatedAt).TotalSeconds
             if ($age -ge $entry.TTLSeconds) {
-                $keysToRemove.Add($key)
+                [void]$keysToRemove.Add($key)
             }
         }
     }

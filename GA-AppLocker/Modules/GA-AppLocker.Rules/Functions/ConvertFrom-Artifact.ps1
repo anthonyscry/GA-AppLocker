@@ -99,7 +99,7 @@ function ConvertFrom-Artifact {
 
     process {
         foreach ($art in $Artifact) {
-            $allArtifacts.Add($art)
+            [void]$allArtifacts.Add($art)
         }
     }
 
@@ -227,7 +227,7 @@ function ConvertFrom-Artifact {
                                 -Save:$Save
 
                             if ($pubResult.Success) {
-                                $rules.Add($pubResult.Data)
+                                [void]$rules.Add($pubResult.Data)
                             }
                         }
                     }
@@ -257,7 +257,7 @@ function ConvertFrom-Artifact {
                             -Save:$Save
 
                         if ($hashResult.Success) {
-                            $rules.Add($hashResult.Data)
+                            [void]$rules.Add($hashResult.Data)
                         }
                     }
                     'Path' {
@@ -272,7 +272,7 @@ function ConvertFrom-Artifact {
                             -Save:$Save
 
                         if ($pathResult.Success) {
-                            $rules.Add($pathResult.Data)
+                            [void]$rules.Add($pathResult.Data)
                         }
                     }
                 }
@@ -310,7 +310,7 @@ function ConvertFrom-Artifact {
                             -Save:$Save
 
                         if ($pubResult.Success) {
-                            $rules.Add($pubResult.Data)
+                            [void]$rules.Add($pubResult.Data)
                         }
                     }
                 }
@@ -322,9 +322,9 @@ function ConvertFrom-Artifact {
             $result.Summary = [PSCustomObject]@{
                 TotalArtifacts   = $allArtifacts.Count
                 TotalRules       = $rules.Count
-                PublisherRules   = ($rules | Where-Object { $_.RuleType -eq 'Publisher' }).Count
-                HashRules        = ($rules | Where-Object { $_.RuleType -eq 'Hash' }).Count
-                PathRules        = ($rules | Where-Object { $_.RuleType -eq 'Path' }).Count
+                PublisherRules   = @($rules | Where-Object { $_.RuleType -eq 'Publisher' }).Count
+                HashRules        = @($rules | Where-Object { $_.RuleType -eq 'Hash' }).Count
+                PathRules        = @($rules | Where-Object { $_.RuleType -eq 'Path' }).Count
                 ByCollection     = $rules | Group-Object CollectionType | Select-Object Name, Count
                 ByStatus         = $rules | Group-Object Status | Select-Object Name, Count
             }

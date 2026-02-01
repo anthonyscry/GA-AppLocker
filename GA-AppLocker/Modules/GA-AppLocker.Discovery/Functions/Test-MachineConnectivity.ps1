@@ -111,7 +111,7 @@ function Test-PingConnectivity {
                     return $false
                 }
             } -ArgumentList $hostname, $TimeoutMs
-            $jobs.Add($job)
+            [void]$jobs.Add($job)
         }
 
         # Wait for remaining jobs with overall timeout
