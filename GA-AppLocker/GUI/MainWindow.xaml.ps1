@@ -319,6 +319,16 @@ function global:Set-ActivePanel {
         }
     }
 
+    # Auto-refresh Dashboard stats on navigation
+    if ($PanelName -eq 'PanelDashboard') {
+        try { Update-DashboardStats -Window $Window } catch { }
+    }
+
+    # Auto-refresh Policy grid on navigation
+    if ($PanelName -eq 'PanelPolicy') {
+        try { Update-PoliciesDataGrid -Window $Window } catch { }
+    }
+
     # Auto-refresh Deploy panel on every navigation (policy combo + jobs list)
     if ($PanelName -eq 'PanelDeploy') {
         Refresh-DeployPolicyCombo -Window $Window

@@ -327,7 +327,7 @@ function global:Update-DeploymentFilter {
         'BtnFilterPendingJobs'   = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#FF8C00')
         'BtnFilterRunningJobs'   = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#0078D4')
         'BtnFilterCompletedJobs' = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#107C10')
-        'BtnFilterFailedJobs'    = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#EF5350')
+        'BtnFilterFailedJobs'    = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#D13438')
     }
     $btnNameMap = @{
         'All'       = 'BtnFilterAllJobs'

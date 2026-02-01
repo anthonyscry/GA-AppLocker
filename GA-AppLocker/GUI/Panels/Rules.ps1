@@ -104,7 +104,7 @@ function Initialize-RulesPanel {
     $statusColorMap = @{
         'BtnFilterPending'  = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#FF8C00')
         'BtnFilterApproved' = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#107C10')
-        'BtnFilterRejected' = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#EF5350')
+        'BtnFilterRejected' = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#D13438')
     }
     $activePillBg = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#3E3E42')
     foreach ($key in $statusButtonMap.Keys) {
@@ -528,7 +528,7 @@ function global:Update-RulesFilter {
             $statusColorMap = @{
                 'BtnFilterPending'  = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#FF8C00')
                 'BtnFilterApproved' = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#107C10')
-                'BtnFilterRejected' = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#EF5350')
+                'BtnFilterRejected' = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#D13438')
             }
             foreach ($btnName in $statusButtons) {
                 $btn = $Window.FindName($btnName)
@@ -566,7 +566,7 @@ function global:Update-RulesFilter {
         $statusColorMap = @{
             'BtnFilterPending'  = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#FF8C00')
             'BtnFilterApproved' = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#107C10')
-            'BtnFilterRejected' = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#EF5350')
+            'BtnFilterRejected' = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#D13438')
         }
         foreach ($btnName in $statusButtons) {
             $btn = $Window.FindName($btnName)

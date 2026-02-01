@@ -128,6 +128,9 @@ Width="1450"
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="border" Property="Opacity" Value="0.7"/>
                             </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Opacity" Value="0.4"/>
+                            </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
@@ -277,6 +280,9 @@ Width="1450"
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="border" Property="Background" Value="#2E2E32"/>
                             </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Opacity" Value="0.4"/>
+                            </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
@@ -301,6 +307,9 @@ Width="1450"
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="border" Property="Opacity" Value="0.7"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Opacity" Value="0.4"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -410,7 +419,7 @@ Width="1450"
                                    FontSize="20"
                                    FontWeight="Bold"
                                    Foreground="{StaticResource ForegroundBrush}"/>
-                        <TextBlock x:Name="SidebarSubtitle" Text="Dashboard v1.2.25"
+                        <TextBlock x:Name="SidebarSubtitle" Text="Dashboard v1.2.31"
                                    FontSize="11"
                                    Foreground="{StaticResource MutedBrush}"
                                    Margin="0,2,0,0"/>
@@ -1005,11 +1014,11 @@ Width="1450"
 
                                     <!-- Machine Type Filter Buttons -->
                                     <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                                        <Button x:Name="BtnFilterAll" Content="All" Background="#3E3E42" Foreground="White" Padding="12,5" BorderThickness="0" Margin="0,0,5,0"/>
-                                        <Button x:Name="BtnFilterWorkstations" Content="&#x1F5A5; Workstations" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="12,5" BorderThickness="0" Margin="0,0,5,0"/>
-                                        <Button x:Name="BtnFilterServers" Content="&#x1F5A7; Servers" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="12,5" BorderThickness="0" Margin="0,0,5,0"/>
-                                        <Button x:Name="BtnFilterDCs" Content="&#x1F3E2; DCs" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="12,5" BorderThickness="0" Margin="0,0,5,0"/>
-                                        <Button x:Name="BtnFilterOnline" Content="&#x1F7E2; Online" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="12,5" BorderThickness="0"/>
+                                        <Button x:Name="BtnFilterAll" Content="All" Background="#3E3E42" Foreground="White" Padding="10,4" BorderThickness="0" Margin="0,0,4,0" FontSize="11" Cursor="Hand"/>
+                                        <Button x:Name="BtnFilterWorkstations" Content="&#x1F5A5; Workstations" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="10,4" BorderThickness="0" Margin="0,0,4,0" FontSize="11" Cursor="Hand"/>
+                                        <Button x:Name="BtnFilterServers" Content="&#x1F5A7; Servers" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="10,4" BorderThickness="0" Margin="0,0,4,0" FontSize="11" Cursor="Hand"/>
+                                        <Button x:Name="BtnFilterDCs" Content="&#x1F3E2; DCs" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="10,4" BorderThickness="0" Margin="0,0,4,0" FontSize="11" Cursor="Hand"/>
+                                        <Button x:Name="BtnFilterOnline" Content="&#x1F7E2; Online" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="10,4" BorderThickness="0" FontSize="11" Cursor="Hand"/>
                                     </StackPanel>
                                 </StackPanel>
 
@@ -1284,15 +1293,15 @@ Width="1450"
 
                                     <!-- Filter Buttons -->
                                     <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                                        <Button x:Name="BtnFilterAllArtifacts" Content="All" Background="#3E3E42" Foreground="White" Padding="10,4" BorderThickness="0" Margin="0,0,4,0" FontSize="11"/>
-                                        <Button x:Name="BtnFilterExe" Content="EXE" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="10,4" BorderThickness="0" Margin="0,0,4,0" FontSize="11"/>
-                                        <Button x:Name="BtnFilterDll" Content="DLL" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="10,4" BorderThickness="0" Margin="0,0,4,0" FontSize="11"/>
-                                        <Button x:Name="BtnFilterMsi" Content="MSI" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="10,4" BorderThickness="0" Margin="0,0,4,0" FontSize="11"/>
-                                        <Button x:Name="BtnFilterScript" Content="Script" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="10,4" BorderThickness="0" Margin="0,0,4,0" FontSize="11"/>
-                                        <Button x:Name="BtnFilterAppx" Content="Appx" Background="Transparent" Foreground="{StaticResource PrimaryBrush}" Padding="10,4" BorderThickness="0" Margin="0,0,8,0" FontSize="11"/>
+                                        <Button x:Name="BtnFilterAllArtifacts" Content="All" Background="#3E3E42" Foreground="White" Padding="10,4" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0" FontSize="11"/>
+                                        <Button x:Name="BtnFilterExe" Content="EXE" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="10,4" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0" FontSize="11"/>
+                                        <Button x:Name="BtnFilterDll" Content="DLL" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="10,4" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0" FontSize="11"/>
+                                        <Button x:Name="BtnFilterMsi" Content="MSI" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="10,4" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0" FontSize="11"/>
+                                        <Button x:Name="BtnFilterScript" Content="Script" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="10,4" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0" FontSize="11"/>
+                                        <Button x:Name="BtnFilterAppx" Content="Appx" Background="Transparent" Foreground="{StaticResource PrimaryBrush}" Padding="10,4" BorderThickness="0" Cursor="Hand" Margin="0,0,8,0" FontSize="11"/>
                                         <Rectangle Width="1" Fill="#3E3E42" Margin="0,2"/>
-                                        <Button x:Name="BtnFilterSigned" Content="Signed" Background="Transparent" Foreground="{StaticResource SuccessBrush}" Padding="10,4" BorderThickness="0" Margin="8,0,4,0" FontSize="11"/>
-                                        <Button x:Name="BtnFilterUnsigned" Content="Unsigned" Background="Transparent" Foreground="{StaticResource WarningBrush}" Padding="10,4" BorderThickness="0" FontSize="11"/>
+                                        <Button x:Name="BtnFilterSigned" Content="Signed" Background="Transparent" Foreground="{StaticResource SuccessBrush}" Padding="10,4" BorderThickness="0" Cursor="Hand" Margin="8,0,4,0" FontSize="11"/>
+                                        <Button x:Name="BtnFilterUnsigned" Content="Unsigned" Background="Transparent" Foreground="{StaticResource WarningBrush}" Padding="10,4" BorderThickness="0" Cursor="Hand" FontSize="11"/>
                                     </StackPanel>
                                 </StackPanel>
 
@@ -1569,14 +1578,14 @@ Width="1450"
 
                                     <!-- Type/Status Filter Buttons -->
                                     <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                                        <Button x:Name="BtnFilterAllRules" Content="All" Background="#3E3E42" Foreground="White" Padding="10,4" BorderThickness="0" Margin="0,0,4,0" FontSize="11" Tag="FilterRulesAll"/>
-                                        <Button x:Name="BtnFilterPublisher" Content="Pub" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="10,4" BorderThickness="0" Margin="0,0,4,0" FontSize="11" Tag="FilterRulesPublisher" ToolTip="Publisher Rules"/>
-                                        <Button x:Name="BtnFilterHash" Content="Hash" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="10,4" BorderThickness="0" Margin="0,0,4,0" FontSize="11" Tag="FilterRulesHash"/>
-                                        <Button x:Name="BtnFilterPath" Content="Path" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="10,4" BorderThickness="0" Margin="0,0,8,0" FontSize="11" Tag="FilterRulesPath"/>
+                                        <Button x:Name="BtnFilterAllRules" Content="All" Background="#3E3E42" Foreground="White" Padding="10,4" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0" FontSize="11" Tag="FilterRulesAll"/>
+                                        <Button x:Name="BtnFilterPublisher" Content="Pub" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="10,4" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0" FontSize="11" Tag="FilterRulesPublisher" ToolTip="Publisher Rules"/>
+                                        <Button x:Name="BtnFilterHash" Content="Hash" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="10,4" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0" FontSize="11" Tag="FilterRulesHash"/>
+                                        <Button x:Name="BtnFilterPath" Content="Path" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="10,4" BorderThickness="0" Cursor="Hand" Margin="0,0,8,0" FontSize="11" Tag="FilterRulesPath"/>
                                         <Rectangle Width="1" Fill="#3E3E42" Margin="0,2"/>
-                                        <Button x:Name="BtnFilterPending" Content="Pending" Background="Transparent" Foreground="{StaticResource PendingBrush}" Padding="10,4" BorderThickness="0" Margin="8,0,4,0" FontSize="11" Tag="FilterRulesPending"/>
-                                        <Button x:Name="BtnFilterApproved" Content="Approved" Background="Transparent" Foreground="{StaticResource ApprovedBrush}" Padding="10,4" BorderThickness="0" Margin="0,0,4,0" FontSize="11" Tag="FilterRulesApproved"/>
-                                        <Button x:Name="BtnFilterRejected" Content="Rejected" Background="Transparent" Foreground="#EF5350" Padding="10,4" BorderThickness="0" FontSize="11" Tag="FilterRulesRejected"/>
+                                        <Button x:Name="BtnFilterPending" Content="Pending" Background="Transparent" Foreground="{StaticResource PendingBrush}" Padding="10,4" BorderThickness="0" Cursor="Hand" Margin="8,0,4,0" FontSize="11" Tag="FilterRulesPending"/>
+                                        <Button x:Name="BtnFilterApproved" Content="Approved" Background="Transparent" Foreground="{StaticResource ApprovedBrush}" Padding="10,4" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0" FontSize="11" Tag="FilterRulesApproved"/>
+                                        <Button x:Name="BtnFilterRejected" Content="Rejected" Background="Transparent" Foreground="{StaticResource RejectedBrush}" Padding="10,4" BorderThickness="0" Cursor="Hand" FontSize="11" Tag="FilterRulesRejected"/>
                                     </StackPanel>
                                 </StackPanel>
 
@@ -1967,11 +1976,11 @@ Width="1450"
 
                                         <!-- Status Filter -->
                                         <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                                            <Button x:Name="BtnFilterAllPolicies" Content="All" Background="#3E3E42" Foreground="White" Padding="10,4" BorderThickness="0" Margin="0,0,4,0" FontSize="11" Tag="FilterPoliciesAll"/>
-                                            <Button x:Name="BtnFilterDraft" Content="Draft" Background="Transparent" Foreground="{StaticResource PendingBrush}" Padding="10,4" BorderThickness="0" Margin="0,0,4,0" FontSize="11" Tag="FilterPoliciesDraft"/>
-                                            <Button x:Name="BtnFilterActive" Content="Active" Background="Transparent" Foreground="{StaticResource ActiveBrush}" Padding="10,4" BorderThickness="0" Margin="0,0,4,0" FontSize="11" Tag="FilterPoliciesActive"/>
-                                            <Button x:Name="BtnFilterDeployed" Content="Deployed" Background="Transparent" Foreground="{StaticResource ApprovedBrush}" Padding="10,4" BorderThickness="0" Margin="0,0,4,0" FontSize="11" Tag="FilterPoliciesDeployed"/>
-                                            <Button x:Name="BtnFilterArchived" Content="Archived" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="10,4" BorderThickness="0" FontSize="11" Tag="FilterPoliciesArchived"/>
+                                            <Button x:Name="BtnFilterAllPolicies" Content="All" Background="#3E3E42" Foreground="White" Padding="10,4" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0" FontSize="11" Tag="FilterPoliciesAll"/>
+                                            <Button x:Name="BtnFilterDraft" Content="Draft" Background="Transparent" Foreground="{StaticResource PendingBrush}" Padding="10,4" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0" FontSize="11" Tag="FilterPoliciesDraft"/>
+                                            <Button x:Name="BtnFilterActive" Content="Active" Background="Transparent" Foreground="{StaticResource ActiveBrush}" Padding="10,4" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0" FontSize="11" Tag="FilterPoliciesActive"/>
+                                            <Button x:Name="BtnFilterDeployed" Content="Deployed" Background="Transparent" Foreground="{StaticResource ApprovedBrush}" Padding="10,4" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0" FontSize="11" Tag="FilterPoliciesDeployed"/>
+                                            <Button x:Name="BtnFilterArchived" Content="Archived" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="10,4" BorderThickness="0" Cursor="Hand" FontSize="11" Tag="FilterPoliciesArchived"/>
                                         </StackPanel>
                                     </StackPanel>
 
@@ -2336,11 +2345,11 @@ Width="1450"
 
                                     <!-- Status Filters -->
                                     <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                                        <Button x:Name="BtnFilterAllJobs" Content="All" Background="#3E3E42" Foreground="White" Padding="10,4" BorderThickness="0" Margin="0,0,4,0" FontSize="11" Tag="FilterJobsAll"/>
-                                        <Button x:Name="BtnFilterPendingJobs" Content="Pending" Background="Transparent" Foreground="{StaticResource PendingBrush}" Padding="10,4" BorderThickness="0" Margin="0,0,4,0" FontSize="11" Tag="FilterJobsPending"/>
-                                        <Button x:Name="BtnFilterRunningJobs" Content="Running" Background="Transparent" Foreground="{StaticResource ActiveBrush}" Padding="10,4" BorderThickness="0" Margin="0,0,4,0" FontSize="11" Tag="FilterJobsRunning"/>
-                                        <Button x:Name="BtnFilterCompletedJobs" Content="Completed" Background="Transparent" Foreground="{StaticResource ApprovedBrush}" Padding="10,4" BorderThickness="0" Margin="0,0,4,0" FontSize="11" Tag="FilterJobsCompleted"/>
-                                        <Button x:Name="BtnFilterFailedJobs" Content="Failed" Background="Transparent" Foreground="#EF5350" Padding="10,4" BorderThickness="0" FontSize="11" Tag="FilterJobsFailed"/>
+                                        <Button x:Name="BtnFilterAllJobs" Content="All" Background="#3E3E42" Foreground="White" Padding="10,4" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0" FontSize="11" Tag="FilterJobsAll"/>
+                                        <Button x:Name="BtnFilterPendingJobs" Content="Pending" Background="Transparent" Foreground="{StaticResource PendingBrush}" Padding="10,4" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0" FontSize="11" Tag="FilterJobsPending"/>
+                                        <Button x:Name="BtnFilterRunningJobs" Content="Running" Background="Transparent" Foreground="{StaticResource ActiveBrush}" Padding="10,4" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0" FontSize="11" Tag="FilterJobsRunning"/>
+                                        <Button x:Name="BtnFilterCompletedJobs" Content="Completed" Background="Transparent" Foreground="{StaticResource ApprovedBrush}" Padding="10,4" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0" FontSize="11" Tag="FilterJobsCompleted"/>
+                                        <Button x:Name="BtnFilterFailedJobs" Content="Failed" Background="Transparent" Foreground="{StaticResource RejectedBrush}" Padding="10,4" BorderThickness="0" Cursor="Hand" FontSize="11" Tag="FilterJobsFailed"/>
                                     </StackPanel>
                                 </StackPanel>
 
@@ -2962,7 +2971,7 @@ Width="1450"
                     <!-- Main Content -->
                     <Grid Grid.Row="1">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="260"/>
+                            <ColumnDefinition Width="280"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
@@ -3061,11 +3070,11 @@ Width="1450"
                                 </DockPanel>
                                 <!-- Source filter buttons (comparison legend) -->
                                 <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                                    <Button x:Name="BtnFilterSoftwareAll" Content="All" Background="#3E3E42" Foreground="White" Padding="10,4" BorderThickness="0" Margin="0,0,4,0" FontSize="11" Tag="FilterSoftwareAll"/>
-                                    <Button x:Name="BtnFilterSoftwareMatch" Content="Match" Background="Transparent" Foreground="#1565C0" Padding="10,4" BorderThickness="0" Margin="0,0,4,0" FontSize="11" Tag="FilterSoftwareMatch"/>
-                                    <Button x:Name="BtnFilterSoftwareVersionDiff" Content="Version Diff" Background="Transparent" Foreground="#E6A100" Padding="10,4" BorderThickness="0" Margin="0,0,4,0" FontSize="11" Tag="FilterSoftwareVersionDiff"/>
-                                    <Button x:Name="BtnFilterSoftwareOnlyScan" Content="Only in Scan" Background="Transparent" Foreground="#4CAF50" Padding="10,4" BorderThickness="0" Margin="0,0,4,0" FontSize="11" Tag="FilterSoftwareOnlyScan"/>
-                                    <Button x:Name="BtnFilterSoftwareOnlyImport" Content="Only in Import" Background="Transparent" Foreground="#EF5350" Padding="10,4" BorderThickness="0" FontSize="11" Tag="FilterSoftwareOnlyImport"/>
+                                    <Button x:Name="BtnFilterSoftwareAll" Content="All" Background="#3E3E42" Foreground="White" Padding="10,4" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0" FontSize="11" Tag="FilterSoftwareAll"/>
+                                    <Button x:Name="BtnFilterSoftwareMatch" Content="Match" Background="Transparent" Foreground="#1565C0" Padding="10,4" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0" FontSize="11" Tag="FilterSoftwareMatch"/>
+                                    <Button x:Name="BtnFilterSoftwareVersionDiff" Content="Version Diff" Background="Transparent" Foreground="#E6A100" Padding="10,4" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0" FontSize="11" Tag="FilterSoftwareVersionDiff"/>
+                                    <Button x:Name="BtnFilterSoftwareOnlyScan" Content="Only in Scan" Background="Transparent" Foreground="#4CAF50" Padding="10,4" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0" FontSize="11" Tag="FilterSoftwareOnlyScan"/>
+                                    <Button x:Name="BtnFilterSoftwareOnlyImport" Content="Only in Import" Background="Transparent" Foreground="{StaticResource RejectedBrush}" Padding="10,4" BorderThickness="0" Cursor="Hand" FontSize="11" Tag="FilterSoftwareOnlyImport"/>
                                 </StackPanel>
                             </StackPanel>
 
@@ -3133,7 +3142,7 @@ Width="1450"
                     </Grid>
 
                     <!-- Status Bar -->
-                    <Border Grid.Row="2" Background="{StaticResource SidebarBrush}" CornerRadius="6" Padding="12,8" Margin="0,10,0,0">
+                    <Border Grid.Row="2" Background="{StaticResource SidebarBrush}" CornerRadius="4" Padding="15,10" Margin="0,10,0,0">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>

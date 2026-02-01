@@ -888,7 +888,7 @@ function global:Update-SoftwareSourceFilter {
                     'BtnFilterSoftwareMatch'        { [System.Windows.Media.BrushConverter]::new().ConvertFromString('#1565C0') }
                     'BtnFilterSoftwareVersionDiff'  { [System.Windows.Media.BrushConverter]::new().ConvertFromString('#E6A100') }
                     'BtnFilterSoftwareOnlyScan'     { [System.Windows.Media.BrushConverter]::new().ConvertFromString('#4CAF50') }
-                    'BtnFilterSoftwareOnlyImport'   { [System.Windows.Media.BrushConverter]::new().ConvertFromString('#EF5350') }
+                    'BtnFilterSoftwareOnlyImport'   { [System.Windows.Media.BrushConverter]::new().ConvertFromString('#D13438') }
                 }
             }
         }
