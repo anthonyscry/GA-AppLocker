@@ -259,6 +259,7 @@ function global:Update-SelectedPolicyInfo {
 
     if ($selectedItem) {
         $script:SelectedPolicyId = $selectedItem.PolicyId
+        $global:GA_SelectedPolicyId = $selectedItem.PolicyId
         
         $txtName = $Window.FindName('TxtSelectedPolicyName')
         if ($txtName) {
@@ -335,6 +336,7 @@ function global:Update-SelectedPolicyInfo {
     }
     else {
         $script:SelectedPolicyId = $null
+        $global:GA_SelectedPolicyId = $null
         
         $txtName = $Window.FindName('TxtSelectedPolicyName')
         if ($txtName) {
@@ -530,6 +532,7 @@ function global:Invoke-DeleteSelectedPolicy {
         
         if ($result.Success) {
             $script:SelectedPolicyId = $null
+            $global:GA_SelectedPolicyId = $null
             Update-PoliciesDataGrid -Window $Window
             Update-SelectedPolicyInfo -Window $Window
             Show-AppLockerMessageBox 'Policy deleted.' 'Deleted' 'OK' 'Information'

@@ -164,7 +164,7 @@ function ConvertFrom-Artifact {
                                     Publisher  = $publisherString
                                     Company    = $art.Publisher
                                     Products   = @{}
-                                    Artifacts  = @()
+                                    Artifacts  = [System.Collections.Generic.List[PSCustomObject]]::new()
                                     Collection = $collectionType
                                 }
                             }
@@ -188,7 +188,7 @@ function ConvertFrom-Artifact {
                                 }
                             }
                             
-                            $publisherGroups[$pubKey].Artifacts += $art
+                            [void]$publisherGroups[$pubKey].Artifacts.Add($art)
                         }
                         else {
                             # Individual publisher rule per artifact - apply granularity level

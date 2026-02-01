@@ -221,7 +221,7 @@ function global:Invoke-KeyboardShortcut {
     #endregion
 
     #region Rules Panel Shortcuts (when not in textbox - already filtered above)
-    $currentPanel = $script:CurrentActivePanel
+    $currentPanel = $global:GA_CurrentActivePanel
     if ($currentPanel -eq 'PanelRules' -and -not $ctrl -and -not $shift -and -not $alt) {
         switch ($key) {
             ([System.Windows.Input.Key]::A) {
@@ -298,7 +298,7 @@ function Invoke-PanelRefresh {
     #>
     param($Window)
 
-    $currentPanel = $script:CurrentActivePanel
+    $currentPanel = $global:GA_CurrentActivePanel
     
     switch ($currentPanel) {
         'PanelDashboard' {
@@ -346,14 +346,14 @@ function Invoke-FocusSearch {
     #>
     param($Window)
 
-    $currentPanel = $script:CurrentActivePanel
+    $currentPanel = $global:GA_CurrentActivePanel
     $searchBoxName = $null
 
     switch ($currentPanel) {
-        'PanelRules' { $searchBoxName = 'RulesSearchBox' }
-        'PanelPolicy' { $searchBoxName = 'PolicySearchBox' }
-        'PanelScanner' { $searchBoxName = 'ArtifactSearchBox' }
-        'PanelDiscovery' { $searchBoxName = 'MachineSearchBox' }
+        'PanelRules' { $searchBoxName = 'TxtRuleFilter' }
+        'PanelPolicy' { $searchBoxName = 'TxtPolicyFilter' }
+        'PanelScanner' { $searchBoxName = 'TxtArtifactFilter' }
+        'PanelDiscovery' { $searchBoxName = 'TxtMachineFilter' }
     }
 
     if ($searchBoxName) {
@@ -376,11 +376,11 @@ function Invoke-ContextSave {
     #>
     param($Window)
 
-    $currentPanel = $script:CurrentActivePanel
+    $currentPanel = $global:GA_CurrentActivePanel
 
     switch ($currentPanel) {
         'PanelPolicy' {
-            if ($script:SelectedPolicyId) {
+            if ($global:GA_SelectedPolicyId) {
                 Invoke-ButtonAction -Action 'SavePolicyChanges'
                 Show-ShortcutToast -Message "Policy saved"
             }
@@ -409,7 +409,7 @@ function Invoke-ContextExport {
     #>
     param($Window)
 
-    $currentPanel = $script:CurrentActivePanel
+    $currentPanel = $global:GA_CurrentActivePanel
 
     switch ($currentPanel) {
         'PanelRules' {
@@ -435,7 +435,7 @@ function Invoke-ContextNew {
     #>
     param($Window)
 
-    $currentPanel = $script:CurrentActivePanel
+    $currentPanel = $global:GA_CurrentActivePanel
 
     switch ($currentPanel) {
         'PanelRules' {
@@ -471,14 +471,14 @@ function Invoke-SelectAllInGrid {
     #>
     param($Window)
 
-    $currentPanel = $script:CurrentActivePanel
+    $currentPanel = $global:GA_CurrentActivePanel
     $gridName = $null
 
     switch ($currentPanel) {
         'PanelRules' { $gridName = 'RulesDataGrid' }
-        'PanelPolicy' { $gridName = 'PolicyRulesDataGrid' }
+        'PanelPolicy' { $gridName = 'PoliciesDataGrid' }
         'PanelScanner' { $gridName = 'ArtifactsDataGrid' }
-        'PanelDiscovery' { $gridName = 'MachinesDataGrid' }
+        'PanelDiscovery' { $gridName = 'DiscoveredMachinesDataGrid' }
         'PanelDeploy' { $gridName = 'DeploymentJobsDataGrid' }
     }
 
@@ -505,23 +505,23 @@ function Invoke-CancelOrClose {
     $overlay = $Window.FindName('LoadingOverlay')
     if ($overlay -and $overlay.Visibility -eq 'Visible') {
         # Cancel ongoing operation if possible
-        if ($script:ScanInProgress) {
+        if ($global:GA_ScanInProgress) {
             Invoke-ButtonAction -Action 'StopScan'
             return
         }
-        if ($script:DeploymentInProgress) {
+        if ($global:GA_DeploymentInProgress) {
             Invoke-ButtonAction -Action 'StopDeployment'
             return
         }
     }
 
     # Clear search boxes
-    $currentPanel = $script:CurrentActivePanel
+    $currentPanel = $global:GA_CurrentActivePanel
     $searchBoxName = switch ($currentPanel) {
-        'PanelRules' { 'RulesSearchBox' }
-        'PanelPolicy' { 'PolicySearchBox' }
-        'PanelScanner' { 'ArtifactSearchBox' }
-        'PanelDiscovery' { 'MachineSearchBox' }
+        'PanelRules' { 'TxtRuleFilter' }
+        'PanelPolicy' { 'TxtPolicyFilter' }
+        'PanelScanner' { 'TxtArtifactFilter' }
+        'PanelDiscovery' { 'TxtMachineFilter' }
         default { $null }
     }
 
@@ -559,7 +559,7 @@ function Invoke-DeleteSelected {
     #>
     param($Window)
 
-    $currentPanel = $script:CurrentActivePanel
+    $currentPanel = $global:GA_CurrentActivePanel
 
     switch ($currentPanel) {
         'PanelRules' {

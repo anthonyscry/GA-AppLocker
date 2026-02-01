@@ -357,7 +357,7 @@ function global:Invoke-ScanRemoteSoftware {
         if ($syncHash.IsComplete) {
             $script:SoftwareTimer.Stop()
 
-            try { $script:SoftwarePowerShell.EndInvoke($script:SoftwareAsyncResult) } catch { }
+            try { $script:SoftwarePowerShell.EndInvoke($script:SoftwareAsyncResult) } catch { Write-AppLockerLog -Message "Software EndInvoke cleanup: $($_.Exception.Message)" -Level 'DEBUG' }
             if ($script:SoftwarePowerShell) { $script:SoftwarePowerShell.Dispose() }
             if ($script:SoftwareRunspace) {
                 $script:SoftwareRunspace.Close()

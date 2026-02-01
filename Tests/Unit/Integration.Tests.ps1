@@ -152,7 +152,9 @@ Describe 'Integration: Rule -> Policy -> Export -> Validate Pipeline' -Tag 'Inte
 Describe 'Integration: Rule Storage Round-Trip' -Tag 'Integration' {
 
     It 'Should create a rule and retrieve it by ID' {
-        $rule = New-HashRule -SourceFileName 'StorageTest.exe' -Hash ('11' * 32) -Action 'Allow' `
+        # Use a unique hash to avoid collisions with other test data
+        $uniqueHash = (New-Guid).ToString('N') + (New-Guid).ToString('N')
+        $rule = New-HashRule -SourceFileName 'StorageTest.exe' -Hash $uniqueHash -Action 'Allow' `
             -UserOrGroupSid 'S-1-1-0' -CollectionType 'Exe' -Save
         $rule.Success | Should -Be $true
 

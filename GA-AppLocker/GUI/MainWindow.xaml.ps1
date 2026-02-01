@@ -106,8 +106,7 @@ function global:Invoke-ButtonAction {
         'DeleteScan' { Invoke-DeleteSelectedScan -Window $win }
         'SelectMachines' { Invoke-SelectMachinesForScan -Window $win }
         'FilterArtifacts' { Update-ArtifactFilter -Window $win -Filter $args[0] }
-        'DedupeArtifacts' { Invoke-DedupeArtifacts -Window $win }
-        'ApplyExclusions' { Invoke-ApplyArtifactExclusions -Window $win }
+        # 'DedupeArtifacts' and 'ApplyExclusions' removed — functions no longer exist (v1.2.37)
         # Scheduled Scans
         'CreateScheduledScan' { Invoke-CreateScheduledScan -Window $win }
         'RunScheduledScanNow' { Invoke-RunScheduledScanNow -Window $win }
@@ -271,8 +270,9 @@ function global:Set-ActivePanel {
         $targetPanel.Visibility = 'Visible'
     }
     
-    # Track current panel for session state
+    # Track current panel for session state (both scopes: script for local, global for KeyboardShortcuts)
     $script:CurrentActivePanel = $PanelName
+    $global:GA_CurrentActivePanel = $PanelName
 
     # Update nav button states
     foreach ($navName in $navMap.Keys) {
@@ -566,7 +566,7 @@ function global:Update-WorkflowBreadcrumb {
             # Use Total (full count) not Data.Count (paginated)
             $ruleCount = $rulesResult.Total
         }
-    } catch { }
+    } catch { Write-AppLockerLog -Message "Breadcrumb rules count: $($_.Exception.Message)" -Level 'DEBUG' }
     if ($rulesStage) {
         $rulesStage.Fill = if ($ruleCount -gt 0) { $successBrush } else { $inactiveBrush }
     }
@@ -583,7 +583,7 @@ function global:Update-WorkflowBreadcrumb {
         if ($policiesResult.Success) {
             $polCount = $policiesResult.Data.Count
         }
-    } catch { }
+    } catch { Write-AppLockerLog -Message "Breadcrumb policies count: $($_.Exception.Message)" -Level 'DEBUG' }
     if ($policyStage) {
         $policyStage.Fill = if ($polCount -gt 0) { $successBrush } else { $inactiveBrush }
     }

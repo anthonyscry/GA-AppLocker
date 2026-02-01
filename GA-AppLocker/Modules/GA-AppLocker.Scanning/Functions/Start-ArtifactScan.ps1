@@ -107,8 +107,8 @@ function Start-ArtifactScan {
         Write-ScanLog -Message "Starting artifact scan: $ScanName"
         $startTime = Get-Date
 
-        $allArtifacts = @()
-        $allEvents = @()
+        $allArtifacts = [System.Collections.Generic.List[PSCustomObject]]::new()
+        $allEvents = [System.Collections.Generic.List[PSCustomObject]]::new()
         $machineResults = @{}
 
         # Configure progress ranges based on what's being scanned
@@ -149,7 +149,7 @@ function Start-ArtifactScan {
 
             $localResult = Get-LocalArtifacts @localParams
             if ($localResult.Success) {
-                $allArtifacts += $localResult.Data
+                foreach ($art in @($localResult.Data)) { [void]$allArtifacts.Add($art) }
                 $machineResults[$env:COMPUTERNAME] = @{
                     Success       = $true
                     ArtifactCount = $localResult.Data.Count
@@ -160,7 +160,7 @@ function Start-ArtifactScan {
             if ($IncludeEventLogs) {
                 $eventResult = Get-AppLockerEventLogs
                 if ($eventResult.Success) {
-                    $allEvents += $eventResult.Data
+                    foreach ($evt in @($eventResult.Data)) { [void]$allEvents.Add($evt) }
                 }
             }
 
@@ -184,7 +184,7 @@ function Start-ArtifactScan {
 
                 $appxResult = Get-AppxArtifacts @appxParams
                 if ($appxResult.Success) {
-                    $allArtifacts += $appxResult.Data
+                    foreach ($art in @($appxResult.Data)) { [void]$allArtifacts.Add($art) }
                     Write-ScanLog -Message "Found $($appxResult.Data.Count) Appx packages"
                 }
                 else {
@@ -288,7 +288,7 @@ function Start-ArtifactScan {
 
                 $remoteResult = Get-RemoteArtifacts @remoteParams
                 if ($remoteResult.Success) {
-                    $allArtifacts += $remoteResult.Data
+                    foreach ($art in @($remoteResult.Data)) { [void]$allArtifacts.Add($art) }
 
                     foreach ($machine in $computerNames) {
                         $machineInfo = $remoteResult.PerMachine[$machine]
@@ -320,7 +320,7 @@ function Start-ArtifactScan {
                         if ($machineResults[$machine.Hostname].Success) {
                             $eventResult = Get-AppLockerEventLogs -ComputerName $machine.Hostname -Credential $credential
                             if ($eventResult.Success) {
-                                $allEvents += $eventResult.Data
+                                foreach ($evt in @($eventResult.Data)) { [void]$allEvents.Add($evt) }
                             }
                         }
                     }
@@ -337,8 +337,8 @@ function Start-ArtifactScan {
         $failedMachines = @($machineResults.Values | Where-Object { -not $_.Success }).Count
 
         $result.Success = ($successfulMachines -gt 0 -or $ScanLocal)
-        $result.Data.Artifacts = $allArtifacts
-        $result.Data.EventLogs = $allEvents
+        $result.Data.Artifacts = @($allArtifacts)
+        $result.Data.EventLogs = @($allEvents)
         $result.Summary = [PSCustomObject]@{
             ScanId              = $result.ScanId
             ScanName            = $ScanName

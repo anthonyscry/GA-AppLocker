@@ -25,7 +25,7 @@ function global:Start-RuleGenerationAsync {
     )
     
     # Create sync hashtable for async communication
-    Write-RuleLog -Message "DEBUG Creating SyncHash with PublisherLevel=$PublisherLevel"
+    Write-AppLockerLog -Message "DEBUG Creating SyncHash with PublisherLevel=$PublisherLevel" -Level 'DEBUG'
     $script:RuleGenSyncHash = [hashtable]::Synchronized(@{
         Window = $Window
         Artifacts = @($Artifacts)
@@ -149,7 +149,7 @@ function global:Start-RuleGenerationAsync {
             Hide-LoadingOverlay
             
             # Cleanup
-            try { $script:RuleGenPowerShell.EndInvoke($script:RuleGenAsyncResult) } catch {}
+            try { $script:RuleGenPowerShell.EndInvoke($script:RuleGenAsyncResult) } catch { Write-AppLockerLog -Message "RuleGen EndInvoke cleanup: $($_.Exception.Message)" -Level 'DEBUG' }
             if ($script:RuleGenPowerShell) { $script:RuleGenPowerShell.Dispose() }
             if ($script:RuleGenRunspace) { 
                 $script:RuleGenRunspace.Close()

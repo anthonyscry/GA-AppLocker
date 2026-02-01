@@ -455,6 +455,7 @@ function global:Invoke-DeploySelectedJob {
 
     # Update UI state
     $script:DeploymentInProgress = $true
+    $global:GA_DeploymentInProgress = $true
     $script:DeploymentCancelled = $false
     Update-DeploymentUIState -Window $Window -Deploying $true
     Update-DeploymentProgress -Window $Window -Text 'Initializing deployment...' -Percent 5
@@ -550,6 +551,7 @@ function global:Invoke-DeploySelectedJob {
             }
 
             $script:DeploymentInProgress = $false
+            $global:GA_DeploymentInProgress = $false
             Update-DeploymentUIState -Window $win -Deploying $false
             Update-DeploymentProgress -Window $win -Text 'Deployment cancelled' -Percent 0
             Show-Toast -Message 'Deployment cancelled.' -Type 'Warning'
@@ -564,7 +566,7 @@ function global:Invoke-DeploySelectedJob {
             try {
                 $script:DeployPowerShell.EndInvoke($script:DeployAsyncResult)
             }
-            catch { }
+            catch { Write-AppLockerLog -Message "Deploy EndInvoke cleanup: $($_.Exception.Message)" -Level 'DEBUG' }
 
             # Clean up runspace
             if ($script:DeployPowerShell) { $script:DeployPowerShell.Dispose() }
@@ -574,6 +576,7 @@ function global:Invoke-DeploySelectedJob {
             }
 
             $script:DeploymentInProgress = $false
+            $global:GA_DeploymentInProgress = $false
             Update-DeploymentUIState -Window $win -Deploying $false
             Update-DeploymentJobsDataGrid -Window $win
 

@@ -284,6 +284,7 @@ function global:Invoke-StartArtifactScan {
 
     # Update UI state
     $script:ScanInProgress = $true
+    $global:GA_ScanInProgress = $true
     $script:ScanCancelled = $false
     Update-ScanUIState -Window $Window -Scanning $true
     Update-ScanProgress -Window $Window -Text "Starting scan: $scanName" -Percent 5
@@ -404,6 +405,7 @@ function global:Invoke-StartArtifactScan {
                 }
             
                 $script:ScanInProgress = $false
+                $global:GA_ScanInProgress = $false
                 Update-ScanUIState -Window $win -Scanning $false
                 Update-ScanProgress -Window $win -Text "Scan cancelled" -Percent 0
                 
@@ -423,7 +425,7 @@ function global:Invoke-StartArtifactScan {
                 try {
                     $script:ScanPowerShell.EndInvoke($script:ScanAsyncResult)
                 }
-                catch { }
+                catch { Write-AppLockerLog -Message "Scan EndInvoke cleanup: $($_.Exception.Message)" -Level 'DEBUG' }
             
                 # Clean up runspace
                 if ($script:ScanPowerShell) { $script:ScanPowerShell.Dispose() }
@@ -433,6 +435,7 @@ function global:Invoke-StartArtifactScan {
                 }
             
                 $script:ScanInProgress = $false
+                $global:GA_ScanInProgress = $false
                 Update-ScanUIState -Window $win -Scanning $false
             
                 if ($syncHash.Error) {

@@ -83,11 +83,10 @@ function Export-RulesToXml {
 
         Write-RuleLog -Message "Exporting $($rules.Count) rules to XML..."
 
-        # Build XML structure
-        $xmlContent = @"
-<?xml version="1.0" encoding="utf-8"?>
-<AppLockerPolicy Version="1">
-"@
+        # Build XML structure using StringBuilder for O(n) performance
+        $sb = [System.Text.StringBuilder]::new(4096)
+        [void]$sb.AppendLine('<?xml version="1.0" encoding="utf-8"?>')
+        [void]$sb.Append('<AppLockerPolicy Version="1">')
 
         # Group rules by collection type
         $rulesByCollection = $rules | Group-Object CollectionType
@@ -95,28 +94,23 @@ function Export-RulesToXml {
         foreach ($collectionType in $CollectionTypes) {
             $collectionRules = $rulesByCollection | Where-Object { $_.Name -eq $collectionType }
             
-            $xmlContent += @"
-
-  <RuleCollection Type="$collectionType" EnforcementMode="$EnforcementMode">
-"@
+            [void]$sb.AppendLine()
+            [void]$sb.Append("  <RuleCollection Type=`"$collectionType`" EnforcementMode=`"$EnforcementMode`">")
 
             if ($collectionRules -and $collectionRules.Group) {
                 foreach ($rule in $collectionRules.Group) {
                     $ruleXml = ConvertTo-AppLockerXmlRule -Rule $rule
-                    $xmlContent += $ruleXml
+                    [void]$sb.Append($ruleXml)
                 }
             }
 
-            $xmlContent += @"
-
-  </RuleCollection>
-"@
+            [void]$sb.AppendLine()
+            [void]$sb.Append('  </RuleCollection>')
         }
 
-        $xmlContent += @"
-
-</AppLockerPolicy>
-"@
+        [void]$sb.AppendLine()
+        [void]$sb.Append('</AppLockerPolicy>')
+        $xmlContent = $sb.ToString()
 
         # Ensure directory exists
         $outputDir = Split-Path -Path $OutputPath -Parent

@@ -493,8 +493,13 @@ function Add-Rule {
             FilePath = $filePath
         }
         
-        # Update in-memory structures
-        $script:JsonIndex.Rules = @($script:JsonIndex.Rules) + @($indexEntry)
+        # Update in-memory structures (use List.Add to avoid O(n) array copy)
+        if ($script:JsonIndex.Rules -isnot [System.Collections.Generic.List[PSCustomObject]]) {
+            $rulesList = [System.Collections.Generic.List[PSCustomObject]]::new()
+            foreach ($r in @($script:JsonIndex.Rules)) { [void]$rulesList.Add($r) }
+            $script:JsonIndex.Rules = $rulesList
+        }
+        [void]$script:JsonIndex.Rules.Add($indexEntry)
         $script:RuleById[$Rule.Id] = $indexEntry
         
         if ($Rule.Hash) {
@@ -826,10 +831,11 @@ function Get-RuleCounts {
 function Update-RuleStatusInIndex {
     <#
     .SYNOPSIS
-        Updates rule status in the JSON index without full rebuild.
+        Updates rule fields in the JSON index without full rebuild.
 
     .DESCRIPTION
-        Updates rule status in the JSON index without full rebuild. Modifies the existing item in the data store.
+        Updates rule Status, Action, and/or UserOrGroupSid in the JSON index without full rebuild.
+        At least one field to update must be provided (Status, Action, or UserOrGroupSid).
     #>
     [CmdletBinding()]
     [OutputType([PSCustomObject])]
@@ -837,9 +843,14 @@ function Update-RuleStatusInIndex {
         [Parameter(Mandatory)]
         [string[]]$RuleIds,
 
-        [Parameter(Mandatory)]
-        [ValidateSet('Pending', 'Approved', 'Rejected', 'Review')]
-        [string]$Status
+        [Parameter()]
+        [string]$Status,
+
+        [Parameter()]
+        [string]$Action,
+
+        [Parameter()]
+        [string]$UserOrGroupSid
     )
 
     $result = [PSCustomObject]@{
@@ -853,28 +864,42 @@ function Update-RuleStatusInIndex {
 
         $idsToUpdate = [System.Collections.Generic.HashSet[string]]::new($RuleIds, [System.StringComparer]::OrdinalIgnoreCase)
         $updated = 0
+        $fieldLog = @()
 
         foreach ($rule in $script:JsonIndex.Rules) {
             if ($idsToUpdate.Contains($rule.Id)) {
-                $rule.Status = $Status
+                if ($Status) {
+                    $rule.Status = $Status
+                }
+                if ($Action) {
+                    $rule.Action = $Action
+                }
+                if ($UserOrGroupSid) {
+                    $rule.UserOrGroupSid = $UserOrGroupSid
+                }
                 $updated++
 
                 if ($script:RuleById.ContainsKey($rule.Id)) {
-                    $script:RuleById[$rule.Id].Status = $Status
+                    if ($Status) { $script:RuleById[$rule.Id].Status = $Status }
+                    if ($Action) { $script:RuleById[$rule.Id].Action = $Action }
+                    if ($UserOrGroupSid) { $script:RuleById[$rule.Id].UserOrGroupSid = $UserOrGroupSid }
                 }
             }
         }
 
         if ($updated -gt 0) {
             Save-JsonIndex
-            Write-StorageLog -Message "Updated $updated rule(s) status to '$Status' in index"
+            if ($Status) { $fieldLog += "Status='$Status'" }
+            if ($Action) { $fieldLog += "Action='$Action'" }
+            if ($UserOrGroupSid) { $fieldLog += "UserOrGroupSid='$UserOrGroupSid'" }
+            Write-StorageLog -Message "Updated $updated rule(s) in index: $($fieldLog -join ', ')"
         }
 
         $result.Success = $true
         $result.UpdatedCount = $updated
     }
     catch {
-        $result.Error = "Failed to update status in index: $($_.Exception.Message)"
+        $result.Error = "Failed to update fields in index: $($_.Exception.Message)"
         Write-StorageLog -Message $result.Error -Level 'ERROR'
     }
 

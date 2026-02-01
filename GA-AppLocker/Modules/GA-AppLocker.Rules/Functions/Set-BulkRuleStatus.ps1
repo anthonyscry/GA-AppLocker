@@ -91,7 +91,7 @@ function Set-BulkRuleStatus {
         UpdatedCount = 0
         SkippedCount = 0
         ErrorCount   = 0
-        Data         = @()
+        Data         = [System.Collections.Generic.List[PSCustomObject]]::new()
         Error        = $null
         Summary      = $null
     }
@@ -118,7 +118,7 @@ function Set-BulkRuleStatus {
 
         Write-RuleLog -Message "Filtering $($indexRules.Count) rules from index for bulk status update..."
 
-        $matchedRules = @()
+        $matchedRules = [System.Collections.Generic.List[hashtable]]::new()
 
         foreach ($rule in $indexRules) {
             # Already at target status - skip
@@ -172,10 +172,10 @@ function Set-BulkRuleStatus {
             }
 
             if ($matches) {
-                $matchedRules += @{
+                [void]$matchedRules.Add(@{
                     IndexEntry = $rule
                     Rule = $null  # Loaded on-demand during update
-                }
+                })
             }
         }
 
@@ -206,6 +206,7 @@ function Set-BulkRuleStatus {
         Write-RuleLog -Message "Updating $($matchedRules.Count) rules to status '$Status'..."
         $updateCount = 0
         $rulePath = Get-RuleStoragePath
+        $now = Get-Date -Format 'o'
 
         foreach ($item in $matchedRules) {
             $updateCount++
@@ -229,14 +230,14 @@ function Set-BulkRuleStatus {
 
                 $rule = Get-Content -Path $filePath -Raw | ConvertFrom-Json
                 $rule.Status = $Status
-                $rule.ModifiedDate = Get-Date -Format 'o'
+                $rule.ModifiedDate = $now
 
                 $rule | ConvertTo-Json -Depth 10 | Set-Content -Path $filePath -Encoding UTF8
 
                 $result.UpdatedCount++
 
                 if ($PassThru) {
-                    $result.Data += $rule
+                    [void]$result.Data.Add($rule)
                 }
             }
             catch {
@@ -386,13 +387,14 @@ function Approve-TrustedVendorRules {
             # Update each rule file directly (Set-BulkRuleStatus has no -RuleIds param)
             $updatedCount = 0
             $rulePath = Get-RuleStoragePath
+            $now = Get-Date -Format 'o'
             foreach ($ruleId in $rulesToApprove) {
                 try {
                     $ruleFile = Join-Path $rulePath "$ruleId.json"
                     if (Test-Path $ruleFile) {
                         $rule = Get-Content -Path $ruleFile -Raw | ConvertFrom-Json
                         $rule.Status = 'Approved'
-                        $rule.ModifiedDate = Get-Date -Format 'o'
+                        $rule.ModifiedDate = $now
                         $rule | ConvertTo-Json -Depth 10 | Set-Content -Path $ruleFile -Encoding UTF8
                         $updatedCount++
                     }
@@ -403,7 +405,9 @@ function Approve-TrustedVendorRules {
             }
             # Sync index in batch
             if ($updatedCount -gt 0) {
-                try { Update-RuleStatusInIndex -RuleIds $rulesToApprove.ToArray() -Status 'Approved' | Out-Null } catch {}
+                try { Update-RuleStatusInIndex -RuleIds $rulesToApprove.ToArray() -Status 'Approved' | Out-Null } catch {
+                    Write-RuleLog -Level Warning -Message "Index sync after trusted vendor approval failed: $($_.Exception.Message)"
+                }
             }
             $result.TotalUpdated = $updatedCount
         } else {

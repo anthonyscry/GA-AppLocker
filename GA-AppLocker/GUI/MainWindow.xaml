@@ -423,7 +423,7 @@ Width="1450"
                                    FontSize="20"
                                    FontWeight="Bold"
                                    Foreground="{StaticResource ForegroundBrush}"/>
-                        <TextBlock x:Name="SidebarSubtitle" Text="Dashboard v1.2.36"
+                        <TextBlock x:Name="SidebarSubtitle" Text="Dashboard v1.2.37"
                                    FontSize="11"
                                    Foreground="{StaticResource MutedBrush}"
                                    Margin="0,2,0,0"/>

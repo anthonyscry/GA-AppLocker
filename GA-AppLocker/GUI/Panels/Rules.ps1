@@ -716,6 +716,7 @@ function global:Set-SelectedRuleStatus {
         $errors = @()
         $updatedIds = [System.Collections.Generic.List[string]]::new()
         $processedCount = 0
+        $now = Get-Date -Format 'o'
         
         foreach ($item in $selectedItems) {
             $processedCount++
@@ -736,7 +737,7 @@ function global:Set-SelectedRuleStatus {
                 if (Test-Path $ruleFile) {
                     $rule = Get-Content -Path $ruleFile -Raw | ConvertFrom-Json
                     $rule.Status = $Status
-                    $rule.ModifiedDate = Get-Date -Format 'o'
+                    $rule.ModifiedDate = $now
                     $rule | ConvertTo-Json -Depth 10 | Set-Content -Path $ruleFile -Encoding UTF8
                     $updatedIds.Add($item.Id)
                     $updated++
@@ -1497,16 +1498,33 @@ function global:Invoke-ChangeSelectedRulesAction {
         $dataPath = Get-AppLockerDataPath
         $rulePath = Join-Path $dataPath 'Rules'
         $updated = 0
+        $count = $selectedItems.Count
+        $now = Get-Date -Format 'o'
+        $updatedIds = [System.Collections.Generic.List[string]]::new()
+        $processedCount = 0
 
         foreach ($item in $selectedItems) {
+            $processedCount++
+
+            # Pump UI every 100 rules for large batches
+            if ($count -gt 50 -and $processedCount % 100 -eq 0) {
+                $pct = [math]::Round(($processedCount / $count) * 100)
+                Show-LoadingOverlay -Message "Changing action to '$newAction'..." -SubMessage "$processedCount of $count ($pct%)"
+                [System.Windows.Threading.Dispatcher]::CurrentDispatcher.Invoke(
+                    [System.Windows.Threading.DispatcherPriority]::Background,
+                    [Action]{}
+                )
+            }
+
             try {
                 $ruleFile = Join-Path $rulePath "$($item.Id).json"
                 if (Test-Path $ruleFile) {
                     $rule = Get-Content -Path $ruleFile -Raw | ConvertFrom-Json
                     $rule.Action = $newAction
-                    $rule.ModifiedDate = Get-Date -Format 'o'
+                    $rule.ModifiedDate = $now
                     $json = $rule | ConvertTo-Json -Depth 10
                     Set-Content -Path $ruleFile -Value $json -Encoding UTF8
+                    [void]$updatedIds.Add($item.Id)
                     $updated++
                 }
             } catch {
@@ -1514,13 +1532,13 @@ function global:Invoke-ChangeSelectedRulesAction {
             }
         }
 
-        # Rebuild index so it picks up the new Action values from disk
+        # Targeted index update (avoids full Rebuild-RulesIndex disk re-read)
         if ($updated -gt 0) {
             try {
                 Reset-RulesIndexCache
-                Rebuild-RulesIndex | Out-Null
+                Update-RuleStatusInIndex -RuleIds @($updatedIds) -Status $null -Action $newAction | Out-Null
             } catch {
-                Write-AppLockerLog -Message "Failed to rebuild index after action change: $($_.Exception.Message)" -Level 'ERROR'
+                Write-AppLockerLog -Message "Failed to update index after action change: $($_.Exception.Message)" -Level 'ERROR'
             }
         }
     }
@@ -1626,16 +1644,33 @@ function global:Invoke-ChangeSelectedRulesGroup {
         $dataPath = Get-AppLockerDataPath
         $rulePath = Join-Path $dataPath 'Rules'
         $updated = 0
+        $count = $selectedItems.Count
+        $now = Get-Date -Format 'o'
+        $updatedIds = [System.Collections.Generic.List[string]]::new()
+        $processedCount = 0
 
         foreach ($item in $selectedItems) {
+            $processedCount++
+
+            # Pump UI every 100 rules for large batches
+            if ($count -gt 50 -and $processedCount % 100 -eq 0) {
+                $pct = [math]::Round(($processedCount / $count) * 100)
+                Show-LoadingOverlay -Message "Changing target group to '$groupName'..." -SubMessage "$processedCount of $count ($pct%)"
+                [System.Windows.Threading.Dispatcher]::CurrentDispatcher.Invoke(
+                    [System.Windows.Threading.DispatcherPriority]::Background,
+                    [Action]{}
+                )
+            }
+
             try {
                 $ruleFile = Join-Path $rulePath "$($item.Id).json"
                 if (Test-Path $ruleFile) {
                     $rule = Get-Content -Path $ruleFile -Raw | ConvertFrom-Json
                     $rule.UserOrGroupSid = $targetSid
-                    $rule.ModifiedDate = Get-Date -Format 'o'
+                    $rule.ModifiedDate = $now
                     $json = $rule | ConvertTo-Json -Depth 10
                     Set-Content -Path $ruleFile -Value $json -Encoding UTF8
+                    [void]$updatedIds.Add($item.Id)
                     $updated++
                 }
             } catch {
@@ -1643,13 +1678,13 @@ function global:Invoke-ChangeSelectedRulesGroup {
             }
         }
 
-        # Rebuild index so it picks up the new UserOrGroupSid values from disk
+        # Targeted index update (avoids full Rebuild-RulesIndex disk re-read)
         if ($updated -gt 0) {
             try {
                 Reset-RulesIndexCache
-                Rebuild-RulesIndex | Out-Null
+                Update-RuleStatusInIndex -RuleIds @($updatedIds) -Status $null -UserOrGroupSid $targetSid | Out-Null
             } catch {
-                Write-AppLockerLog -Message "Failed to rebuild index after group change: $($_.Exception.Message)" -Level 'ERROR'
+                Write-AppLockerLog -Message "Failed to update index after group change: $($_.Exception.Message)" -Level 'ERROR'
             }
         }
     }
