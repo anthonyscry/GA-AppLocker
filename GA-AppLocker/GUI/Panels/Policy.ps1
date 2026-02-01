@@ -493,7 +493,7 @@ function global:Set-SelectedPolicyStatus {
     )
 
     if (-not $script:SelectedPolicyId) {
-        [System.Windows.MessageBox]::Show('Please select a policy.', 'No Selection', 'OK', 'Information')
+        Show-AppLockerMessageBox 'Please select a policy.' 'No Selection' 'OK' 'Information'
         return
     }
 
@@ -502,14 +502,14 @@ function global:Set-SelectedPolicyStatus {
         
         if ($result.Success) {
             Update-PoliciesDataGrid -Window $Window
-            [System.Windows.MessageBox]::Show("Policy status updated to '$Status'.", 'Success', 'OK', 'Information')
+            Show-AppLockerMessageBox "Policy status updated to '$Status'." 'Success' 'OK' 'Information'
         }
         else {
-            [System.Windows.MessageBox]::Show("Failed: $($result.Error)", 'Error', 'OK', 'Error')
+            Show-AppLockerMessageBox "Failed: $($result.Error)" 'Error' 'OK' 'Error'
         }
     }
     catch {
-        [System.Windows.MessageBox]::Show("Error: $($_.Exception.Message)", 'Error', 'OK', 'Error')
+        Show-AppLockerMessageBox "Error: $($_.Exception.Message)" 'Error' 'OK' 'Error'
     }
 }
 
@@ -517,16 +517,11 @@ function global:Invoke-DeleteSelectedPolicy {
     param($Window)
 
     if (-not $script:SelectedPolicyId) {
-        [System.Windows.MessageBox]::Show('Please select a policy to delete.', 'No Selection', 'OK', 'Information')
+        Show-AppLockerMessageBox 'Please select a policy to delete.' 'No Selection' 'OK' 'Information'
         return
     }
 
-    $confirm = [System.Windows.MessageBox]::Show(
-        'Are you sure you want to delete this policy?',
-        'Confirm Delete',
-        'YesNo',
-        'Warning'
-    )
+    $confirm = Show-AppLockerMessageBox 'Are you sure you want to delete this policy?' 'Confirm Delete' 'YesNo' 'Warning'
 
     if ($confirm -ne 'Yes') { return }
 
@@ -537,14 +532,14 @@ function global:Invoke-DeleteSelectedPolicy {
             $script:SelectedPolicyId = $null
             Update-PoliciesDataGrid -Window $Window
             Update-SelectedPolicyInfo -Window $Window
-            [System.Windows.MessageBox]::Show('Policy deleted.', 'Deleted', 'OK', 'Information')
+            Show-AppLockerMessageBox 'Policy deleted.' 'Deleted' 'OK' 'Information'
         }
         else {
-            [System.Windows.MessageBox]::Show("Failed: $($result.Error)", 'Error', 'OK', 'Error')
+            Show-AppLockerMessageBox "Failed: $($result.Error)" 'Error' 'OK' 'Error'
         }
     }
     catch {
-        [System.Windows.MessageBox]::Show("Error: $($_.Exception.Message)", 'Error', 'OK', 'Error')
+        Show-AppLockerMessageBox "Error: $($_.Exception.Message)" 'Error' 'OK' 'Error'
     }
 }
 
@@ -552,7 +547,7 @@ function global:Invoke-ExportSelectedPolicy {
     param($Window)
 
     if (-not $script:SelectedPolicyId) {
-        [System.Windows.MessageBox]::Show('Please select a policy to export.', 'No Selection', 'OK', 'Information')
+        Show-AppLockerMessageBox 'Please select a policy to export.' 'No Selection' 'OK' 'Information'
         return
     }
 
@@ -568,19 +563,14 @@ function global:Invoke-ExportSelectedPolicy {
             $result = Export-PolicyToXml -PolicyId $script:SelectedPolicyId -OutputPath $dialog.FileName
             
             if ($result.Success) {
-                [System.Windows.MessageBox]::Show(
-                    "Exported policy to:`n$($dialog.FileName)`n`nRules: $($result.Data.RuleCount)",
-                    'Export Complete',
-                    'OK',
-                    'Information'
-                )
+                Show-AppLockerMessageBox "Exported policy to:`n$($dialog.FileName)`n`nRules: $($result.Data.RuleCount)" 'Export Complete' 'OK' 'Information'
             }
             else {
-                [System.Windows.MessageBox]::Show("Failed: $($result.Error)", 'Error', 'OK', 'Error')
+                Show-AppLockerMessageBox "Failed: $($result.Error)" 'Error' 'OK' 'Error'
             }
         }
         catch {
-            [System.Windows.MessageBox]::Show("Error: $($_.Exception.Message)", 'Error', 'OK', 'Error')
+            Show-AppLockerMessageBox "Error: $($_.Exception.Message)" 'Error' 'OK' 'Error'
         }
     }
 }
@@ -589,25 +579,20 @@ function global:Invoke-DeploySelectedPolicy {
     param($Window)
 
     if (-not $script:SelectedPolicyId) {
-        [System.Windows.MessageBox]::Show('Please select a policy to deploy.', 'No Selection', 'OK', 'Information')
+        Show-AppLockerMessageBox 'Please select a policy to deploy.' 'No Selection' 'OK' 'Information'
         return
     }
 
     $policyResult = Get-Policy -PolicyId $script:SelectedPolicyId
     if (-not $policyResult.Success) {
-        [System.Windows.MessageBox]::Show("Could not load policy: $($policyResult.Error)", 'Error', 'OK', 'Error')
+        Show-AppLockerMessageBox "Could not load policy: $($policyResult.Error)" 'Error' 'OK' 'Error'
         return
     }
 
     $policy = $policyResult.Data
     $gpoInfo = if ($policy.TargetGPO) { " to GPO '$($policy.TargetGPO)'" } else { '' }
 
-    $confirm = [System.Windows.MessageBox]::Show(
-        "Navigate to Deployment panel to deploy policy '$($policy.Name)'$gpoInfo?",
-        'Deploy Policy',
-        'YesNo',
-        'Question'
-    )
+    $confirm = Show-AppLockerMessageBox "Navigate to Deployment panel to deploy policy '$($policy.Name)'$gpoInfo?" 'Deploy Policy' 'YesNo' 'Question'
 
     if ($confirm -eq 'Yes') {
         Set-ActivePanel -PanelName 'PanelDeploy'
@@ -642,7 +627,7 @@ function global:Invoke-AddRulesToPolicy {
     param($Window)
 
     if (-not $script:SelectedPolicyId) {
-        [System.Windows.MessageBox]::Show('Please select a policy first.', 'No Selection', 'OK', 'Information')
+        Show-AppLockerMessageBox 'Please select a policy first.' 'No Selection' 'OK' 'Information'
         return
     }
 
@@ -675,7 +660,7 @@ function global:Invoke-AddRulesToPolicy {
         if ($excludedByPhase -gt 0) {
             $msg += "`n`n$excludedByPhase rule(s) excluded by Phase $phase filter.`nAllowed types: $($allowedCollections -join ', ')"
         }
-        [System.Windows.MessageBox]::Show($msg, 'No Rules', 'OK', 'Information')
+        Show-AppLockerMessageBox $msg 'No Rules' 'OK' 'Information'
         return
     }
 
@@ -686,12 +671,8 @@ function global:Invoke-AddRulesToPolicy {
         $confirmMsg += "`n`n($excludedByPhase rule(s) excluded - not in Phase $phase)"
     }
 
-    $confirm = [System.Windows.MessageBox]::Show(
-        $confirmMsg,
-        'Add Rules',
-        'YesNo',
-        'Question'
-    )
+    $confirm = Show-AppLockerMessageBox $confirmMsg 'Add Rules' 'YesNo' 'Question'
+    
 
     if ($confirm -eq 'Yes') {
         $ruleIds = $availableRules | Select-Object -ExpandProperty Id
@@ -700,10 +681,10 @@ function global:Invoke-AddRulesToPolicy {
         if ($result.Success) {
             Update-PoliciesDataGrid -Window $Window
             Update-SelectedPolicyInfo -Window $Window
-            [System.Windows.MessageBox]::Show($result.Message, 'Success', 'OK', 'Information')
+            Show-AppLockerMessageBox $result.Message 'Success' 'OK' 'Information'
         }
         else {
-            [System.Windows.MessageBox]::Show("Failed: $($result.Error)", 'Error', 'OK', 'Error')
+            Show-AppLockerMessageBox "Failed: $($result.Error)" 'Error' 'OK' 'Error'
         }
     }
 }
@@ -712,7 +693,7 @@ function global:Invoke-RemoveRulesFromPolicy {
     param($Window)
 
     if (-not $script:SelectedPolicyId) {
-        [System.Windows.MessageBox]::Show('Please select a policy first.', 'No Selection', 'OK', 'Information')
+        Show-AppLockerMessageBox 'Please select a policy first.' 'No Selection' 'OK' 'Information'
         return
     }
 
@@ -723,16 +704,11 @@ function global:Invoke-RemoveRulesFromPolicy {
     $ruleCount = if ($policy.RuleIds) { $policy.RuleIds.Count } else { 0 }
 
     if ($ruleCount -eq 0) {
-        [System.Windows.MessageBox]::Show('This policy has no rules to remove.', 'No Rules', 'OK', 'Information')
+        Show-AppLockerMessageBox 'This policy has no rules to remove.' 'No Rules' 'OK' 'Information'
         return
     }
 
-    $confirm = [System.Windows.MessageBox]::Show(
-        "Remove all $ruleCount rule(s) from this policy?",
-        'Remove Rules',
-        'YesNo',
-        'Warning'
-    )
+    $confirm = Show-AppLockerMessageBox "Remove all $ruleCount rule(s) from this policy?" 'Remove Rules' 'YesNo' 'Warning'
 
     if ($confirm -eq 'Yes') {
         $result = Remove-RuleFromPolicy -PolicyId $script:SelectedPolicyId -RuleId $policy.RuleIds
@@ -740,10 +716,10 @@ function global:Invoke-RemoveRulesFromPolicy {
         if ($result.Success) {
             Update-PoliciesDataGrid -Window $Window
             Update-SelectedPolicyInfo -Window $Window
-            [System.Windows.MessageBox]::Show($result.Message, 'Success', 'OK', 'Information')
+            Show-AppLockerMessageBox $result.Message 'Success' 'OK' 'Information'
         }
         else {
-            [System.Windows.MessageBox]::Show("Failed: $($result.Error)", 'Error', 'OK', 'Error')
+            Show-AppLockerMessageBox "Failed: $($result.Error)" 'Error' 'OK' 'Error'
         }
     }
 }
@@ -825,7 +801,7 @@ Summary:
             $btnExport = $Window.FindName('BtnExportDiffReport')
             if ($btnExport) { $btnExport.IsEnabled = $true }
             
-            [System.Windows.MessageBox]::Show($msg, 'Comparison Results', 'OK', 'Information')
+            Show-AppLockerMessageBox $msg 'Comparison Results' 'OK' 'Information'
         }
         else {
             Show-Toast -Message "Comparison failed: $($result.Error)" -Type 'Error'

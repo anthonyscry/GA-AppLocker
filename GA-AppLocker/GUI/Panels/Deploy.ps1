@@ -389,7 +389,7 @@ function global:Invoke-CreateDeploymentJob {
     $scheduleCombo = $Window.FindName('CboDeploySchedule')
 
     if (-not $policyCombo.SelectedItem) {
-        [System.Windows.MessageBox]::Show('Please select a policy to deploy.', 'Missing Policy', 'OK', 'Warning')
+        Show-AppLockerMessageBox 'Please select a policy to deploy.' 'Missing Policy' 'OK' 'Warning'
         return
     }
 
@@ -406,7 +406,7 @@ function global:Invoke-CreateDeploymentJob {
     }
 
     if ([string]::IsNullOrWhiteSpace($gpoName)) {
-        [System.Windows.MessageBox]::Show('Please select or enter a target GPO name.', 'Missing GPO', 'OK', 'Warning')
+        Show-AppLockerMessageBox 'Please select or enter a target GPO name.' 'Missing GPO' 'OK' 'Warning'
         return
     }
 
@@ -425,19 +425,14 @@ function global:Invoke-CreateDeploymentJob {
             # Reset custom GPO box if used
             if ($customGpoBox) { $customGpoBox.Text = '' }
             Update-DeploymentJobsDataGrid -Window $Window
-            [System.Windows.MessageBox]::Show(
-                "Deployment job created for policy '$($policy.Name)'.`nTarget GPO: $gpoName",
-                'Success',
-                'OK',
-                'Information'
-            )
+            Show-AppLockerMessageBox "Deployment job created for policy '$($policy.Name)'.`nTarget GPO: $gpoName" 'Success' 'OK' 'Information'
         }
         else {
-            [System.Windows.MessageBox]::Show("Failed: $($result.Error)", 'Error', 'OK', 'Error')
+            Show-AppLockerMessageBox "Failed: $($result.Error)" 'Error' 'OK' 'Error'
         }
     }
     catch {
-        [System.Windows.MessageBox]::Show("Error: $($_.Exception.Message)", 'Error', 'OK', 'Error')
+        Show-AppLockerMessageBox "Error: $($_.Exception.Message)" 'Error' 'OK' 'Error'
     }
 }
 
@@ -454,12 +449,7 @@ function global:Invoke-DeploySelectedJob {
         return
     }
 
-    $confirm = [System.Windows.MessageBox]::Show(
-        'Start deployment now? This will apply the policy to the target GPO.',
-        'Confirm Deployment',
-        'YesNo',
-        'Question'
-    )
+    $confirm = Show-AppLockerMessageBox 'Start deployment now? This will apply the policy to the target GPO.' 'Confirm Deployment' 'YesNo' 'Question'
 
     if ($confirm -ne 'Yes') { return }
 
@@ -651,16 +641,11 @@ function global:Invoke-CancelDeploymentJob {
     param($Window)
 
     if (-not $script:SelectedDeploymentJobId) {
-        [System.Windows.MessageBox]::Show('Please select a deployment job to cancel.', 'No Selection', 'OK', 'Information')
+        Show-AppLockerMessageBox 'Please select a deployment job to cancel.' 'No Selection' 'OK' 'Information'
         return
     }
 
-    $confirm = [System.Windows.MessageBox]::Show(
-        'Cancel this deployment job?',
-        'Confirm Cancel',
-        'YesNo',
-        'Warning'
-    )
+    $confirm = Show-AppLockerMessageBox 'Cancel this deployment job?' 'Confirm Cancel' 'YesNo' 'Warning'
 
     if ($confirm -ne 'Yes') { return }
 
@@ -669,14 +654,14 @@ function global:Invoke-CancelDeploymentJob {
 
         if ($result.Success) {
             Update-DeploymentJobsDataGrid -Window $Window
-            [System.Windows.MessageBox]::Show('Deployment cancelled.', 'Cancelled', 'OK', 'Information')
+            Show-AppLockerMessageBox 'Deployment cancelled.' 'Cancelled' 'OK' 'Information'
         }
         else {
-            [System.Windows.MessageBox]::Show("Failed: $($result.Error)", 'Error', 'OK', 'Error')
+            Show-AppLockerMessageBox "Failed: $($result.Error)" 'Error' 'OK' 'Error'
         }
     }
     catch {
-        [System.Windows.MessageBox]::Show("Error: $($_.Exception.Message)", 'Error', 'OK', 'Error')
+        Show-AppLockerMessageBox "Error: $($_.Exception.Message)" 'Error' 'OK' 'Error'
     }
 }
 
@@ -686,7 +671,7 @@ function global:Show-DeploymentLog {
     try {
         $result = Get-AllDeploymentJobs
         if (-not $result.Success -or -not $result.Data -or @($result.Data).Count -eq 0) {
-            [System.Windows.MessageBox]::Show('No deployment jobs found.', 'No Jobs', 'OK', 'Information')
+            Show-AppLockerMessageBox 'No deployment jobs found.' 'No Jobs' 'OK' 'Information'
             return
         }
 
@@ -706,10 +691,10 @@ function global:Show-DeploymentLog {
             $logText += ('-' * 60) + "`n"
         }
 
-        [System.Windows.MessageBox]::Show($logText, 'Deployment Job Details', 'OK', 'Information')
+        Show-AppLockerMessageBox $logText 'Deployment Job Details' 'OK' 'Information'
     }
     catch {
-        [System.Windows.MessageBox]::Show("Error: $($_.Exception.Message)", 'Error', 'OK', 'Error')
+        Show-AppLockerMessageBox "Error: $($_.Exception.Message)" 'Error' 'OK' 'Error'
     }
 }
 
@@ -728,14 +713,8 @@ function global:Invoke-BackupGpoPolicy {
         'AppLocker-Servers'
     }
 
-    $confirm = [System.Windows.MessageBox]::Show(
-        "Backup current AppLocker policy from GPO '$gpoName'?`n`n" +
-        "This will use Get-AppLockerPolicy to export the`n" +
-        "effective policy to an XML backup file.",
-        'Backup GPO Policy',
-        'YesNo',
-        'Question'
-    )
+    $confirm = Show-AppLockerMessageBox "Backup current AppLocker policy from GPO '$gpoName'?`n`nThis will use Get-AppLockerPolicy to export the`neffective policy to an XML backup file." 'Backup GPO Policy' 'YesNo' 'Question'
+    
     if ($confirm -ne 'Yes') { return }
 
     # Pick save location
@@ -754,10 +733,7 @@ function global:Invoke-BackupGpoPolicy {
         $hasAL = Get-Command -Name 'Get-AppLockerPolicy' -ErrorAction SilentlyContinue
         if (-not $hasAL) {
             Hide-LoadingOverlay
-            [System.Windows.MessageBox]::Show(
-                "Get-AppLockerPolicy cmdlet not available.`n`n" +
-                "Install RSAT or the AppLocker PowerShell module.",
-                'Module Not Found', 'OK', 'Warning')
+            Show-AppLockerMessageBox "Get-AppLockerPolicy cmdlet not available.`n`nInstall RSAT or the AppLocker PowerShell module." 'Module Not Found' 'OK' 'Warning'
             return
         }
 
@@ -786,17 +762,15 @@ function global:Invoke-BackupGpoPolicy {
             [System.IO.File]::WriteAllText($outputPath, $policy)
             Hide-LoadingOverlay
             Show-Toast -Message "Policy backed up from $source" -Type 'Success'
-            [System.Windows.MessageBox]::Show(
-                "Policy backup saved to:`n$outputPath`n`nSource: $source",
-                'Backup Complete', 'OK', 'Information')
+            Show-AppLockerMessageBox "Policy backup saved to:`n$outputPath`n`nSource: $source" 'Backup Complete' 'OK' 'Information'
         } else {
             Hide-LoadingOverlay
-            [System.Windows.MessageBox]::Show('No AppLocker policy found.', 'Empty', 'OK', 'Warning')
+            Show-AppLockerMessageBox 'No AppLocker policy found.' 'Empty' 'OK' 'Warning'
         }
     }
     catch {
         Hide-LoadingOverlay
-        [System.Windows.MessageBox]::Show("Backup failed: $($_.Exception.Message)", 'Error', 'OK', 'Error')
+        Show-AppLockerMessageBox "Backup failed: $($_.Exception.Message)" 'Error' 'OK' 'Error'
     }
 }
 
@@ -810,7 +784,7 @@ function global:Invoke-ExportDeployPolicyXml {
     # Get policies
     $result = Get-AllPolicies
     if (-not $result.Success -or @($result.Data).Count -eq 0) {
-        [System.Windows.MessageBox]::Show('No policies found to export.', 'No Policies', 'OK', 'Warning')
+        Show-AppLockerMessageBox 'No policies found to export.' 'No Policies' 'OK' 'Warning'
         return
     }
 
@@ -822,7 +796,7 @@ function global:Invoke-ExportDeployPolicyXml {
     }
 
     if (-not $selectedPolicy) {
-        [System.Windows.MessageBox]::Show('Please select a policy from the Create tab first.', 'No Selection', 'OK', 'Information')
+        Show-AppLockerMessageBox 'Please select a policy from the Create tab first.' 'No Selection' 'OK' 'Information'
         return
     }
 
@@ -842,16 +816,14 @@ function global:Invoke-ExportDeployPolicyXml {
 
         if ($exportResult.Success) {
             Show-Toast -Message "Policy exported to XML" -Type 'Success'
-            [System.Windows.MessageBox]::Show(
-                "Policy '$($selectedPolicy.Name)' exported to:`n$($saveDialog.FileName)",
-                'Export Complete', 'OK', 'Information')
+            Show-AppLockerMessageBox "Policy '$($selectedPolicy.Name)' exported to:`n$($saveDialog.FileName)" 'Export Complete' 'OK' 'Information'
         } else {
-            [System.Windows.MessageBox]::Show("Export failed: $($exportResult.Error)", 'Error', 'OK', 'Error')
+            Show-AppLockerMessageBox "Export failed: $($exportResult.Error)" 'Error' 'OK' 'Error'
         }
     }
     catch {
         Hide-LoadingOverlay
-        [System.Windows.MessageBox]::Show("Export failed: $($_.Exception.Message)", 'Error', 'OK', 'Error')
+        Show-AppLockerMessageBox "Export failed: $($_.Exception.Message)" 'Error' 'OK' 'Error'
     }
 }
 
@@ -877,17 +849,14 @@ function global:Invoke-ImportDeployPolicyXml {
         if ($importResult.Success) {
             $count = if ($importResult.Data) { @($importResult.Data).Count } else { 0 }
             Show-Toast -Message "Imported $count rules from XML" -Type 'Success'
-            [System.Windows.MessageBox]::Show(
-                "Imported $count rule(s) from:`n$($openDialog.FileName)`n`n" +
-                "Rules are in Pending status. Go to Rules panel to review.",
-                'Import Complete', 'OK', 'Information')
+            Show-AppLockerMessageBox "Imported $count rule(s) from:`n$($openDialog.FileName)`n`nRules are in Pending status. Go to Rules panel to review." 'Import Complete' 'OK' 'Information'
         } else {
-            [System.Windows.MessageBox]::Show("Import failed: $($importResult.Error)", 'Error', 'OK', 'Error')
+            Show-AppLockerMessageBox "Import failed: $($importResult.Error)" 'Error' 'OK' 'Error'
         }
     }
     catch {
         Hide-LoadingOverlay
-        [System.Windows.MessageBox]::Show("Import failed: $($_.Exception.Message)", 'Error', 'OK', 'Error')
+        Show-AppLockerMessageBox "Import failed: $($_.Exception.Message)" 'Error' 'OK' 'Error'
     }
 }
 
@@ -1086,7 +1055,7 @@ function global:Update-AppLockerGpoLinkStatus {
         $domainDN = $null
         try {
             $domainDN = ([adsi]"LDAP://RootDSE").defaultNamingContext[0]
-        } catch { }
+        } catch { Write-AppLockerLog -Message "Failed to get domain DN via LDAP RootDSE: $($_.Exception.Message)" -Level 'DEBUG' }
 
         foreach ($gpo in $gpoMap) {
             $btnCtrl = $Window.FindName("BtnToggleGpoLink$($gpo.Suffix)")
@@ -1111,7 +1080,7 @@ function global:Update-AppLockerGpoLinkStatus {
                     $link = Get-GPInheritance -Target $fullTarget -ErrorAction SilentlyContinue |
                             Select-Object -ExpandProperty GpoLinks |
                             Where-Object { $_.DisplayName -eq $gpo.Name }
-                } catch { }
+                } catch { Write-AppLockerLog -Message "Failed to query GPO link for '$($gpo.Name)' at '$fullTarget': $($_.Exception.Message)" -Level 'DEBUG' }
             }
 
             if ($link) {
@@ -1160,14 +1129,14 @@ function global:Invoke-ToggleAppLockerGpoLink {
     try {
         $hasGP = Get-Module -ListAvailable -Name GroupPolicy
         if (-not $hasGP) {
-            [System.Windows.MessageBox]::Show('GroupPolicy module not available. Install RSAT.', 'Missing Module', 'OK', 'Warning')
+            Show-AppLockerMessageBox 'GroupPolicy module not available. Install RSAT.' 'Missing Module' 'OK' 'Warning'
             return
         }
         Import-Module GroupPolicy -ErrorAction Stop
 
         $gpoObj = Get-GPO -Name $gpoName -ErrorAction SilentlyContinue
         if (-not $gpoObj) {
-            [System.Windows.MessageBox]::Show("GPO '$gpoName' does not exist.`nCreate it from the Setup panel first.", 'Not Found', 'OK', 'Warning')
+            Show-AppLockerMessageBox "GPO '$gpoName' does not exist.`nCreate it from the Setup panel first." 'Not Found' 'OK' 'Warning'
             return
         }
 
@@ -1180,13 +1149,11 @@ function global:Invoke-ToggleAppLockerGpoLink {
             $link = Get-GPInheritance -Target $fullTarget -ErrorAction SilentlyContinue |
                     Select-Object -ExpandProperty GpoLinks |
                     Where-Object { $_.DisplayName -eq $gpoName }
-        } catch { }
+        } catch { Write-AppLockerLog -Message "Failed to query GPO link for '$gpoName' at '$fullTarget': $($_.Exception.Message)" -Level 'DEBUG' }
 
         if (-not $link) {
             # GPO exists but isn't linked — offer to create link
-            $answer = [System.Windows.MessageBox]::Show(
-                "'$gpoName' is not linked to '$fullTarget'.`n`nCreate the link now?",
-                'Not Linked', 'YesNo', 'Question')
+            $answer = Show-AppLockerMessageBox "'$gpoName' is not linked to '$fullTarget'.`n`nCreate the link now?" 'Not Linked' 'YesNo' 'Question'
             if ($answer -ne 'Yes') { return }
 
             New-GPLink -Name $gpoName -Target $fullTarget -ErrorAction Stop
@@ -1205,7 +1172,7 @@ function global:Invoke-ToggleAppLockerGpoLink {
         Update-AppLockerGpoLinkStatus -Window $Window
     }
     catch {
-        [System.Windows.MessageBox]::Show("Error toggling $gpoName link:`n$($_.Exception.Message)", 'Error', 'OK', 'Error')
+        Show-AppLockerMessageBox "Error toggling $gpoName link:`n$($_.Exception.Message)" 'Error' 'OK' 'Error'
     }
 }
 

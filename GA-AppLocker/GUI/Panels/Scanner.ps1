@@ -229,7 +229,7 @@ function global:Invoke-StartArtifactScan {
     param($Window)
 
     if ($script:ScanInProgress) {
-        [System.Windows.MessageBox]::Show('A scan is already in progress.', 'Scan Active', 'OK', 'Warning')
+        Show-AppLockerMessageBox 'A scan is already in progress.' 'Scan Active' 'OK' 'Warning'
         return
     }
 
@@ -248,14 +248,12 @@ function global:Invoke-StartArtifactScan {
 
     # Validate
     if (-not $scanLocal -and -not $scanRemote) {
-        [System.Windows.MessageBox]::Show('Please select at least one scan type (Local or Remote).', 'Configuration Error', 'OK', 'Warning')
+        Show-AppLockerMessageBox 'Please select at least one scan type (Local or Remote).' 'Configuration Error' 'OK' 'Warning'
         return
     }
 
     if ($scanRemote -and (-not $script:SelectedScanMachines -or $script:SelectedScanMachines.Count -eq 0)) {
-        [System.Windows.MessageBox]::Show(
-            "Remote scan selected but no machines have been added.`n`nTo add machines:`n1. Go to AD Discovery panel`n2. Select machines from the OU tree`n3. Click 'Add to Scanner'`n`nOr uncheck 'Remote' and use 'Local' scan only.",
-            'No Machines Selected', 'OK', 'Warning')
+        Show-AppLockerMessageBox "Remote scan selected but no machines have been added.`n`nTo add machines:`n1. Go to AD Discovery panel`n2. Select machines from the OU tree`n3. Click 'Add to Scanner'`n`nOr uncheck 'Remote' and use 'Local' scan only." 'No Machines Selected' 'OK' 'Warning'
         return
     }
 
@@ -444,7 +442,7 @@ function global:Invoke-StartArtifactScan {
                         $statusLabel.Text = "Error"
                         $statusLabel.Foreground = [System.Windows.Media.Brushes]::OrangeRed
                     }
-                    [System.Windows.MessageBox]::Show("Scan error: $($syncHash.Error)", 'Error', 'OK', 'Error')
+                    Show-AppLockerMessageBox "Scan error: $($syncHash.Error)" 'Error' 'OK' 'Error'
                 }
                 elseif ($syncHash.Result -and $syncHash.Result.Success) {
                     $result = $syncHash.Result
@@ -494,12 +492,7 @@ function global:Invoke-StartArtifactScan {
                                 $reason = if ($_.Value.Error) { $_.Value.Error } else { 'No response (check WinRM/firewall)' }
                                 "  $($_.Key): $reason"
                             }) -join "`n"
-                            [System.Windows.MessageBox]::Show(
-                                "Scan completed but $($failed.Count) machine(s) failed:`n`n$failDetails`n`nCommon causes:`n- WinRM not enabled (run Enable-PSRemoting on target)`n- Firewall blocking port 5985/5986`n- No credential stored for machine's tier`n- Machine offline",
-                                'Partial Scan Results',
-                                'OK',
-                                'Warning'
-                            )
+                            Show-AppLockerMessageBox "Scan completed but $($failed.Count) machine(s) failed:`n`n$failDetails`n`nCommon causes:`n- WinRM not enabled (run Enable-PSRemoting on target)`n- Firewall blocking port 5985/5986`n- No credential stored for machine's tier`n- Machine offline" 'Partial Scan Results' 'OK' 'Warning'
                             $toastType = 'Warning'
                         }
                     }
@@ -510,7 +503,7 @@ function global:Invoke-StartArtifactScan {
                     Update-ScanProgress -Window $win -Text "Scan failed: $errorMsg" -Percent 0
                     $win.FindName('ScanStatusLabel').Text = "Failed"
                     $win.FindName('ScanStatusLabel').Foreground = [System.Windows.Media.Brushes]::OrangeRed
-                    [System.Windows.MessageBox]::Show("Scan failed: $errorMsg", 'Scan Error', 'OK', 'Error')
+                    Show-AppLockerMessageBox "Scan failed: $errorMsg" 'Scan Error' 'OK' 'Error'
                 }
             }
         })
@@ -726,19 +719,14 @@ function global:Invoke-LoadSelectedScan {
 
     $listBox = $Window.FindName('SavedScansList')
     if (-not $listBox.SelectedItem) {
-        [System.Windows.MessageBox]::Show('Please select a saved scan to load.', 'No Selection', 'OK', 'Information')
+        Show-AppLockerMessageBox 'Please select a saved scan to load.' 'No Selection' 'OK' 'Information'
         return
     }
 
     # Check if we should merge with existing artifacts
     $mergeMode = $false
     if ($script:CurrentScanArtifacts -and $script:CurrentScanArtifacts.Count -gt 0) {
-        $response = [System.Windows.MessageBox]::Show(
-            "You have $($script:CurrentScanArtifacts.Count) artifacts loaded.`n`nYes = Merge (add to existing)`nNo = Replace (clear existing)",
-            'Merge or Replace?',
-            'YesNoCancel',
-            'Question'
-        )
+        $response = Show-AppLockerMessageBox "You have $($script:CurrentScanArtifacts.Count) artifacts loaded.`n`nYes = Merge (add to existing)`nNo = Replace (clear existing)" 'Merge or Replace?' 'YesNoCancel' 'Question'
         if ($response -eq 'Cancel') { return }
         $mergeMode = ($response -eq 'Yes')
     }
@@ -794,7 +782,7 @@ function global:Invoke-LoadSelectedScan {
         Update-ScanProgress -Window $Window -Text "$statusText`: $($selectedScan.ScanName)" -Percent 100
     }
     else {
-        [System.Windows.MessageBox]::Show("Failed to load scan: $($result.Error)", 'Error', 'OK', 'Error')
+        Show-AppLockerMessageBox "Failed to load scan: $($result.Error)" 'Error' 'OK' 'Error'
     }
 }
 
@@ -803,18 +791,13 @@ function global:Invoke-DeleteSelectedScan {
 
     $listBox = $Window.FindName('SavedScansList')
     if (-not $listBox.SelectedItem) {
-        [System.Windows.MessageBox]::Show('Please select a saved scan to delete.', 'No Selection', 'OK', 'Information')
+        Show-AppLockerMessageBox 'Please select a saved scan to delete.' 'No Selection' 'OK' 'Information'
         return
     }
 
     $selectedScan = $listBox.SelectedItem
 
-    $confirm = [System.Windows.MessageBox]::Show(
-        "Are you sure you want to delete scan '$($selectedScan.ScanName)'?",
-        'Confirm Delete',
-        'YesNo',
-        'Warning'
-    )
+    $confirm = Show-AppLockerMessageBox "Are you sure you want to delete scan '$($selectedScan.ScanName)'?" 'Confirm Delete' 'YesNo' 'Warning'
 
     if ($confirm -eq 'Yes') {
         $scanPath = Join-Path (Get-AppLockerDataPath) 'Scans'
@@ -822,7 +805,7 @@ function global:Invoke-DeleteSelectedScan {
         
         if (Test-Path $scanFile) {
             Remove-Item -Path $scanFile -Force
-            [System.Windows.MessageBox]::Show("Scan '$($selectedScan.ScanName)' deleted.", 'Deleted', 'OK', 'Information')
+            Show-AppLockerMessageBox "Scan '$($selectedScan.ScanName)' deleted." 'Deleted' 'OK' 'Information'
             Update-SavedScansList -Window $Window
         }
     }
@@ -844,12 +827,7 @@ function global:Invoke-ImportArtifacts {
             # Check if we should merge with existing artifacts
             $mergeMode = $false
             if ($script:CurrentScanArtifacts -and $script:CurrentScanArtifacts.Count -gt 0) {
-                $response = [System.Windows.MessageBox]::Show(
-                    "You have $($script:CurrentScanArtifacts.Count) artifacts loaded.`n`nYes = Merge (add to existing)`nNo = Replace (clear existing)",
-                    'Merge or Replace?',
-                    'YesNoCancel',
-                    'Question'
-                )
+                $response = Show-AppLockerMessageBox "You have $($script:CurrentScanArtifacts.Count) artifacts loaded.`n`nYes = Merge (add to existing)`nNo = Replace (clear existing)" 'Merge or Replace?' 'YesNoCancel' 'Question'
                 if ($response -eq 'Cancel') { return }
                 $mergeMode = ($response -eq 'Yes')
             }
@@ -916,10 +894,10 @@ function global:Invoke-ImportArtifacts {
                 $statusLabel.Foreground = [System.Windows.Media.Brushes]::LightGreen
             }
 
-            [System.Windows.MessageBox]::Show($messageText, 'Import Complete', 'OK', 'Information')
+            Show-AppLockerMessageBox $messageText 'Import Complete' 'OK' 'Information'
         }
         catch {
-            [System.Windows.MessageBox]::Show("Import failed: $($_.Exception.Message)", 'Error', 'OK', 'Error')
+            Show-AppLockerMessageBox "Import failed: $($_.Exception.Message)" 'Error' 'OK' 'Error'
         }
     }
 }
@@ -936,7 +914,7 @@ function global:Invoke-ExportArtifacts {
     }
     
     if ($artifacts.Count -eq 0) {
-        [System.Windows.MessageBox]::Show('No artifacts to export. Run a scan or adjust filters.', 'No Data', 'OK', 'Information')
+        Show-AppLockerMessageBox 'No artifacts to export. Run a scan or adjust filters.' 'No Data' 'OK' 'Information'
         return
     }
 
@@ -964,15 +942,10 @@ function global:Invoke-ExportArtifacts {
             $totalCount = if ($script:CurrentScanArtifacts) { $script:CurrentScanArtifacts.Count } else { 0 }
             $filterInfo = if ($artifacts.Count -lt $totalCount) { " (filtered from $totalCount total)" } else { "" }
             
-            [System.Windows.MessageBox]::Show(
-                "Exported $($artifacts.Count) artifacts$filterInfo to:`n$($dialog.FileName)",
-                'Export Complete',
-                'OK',
-                'Information'
-            )
+            Show-AppLockerMessageBox "Exported $($artifacts.Count) artifacts$filterInfo to:`n$($dialog.FileName)" 'Export Complete' 'OK' 'Information'
         }
         catch {
-            [System.Windows.MessageBox]::Show("Export failed: $($_.Exception.Message)", 'Error', 'OK', 'Error')
+            Show-AppLockerMessageBox "Export failed: $($_.Exception.Message)" 'Error' 'OK' 'Error'
         }
     }
 }
@@ -1005,9 +978,7 @@ function global:Invoke-SelectMachinesForScan {
     param($Window)
 
     if ($script:DiscoveredMachines.Count -eq 0) {
-        $confirm = [System.Windows.MessageBox]::Show(
-            "No machines discovered. Would you like to navigate to AD Discovery to scan for machines?",
-            'No Machines', 'YesNo', 'Question')
+        $confirm = Show-AppLockerMessageBox "No machines discovered. Would you like to navigate to AD Discovery to scan for machines?" 'No Machines' 'YesNo' 'Question'
         if ($confirm -eq 'Yes') { Set-ActivePanel -PanelName 'PanelDiscovery' }
         return
     }
@@ -1298,12 +1269,7 @@ function global:Invoke-RunScheduledScanNow {
     $scheduleId = $selectedSchedule.ScheduleId
     $scheduleName = $selectedSchedule.Name
     
-    $confirm = [System.Windows.MessageBox]::Show(
-        "Run scheduled scan '$scheduleName' now?",
-        'Confirm Run',
-        'YesNo',
-        'Question'
-    )
+    $confirm = Show-AppLockerMessageBox "Run scheduled scan '$scheduleName' now?" 'Confirm Run' 'YesNo' 'Question'
     
     if ($confirm -ne 'Yes') { return }
     
@@ -1348,12 +1314,7 @@ function global:Invoke-DeleteScheduledScan {
     $scheduleId = $selectedSchedule.ScheduleId
     $scheduleName = $selectedSchedule.Name
     
-    $confirm = [System.Windows.MessageBox]::Show(
-        "Are you sure you want to delete scheduled scan '$scheduleName'?`n`nThis will also remove the Windows Task Scheduler task.",
-        'Confirm Delete',
-        'YesNo',
-        'Warning'
-    )
+    $confirm = Show-AppLockerMessageBox "Are you sure you want to delete scheduled scan '$scheduleName'?`n`nThis will also remove the Windows Task Scheduler task." 'Confirm Delete' 'YesNo' 'Warning'
     
     if ($confirm -ne 'Yes') { return }
     

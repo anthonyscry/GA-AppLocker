@@ -100,17 +100,17 @@ function global:Invoke-SaveCredential {
 
     # Validate inputs
     if ([string]::IsNullOrWhiteSpace($profileName.Text)) {
-        [System.Windows.MessageBox]::Show('Please enter a profile name.', 'Validation Error', 'OK', 'Warning')
+        Show-AppLockerMessageBox 'Please enter a profile name.' 'Validation Error' 'OK' 'Warning'
         return
     }
 
     if ([string]::IsNullOrWhiteSpace($username.Text)) {
-        [System.Windows.MessageBox]::Show('Please enter a username.', 'Validation Error', 'OK', 'Warning')
+        Show-AppLockerMessageBox 'Please enter a username.' 'Validation Error' 'OK' 'Warning'
         return
     }
 
     if ($password.SecurePassword.Length -eq 0) {
-        [System.Windows.MessageBox]::Show('Please enter a password.', 'Validation Error', 'OK', 'Warning')
+        Show-AppLockerMessageBox 'Please enter a password.' 'Validation Error' 'OK' 'Warning'
         return
     }
 
@@ -136,12 +136,7 @@ function global:Invoke-SaveCredential {
     $result = New-CredentialProfile @params
 
     if ($result.Success) {
-        [System.Windows.MessageBox]::Show(
-            "Credential profile '$($profileName.Text)' saved successfully.",
-            'Success',
-            'OK',
-            'Information'
-        )
+        Show-AppLockerMessageBox "Credential profile '$($profileName.Text)' saved successfully." 'Success' 'OK' 'Information'
 
         # Clear form
         $profileName.Text = ''
@@ -154,12 +149,7 @@ function global:Invoke-SaveCredential {
         Update-CredentialsDataGrid -Window $Window
     }
     else {
-        [System.Windows.MessageBox]::Show(
-            "Failed to save credential: $($result.Error)",
-            'Error',
-            'OK',
-            'Error'
-        )
+        Show-AppLockerMessageBox "Failed to save credential: $($result.Error)" 'Error' 'OK' 'Error'
     }
 }
 
@@ -202,12 +192,12 @@ function global:Invoke-TestSelectedCredential {
     $resultText = $Window.FindName('CredTestResultText')
 
     if (-not $dataGrid.SelectedItem) {
-        [System.Windows.MessageBox]::Show('Please select a credential profile to test.', 'No Selection', 'OK', 'Information')
+        Show-AppLockerMessageBox 'Please select a credential profile to test.' 'No Selection' 'OK' 'Information'
         return
     }
 
     if ([string]::IsNullOrWhiteSpace($testTarget.Text)) {
-        [System.Windows.MessageBox]::Show('Please enter a target hostname to test against.', 'No Target', 'OK', 'Information')
+        Show-AppLockerMessageBox 'Please enter a target hostname to test against.' 'No Target' 'OK' 'Information'
         return
     }
 
@@ -244,38 +234,23 @@ function global:Invoke-DeleteSelectedCredential {
     $dataGrid = $Window.FindName('CredentialsDataGrid')
 
     if (-not $dataGrid.SelectedItem) {
-        [System.Windows.MessageBox]::Show('Please select a credential profile to delete.', 'No Selection', 'OK', 'Information')
+        Show-AppLockerMessageBox 'Please select a credential profile to delete.' 'No Selection' 'OK' 'Information'
         return
     }
 
     $selectedProfile = $dataGrid.SelectedItem
 
-    $confirm = [System.Windows.MessageBox]::Show(
-        "Are you sure you want to delete credential profile '$($selectedProfile.Name)'?",
-        'Confirm Delete',
-        'YesNo',
-        'Warning'
-    )
+    $confirm = Show-AppLockerMessageBox "Are you sure you want to delete credential profile '$($selectedProfile.Name)'?" 'Confirm Delete' 'YesNo' 'Warning'
 
     if ($confirm -eq 'Yes') {
         $result = Remove-CredentialProfile -Name $selectedProfile.Name
 
         if ($result.Success) {
-            [System.Windows.MessageBox]::Show(
-                "Credential profile '$($selectedProfile.Name)' deleted.",
-                'Deleted',
-                'OK',
-                'Information'
-            )
+            Show-AppLockerMessageBox "Credential profile '$($selectedProfile.Name)' deleted." 'Deleted' 'OK' 'Information'
             Update-CredentialsDataGrid -Window $Window
         }
         else {
-            [System.Windows.MessageBox]::Show(
-                "Failed to delete: $($result.Error)",
-                'Error',
-                'OK',
-                'Error'
-            )
+            Show-AppLockerMessageBox "Failed to delete: $($result.Error)" 'Error' 'OK' 'Error'
         }
     }
 }
@@ -286,7 +261,7 @@ function global:Invoke-SetDefaultCredential {
     $dataGrid = $Window.FindName('CredentialsDataGrid')
 
     if (-not $dataGrid.SelectedItem) {
-        [System.Windows.MessageBox]::Show('Please select a credential profile to set as default.', 'No Selection', 'OK', 'Information')
+        Show-AppLockerMessageBox 'Please select a credential profile to set as default.' 'No Selection' 'OK' 'Information'
         return
     }
 
@@ -295,7 +270,7 @@ function global:Invoke-SetDefaultCredential {
     # Get existing profile
     $profileResult = Get-CredentialProfile -Name $selectedProfile.Name
     if (-not $profileResult.Success) {
-        [System.Windows.MessageBox]::Show("Profile not found: $($profileResult.Error)", 'Error', 'OK', 'Error')
+        Show-AppLockerMessageBox "Profile not found: $($profileResult.Error)" 'Error' 'OK' 'Error'
         return
     }
 
@@ -320,12 +295,7 @@ function global:Invoke-SetDefaultCredential {
     $profilePath = Join-Path $credPath "$($profile.Id).json"
     $profile | ConvertTo-Json -Depth 5 | Set-Content -Path $profilePath -Encoding UTF8
 
-    [System.Windows.MessageBox]::Show(
-        "Credential profile '$($selectedProfile.Name)' set as default for Tier $($profile.Tier).",
-        'Default Set',
-        'OK',
-        'Information'
-    )
+    Show-AppLockerMessageBox "Credential profile '$($selectedProfile.Name)' set as default for Tier $($profile.Tier)." 'Default Set' 'OK' 'Information'
 
     Update-CredentialsDataGrid -Window $Window
 }

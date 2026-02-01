@@ -154,7 +154,7 @@ function Test-Prerequisites {
     #endregion
 
     #region --- Log Results ---
-    $passedCount = ($result.Checks | Where-Object { $_.Passed }).Count
+    $passedCount = @($result.Checks | Where-Object { $_.Passed }).Count
     $totalCount = $result.Checks.Count
     $status = if ($result.AllPassed) { 'All passed' } else { 'Some failed' }
 

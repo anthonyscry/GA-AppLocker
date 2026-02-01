@@ -141,7 +141,7 @@ function Get-SetupStatus {
                 OUExists     = [bool]$ou
                 OUPath       = if ($ou) { $ou.DistinguishedName } else { $null }
                 Groups       = $groupStatus
-                GroupsFound  = ($groupStatus | Where-Object { $_.Exists }).Count
+                GroupsFound  = @($groupStatus | Where-Object { $_.Exists }).Count
                 GroupsTotal  = $script:DefaultGroups.Count
                 Status       = if ($ou) { 'Configured' } else { 'Not Configured' }
             }

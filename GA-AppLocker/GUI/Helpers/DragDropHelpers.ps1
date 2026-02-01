@@ -687,12 +687,7 @@ function Show-DropActionDialog {
         [string]$FileType
     )
 
-    $result = [System.Windows.MessageBox]::Show(
-        "You dropped $FileCount $FileType file(s).`n`nWhat would you like to do?`n`n[Yes] = Scan files for artifacts`n[No] = Create rules directly`n[Cancel] = Do nothing",
-        "Drop Action",
-        [System.Windows.MessageBoxButton]::YesNoCancel,
-        [System.Windows.MessageBoxImage]::Question
-    )
+    $result = Show-AppLockerMessageBox "You dropped $FileCount $FileType file(s).`n`nWhat would you like to do?`n`n[Yes] = Scan files for artifacts`n[No] = Create rules directly`n[Cancel] = Do nothing" 'Drop Action' 'YesNoCancel' 'Question'
 
     switch ($result) {
         'Yes' { return 'Scan' }

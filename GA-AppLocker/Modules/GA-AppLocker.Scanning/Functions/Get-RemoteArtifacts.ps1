@@ -177,7 +177,7 @@ function Get-RemoteArtifacts {
                             $sha256.Dispose()
                         }
                     }
-                    catch { }
+                    catch { Write-Warning "Failed to hash file '$FilePath': $($_.Exception.Message)" }
                     
                     $versionInfo = $null
                     try {

@@ -188,28 +188,23 @@ function global:Show-RuleHistoryDialog {
     $btnRestore.Add_Click({
         $selectedItem = $versionsList.SelectedItem
         if (-not $selectedItem -or -not $selectedItem.Tag) {
-            [System.Windows.MessageBox]::Show('Please select a version to restore.', 'No Selection', 'OK', 'Warning')
+            Show-AppLockerMessageBox 'Please select a version to restore.' 'No Selection' 'OK' 'Warning'
             return
         }
         
         $ver = $selectedItem.Tag
-        $confirm = [System.Windows.MessageBox]::Show(
-            "Restore rule to version $($ver.Version)?`n`nThis will revert the rule to its state at that version.",
-            'Confirm Restore',
-            'YesNo',
-            'Question'
-        )
+        $confirm = Show-AppLockerMessageBox "Restore rule to version $($ver.Version)?`n`nThis will revert the rule to its state at that version." 'Confirm Restore' 'YesNo' 'Question'
         
         if ($confirm -eq 'Yes') {
             $restoreResult = Restore-RuleVersion -RuleId $script:HistoryRuleId -Version $ver.Version
             if ($restoreResult.Success) {
-                [System.Windows.MessageBox]::Show('Rule restored successfully.', 'Restored', 'OK', 'Information')
+                Show-AppLockerMessageBox 'Rule restored successfully.' 'Restored' 'OK' 'Information'
                 $dialog.Close()
                 # Refresh rules grid
                 Update-RulesDataGrid -Window $global:GA_MainWindow -Async
             }
             else {
-                [System.Windows.MessageBox]::Show("Restore failed: $($restoreResult.Error)", 'Error', 'OK', 'Error')
+                Show-AppLockerMessageBox "Restore failed: $($restoreResult.Error)" 'Error' 'OK' 'Error'
             }
         }
     }.GetNewClosure())
@@ -217,13 +212,13 @@ function global:Show-RuleHistoryDialog {
     # Compare button handler
     $btnCompare.Add_Click({
         if ($versionsList.Items.Count -lt 2) {
-            [System.Windows.MessageBox]::Show('Need at least 2 versions to compare.', 'Cannot Compare', 'OK', 'Information')
+            Show-AppLockerMessageBox 'Need at least 2 versions to compare.' 'Cannot Compare' 'OK' 'Information'
             return
         }
         
         $selectedItem = $versionsList.SelectedItem
         if (-not $selectedItem -or -not $selectedItem.Tag) {
-            [System.Windows.MessageBox]::Show('Select a version to compare with the current rule.', 'No Selection', 'OK', 'Warning')
+            Show-AppLockerMessageBox 'Select a version to compare with the current rule.' 'No Selection' 'OK' 'Warning'
             return
         }
         
@@ -232,7 +227,7 @@ function global:Show-RuleHistoryDialog {
         
         if ($compareResult.Success) {
             if ($compareResult.Differences.Count -eq 0) {
-                [System.Windows.MessageBox]::Show("No differences between version $($ver.Version) and current rule.", 'No Differences', 'OK', 'Information')
+                Show-AppLockerMessageBox "No differences between version $($ver.Version) and current rule." 'No Differences' 'OK' 'Information'
             }
             else {
                 $diffText = "Differences between v$($ver.Version) and Current:`n`n"
@@ -241,11 +236,11 @@ function global:Show-RuleHistoryDialog {
                     $diffText += "  v$($ver.Version): $($diff.Version1Value)`n"
                     $diffText += "  Current: $($diff.Version2Value)`n`n"
                 }
-                [System.Windows.MessageBox]::Show($diffText, 'Version Comparison', 'OK', 'Information')
+                Show-AppLockerMessageBox $diffText 'Version Comparison' 'OK' 'Information'
             }
         }
         else {
-            [System.Windows.MessageBox]::Show("Compare failed: $($compareResult.Error)", 'Error', 'OK', 'Error')
+            Show-AppLockerMessageBox "Compare failed: $($compareResult.Error)" 'Error' 'OK' 'Error'
         }
     }.GetNewClosure())
     
@@ -411,5 +406,5 @@ Condition Data:
 $($Rule | Select-Object -Property Publisher*, Hash*, Path* | Format-List | Out-String)
 "@
 
-    [System.Windows.MessageBox]::Show($details.Trim(), 'Rule Details', 'OK', 'Information')
+    Show-AppLockerMessageBox $details.Trim() 'Rule Details' 'OK' 'Information'
 }

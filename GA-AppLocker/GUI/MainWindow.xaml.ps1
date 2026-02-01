@@ -876,7 +876,7 @@ public static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int va
         if ($aboutVer) { $aboutVer.Text = $modVersion }
         $sidebarSub = $Window.FindName('SidebarSubtitle')
         if ($sidebarSub) { $sidebarSub.Text = "Dashboard v$modVersion" }
-    } catch { }
+    } catch { Write-Log -Level DEBUG -Message "Failed to set dynamic version: $($_.Exception.Message)" }
 
     # Update domain info in status bar and dashboard
     # NOTE: Uses .NET instead of Get-CimInstance to avoid WMI timeouts that block the WPF STA thread

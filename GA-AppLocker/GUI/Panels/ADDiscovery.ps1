@@ -569,12 +569,7 @@ function global:Invoke-ConnectivityTest {
     )
 
     if ($script:DiscoveredMachines.Count -eq 0) {
-        [System.Windows.MessageBox]::Show(
-            'No machines discovered. Click "Refresh Domain" first.',
-            'No Machines',
-            'OK',
-            'Information'
-        )
+        Show-AppLockerMessageBox 'No machines discovered. Click "Refresh Domain" first.' 'No Machines' 'OK' 'Information'
         return
     }
 

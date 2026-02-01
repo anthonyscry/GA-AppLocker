@@ -460,12 +460,8 @@ function Move-WizardNext {
 function Skip-Wizard {
     param($Window)
     
-    $result = [System.Windows.MessageBox]::Show(
-        "Are you sure you want to skip the setup wizard?`n`nYou can run it again from Settings > Setup.",
-        "Skip Setup",
-        [System.Windows.MessageBoxButton]::YesNo,
-        [System.Windows.MessageBoxImage]::Question
-    )
+    $result = Show-AppLockerMessageBox "Are you sure you want to skip the setup wizard?`n`nYou can run it again from Settings > Setup." 'Skip Setup' 'YesNo' 'Question'
+    
 
     if ($result -eq 'Yes') {
         $script:WizardState.Completed = $false
@@ -569,12 +565,7 @@ function Auto-DetectDomain {
         $script:WizardState.Results.Domain['SearchBase'] = $searchBase
     }
     catch {
-        [System.Windows.MessageBox]::Show(
-            "Could not auto-detect domain. Please enter details manually.`n`nError: $($_.Exception.Message)",
-            "Auto-Detect Failed",
-            [System.Windows.MessageBoxButton]::OK,
-            [System.Windows.MessageBoxImage]::Warning
-        )
+        Show-AppLockerMessageBox "Could not auto-detect domain. Please enter details manually.`n`nError: $($_.Exception.Message)" 'Auto-Detect Failed' 'OK' 'Warning'
     }
 }
 
@@ -589,8 +580,7 @@ function Test-WizardCredentials {
             # Test with current credentials
             $result = Test-Connection -ComputerName $dc -Count 1 -Quiet
             if ($result) {
-                [System.Windows.MessageBox]::Show("Connection successful!", "Test Result", 
-                    [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Information)
+                Show-AppLockerMessageBox "Connection successful!" 'Test Result' 'OK' 'Information'
                 $script:WizardState.Results.Credentials['Type'] = 'Current'
             }
         }
@@ -599,8 +589,7 @@ function Test-WizardCredentials {
             $password = $Window.FindName('CredPassword').SecurePassword
             
             if ([string]::IsNullOrEmpty($username)) {
-                [System.Windows.MessageBox]::Show("Please enter a username.", "Validation", 
-                    [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Warning)
+                Show-AppLockerMessageBox "Please enter a username." 'Validation' 'OK' 'Warning'
                 return
             }
 
@@ -609,20 +598,14 @@ function Test-WizardCredentials {
             # Test credential
             $result = Test-WsMan -ComputerName $dc -Credential $cred -ErrorAction Stop
             
-            [System.Windows.MessageBox]::Show("Credentials verified successfully!", "Test Result",
-                [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Information)
+            Show-AppLockerMessageBox "Credentials verified successfully!" 'Test Result' 'OK' 'Information'
             
             $script:WizardState.Results.Credentials['Type'] = 'Specific'
             $script:WizardState.Results.Credentials['Username'] = $username
         }
     }
     catch {
-        [System.Windows.MessageBox]::Show(
-            "Connection test failed.`n`nError: $($_.Exception.Message)",
-            "Test Failed",
-            [System.Windows.MessageBoxButton]::OK,
-            [System.Windows.MessageBoxImage]::Error
-        )
+        Show-AppLockerMessageBox "Connection test failed.`n`nError: $($_.Exception.Message)" 'Test Failed' 'OK' 'Error'
     }
 }
 
@@ -658,8 +641,7 @@ function Configure-WinRMGPO {
         try {
             $result = Initialize-WinRMGPO
             if ($result.Success) {
-                [System.Windows.MessageBox]::Show("WinRM GPO created successfully!", "Success",
-                    [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Information)
+                Show-AppLockerMessageBox "WinRM GPO created successfully!" 'Success' 'OK' 'Information'
                 $script:WizardState.Results.WinRM['GPOCreated'] = $true
                 Move-WizardNext -Window $Window
             }
@@ -668,17 +650,11 @@ function Configure-WinRMGPO {
             }
         }
         catch {
-            [System.Windows.MessageBox]::Show(
-                "Failed to create WinRM GPO.`n`n$($_.Exception.Message)",
-                "Error",
-                [System.Windows.MessageBoxButton]::OK,
-                [System.Windows.MessageBoxImage]::Error
-            )
+            Show-AppLockerMessageBox "Failed to create WinRM GPO.`n`n$($_.Exception.Message)" 'Error' 'OK' 'Error'
         }
     }
     else {
-        [System.Windows.MessageBox]::Show("WinRM GPO function not available.", "Error",
-            [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Warning)
+        Show-AppLockerMessageBox "WinRM GPO function not available." 'Error' 'OK' 'Warning'
     }
 }
 
@@ -710,26 +686,15 @@ function Create-AppLockerGPOs {
         $script:WizardState.Results.GPO['Created'] = $created
 
         if ($created.Count -gt 0) {
-            [System.Windows.MessageBox]::Show(
-                "Created: $($created -join ', ')",
-                "Success",
-                [System.Windows.MessageBoxButton]::OK,
-                [System.Windows.MessageBoxImage]::Information
-            )
+            Show-AppLockerMessageBox "Created: $($created -join ' ')" 'Success' 'OK' 'Information'
             Move-WizardNext -Window $Window
         }
         else {
-            [System.Windows.MessageBox]::Show("No items were created.", "Info",
-                [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Information)
+            Show-AppLockerMessageBox "No items were created." 'Info' 'OK' 'Information'
         }
     }
     catch {
-        [System.Windows.MessageBox]::Show(
-            "Error creating GPOs: $($_.Exception.Message)",
-            "Error",
-            [System.Windows.MessageBoxButton]::OK,
-            [System.Windows.MessageBoxImage]::Error
-        )
+        Show-AppLockerMessageBox "Error creating GPOs: $($_.Exception.Message)" 'Error' 'OK' 'Error'
     }
 }
 
@@ -760,12 +725,7 @@ function Refresh-WizardOUs {
         }
     }
     catch {
-        [System.Windows.MessageBox]::Show(
-            "Could not retrieve OUs: $($_.Exception.Message)",
-            "Error",
-            [System.Windows.MessageBoxButton]::OK,
-            [System.Windows.MessageBoxImage]::Warning
-        )
+        Show-AppLockerMessageBox "Could not retrieve OUs: $($_.Exception.Message)" 'Error' 'OK' 'Warning'
     }
 }
 
@@ -807,8 +767,7 @@ function Validate-WizardStep {
             # Domain step - require at least domain name
             $domainName = $Window.FindName('DomainName').Text
             if ([string]::IsNullOrWhiteSpace($domainName)) {
-                [System.Windows.MessageBox]::Show("Please enter or auto-detect a domain name.", "Validation",
-                    [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Warning)
+                Show-AppLockerMessageBox "Please enter or auto-detect a domain name." 'Validation' 'OK' 'Warning'
                 return $false
             }
         }
@@ -817,8 +776,7 @@ function Validate-WizardStep {
             if ($Window.FindName('UseSpecificCreds').IsChecked) {
                 $username = $Window.FindName('CredUsername').Text
                 if ([string]::IsNullOrWhiteSpace($username)) {
-                    [System.Windows.MessageBox]::Show("Please enter a username.", "Validation",
-                        [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Warning)
+                    Show-AppLockerMessageBox "Please enter a username." 'Validation' 'OK' 'Warning'
                     return $false
                 }
             }

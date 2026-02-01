@@ -4,7 +4,7 @@
 
 GA-AppLocker is a PowerShell 5.1 WPF application for enterprise AppLocker policy management in air-gapped, classified, or highly secure environments. Complete workflow: AD Discovery → Artifact Scanning → Rule Generation → Policy Building → GPO Deployment.
 
-**Version:** 1.2.35 | **Tests:** 1545/1545 passing (100%) | **Exported Commands:** ~192
+**Version:** 1.2.36 | **Tests:** 1545/1545 passing (100%) | **Exported Commands:** ~192
 
 ## Quick Start
 
@@ -262,6 +262,7 @@ All rule modifications auto-sync the JSON index:
 
 | Version | Date | Key Changes |
 |---------|------|-------------|
+| 1.2.36 | Jan 31, 2026 | Performance & polish: Rules text filter 300ms debounce, Show-AppLockerMessageBox testable wrapper (replaces all 150+ [System.Windows.MessageBox]::Show calls across 12 GUI files with global:Show-AppLockerMessageBox that auto-returns in $global:GA_TestMode), DEBUG logging in 5 more empty catches, 2 more @() wraps for PS 5.1 .Count safety |
 | 1.2.35 | Jan 31, 2026 | Code efficiency sweep: fix 56 unsuppressed .Add() pipeline leaks across 18 files, @() wrapping for PS 5.1 .Count safety on Where-Object (6 locations), DEBUG logging in 10 data-path empty catch blocks, dead code cleanup (~600 lines: EmailNotifications, ReportingExport, Invoke-WithRetry removed from exports, AsyncHelpers 3 unused functions marked), new Scanning.Tests.ps1 (106 tests covering artifact type mapping, collection types, SHA256 hashing, local scan behavior, script type filtering, parameter validation, artifact object structure) |
 | 1.2.34 | Jan 31, 2026 | Pipeline leak fixes (17 leaks in 6 files), perf optimizations (DataGrid virtualization, Set-BulkRuleStatus index-based, Remove-DuplicateRules async, uppercase GUIDs), UX polish (orphan buttons wired, null guards, ScrollViewers on 5 panels, Escape key on 4 dialogs, dead code removal), session restore (full machine objects + legacy fallback), automated UI testing framework (MockWpfHelpers, 3-layer test strategy: XAML integrity + panel logic + live smoke, 235 new GUI tests), untyped $Window params for testability |
 | 1.2.33 | Jan 31, 2026 | Fix 15 bugs from comprehensive audit — 8 CRITICAL (Approve-TrustedVendorRules broken call, Rule Wizard null data, Setup Wizard config not saving, Get-Rule filter always empty, Scanner exclusion dead code, ThemeManager PS5.1 incompat + frozen brush, BackupHistory always invalid), 7 HIGH (Compare-Policies null IDs, policy Version null crash in 4 places, IndexWatcher scope bug, Validation UniqueGuids wrong, #EF5350→#D13438, GlobalSearch UI freeze, stray Export-ModuleMember) |

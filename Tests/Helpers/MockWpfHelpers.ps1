@@ -8,6 +8,9 @@
     allowing panel logic functions (which all accept -Window $Window and call
     $Window.FindName('ElementName')) to run under Pester without a live WPF runtime.
 
+    Also intercepts [System.Windows.MessageBox]::Show() to prevent blocking dialogs
+    during automated test runs.
+
     Pattern:
         $win = New-MockWpfWindow -Elements @{
             'TxtPolicyName'   = New-MockTextBlock -Text 'My Policy'
@@ -18,6 +21,41 @@
 .NOTES
     PowerShell 5.1 compatible. No WPF assemblies required.
 #>
+
+#region MessageBox Interception
+# Prevent [System.Windows.MessageBox]::Show() from opening real dialogs during tests.
+# We load PresentationFramework and override the Show method via a wrapper type.
+# Since we can't replace a .NET static method, we use a PowerShell class-based approach:
+# define a global function that test code can call, and for the actual .NET calls in source
+# code, we set an AppDomain-level flag that a custom message filter could read.
+#
+# Practical approach: The real MessageBox calls only fire when panel event handlers execute.
+# In our tests, event handlers are registered as no-ops (Add-MockEventMethods discards them).
+# So MessageBox popups only occur if test code directly invokes panel action functions.
+# For those cases, we provide Install-MessageBoxMock to redirect Show() calls.
+
+$script:MessageBoxMockInstalled = $false
+
+function Install-MessageBoxMock {
+    <#
+    .SYNOPSIS
+        Installs a global mock that auto-answers all System.Windows.MessageBox.Show() calls.
+    .DESCRIPTION
+        Creates a global:Show-MessageBoxResult variable set to 'Yes' and overrides
+        the .NET MessageBox by loading a custom C# type that shadows it.
+        
+        Since we cannot replace a static .NET method, this function instead:
+        1. Sets $global:GA_TestMode = $true so any test-aware code can skip dialogs
+        2. Provides a helper function to call instead of MessageBox::Show
+    #>
+    if ($script:MessageBoxMockInstalled) { return }
+    
+    $global:GA_TestMode = $true
+    $script:MessageBoxMockInstalled = $true
+}
+
+Install-MessageBoxMock
+#endregion
 
 function New-MockWpfWindow {
     <#

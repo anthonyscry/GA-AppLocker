@@ -169,9 +169,7 @@ function global:Invoke-ScanRemoteSoftware {
 
     $hostnames = @(Get-SoftwareRemoteMachineList -Window $Window)
     if ($hostnames.Count -eq 0) {
-        [System.Windows.MessageBox]::Show(
-            "No remote machines specified.`n`nTo add machines:`n1. Go to AD Discovery and run a connectivity test`n2. Navigate to Software Inventory -- online machines with WinRM will auto-populate`n3. Or type hostnames directly in the Remote Machines box (one per line)",
-            'No Machines Selected', 'OK', 'Warning')
+        Show-AppLockerMessageBox "No remote machines specified.`n`nTo add machines:`n1. Go to AD Discovery and run a connectivity test`n2. Navigate to Software Inventory -- online machines with WinRM will auto-populate`n3. Or type hostnames directly in the Remote Machines box (one per line)" 'No Machines Selected' 'OK' 'Warning'
         return
     }
 
@@ -186,7 +184,7 @@ function global:Invoke-ScanRemoteSoftware {
                 $cred = $credResult.Data
                 break
             }
-        } catch { }
+        } catch { Write-AppLockerLog -Message "Failed to get credential for tier $tryTier`: $($_.Exception.Message)" -Level 'DEBUG' }
     }
 
     # Build synchronized hashtable for cross-thread communication
@@ -386,9 +384,7 @@ function global:Invoke-ScanRemoteSoftware {
 
             if ($r.FailedHosts.Count -gt 0) {
                 $failDetails = $r.FailedHosts -join "`n"
-                [System.Windows.MessageBox]::Show(
-                    "Scan completed but $($r.FailedHosts.Count) machine(s) failed:`n`n$failDetails",
-                    'Partial Scan Results', 'OK', 'Warning')
+                Show-AppLockerMessageBox "Scan completed but $($r.FailedHosts.Count) machine(s) failed:`n`n$failDetails" 'Partial Scan Results' 'OK' 'Warning'
             }
 
             $toastMsg = "Found $($r.AllResults.Count) installed programs across $($r.HostCount) machine(s)."

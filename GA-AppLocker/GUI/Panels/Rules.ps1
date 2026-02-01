@@ -45,12 +45,23 @@ function Initialize-RulesPanel {
         }
     }
 
-    # Wire up text filter
+    # Wire up text filter with debounce for better performance (300ms delay)
     $filterBox = $Window.FindName('TxtRuleFilter')
     if ($filterBox) {
-        $filterBox.Add_TextChanged({
+        $script:RuleFilterTimer = New-Object System.Windows.Threading.DispatcherTimer
+        $script:RuleFilterTimer.Interval = [TimeSpan]::FromMilliseconds(300)
+        $script:RuleFilterTimer.Add_Tick({
+            $script:RuleFilterTimer.Stop()
+            if ($global:GA_MainWindow) {
                 Update-RulesDataGrid -Window $global:GA_MainWindow
-            })
+            }
+        })
+        
+        $filterBox.Add_TextChanged({
+            # Reset and restart timer on each keystroke
+            $script:RuleFilterTimer.Stop()
+            $script:RuleFilterTimer.Start()
+        })
     }
 
     # Wire up Select All checkbox
@@ -781,12 +792,7 @@ function global:Invoke-DeleteSelectedRules {
     $count = $selectedItems.Count
     
     # Use MessageBox for confirmation
-    $confirm = [System.Windows.MessageBox]::Show(
-        "Are you sure you want to delete $count rule(s)?`n`nThis action cannot be undone.",
-        'Confirm Delete',
-        'YesNo',
-        'Warning'
-    )
+    $confirm = Show-AppLockerMessageBox "Are you sure you want to delete $count rule(s)?`n`nThis action cannot be undone." 'Confirm Delete' 'YesNo' 'Warning'
 
     if ($confirm -ne 'Yes') { return }
 
@@ -860,12 +866,7 @@ function global:Invoke-ApproveTrustedVendors {
     param($Window)
 
     # Confirm action
-    $confirm = [System.Windows.MessageBox]::Show(
-        "This will approve all pending rules from trusted vendors (Microsoft, Adobe, Oracle, Google, etc.).`n`nDo you want to continue?",
-        'Approve Trusted Vendor Rules',
-        'YesNo',
-        'Question'
-    )
+    $confirm = Show-AppLockerMessageBox "This will approve all pending rules from trusted vendors (Microsoft, Adobe, Oracle, Google, etc.).`n`nDo you want to continue?" 'Approve Trusted Vendor Rules' 'YesNo' 'Question'
 
     if ($confirm -ne 'Yes') { return }
 
@@ -909,12 +910,8 @@ function global:Invoke-RemoveDuplicateRules {
         $message += "- Publisher rules: $($Preview.PublisherDuplicates)`n`n"
         $message += "Do you want to remove these duplicates?`n(Oldest rule of each duplicate set will be kept)"
 
-        $confirm = [System.Windows.MessageBox]::Show(
-            $message,
-            'Remove Duplicate Rules',
-            'YesNo',
-            'Question'
-        )
+        $confirm = Show-AppLockerMessageBox $message 'Remove Duplicate Rules' 'YesNo' 'Question'
+        
 
         if ($confirm -ne 'Yes') { return }
 
@@ -1246,22 +1243,8 @@ function global:Invoke-AddCommonDenyRules {
     param($Window)
 
     # Confirm action with the user
-    $confirm = [System.Windows.MessageBox]::Show(
-        "This will create Deny rules for 7 user-writable paths:`n`n" +
-        "  - %OSDRIVE%\Users\*\AppData\Local\Temp\*`n" +
-        "  - %OSDRIVE%\Users\*\Downloads\*`n" +
-        "  - %OSDRIVE%\Users\*\Desktop\*`n" +
-        "  - %OSDRIVE%\Users\*\Documents\*`n" +
-        "  - %OSDRIVE%\Users\Public\*`n" +
-        "  - %OSDRIVE%\Windows\Temp\*`n" +
-        "  - %OSDRIVE%\PerfLogs\*`n`n" +
-        "Rules will be created for Exe, Msi, and Script collections.`n" +
-        "Status: Approved | Action: Deny | Target: AppLocker-Users`n`n" +
-        "Do you want to continue?",
-        'Create Common Deny Rules',
-        'YesNo',
-        'Question'
-    )
+    $confirm = Show-AppLockerMessageBox "This will create Deny rules for 7 user-writable paths:`n`n  - %OSDRIVE%\Users\*\AppData\Local\Temp\*`n  - %OSDRIVE%\Users\*\Downloads\*`n  - %OSDRIVE%\Users\*\Desktop\*`n  - %OSDRIVE%\Users\*\Documents\*`n  - %OSDRIVE%\Users\Public\*`n  - %OSDRIVE%\Windows\Temp\*`n  - %OSDRIVE%\PerfLogs\*`n`nRules will be created for Exe, Msi, and Script collections.`nStatus: Approved | Action: Deny | Target: AppLocker-Users`n`nDo you want to continue?" 'Create Common Deny Rules' 'YesNo' 'Question'
+    
 
     if ($confirm -ne 'Yes') { return }
 
@@ -1343,19 +1326,7 @@ function global:Invoke-AddDenyBrowserRules {
     #>
     param($Window)
 
-    $confirm = [System.Windows.MessageBox]::Show(
-        "This will create Deny rules for internet browsers:`n`n" +
-        "  - Internet Explorer (iexplore.exe)`n" +
-        "  - Microsoft Edge (msedge.exe)`n" +
-        "  - Google Chrome (chrome.exe)`n" +
-        "  - Mozilla Firefox (firefox.exe)`n`n" +
-        "Both Program Files and Program Files (x86) paths covered.`n" +
-        "Status: Approved | Action: Deny | Target: AppLocker-Admins`n`n" +
-        "Do you want to continue?",
-        'Create Browser Deny Rules',
-        'YesNo',
-        'Question'
-    )
+    $confirm = Show-AppLockerMessageBox "This will create Deny rules for internet browsers:`n`n  - Internet Explorer (iexplore.exe)`n  - Microsoft Edge (msedge.exe)`n  - Google Chrome (chrome.exe)`n  - Mozilla Firefox (firefox.exe)`n`nBoth Program Files and Program Files (x86) paths covered.`nStatus: Approved | Action: Deny | Target: AppLocker-Admins`n`nDo you want to continue?" 'Create Browser Deny Rules' 'YesNo' 'Question'
 
     if ($confirm -ne 'Yes') { return }
 
@@ -1432,18 +1403,8 @@ function global:Invoke-AddAdminAllowRules {
     #>
     param($Window)
 
-    $confirm = [System.Windows.MessageBox]::Show(
-        "This will create Allow-All rules for AppLocker-Admins:`n`n" +
-        "  - Allow All EXE`n" +
-        "  - Allow All DLL`n" +
-        "  - Allow All MSI`n" +
-        "  - Allow All Scripts`n`n" +
-        "Status: Approved | Action: Allow | Target: AppLocker-Admins`n`n" +
-        "Do you want to continue?",
-        'Create Admin Allow Rules',
-        'YesNo',
-        'Question'
-    )
+    $confirm = Show-AppLockerMessageBox "This will create Allow-All rules for AppLocker-Admins:`n`n  - Allow All EXE`n  - Allow All DLL`n  - Allow All MSI`n  - Allow All Scripts`n`nStatus: Approved | Action: Allow | Target: AppLocker-Admins`n`nDo you want to continue?" 'Create Admin Allow Rules' 'YesNo' 'Question'
+    
 
     if ($confirm -ne 'Yes') { return }
 
