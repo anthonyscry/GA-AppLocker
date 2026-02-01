@@ -315,14 +315,14 @@ function global:Invoke-InitializeAll {
     param($Window)
 
     try {
-        $confirm = Show-AppLockerMessageBox "This will run ALL initialization steps:`n`n1. Create WinRM GPO (linked to domain root)`n2. Create AppLocker GPOs (DC, Servers, Workstations)`n3. Create AppLocker OU and security groups`n`nThis requires Domain Admin permissions.`n`nContinue?" 'Full Initialization' 'YesNo' 'Warning'
+        $confirm = Show-AppLockerMessageBox "This will run ALL initialization steps:`n`n1. Create WinRM GPOs (Enable + Disable, linked to domain root)`n2. Create AppLocker GPOs (DC, Servers, Workstations)`n3. Create AppLocker OU and security groups`n`nThis requires Domain Admin permissions.`n`nContinue?" 'Full Initialization' 'YesNo' 'Warning'
 
         if ($confirm -ne 'Yes') { return }
 
         $result = Initialize-AppLockerEnvironment
 
         if ($result.Success) {
-            Show-AppLockerMessageBox "Full initialization complete!`n`nWinRM GPO: $(if ($result.Data.WinRM.Success) { 'Success' } else { 'Failed' })`nAppLocker GPOs: $(if ($result.Data.AppLockerGPOs.Success) { 'Success' } else { 'Failed' })`nAD Structure: $(if ($result.Data.ADStructure.Success) { 'Success' } else { 'Failed' })" 'Initialization Complete' 'OK' 'Information'
+            Show-AppLockerMessageBox "Full initialization complete!`n`nEnable WinRM GPO: $(if ($result.Data.WinRM.Success) { 'Success' } else { 'Failed' })`nDisable WinRM GPO: $(if ($result.Data.DisableWinRM.Success) { 'Success' } else { 'Failed' })`nAppLocker GPOs: $(if ($result.Data.AppLockerGPOs.Success) { 'Success' } else { 'Failed' })`nAD Structure: $(if ($result.Data.ADStructure.Success) { 'Success' } else { 'Failed' })" 'Initialization Complete' 'OK' 'Information'
             Update-SetupStatus -Window $Window
         }
         else {

@@ -195,9 +195,21 @@ function Initialize-AppLockerEnvironment {
     try {
         Write-SetupLog -Message "Starting full AppLocker environment initialization"
 
-        # Initialize WinRM GPO
+        # Initialize WinRM GPOs (Enable + Disable)
         $winrmResult = Initialize-WinRMGPO
         $result.Data.WinRM = $winrmResult
+
+        $disableWinrmResult = Initialize-DisableWinRMGPO
+        $result.Data.DisableWinRM = $disableWinrmResult
+
+        # Fix link states: Enable GPO active, Disable GPO inactive (ready but not applied)
+        try {
+            Enable-WinRMGPO -GPOName 'AppLocker-EnableWinRM' -ErrorAction SilentlyContinue
+            Disable-WinRMGPO -GPOName 'AppLocker-DisableWinRM' -ErrorAction SilentlyContinue
+        }
+        catch {
+            Write-SetupLog -Message "WinRM GPO link state update failed: $($_.Exception.Message)" -Level Warning
+        }
 
         # Initialize AppLocker GPOs
         $gposResult = Initialize-AppLockerGPOs
@@ -208,9 +220,9 @@ function Initialize-AppLockerEnvironment {
         $result.Data.ADStructure = $adResult
 
         # Check overall success
-        $result.Success = $winrmResult.Success -or $gposResult.Success -or $adResult.Success
+        $result.Success = $winrmResult.Success -or $disableWinrmResult.Success -or $gposResult.Success -or $adResult.Success
 
-        Write-SetupLog -Message "Full initialization complete. WinRM: $($winrmResult.Success), GPOs: $($gposResult.Success), AD: $($adResult.Success)"
+        Write-SetupLog -Message "Full initialization complete. WinRM: $($winrmResult.Success), DisableWinRM: $($disableWinrmResult.Success), GPOs: $($gposResult.Success), AD: $($adResult.Success)"
     }
     catch {
         $result.Error = "Failed during full initialization: $($_.Exception.Message)"
