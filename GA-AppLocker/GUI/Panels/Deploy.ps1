@@ -28,7 +28,7 @@ function Initialize-DeploymentPanel {
         'BtnCreateDeployment', 'BtnRefreshDeployments', 'BtnDeployJob',
         'BtnStopDeployment', 'BtnCancelSelected', 'BtnViewDeployLog',
         'BtnBackupGpoPolicy', 'BtnExportPolicyXml', 'BtnImportPolicyXml',
-        'BtnSaveDeployPolicyChanges',
+        'BtnStartDeployment', 'BtnSaveDeployPolicyChanges',
         'BtnToggleGpoLinkDC', 'BtnToggleGpoLinkServers', 'BtnToggleGpoLinkWks'
     )
 
