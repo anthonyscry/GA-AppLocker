@@ -1,4 +1,4 @@
-# GA-AppLocker v1.2.39
+# GA-AppLocker v1.2.41
 
 Enterprise AppLocker policy management for air-gapped, classified, and highly secure Windows environments. Complete workflow from AD discovery through GPO deployment — no internet required.
 

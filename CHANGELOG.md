@@ -2,6 +2,43 @@
 
 All notable changes to GA-AppLocker will be documented in this file.
 
+## [1.2.41] - 2026-02-01
+
+### Bug Fixes & Features
+
+- **Wire BtnClearCompletedJobs click handler** -- Clear Completed Jobs button was unresponsive because it was missing from the `$actionButtons` wiring array in `Initialize-DeploymentPanel`
+- **GPO Link Control rewrite** -- Replaced direct `Get-GPO` calls (which failed silently in global function scope) with `Get-SetupStatus` (proven reliable from Setup panel). Now correctly shows Enabled/Disabled/Not Created status for all 3 GPOs
+- **Deploy Edit tab save refreshes jobs DataGrid** -- After saving policy changes, the deployment jobs list now refreshes immediately
+- **Setup panel AD group badges** -- 6 group badges (Admins, Exempt, Audit, Users, Installers, Developers) turn green when AD groups exist
+- **Software Compare tab Export Comparison Results** -- New button exports comparison data to CSV with Source column (Match/Only in Scan/Only in Import/Version Diff)
+- **Fix 7 tests for GPO Link rewrite** -- Updated V1229Session.Tests.ps1 source-code assertions to match new `Get-SetupStatus` based implementation
+
+### Stats
+
+- **Version:** 1.2.41
+- **Tests:** 1547/1547 passing (100%)
+- **Exported Commands:** ~193
+
+---
+
+## [1.2.40] - 2026-02-01
+
+### Features & Fixes
+
+- **Setup GPO status shows Enabled/Disabled state** -- "Configured - Enabled" (green) / "Configured - Disabled" (orange) instead of just "Configured"
+- **Wire BtnStartDeployment click handler** -- Create Deployment Job button was unresponsive
+- **GPO Link Control per-GPO error isolation** -- One failing `Get-GPO` no longer breaks all three pills; `Import-Module -ErrorAction Stop` with fallback
+- **Initialize All creates Disable-WinRM GPO** -- Was missing from `Initialize-AppLockerEnvironment`
+- **Software Inventory panel split into Scan + Compare tabs** -- Clearer workflow with step-by-step compare guide showing baseline/comparison file info
+
+### Stats
+
+- **Version:** 1.2.40
+- **Tests:** 1547/1547 passing (100%)
+- **Exported Commands:** ~193
+
+---
+
 ## [1.2.39] - 2026-02-01
 
 ### Bug Fixes (Live DC01 Testing)

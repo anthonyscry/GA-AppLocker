@@ -402,6 +402,29 @@ PowerShell + WPF has zero compile-time safety. Wrong element names produce no er
 
 If a function is in `.psd1 FunctionsToExport` but NOT dot-sourced in `.psm1` (or vice versa), the function silently becomes unavailable. No error at import time. Check all 3 locations when adding/removing exports: module `.psd1`, module `.psm1`, root `GA-AppLocker.psd1`, root `GA-AppLocker.psm1`.
 
+### 11. Test Failures After Code Changes — Read the Tests First
+
+When tests fail after YOUR code changes, **do NOT** run the full test suite with Detailed output to diagnose. That dumps hundreds of KB of passing-test noise and burns context. Instead:
+
+1. Run with `-Output Minimal` to get the count and file name
+2. **Read the failing test assertions** (the `It`/`Should` blocks) — they're just lines in a `.Tests.ps1` file
+3. Compare what the test expects vs. what your code now does
+4. Decide: is the **test wrong** (asserting old patterns) or is the **code wrong** (regression)?
+
+```powershell
+# WRONG — 500KB of output, truncated, then re-run with filters, then re-run again...
+Invoke-Pester -Path '.\Tests\Unit\' -Output Detailed
+
+# RIGHT — get failing test names only (one line each)
+Invoke-Pester -Path '.\Tests\Unit\' -Output Detailed 2>&1 | Select-String '\[-\]'
+
+# THEN read the test file directly at those line numbers
+# Compare test expectations against your recent code changes
+# Fix whichever is wrong (usually the test after a deliberate rewrite)
+```
+
+**V1229Session.Tests.ps1 pattern**: Many tests in this file do regex matching against source code (`$script:DeployPs1 | Should -Match 'pattern'`). When you rewrite a function, these tests break because they're asserting old string patterns, NOT testing behavior. Update the regex to match the new code.
+
 ## Version History
 
 | Version | Date | Key Changes |
