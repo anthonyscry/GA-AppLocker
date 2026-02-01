@@ -258,6 +258,150 @@ All rule modifications auto-sync the JSON index:
 - `Resolve-LdapServer` centralizes all LDAP server resolution (no hardcoded servers in ViaLdap functions)
 - Non-recursive file scans use enumerate + HashSet filter (PS 5.1 `-Include` requires `-Recurse`)
 
+## Lessons Learned (Hard-Won Rules)
+
+These rules were each learned from real bugs that cost significant debugging time. **Violating any of these WILL cause silent failures.**
+
+### 1. PS 5.1 List.AddRange() Fails with Object[]
+
+```powershell
+# BROKEN — PS 5.1 can't convert Object[] to IEnumerable<PSObject>
+$list = [System.Collections.Generic.List[PSCustomObject]]::new()
+$list.AddRange([PSCustomObject[]]@($someArray))   # THROWS
+$list.AddRange(@($someArray))                      # ALSO THROWS
+
+# SAFE — always use foreach .Add()
+foreach ($item in @($someArray)) { [void]$list.Add($item) }
+```
+
+Also: `[List[T]]::new(@(...))` constructor overload fails in PS 5.1. Always use `::new()` then loop.
+
+### 2. $script: Inside global: Functions Resolves to WRONG Scope
+
+```powershell
+# BROKEN — $script: refers to global:'s private scope, NOT the module's $script:
+function global:MyFunc {
+    $script:ModuleVar   # Always $null! Silent failure, no error.
+}
+
+# SAFE — use explicit $global: variables for cross-scope data
+$global:GA_MyVar = $value                    # Set in module
+function global:MyFunc { $global:GA_MyVar }  # Read in global function
+```
+
+This is the sneakiest PS scoping bug — zero errors, variables just silently become `$null`.
+
+### 3. $array += $item Is O(n²) — Use List<T>
+
+```powershell
+# BROKEN — copies entire array on every append, O(n²) total
+$results = @()
+foreach ($item in $bigCollection) { $results += $item }
+
+# SAFE — O(1) amortized append
+$results = [System.Collections.Generic.List[PSCustomObject]]::new()
+foreach ($item in $bigCollection) { [void]$results.Add($item) }
+$arrayResult = @($results)  # Convert back if needed
+```
+
+For string building, use `[System.Text.StringBuilder]` instead of `$xml += "<tag>"`.
+
+### 4. .Add() Return Values Leak into Pipeline
+
+```powershell
+# BROKEN — .Add() returns the index, polluting function output
+function Get-Data {
+    $list = [System.Collections.Generic.List[string]]::new()
+    $list.Add("item")   # Returns 0 — leaks into pipeline!
+    return @{ Data = $list }
+    # ACTUAL return: @(0, @{Data=$list})
+}
+
+# SAFE — always suppress .Add() return
+[void]$list.Add("item")
+$null = $hashtable.Remove("key")
+```
+
+Applies to: `.Add()`, `.Remove()`, `.Insert()`, `ArrayList.Add()`, `HashSet.Add()`.
+
+### 5. WPF Timer/Dispatcher Callbacks Need global: Scope
+
+```powershell
+# BROKEN — timer can't find script-scoped functions (silent failure)
+$timer.Add_Tick({ Update-Progress })   # "Command not found" — swallowed
+
+# SAFE — define as global for WPF callbacks
+function global:Update-Progress { ... }
+```
+
+Applies to: DispatcherTimer ticks, runspace callbacks, event handlers. The WPF dispatcher swallows the error — UI just stops updating with no indication.
+
+### 6. Test Data Persists — Use Unique Identifiers
+
+```powershell
+# BROKEN — hash collides with leftover data from other test suites
+$rule = New-HashRule -Hash ('11' * 32) -Save  # Returns EXISTING rule!
+
+# SAFE — use truly random identifiers
+$uniqueHash = (New-Guid).ToString('N') + (New-Guid).ToString('N')
+$rule = New-HashRule -Hash $uniqueHash -Save
+```
+
+Tests share `%LOCALAPPDATA%\GA-AppLocker\Rules\`. Duplicate-detection features silently return existing rules instead of creating new ones.
+
+### 7. PS 5.1 Compatibility Traps
+
+| Trap | Impact | Fix |
+|------|--------|-----|
+| UTF-8 special chars in .ps1 | Breaks entire module parsing | ASCII only in source files |
+| No ternary `? :` / `??` | Syntax error | Use `if/else` |
+| `Get-ChildItem -Include` without `-Recurse` | Returns nothing (silent) | Use enumerate + HashSet filter |
+| `ConvertFrom-Json` objects | Can't cast to `[PSCustomObject[]]` | Use foreach instead of cast |
+| `[char]` above 0xFFFF | Not supported | Avoid Unicode supplementary planes |
+
+### 8. MessageBox Calls Hang Tests/Automation
+
+```powershell
+# BROKEN — halts execution in non-interactive contexts
+[System.Windows.MessageBox]::Show("Sure?", "Confirm", "YesNo")
+
+# SAFE — use testable wrapper
+Show-AppLockerMessageBox -Message "Sure?" -Title "Confirm" -Button YesNo -Icon Question
+# Auto-returns 'Yes' when $global:GA_TestMode -eq $true
+```
+
+Same applies to `Read-Host`, `Out-GridView`, or anything blocking for input.
+
+### 9. Synchronous WMI/CIM on WPF STA Thread Freezes UI
+
+```powershell
+# BROKEN — 10-30 second timeout on air-gapped networks
+$os = Get-CimInstance Win32_OperatingSystem   # UI frozen!
+
+# SAFE — use .NET APIs that return instantly
+$ipProps = [System.Net.NetworkInformation.IPGlobalProperties]::GetIPGlobalProperties()
+```
+
+ANY blocking call on the STA thread freezes the entire WPF window. Use `.NET` alternatives or move to background runspaces.
+
+### 10. XAML Element Names Aren't Validated — Typos Fail Silently
+
+```powershell
+# BROKEN — FindName returns $null, downstream code just doesn't execute
+$window.FindName('RulesSearchBox')      # Actual name: TxtRuleFilter
+$window.FindName('MachinesDataGrid')    # Actual name: DiscoveredMachinesDataGrid
+
+# SAFE — validate at startup or use constants
+$element = $window.FindName('TxtRuleFilter')
+if ($null -eq $element) { Write-AppLockerLog "XAML lookup failed: TxtRuleFilter" -Level ERROR }
+```
+
+PowerShell + WPF has zero compile-time safety. Wrong element names produce no errors — features silently stop working.
+
+### Bonus: .psd1/.psm1 Export Mismatches Are Silent
+
+If a function is in `.psd1 FunctionsToExport` but NOT dot-sourced in `.psm1` (or vice versa), the function silently becomes unavailable. No error at import time. Check all 3 locations when adding/removing exports: module `.psd1`, module `.psm1`, root `GA-AppLocker.psd1`, root `GA-AppLocker.psm1`.
+
 ## Version History
 
 | Version | Date | Key Changes |
