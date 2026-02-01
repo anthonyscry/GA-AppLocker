@@ -479,33 +479,28 @@ function Get-BackupHistory {
                 Manifest = $null
             }
 
-            # Try to read manifest from zip
+            # Try to read manifest from zip using Expand-Archive (Shell.Application extracts
+            # with original filename, not the random temp name, causing Test-Path to always fail)
             try {
-                $shell = New-Object -ComObject Shell.Application
-                $zipFolder = $shell.NameSpace($zip.FullName)
-                
-                if ($zipFolder) {
-                    $manifestItem = $zipFolder.Items() | Where-Object { $_.Name -eq 'manifest.json' }
-                    
-                    if ($manifestItem) {
-                        $tempManifest = Join-Path $env:TEMP "manifest_$(Get-Random).json"
-                        $shell.NameSpace($env:TEMP).CopyHere($manifestItem, 0x14) # Silent, overwrite
-                        
-                        Start-Sleep -Milliseconds 500  # Wait for extraction
-                        
-                        if (Test-Path $tempManifest) {
-                            $manifest = Get-Content $tempManifest -Raw | ConvertFrom-Json
-                            $backupInfo.IsValid = $true
-                            $backupInfo.Manifest = @{
-                                CreatedAt = $manifest.CreatedAt
-                                CreatedBy = $manifest.CreatedBy
-                                Computer = $manifest.Computer
-                                Description = $manifest.Description
-                                Contents = $manifest.Contents
-                            }
-                            Remove-Item $tempManifest -Force -ErrorAction SilentlyContinue
+                $tempExtractDir = Join-Path $env:TEMP "GABackup_Check_$(Get-Random)"
+                New-Item $tempExtractDir -ItemType Directory -Force | Out-Null
+                try {
+                    Expand-Archive -Path $zip.FullName -DestinationPath $tempExtractDir -Force
+                    $tempManifest = Join-Path $tempExtractDir 'manifest.json'
+                    if (Test-Path $tempManifest) {
+                        $manifest = Get-Content $tempManifest -Raw | ConvertFrom-Json
+                        $backupInfo.IsValid = $true
+                        $backupInfo.Manifest = @{
+                            CreatedAt = $manifest.CreatedAt
+                            CreatedBy = $manifest.CreatedBy
+                            Computer = $manifest.Computer
+                            Description = $manifest.Description
+                            Contents = $manifest.Contents
                         }
                     }
+                }
+                finally {
+                    Remove-Item $tempExtractDir -Recurse -Force -ErrorAction SilentlyContinue
                 }
             }
             catch {

@@ -395,9 +395,29 @@ function Approve-TrustedVendorRules {
         Write-RuleLog -Message "Found $($rulesToApprove.Count) rules matching trusted vendors"
         
         if ($rulesToApprove.Count -gt 0 -and -not $WhatIfPreference) {
-            # Batch update
-            $batchResult = Set-BulkRuleStatus -RuleIds $rulesToApprove.ToArray() -Status 'Approved'
-            $result.TotalUpdated = $batchResult.UpdatedCount
+            # Update each rule file directly (Set-BulkRuleStatus has no -RuleIds param)
+            $updatedCount = 0
+            $rulePath = Get-RuleStoragePath
+            foreach ($ruleId in $rulesToApprove) {
+                try {
+                    $ruleFile = Join-Path $rulePath "$ruleId.json"
+                    if (Test-Path $ruleFile) {
+                        $rule = Get-Content -Path $ruleFile -Raw | ConvertFrom-Json
+                        $rule.Status = 'Approved'
+                        $rule.ModifiedDate = Get-Date -Format 'o'
+                        $rule | ConvertTo-Json -Depth 10 | Set-Content -Path $ruleFile -Encoding UTF8
+                        $updatedCount++
+                    }
+                }
+                catch {
+                    Write-RuleLog -Level Warning -Message "Failed to approve rule ${ruleId}: $($_.Exception.Message)"
+                }
+            }
+            # Sync index in batch
+            if ($updatedCount -gt 0) {
+                try { Update-RuleStatusInIndex -RuleIds $rulesToApprove.ToArray() -Status 'Approved' | Out-Null } catch {}
+            }
+            $result.TotalUpdated = $updatedCount
         } else {
             $result.TotalUpdated = $rulesToApprove.Count
         }

@@ -82,13 +82,15 @@ function Set-Theme {
         # Update resource brushes
         $resources = $Window.Resources
         
-        # Helper to update a brush resource
+        # Helper to update a brush resource (clone to avoid frozen brush exception)
         $updateBrush = {
             param($key, $color)
             if ($resources.Contains($key)) {
                 $brush = $resources[$key]
                 if ($brush -is [System.Windows.Media.SolidColorBrush]) {
-                    $brush.Color = [System.Windows.Media.ColorConverter]::ConvertFromString($color)
+                    $newBrush = $brush.Clone()
+                    $newBrush.Color = [System.Windows.Media.ColorConverter]::ConvertFromString($color)
+                    $resources[$key] = $newBrush
                 }
             }
         }
@@ -186,7 +188,7 @@ function Save-ThemePreference {
     param([string]$Theme)
     
     try {
-        $settingsPath = Join-Path $env:APPDATA 'GA-AppLocker\settings.json'
+        $settingsPath = Join-Path $env:LOCALAPPDATA 'GA-AppLocker\settings.json'
         $settingsDir = Split-Path $settingsPath -Parent
         
         if (-not (Test-Path $settingsDir)) {
@@ -197,8 +199,10 @@ function Save-ThemePreference {
         if (Test-Path $settingsPath) {
             $content = Get-Content $settingsPath -Raw -ErrorAction SilentlyContinue
             if ($content) {
-                $settings = $content | ConvertFrom-Json -AsHashtable -ErrorAction SilentlyContinue
-                if (-not $settings) { $settings = @{} }
+                $obj = $content | ConvertFrom-Json -ErrorAction SilentlyContinue
+                if ($obj) {
+                    $obj.PSObject.Properties | ForEach-Object { $settings[$_.Name] = $_.Value }
+                }
             }
         }
         
@@ -216,14 +220,14 @@ function Get-ThemePreference {
         Loads theme preference from settings file.
     #>
     try {
-        $settingsPath = Join-Path $env:APPDATA 'GA-AppLocker\settings.json'
+        $settingsPath = Join-Path $env:LOCALAPPDATA 'GA-AppLocker\settings.json'
         
         if (Test-Path $settingsPath) {
             $content = Get-Content $settingsPath -Raw -ErrorAction SilentlyContinue
             if ($content) {
-                $settings = $content | ConvertFrom-Json -AsHashtable -ErrorAction SilentlyContinue
-                if ($settings -and $settings.ContainsKey('Theme')) {
-                    return $settings['Theme']
+                $obj = $content | ConvertFrom-Json -ErrorAction SilentlyContinue
+                if ($obj -and $obj.PSObject.Properties.Name -contains 'Theme') {
+                    return $obj.Theme
                 }
             }
         }

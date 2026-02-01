@@ -86,9 +86,16 @@ function Get-Rule {
                 }
             }
             else {
-                # Query from Storage with filters
-                $queryResult = Get-RulesFromDatabase -Status $Status -RuleType $RuleType -CollectionType $CollectionType -SearchText $Name -FullPayload
-                
+                # Use Get-AllRules which returns proper result object
+                # (Get-RulesFromDatabase returns raw array for backward compat)
+                $queryParams = @{ FullPayload = $true }
+                if ($Status) { $queryParams.Status = $Status }
+                if ($RuleType) { $queryParams.RuleType = $RuleType }
+                if ($CollectionType) { $queryParams.CollectionType = $CollectionType }
+                if ($Name) { $queryParams.SearchText = $Name }
+
+                $queryResult = Get-AllRules @queryParams
+
                 if ($queryResult.Success) {
                     $result.Data = $queryResult.Data
                     $result.Success = $true

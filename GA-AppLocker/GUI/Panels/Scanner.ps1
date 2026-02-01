@@ -1189,11 +1189,22 @@ function global:Invoke-ApplyArtifactExclusions {
         return
     }
 
-    # Get exclusion checkboxes
-    $excludeDll = $Window.FindName('ChkExcludeDll').IsChecked
-    $excludeJs = $Window.FindName('ChkExcludeJs').IsChecked
-    $excludeScripts = $Window.FindName('ChkExcludeScripts').IsChecked
-    $excludeUnsigned = $Window.FindName('ChkExcludeUnsigned').IsChecked
+    # Get exclusion checkboxes (these were moved to the Rule Generation Wizard)
+    $chkDll = $Window.FindName('ChkExcludeDll')
+    $chkJs = $Window.FindName('ChkExcludeJs')
+    $chkScripts = $Window.FindName('ChkExcludeScripts')
+    $chkUnsigned = $Window.FindName('ChkExcludeUnsigned')
+
+    # If all checkboxes are missing, the UI was moved to the Rule Generation Wizard
+    if (-not $chkDll -and -not $chkJs -and -not $chkScripts -and -not $chkUnsigned) {
+        Show-Toast -Message 'Exclusions are now configured in the Rule Generation Wizard (Step 1).' -Type 'Info'
+        return
+    }
+
+    $excludeDll = if ($chkDll) { $chkDll.IsChecked } else { $false }
+    $excludeJs = if ($chkJs) { $chkJs.IsChecked } else { $false }
+    $excludeScripts = if ($chkScripts) { $chkScripts.IsChecked } else { $false }
+    $excludeUnsigned = if ($chkUnsigned) { $chkUnsigned.IsChecked } else { $false }
 
     if (-not $excludeDll -and -not $excludeJs -and -not $excludeScripts -and -not $excludeUnsigned) {
         Show-Toast -Message 'No exclusions selected.' -Type 'Info'

@@ -861,7 +861,7 @@ function Save-WizardConfiguration {
         }
 
         foreach ($key in $config.Keys) {
-            Set-AppLockerConfig -Name $key -Value $config[$key] | Out-Null
+            Set-AppLockerConfig -Key $key -Value $config[$key] | Out-Null
         }
     }
 

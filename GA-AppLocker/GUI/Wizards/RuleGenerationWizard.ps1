@@ -234,7 +234,7 @@ function global:Show-WizardStep2 {
                 -SkipShellScripts:$Settings.SkipShellScripts `
                 -DedupeMode $Settings.DedupeMode `
                 -PublisherLevel $Settings.PublisherLevel
-        } -ArgumentList @($artifacts, $settings) -OnComplete {
+        } -Arguments @{ Artifacts = $artifacts; Settings = $settings } -OnComplete {
             param($Result)
             $script:WizardState.Preview = $Result
             Update-WizardPreviewUI -Preview $Result
@@ -383,7 +383,7 @@ function global:Start-WizardBatchGeneration {
                 -SkipShellScripts:$Settings.SkipShellScripts `
                 -DedupeMode $Settings.DedupeMode
             
-        } -ArgumentList @($artifacts, $settings) -OnComplete {
+        } -Arguments @{ Artifacts = $artifacts; Settings = $settings } -OnComplete {
             param($Result)
             Complete-WizardGeneration -Result $Result
         }
