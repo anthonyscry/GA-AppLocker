@@ -298,7 +298,8 @@ switch ($Action) {
 ```powershell
 $allPanels = @(
     'PanelDashboard', 'PanelDiscovery', 'PanelScanner',
-    'PanelRules', 'PanelPolicy', 'PanelDeploy', 'PanelSettings',
+    'PanelRules', 'PanelPolicy', 'PanelDeploy',
+    'PanelSoftware', 'PanelSettings', 'PanelSetup', 'PanelAbout',
     'PanelNewFeature'  # Add new panel
 )
 ```
@@ -306,7 +307,7 @@ $allPanels = @(
 5. **Create initialization function**:
 ```powershell
 function Initialize-NewFeaturePanel {
-    param([System.Windows.Window]$Window)
+    param($Window)  # Untyped for testability (all GUI functions use untyped $Window)
     # Wire up event handlers
 }
 ```
@@ -525,7 +526,7 @@ Clear-SessionState
 | `scanArtifacts` | Collected artifacts from completed scans |
 | `generatedRules` | Rule IDs created from artifacts |
 | `approvedRules` | Rule IDs approved for policy inclusion |
-| `currentPanel` | Active UI panel name |
+| `currentPanel` | Active UI panel name (saved but NOT restored -- app always starts on Dashboard) |
 | `workflowStage` | Progress indicator (1-4) |
 | `discoveryCount` | Number of discovered machines |
 | `scanCount` | Number of scanned artifacts |
@@ -608,6 +609,7 @@ This pattern was applied across the codebase in commits `be3c62f` through `c261d
 1. **Limit recursion** - Use `MaxDepth` parameter in scanning
 2. **Batch operations** - Group file writes where possible
 3. **Lazy loading** - Don't load all data on panel init, load on demand
+4. **Deferred panel loading** - Use `$Window.Dispatcher.BeginInvoke([System.Windows.Threading.DispatcherPriority]::Background, ...)` for heavy panel data loads (e.g., Deploy combo with 1000+ policies) so the panel renders immediately while data loads at background priority
 
 ## Critical Warnings
 

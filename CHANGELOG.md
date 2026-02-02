@@ -2,6 +2,28 @@
 
 All notable changes to GA-AppLocker will be documented in this file.
 
+## [1.2.50] - 2026-02-02
+
+### Bug Fixes
+
+- **White screen on startup** -- WPF wasn't triggering its initial render pass. Fixed by adding deferred `InvalidateVisual()` + `UpdateLayout()` in the `window.Loaded` event at `Render` dispatcher priority.
+- **"Loading policies..." overlay stuck forever** -- Policy panel's `Initialize-PolicyPanel` was firing `Update-PoliciesDataGrid -Async` during `Initialize-MainWindow` even though the Policy panel wasn't visible, spawning an async runspace that showed the loading overlay on startup. Removed async load from init; policies now load on first navigation to the Policy panel. Also added 60-second safety timeout to `Invoke-AsyncOperation` that auto-hides overlay, stops the runspace, and shows a warning toast if any async operation hangs.
+- **App always starts on Dashboard** -- Removed session panel restore (`Set-ActivePanel -PanelName $session.activePanel`) that was navigating to the last panel on startup. This triggered async policy loading before the UI was ready. Session still restores machines, credentials, selected policy/deployment -- just not the active panel.
+
+### Performance
+
+- **Deploy/Setup panel deferred loading** -- Wrapped Deploy panel refresh (policy combo, jobs DataGrid, GPO link status) and Setup panel status update in `Dispatcher.BeginInvoke` at `Background` priority so panels render immediately instead of blocking the STA thread (Deploy was loading 1142+ policies into its combo dropdown synchronously).
+
+### UI Changes
+
+- **Sidebar reorder** -- Software Inventory moved above Settings. Order below separator: Software Inventory, Settings, Setup, About.
+
+### Stats
+
+- **Version:** 1.2.50
+- **Tests:** 1282/1282 passing (100%)
+- **Exported Commands:** ~194
+
 ## [1.2.49] - 2026-02-02
 
 ### Bug Fixes

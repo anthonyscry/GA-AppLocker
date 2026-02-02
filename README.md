@@ -1,4 +1,4 @@
-# GA-AppLocker v1.2.49
+# GA-AppLocker v1.2.50
 
 Enterprise AppLocker policy management for air-gapped, classified, and highly secure Windows environments. Complete workflow from AD discovery through GPO deployment — no internet required.
 
@@ -45,15 +45,15 @@ AD Discovery ──► Artifact Scanning ──► Rule Generation ──► Pol
 - **Local & remote artifact scanning** (14 file types) with parallel WinRM collection
 - **Three rule types**: Publisher (digital signature), Hash (SHA256), Path (filesystem)
 - **3-step Rule Generation Wizard**: Configure → Preview → Generate (10x faster batch processing)
-- **Phased policy enforcement**: Phase 1 (EXE only) → Phase 4 (full enforcement)
+- **Phased policy enforcement**: Phase 1 (EXE only) → Phase 5 (full enforcement including DLL)
 - **5-stage policy validation**: Schema, GUIDs, SIDs, conditions, live import test
 - **Async GPO deployment** with fallback to XML export for manual import
 
 ### Management & Operations
 - **Rule history & versioning** with rollback capability
-- **Bulk operations**: Admin Allow (4 rules), Deny Browsers (8 rules), Deny Paths (21 rules), batch status/group/action changes
+- **Bulk operations**: Service Allow (20 rules), Admin Allow (5 rules), Deny Browsers (8 rules), Deny Paths (21 rules), batch status/group/action changes
 - **Policy comparison & snapshots** with restore
-- **Deploy panel editing** — Edit policy name, description, and target GPO inline; backup/export/import policies
+- **Deploy panel** — Select policy, create deployment jobs, backup/export/import policies, GPO status monitoring
 - **Tiered credentials** (T0/T1/T2) with DPAPI encryption
 - **Scheduled scans** with configurable targets
 - **Software inventory** — Scan local/remote installed software, CSV export/import, cross-system comparison
@@ -65,7 +65,7 @@ AD Discovery ──► Artifact Scanning ──► Rule Generation ──► Pol
 - **Drag-and-drop**: Drop files to scan or import rules/policies
 - **Context menus**: Right-click rules for approve/reject/delete/copy
 - **Toast notifications** and loading overlays for async operations
-- **Session persistence** across restarts (7-day expiry)
+- **Session persistence** across restarts (machines, credentials, selected policy — 7-day expiry; always starts on Dashboard)
 - **Global search** across rules, policies, and artifacts
 - **Workflow breadcrumb** showing progress through stages
 
@@ -96,7 +96,7 @@ GA-AppLocker/
     └── GA-AppLocker.Validation/   # 5-stage policy XML validation pipeline
 ```
 
-**10 sub-modules**, ~192 exported functions. All functions return standardized result objects:
+**10 sub-modules**, ~194 exported functions. All functions return standardized result objects:
 
 ```powershell
 @{ Success = $true; Data = <result>; Error = $null }
@@ -132,7 +132,7 @@ All data stored locally in `%LOCALAPPDATA%\GA-AppLocker\`:
 ## Testing
 
 ```powershell
-# Pester unit tests (1545/1545 passing — 100%)
+# Pester unit tests (1282/1282 passing — 100%)
 Invoke-Pester -Path Tests\Unit\ -Output Detailed
 
 # UI automation (requires interactive PowerShell session)
@@ -199,10 +199,11 @@ Machines need WinRM enabled so you can scan them remotely. Pick ONE method:
 
 **Quick method (bulk buttons):**
 1. Go to **Rules** panel (Ctrl+5)
-2. Click **+ Admin Allow** -- creates 4 allow-all rules for AppLocker-Admins (so admins aren't locked out)
-3. Click **+ Deny Paths** -- creates 21 deny rules blocking user-writable directories
-4. Click **+ Deny Browsers** -- creates 8 deny rules blocking browsers for admins (optional)
-5. Click **Generate Rules** -- opens the 3-step wizard for your scanned artifacts:
+2. Click **+ Service Allow** -- creates 20 allow-all rules for SYSTEM, Local Service, Network Service, and Administrators (so Windows services aren't broken)
+3. Click **+ Admin Allow** -- creates 5 allow-all rules for AppLocker-Admins (so admins aren't locked out)
+4. Click **+ Deny Paths** -- creates 21 deny rules blocking user-writable directories
+5. Click **+ Deny Browsers** -- creates 8 deny rules blocking browsers for admins (optional)
+6. Click **Generate Rules** -- opens the 3-step wizard for your scanned artifacts:
    - Step 1: Pick rule type (Publisher preferred, Hash as fallback)
    - Step 2: Preview the rules
    - Step 3: Generate
@@ -219,18 +220,20 @@ Machines need WinRM enabled so you can scan them remotely. Pick ONE method:
    - **Phase 1**: EXE rules only (start here)
    - **Phase 2**: EXE + Scripts
    - **Phase 3**: EXE + Scripts + MSI
-   - **Phase 4**: Full enforcement (all types)
+   - **Phase 4**: EXE + Scripts + MSI + Appx
+   - **Phase 5**: Full enforcement (all types including DLL)
 3. Click **Add Rules** -- select your approved rules
 4. Policy starts in **Audit mode** (logs violations but doesn't block anything)
 
 ### PHASE 7: Deploy to GPO
 
 1. Go to **Deploy** panel (Ctrl+7)
-2. Select your policy from the dropdown
-3. Go to the **Edit** tab -- set the Target GPO (AppLocker-DC, AppLocker-Servers, or AppLocker-Workstations)
-4. Click **Save Changes**
-5. Go to the **Actions** tab -- click **Create Job**, then **Deploy**
+2. Select your policy from the dropdown on the **Create** tab
+3. Set the target GPO (AppLocker-DC, AppLocker-Servers, or AppLocker-Workstations)
+4. Click **Create Deployment Job**
+5. Go to the **Actions** tab -- click **Deploy**
 6. The policy is pushed to the GPO. Run `gpupdate /force` on target machines or wait for propagation.
+7. Use the **GPO Status** tab to verify GPOs are Enabled and linked to the correct OUs
 
 ### PHASE 8: Monitor and Enforce
 
@@ -247,7 +250,8 @@ Machines need WinRM enabled so you can scan them remotely. Pick ONE method:
 | Can't scan remote machines | Run `Troubleshooting\Enable-WinRM.ps1` on them, or check the WinRM GPO |
 | "Access Denied" on remote scan | Check credentials in Credentials panel. Make sure the right tier is set |
 | GPO not applying | Run `Troubleshooting\Force-GPOSync.ps1` on the DC |
-| App hangs on startup | Close and reopen. Check `%LOCALAPPDATA%\GA-AppLocker\Logs\` |
+| App hangs on startup | Delete `%LOCALAPPDATA%\GA-AppLocker\session.json` and restart |
+| WinRM broken on DC | Run `Troubleshooting\Restore-WinRM.ps1` on the DC as Administrator |
 | Legitimate app getting blocked | Create a Publisher or Hash allow rule for it, add to policy, redeploy |
 | Need to undo WinRM on a machine | Run `Troubleshooting\Disable-WinRM.ps1` on it |
 | Need to remove WinRM GPO entirely | Setup panel > Remove GPO button |

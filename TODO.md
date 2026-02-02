@@ -235,8 +235,8 @@ Missing integration tests for:
 - None - all items completed!
 
 ### Test Coverage
-- **1547 tests passing** (100% — 32 unit test files, all 10 sub-modules covered)
-- 32 unit test files covering all 10 sub-modules
+- **1282 tests passing** (100% — 31 unit test files, all 10 sub-modules covered)
+- 31 unit test files covering all 10 sub-modules
 - Edge case tests for invalid inputs
 - End-to-end workflow tests
 - Import/Export roundtrip tests (v1.2.16)

@@ -155,7 +155,7 @@ All data: `%LOCALAPPDATA%\GA-AppLocker\`
 ## Testing
 
 ```powershell
-# Pester unit tests (550/550 passing — 100%)
+# Pester unit tests (1282/1282 passing — 100%)
 Invoke-Pester -Path Tests\Unit\ -Output Detailed
 
 # Workflow tests with mock data (no AD required)
