@@ -1830,7 +1830,7 @@ Width="1450"
                                             <TextBlock Text="Description:" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,5"/>
                                             <TextBox x:Name="TxtPolicyDescription" 
                                                      Style="{StaticResource TextBoxStyle}"
-                                                     Height="60" TextWrapping="Wrap" AcceptsReturn="True"
+                                                     Height="50" TextWrapping="Wrap" AcceptsReturn="True"
                                                      VerticalContentAlignment="Top" Margin="0,0,0,10"/>
 
                                             <TextBlock Text="Enforcement Mode:" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,5"/>
@@ -2158,36 +2158,7 @@ Width="1450"
                                     </ScrollViewer>
                                 </TabItem>
                                 
-                                <!-- Tab 2: Edit Policy -->
-                                <TabItem Header="Edit">
-                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                    <StackPanel Margin="15">
-                                        <TextBlock Text="EDIT SELECTED POLICY" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
 
-                                        <TextBlock Text="Policy Name:" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,5"/>
-                                        <TextBox x:Name="TxtDeployEditPolicyName" 
-                                                 Style="{StaticResource TextBoxStyle}" Margin="0,0,0,10"/>
-
-                                        <TextBlock Text="Target GPO:" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,5"/>
-                                        <ComboBox x:Name="CboDeployEditGPO" Style="{StaticResource ComboBoxStyle}" Margin="0,0,0,5">
-                                            <ComboBoxItem Content="(None)" Tag="" IsSelected="True"/>
-                                            <ComboBoxItem Content="AppLocker-DC" Tag="AppLocker-DC"/>
-                                            <ComboBoxItem Content="AppLocker-Servers" Tag="AppLocker-Servers"/>
-                                            <ComboBoxItem Content="AppLocker-Workstations" Tag="AppLocker-Workstations"/>
-                                            <ComboBoxItem Content="Custom..." Tag="Custom"/>
-                                        </ComboBox>
-                                        <TextBox x:Name="TxtDeployEditCustomGPO" 
-                                                 Style="{StaticResource TextBoxStyle}" 
-                                                 Visibility="Collapsed"
-                                                 Tag="Enter custom GPO name..."
-                                                 Margin="0,0,0,15"/>
-
-                                        <Button x:Name="BtnSaveDeployPolicyChanges" Content="Save Changes" 
-                                                Style="{StaticResource PrimaryButtonStyle}"
-                                                Tag="SaveDeployPolicyChanges"/>
-                                    </StackPanel>
-                                    </ScrollViewer>
-                                </TabItem>
 
                                 <!-- Tab 3: Quick Actions -->
                                 <TabItem Header="Actions">

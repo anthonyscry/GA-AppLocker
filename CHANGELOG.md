@@ -2,6 +2,24 @@
 
 All notable changes to GA-AppLocker will be documented in this file.
 
+## [1.2.46] - 2026-02-01
+
+### UI Changes
+
+- **Remove Deploy Edit tab entirely** -- Deploy panel now has 3 tabs: Create, Actions, GPO Status. Removed `TxtDeployEditPolicyName`, `CboDeployEditGPO`, `TxtDeployEditCustomGPO`, `BtnSaveDeployPolicyChanges` from XAML. Removed `Update-DeployPolicyEditTab`, `Invoke-SaveDeployPolicyChanges` functions and all Edit tab wiring from Deploy.ps1. Removed `SaveDeployPolicyChanges` dispatcher entry from MainWindow.xaml.ps1.
+- **Policy Create description box height aligned** -- `TxtPolicyDescription` Height changed from 60 to 50 to match `TxtEditPolicyDescription` on Edit tab.
+
+### Bug Fixes
+
+- **Deploy XML import preserves Approved status** -- `Import-RulesFromXml` on Deploy panel now called with `-Status 'Approved'` so imported rules are immediately usable for deployment. Previously imported as Pending, requiring manual approval before deployment.
+
+### Test Cleanup
+
+- **V1229Session.Tests.ps1 rewritten behavioral-only** -- Reduced from 1489 lines / ~350 tests to 670 lines / 63 tests. Removed all fragile regex pattern-matching tests that asserted source code strings (`$script:DeployPs1 | Should -Match 'pattern'`). Kept only behavioral tests that call real functions and verify return values. Added Deploy 3-tab ordering tests.
+- **V1228Regression.Tests.ps1 deleted** -- Behavioral software comparison tests (re-run, null guards, slot detection) merged into V1229Session.Tests.ps1. All regex tests removed.
+- **GUI.DeployPanel.Tests.ps1 updated** -- Removed Edit Tab Job Wiring test block (2 tests referencing removed `Update-DeployPolicyEditTab` and `Invoke-SaveDeployPolicyChanges` functions).
+- **Test count: 1548 -> 1282** -- Net removal of ~266 fragile regex pattern-matching tests. Zero lost behavioral coverage.
+
 ## [1.2.45] - 2026-02-01
 
 ### Bug Fixes

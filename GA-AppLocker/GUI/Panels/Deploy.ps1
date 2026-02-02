@@ -29,7 +29,7 @@ function Initialize-DeploymentPanel {
         'BtnStopDeployment', 'BtnCancelSelected', 'BtnViewDeployLog',
         'BtnClearCompletedJobs',
         'BtnBackupGpoPolicy', 'BtnExportPolicyXml', 'BtnImportPolicyXml',
-        'BtnStartDeployment', 'BtnSaveDeployPolicyChanges',
+        'BtnStartDeployment',
         'BtnToggleGpoLinkDC', 'BtnToggleGpoLinkServers', 'BtnToggleGpoLinkWks'
     )
 
@@ -74,33 +74,7 @@ function Initialize-DeploymentPanel {
             })
     }
 
-    # Wire up Create policy combo selection changed to load edit fields
-    $policyCombo = $Window.FindName('CboDeployPolicy')
-    if ($policyCombo) {
-        $policyCombo.Add_SelectionChanged({
-                param($sender, $e)
-                Update-DeployPolicyEditTab -Window $global:GA_MainWindow -Source 'Create'
-            })
-    }
 
-    # Wire up edit GPO dropdown to show/hide custom textbox
-    $editGpoCombo = $Window.FindName('CboDeployEditGPO')
-    $editCustomGpoBox = $Window.FindName('TxtDeployEditCustomGPO')
-    if ($editGpoCombo -and $editCustomGpoBox) {
-        $editGpoCombo.Add_SelectionChanged({
-                param($sender, $e)
-                $selectedItem = $sender.SelectedItem
-                $customBox = $global:GA_MainWindow.FindName('TxtDeployEditCustomGPO')
-                if ($customBox) {
-                    if ($selectedItem -and $selectedItem.Tag -eq 'Custom') {
-                        $customBox.Visibility = 'Visible'
-                    }
-                    else {
-                        $customBox.Visibility = 'Collapsed'
-                    }
-                }
-            })
-    }
 
     # Check module status
     Update-ModuleStatus -Window $Window
@@ -360,7 +334,6 @@ function global:Update-SelectedJobInfo {
         if ($progressBar) { $progressBar.Value = 0 }
     }
 
-    Update-DeployPolicyEditTab -Window $Window -Source 'Edit'
 }
 
 function global:Invoke-CreateDeploymentJob {
@@ -821,13 +794,13 @@ function global:Invoke-ImportDeployPolicyXml {
     Show-LoadingOverlay -Message 'Importing rules from XML...' -SubMessage $openDialog.FileName
 
     try {
-        $importResult = Import-RulesFromXml -Path $openDialog.FileName
+        $importResult = Import-RulesFromXml -Path $openDialog.FileName -Status 'Approved'
         Hide-LoadingOverlay
 
         if ($importResult.Success) {
             $count = if ($importResult.Data) { @($importResult.Data).Count } else { 0 }
             Show-Toast -Message "Imported $count rules from XML" -Type 'Success'
-            Show-AppLockerMessageBox "Imported $count rule(s) from:`n$($openDialog.FileName)`n`nRules are in Pending status. Go to Rules panel to review." 'Import Complete' 'OK' 'Information'
+            Show-AppLockerMessageBox "Imported $count rule(s) from:`n$($openDialog.FileName)" 'Import Complete' 'OK' 'Information'
         } else {
             Show-AppLockerMessageBox "Import failed: $($importResult.Error)" 'Error' 'OK' 'Error'
         }
@@ -838,131 +811,7 @@ function global:Invoke-ImportDeployPolicyXml {
     }
 }
 
-function global:Update-DeployPolicyEditTab {
-    <#
-    .SYNOPSIS
-        Populates the Deploy Edit tab fields from the selected policy in the right-side DataGrid
-        or from the Create tab's policy dropdown.
-    #>
-    param(
-        $Window,
-        [string]$Source = 'Edit'
-    )
 
-    $txtName = $Window.FindName('TxtDeployEditPolicyName')
-    $cboGPO = $Window.FindName('CboDeployEditGPO')
-    $txtCustomGPO = $Window.FindName('TxtDeployEditCustomGPO')
-
-    # Get policy from the Create tab's dropdown (the only policy selector now)
-    $policyCombo = $Window.FindName('CboDeployPolicy')
-    $policy = $null
-    if ($policyCombo -and $policyCombo.SelectedItem -and $policyCombo.SelectedItem.Tag) {
-        $policy = $policyCombo.SelectedItem.Tag
-    }
-
-    if (-not $policy) {
-        # No policy selected - clear fields
-        if ($txtName) { $txtName.Text = '' }
-        if ($cboGPO) { $cboGPO.SelectedIndex = 0 }
-        if ($txtCustomGPO) { $txtCustomGPO.Text = ''; $txtCustomGPO.Visibility = 'Collapsed' }
-        return
-    }
-
-    if ($txtName) { $txtName.Text = if ($policy.Name) { $policy.Name } else { '' } }
-
-    # Set Target GPO dropdown
-    if ($cboGPO) {
-        $gpoValue = if ($policy.TargetGPO) { $policy.TargetGPO } else { '' }
-        $matched = $false
-        for ($i = 0; $i -lt $cboGPO.Items.Count; $i++) {
-            $item = $cboGPO.Items[$i]
-            if ($item.Tag -eq $gpoValue) {
-                $cboGPO.SelectedIndex = $i
-                $matched = $true
-                break
-            }
-        }
-        if (-not $matched -and $gpoValue.Length -gt 0) {
-            # Custom GPO name
-            for ($i = 0; $i -lt $cboGPO.Items.Count; $i++) {
-                if ($cboGPO.Items[$i].Tag -eq 'Custom') {
-                    $cboGPO.SelectedIndex = $i
-                    break
-                }
-            }
-            if ($txtCustomGPO) {
-                $txtCustomGPO.Text = $gpoValue
-                $txtCustomGPO.Visibility = 'Visible'
-            }
-        }
-        elseif ($txtCustomGPO) {
-            $txtCustomGPO.Text = ''
-            $txtCustomGPO.Visibility = 'Collapsed'
-        }
-    }
-}
-
-function global:Invoke-SaveDeployPolicyChanges {
-    <#
-    .SYNOPSIS
-        Saves policy name and target GPO changes from the Deploy Edit tab.
-    #>
-    param($Window)
-
-    # Get the selected policy from the Create tab combo
-    $policyCombo = $Window.FindName('CboDeployPolicy')
-
-    if (-not $policyCombo -or -not $policyCombo.SelectedItem) {
-        Show-Toast -Message 'Please select a policy first.' -Type 'Warning'
-        return
-    }
-
-    $policy = $policyCombo.SelectedItem.Tag
-    if (-not $policy -or -not $policy.PolicyId) {
-        Show-Toast -Message 'Invalid policy selected.' -Type 'Warning'
-        return
-    }
-
-    $txtName = $Window.FindName('TxtDeployEditPolicyName')
-    $editName = if ($txtName) { $txtName.Text.Trim() } else { '' }
-
-    if ([string]::IsNullOrWhiteSpace($editName)) {
-        Show-Toast -Message 'Policy name cannot be empty.' -Type 'Warning'
-        return
-    }
-
-    # Get target GPO from dropdown or custom textbox
-    $cboGPO = $Window.FindName('CboDeployEditGPO')
-    $txtCustomGPO = $Window.FindName('TxtDeployEditCustomGPO')
-    $selectedGpoItem = if ($cboGPO) { $cboGPO.SelectedItem } else { $null }
-    $targetGPO = if ($selectedGpoItem -and $selectedGpoItem.Tag -eq 'Custom') {
-        if ($txtCustomGPO) { $txtCustomGPO.Text.Trim() } else { '' }
-    }
-    elseif ($selectedGpoItem) {
-        [string]$selectedGpoItem.Tag
-    }
-    else {
-        ''
-    }
-
-    try {
-        $result = Update-Policy -Id $policy.PolicyId -Name $editName -TargetGPO $targetGPO
-
-        if ($result.Success) {
-            Show-Toast -Message "Policy '$editName' updated." -Type 'Success'
-            # Refresh the policy combo to show updated name
-            global:Refresh-DeployPolicyCombo -Window $Window
-            # Refresh the jobs DataGrid (jobs reference policy names)
-            Update-DeploymentJobsDataGrid -Window $Window
-        }
-        else {
-            Show-Toast -Message "Failed: $($result.Error)" -Type 'Error'
-        }
-    }
-    catch {
-        Show-Toast -Message "Error: $($_.Exception.Message)" -Type 'Error'
-    }
-}
 
 function global:Invoke-ClearCompletedJobs {
     <#

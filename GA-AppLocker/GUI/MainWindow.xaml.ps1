@@ -151,7 +151,7 @@ function global:Invoke-ButtonAction {
         'BackupGpoPolicy' { Invoke-BackupGpoPolicy -Window $win }
         'ExportDeployPolicyXml' { Invoke-ExportDeployPolicyXml -Window $win }
         'ImportDeployPolicyXml' { Invoke-ImportDeployPolicyXml -Window $win }
-        'SaveDeployPolicyChanges' { Invoke-SaveDeployPolicyChanges -Window $win }
+
         'ToggleGpoLinkDC' { Invoke-ToggleAppLockerGpoLink -Window $win -GPOType 'DC' }
         'ToggleGpoLinkServers' { Invoke-ToggleAppLockerGpoLink -Window $win -GPOType 'Servers' }
         'ToggleGpoLinkWks' { Invoke-ToggleAppLockerGpoLink -Window $win -GPOType 'Workstations' }
