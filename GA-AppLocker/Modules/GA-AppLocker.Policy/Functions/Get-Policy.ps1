@@ -83,6 +83,37 @@ function Get-Policy {
     }
 }
 
+function Get-PolicyCount {
+    <#
+    .SYNOPSIS
+        Gets total policy count without reading/parsing JSON files.
+
+    .DESCRIPTION
+        Fast O(1) policy count by counting .json files in the Policies directory.
+        Use this instead of Get-AllPolicies when you only need a count (e.g., breadcrumb, dashboard).
+
+    .EXAMPLE
+        Get-PolicyCount
+        # Returns: 42
+    #>
+    [CmdletBinding()]
+    param()
+
+    try {
+        $dataPath = Get-AppLockerDataPath
+        $policiesPath = Join-Path $dataPath 'Policies'
+
+        if (-not (Test-Path $policiesPath)) { return 0 }
+
+        $files = @(Get-ChildItem -Path $policiesPath -Filter '*.json' -File)
+        return $files.Count
+    }
+    catch {
+        Write-AppLockerLog -Message "Get-PolicyCount error: $($_.Exception.Message)" -Level 'DEBUG'
+        return 0
+    }
+}
+
 function Get-AllPolicies {
     <#
     .SYNOPSIS
@@ -118,29 +149,36 @@ function Get-AllPolicies {
         }
 
         $policyFiles = Get-ChildItem -Path $policiesPath -Filter '*.json' -File
-        $policies = @()
+        $policies = [System.Collections.Generic.List[PSCustomObject]]::new()
 
         foreach ($file in $policyFiles) {
-            $policy = Get-Content -Path $file.FullName -Raw | ConvertFrom-Json
-            
-            if ([string]::IsNullOrEmpty($Status) -or $policy.Status -eq $Status) {
-                $policies += $policy
+            try {
+                $policy = Get-Content -Path $file.FullName -Raw | ConvertFrom-Json
+                
+                if ([string]::IsNullOrEmpty($Status) -or $policy.Status -eq $Status) {
+                    [void]$policies.Add($policy)
+                }
+            }
+            catch {
+                Write-AppLockerLog -Message "Failed to read policy file $($file.Name): $($_.Exception.Message)" -Level 'DEBUG'
             }
         }
 
         # Sort by modified date descending (with fallback if ModifiedAt is invalid)
         try {
-            $policies = $policies | Sort-Object -Property { 
+            $sorted = $policies | Sort-Object -Property { 
                 if ($_.ModifiedAt) { [datetime]$_.ModifiedAt } else { [datetime]::MinValue }
             } -Descending
+            $policies = @($sorted)
         }
         catch {
             # If sorting fails, return unsorted
+            $policies = @($policies)
         }
 
         return @{
             Success = $true
-            Data    = @($policies)
+            Data    = $policies
         }
     }
     catch {

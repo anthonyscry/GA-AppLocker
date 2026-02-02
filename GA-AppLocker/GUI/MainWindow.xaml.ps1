@@ -502,8 +502,7 @@ function script:Restore-PreviousSessionState {
             $script:SelectedDeploymentJobId = $session.deployment.selectedJobId
         }
         
-        # Update UI
-        Update-WorkflowBreadcrumb -Window $Window
+        # Breadcrumb is updated once in Initialize-MainWindow after session restore
         
         # Always start on Dashboard (don't restore last panel - avoids async loading issues on startup)
         
@@ -557,16 +556,14 @@ function global:Update-WorkflowBreadcrumb {
         $scannerCount.Text = $artifactCount.ToString()
     }
     
-    # Stage 3: Rules
+    # Stage 3: Rules (use Get-RuleCounts - reads in-memory index, not files)
     $rulesStage = $Window.FindName('StageRules')
     $rulesCount = $Window.FindName('StageRulesCount')
     $ruleCount = 0
     try {
-        # Use -Take 1 to minimize data transfer, rely on Total for actual count
-        $rulesResult = Get-AllRules -Take 1
-        if ($rulesResult.Success) {
-            # Use Total (full count) not Data.Count (paginated)
-            $ruleCount = $rulesResult.Total
+        $countsResult = Get-RuleCounts
+        if ($countsResult.Success) {
+            $ruleCount = $countsResult.Total
         }
     } catch { Write-AppLockerLog -Message "Breadcrumb rules count: $($_.Exception.Message)" -Level 'DEBUG' }
     if ($rulesStage) {
@@ -576,15 +573,12 @@ function global:Update-WorkflowBreadcrumb {
         $rulesCount.Text = $ruleCount.ToString()
     }
     
-    # Stage 4: Policy
+    # Stage 4: Policy (use Get-PolicyCount - counts files, no JSON parsing)
     $policyStage = $Window.FindName('StagePolicy')
     $policyCount = $Window.FindName('StagePolicyCount')
     $polCount = 0
     try {
-        $policiesResult = Get-AllPolicies
-        if ($policiesResult.Success) {
-            $polCount = $policiesResult.Data.Count
-        }
+        $polCount = Get-PolicyCount
     } catch { Write-AppLockerLog -Message "Breadcrumb policies count: $($_.Exception.Message)" -Level 'DEBUG' }
     if ($policyStage) {
         $policyStage.Fill = if ($polCount -gt 0) { $successBrush } else { $inactiveBrush }

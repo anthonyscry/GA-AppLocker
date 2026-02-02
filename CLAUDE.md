@@ -4,7 +4,7 @@
 
 GA-AppLocker is a PowerShell 5.1 WPF application for enterprise AppLocker policy management in air-gapped, classified, or highly secure environments. Complete workflow: AD Discovery → Artifact Scanning → Rule Generation → Policy Building → GPO Deployment.
 
-**Version:** 1.2.50 | **Tests:** 1282/1282 passing (100%) | **Exported Commands:** ~194
+**Version:** 1.2.51 | **Tests:** 1282/1282 passing (100%) | **Exported Commands:** ~195
 
 ## Quick Start
 
@@ -429,6 +429,7 @@ Invoke-Pester -Path '.\Tests\Unit\' -Output Detailed 2>&1 | Select-String '\[-\]
 
 | Version | Date | Key Changes |
 |---------|------|-------------|
+| 1.2.51 | Feb 2, 2026 | Fix startup freeze/hand cursor bug: Update-WorkflowBreadcrumb was reading all 1,142 policy JSON files (Get-AllPolicies) and loading the full rules index (Get-AllRules -Take 1) just to get counts, blocking WPF STA thread for 10-20+ seconds. Replaced with Get-PolicyCount (counts directory entries, no JSON parsing) and Get-RuleCounts (reads in-memory index). Removed duplicate breadcrumb call during init (was called in both Restore-PreviousSessionState and Initialize-MainWindow). Startup breadcrumb now takes ~2ms instead of ~28s. New exported function: Get-PolicyCount. |
 | 1.2.50 | Feb 2, 2026 | Fix 3 startup bugs: (1) White screen on startup fixed by deferred InvalidateVisual+UpdateLayout in Loaded event (WPF wasn't triggering initial render pass), (2) "Loading policies..." overlay that never finishes fixed by adding 60-second safety timeout to Invoke-AsyncOperation (auto-hides overlay, stops runspace, shows warning toast), (3) App always starts on Dashboard now (removed session panel restore that navigated to last panel on startup, which triggered async policy loading before UI was ready) |
 | 1.2.49 | Feb 2, 2026 | Fix 6 bugs: (1) Software Inventory no longer auto-populates remote machines from AD Discovery, (2) Admin Allow button now creates Appx rule (5 types, was 4), (3) Dedupe no longer merges rules for different principals/actions (key includes UserOrGroupSid+Action), (4) Policy Builder excluded-rules message shows which phase includes each type (e.g., "Dll: 5 rules (included at Phase 5)"), (5) Scanner DataGrid horizontal scrollbar, (6) Scanner Config tab scan paths textbox restored |
 | 1.2.48 | Feb 2, 2026 | Service Allow button on Rules panel -- creates 20 mandatory baseline allow-all path rules (SYSTEM S-1-5-18, Local Service S-1-5-19, Network Service S-1-5-20, BUILTIN\Administrators S-1-5-32-544) across all 5 collection types (Exe, Dll, Msi, Script, Appx), Status Approved, Path *. Button order reordered: Service Allow, Admin Allow, Deny Paths, Deny Browsers, Dedupe, Delete |

@@ -407,6 +407,7 @@ Export-ModuleMember -Function @(
     'New-Policy',
     'Get-Policy',
     'Get-AllPolicies',
+    'Get-PolicyCount',
     'Update-Policy',
     'Remove-Policy',
     'Set-PolicyStatus',
