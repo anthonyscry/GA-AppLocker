@@ -217,13 +217,25 @@ function Start-AppLockerDashboard {
             $e.Handled = $true
         })
 
-        # Add loaded event to verify window renders
+        # Add loaded event to force layout pass (fixes white screen on startup)
         $window.add_Loaded({
             try {
                 Write-AppLockerLog -Message 'Window Loaded event fired'
             } catch {
                 Write-Host '[Info] Window Loaded event fired' -ForegroundColor White
             }
+            # Force WPF to do a full layout + render pass — fixes blank/white screen
+            # that only resolves after manual resize. Deferred to Render priority so
+            # it runs after all Loaded handlers and initial layout complete.
+            try {
+                $global:GA_MainWindow.Dispatcher.BeginInvoke(
+                    [System.Windows.Threading.DispatcherPriority]::Render,
+                    [Action]{
+                        $global:GA_MainWindow.InvalidateVisual()
+                        $global:GA_MainWindow.UpdateLayout()
+                    }
+                )
+            } catch { }
         })
 
         # Ensure window is activated and visible

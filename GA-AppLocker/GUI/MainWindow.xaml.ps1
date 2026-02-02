@@ -497,10 +497,7 @@ function script:Restore-PreviousSessionState {
         # Update UI
         Update-WorkflowBreadcrumb -Window $Window
         
-        # Navigate to last active panel (if not Dashboard)
-        if ($session.activePanel -and $session.activePanel -ne 'PanelDashboard') {
-            Set-ActivePanel -PanelName $session.activePanel
-        }
+        # Always start on Dashboard (don't restore last panel - avoids async loading issues on startup)
         
         Write-Log -Message "Session restored successfully."
         return $true

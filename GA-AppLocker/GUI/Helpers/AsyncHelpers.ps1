@@ -174,13 +174,49 @@ function Invoke-AsyncOperation {
         OnComplete = $OnComplete
         OnError = $OnError
         NoLoadingOverlay = $NoLoadingOverlay
+        StartTime = [DateTime]::UtcNow
+        TimeoutSeconds = 60
     }
 
     $timer.Add_Tick({
         $ctx = $context
         
-        if ($ctx.AsyncResult.IsCompleted) {
+        # Safety timeout — prevent loading overlay from hanging forever
+        $elapsed = ([DateTime]::UtcNow - $ctx.StartTime).TotalSeconds
+        $timedOut = $elapsed -ge $ctx.TimeoutSeconds
+        
+        if ($ctx.AsyncResult.IsCompleted -or $timedOut) {
             $ctx.Timer.Stop()
+            
+            if ($timedOut -and -not $ctx.AsyncResult.IsCompleted) {
+                # Timed out — force cleanup and show error
+                if (-not $ctx.NoLoadingOverlay) {
+                    Hide-LoadingOverlay
+                }
+                
+                try {
+                    $ctx.PowerShell.Stop()
+                } catch { }
+                
+                $timeoutMsg = "Operation timed out after $($ctx.TimeoutSeconds) seconds"
+                try {
+                    Write-AppLockerLog -Message $timeoutMsg -Level 'WARNING'
+                } catch { }
+                
+                if ($ctx.OnError) {
+                    & $ctx.OnError -ErrorMessage $timeoutMsg
+                }
+                else {
+                    Show-Toast -Message $timeoutMsg -Type 'Warning'
+                }
+                
+                try {
+                    $ctx.PowerShell.Dispose()
+                    $ctx.Runspace.Close()
+                    $ctx.Runspace.Dispose()
+                } catch { }
+                return
+            }
             
             try {
                 $output = $ctx.PowerShell.EndInvoke($ctx.AsyncResult)
