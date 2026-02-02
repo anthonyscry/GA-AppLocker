@@ -1,5 +1,7 @@
 #region Policy Panel Functions
 # Policy.ps1 - Policy panel handlers
+$script:PolicyCacheResult = $null
+$script:PolicyCacheTimestamp = $null
 function Initialize-PolicyPanel {
     param($Window)
 
@@ -96,7 +98,8 @@ function Initialize-PolicyPanel {
 function global:Update-PoliciesDataGrid {
     param(
         $Window,
-        [switch]$Async
+        [switch]$Async,
+        [switch]$Force
     )
 
     $dataGrid = $Window.FindName('PoliciesDataGrid')
@@ -115,6 +118,9 @@ function global:Update-PoliciesDataGrid {
             $DataGrid.ItemsSource = $null
             return
         }
+
+        $script:PolicyCacheResult = $Result
+        $script:PolicyCacheTimestamp = Get-Date
 
         $policies = $Result.Data
 
@@ -180,6 +186,11 @@ function global:Update-PoliciesDataGrid {
 
     # Use async for initial/refresh loads
     if ($Async) {
+        if (-not $Force -and $script:PolicyCacheResult -and $script:PolicyCacheResult.Success) {
+            & $processPoliciesData $script:PolicyCacheResult $statusFilter $textFilter $dataGrid $Window
+            return
+        }
+
         Invoke-AsyncOperation -ScriptBlock { Get-AllPolicies } -LoadingMessage 'Loading policies...' -OnComplete {
             param($Result)
             & $processPoliciesData $Result $statusFilter $textFilter $dataGrid $Window
@@ -437,7 +448,7 @@ function global:Invoke-SavePolicyChanges {
         $result = Update-Policy -Id $script:SelectedPolicyId -Name $editName -Description $editDesc -EnforcementMode $enforcement -Phase $phase -TargetGPO $targetGPO
         
         if ($result.Success) {
-            Update-PoliciesDataGrid -Window $Window
+            Update-PoliciesDataGrid -Window $Window -Force
             Update-SelectedPolicyInfo -Window $Window
             Show-Toast -Message "Policy '$editName' updated successfully." -Type 'Success'
         }
@@ -513,7 +524,7 @@ function global:Invoke-CreatePolicy {
             if ($phaseCombo) { $phaseCombo.SelectedIndex = 0 } # Reset to Phase 1
             if ($cboTargetGPO) { $cboTargetGPO.SelectedIndex = 0 } # Reset to (None)
             
-            Update-PoliciesDataGrid -Window $Window
+            Update-PoliciesDataGrid -Window $Window -Force
             Update-WorkflowBreadcrumb -Window $Window
             Show-Toast -Message "Policy '$name' created successfully (Phase $phase)." -Type 'Success'
         }
@@ -541,7 +552,7 @@ function global:Set-SelectedPolicyStatus {
         $result = Set-PolicyStatus -PolicyId $script:SelectedPolicyId -Status $Status
         
         if ($result.Success) {
-            Update-PoliciesDataGrid -Window $Window
+            Update-PoliciesDataGrid -Window $Window -Force
             Show-AppLockerMessageBox "Policy status updated to '$Status'." 'Success' 'OK' 'Information'
         }
         else {
@@ -571,7 +582,7 @@ function global:Invoke-DeleteSelectedPolicy {
         if ($result.Success) {
             $script:SelectedPolicyId = $null
             $global:GA_SelectedPolicyId = $null
-            Update-PoliciesDataGrid -Window $Window
+            Update-PoliciesDataGrid -Window $Window -Force
             Update-SelectedPolicyInfo -Window $Window
             Show-AppLockerMessageBox 'Policy deleted.' 'Deleted' 'OK' 'Information'
         }
@@ -733,7 +744,7 @@ function global:Invoke-AddRulesToPolicy {
         $result = Add-RuleToPolicy -PolicyId $script:SelectedPolicyId -RuleId $ruleIds
         
         if ($result.Success) {
-            Update-PoliciesDataGrid -Window $Window
+            Update-PoliciesDataGrid -Window $Window -Force
             Update-SelectedPolicyInfo -Window $Window
             Show-AppLockerMessageBox $result.Message 'Success' 'OK' 'Information'
         }
@@ -768,7 +779,7 @@ function global:Invoke-RemoveRulesFromPolicy {
         $result = Remove-RuleFromPolicy -PolicyId $script:SelectedPolicyId -RuleId $policy.RuleIds
         
         if ($result.Success) {
-            Update-PoliciesDataGrid -Window $Window
+            Update-PoliciesDataGrid -Window $Window -Force
             Update-SelectedPolicyInfo -Window $Window
             Show-AppLockerMessageBox $result.Message 'Success' 'OK' 'Information'
         }

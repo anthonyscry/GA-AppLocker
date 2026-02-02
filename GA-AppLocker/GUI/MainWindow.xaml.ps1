@@ -129,7 +129,7 @@ function global:Invoke-ButtonAction {
         'ViewRuleHistory' { Invoke-ViewRuleHistory -Window $win }
         # Policy panel
         'CreatePolicy' { Invoke-CreatePolicy -Window $win }
-        'RefreshPolicies' { Update-PoliciesDataGrid -Window $win -Async }
+        'RefreshPolicies' { Update-PoliciesDataGrid -Window $win -Async -Force }
         'ActivatePolicy' { Set-SelectedPolicyStatus -Window $win -Status 'Active' }
         'ArchivePolicy' { Set-SelectedPolicyStatus -Window $win -Status 'Archived' }
         'DeletePolicy' { Invoke-DeleteSelectedPolicy -Window $win }
@@ -354,8 +354,23 @@ function global:Set-ActivePanel {
 
     # Software panel: user enters machines manually (no auto-populate from AD Discovery)
     
-    # Auto-save session state on panel change
-    Save-CurrentSessionState
+    # Session state save handled on app close
+
+}
+#endregion
+
+#region ===== WINDOW LIFECYCLE =====
+function global:Handle-MainWindowClosing {
+    param($Sender, $EventArgs)
+
+    try {
+        if ($global:GA_SaveSessionStateAction) {
+            & $global:GA_SaveSessionStateAction
+        }
+    }
+    catch {
+        Write-Log -Level Warning -Message "Session save on close failed: $($_.Exception.Message)"
+    }
 }
 #endregion
 
@@ -926,15 +941,17 @@ public static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int va
         }
     } catch { }
 
-    # Restore previous session state (auto-restore silently)
+    # Register close handler for optional session save
     try {
-        $restored = Restore-PreviousSessionState -Window $Window
-        if ($restored) {
-            Write-Log -Message 'Previous session restored'
-        }
+        $global:GA_SaveSessionStateAction = { script:Save-CurrentSessionState }
+        $Window.Add_Closing({
+            param($sender, $e)
+            try { global:Handle-MainWindowClosing -Sender $sender -EventArgs $e } catch { }
+        })
+        Write-Log -Message 'Close handler registered'
     }
     catch {
-        Write-Log -Level Warning -Message "Session restore failed: $($_.Exception.Message)"
+        Write-Log -Level Warning -Message "Close handler init failed: $($_.Exception.Message)"
     }
     
     # Initialize workflow breadcrumb

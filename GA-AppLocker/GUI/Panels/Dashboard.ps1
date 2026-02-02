@@ -114,11 +114,11 @@ function global:Update-DashboardStats {
             }
         }
 
-        # Policies count
+        # Policies count (fast count, no JSON parsing)
         $statPolicies = $Window.FindName('StatPolicies')
-        $policiesResult = Get-AllPolicies
-        if ($policiesResult.Success -and $statPolicies) {
-            $statPolicies.Text = $policiesResult.Data.Count.ToString()
+        $policyCount = Get-PolicyCount
+        if ($statPolicies) {
+            $statPolicies.Text = $policyCount.ToString()
         }
 
         # Recent scans
