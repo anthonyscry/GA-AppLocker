@@ -137,12 +137,34 @@ function Get-SetupStatus {
                     }
                 }
 
+                # Get linked OUs from GPO report XML
+                $linkedOUs = @()
+                if ($gpo) {
+                    try {
+                        $xmlReport = Get-GPOReport -Guid $gpo.Id -ReportType Xml -ErrorAction SilentlyContinue
+                        if ($xmlReport) {
+                            $xmlDoc = [xml]$xmlReport
+                            $nsMgr = New-Object System.Xml.XmlNamespaceManager($xmlDoc.NameTable)
+                            $nsMgr.AddNamespace('gpo', $xmlDoc.DocumentElement.NamespaceURI)
+                            $linkNodes = $xmlDoc.SelectNodes('//gpo:LinksTo', $nsMgr)
+                            foreach ($linkNode in $linkNodes) {
+                                $somPath = $linkNode.SOMPath
+                                if ($somPath) { $linkedOUs += $somPath }
+                            }
+                        }
+                    }
+                    catch {
+                        Write-SetupLog -Message "Failed to get linked OUs for $gpoName : $($_.Exception.Message)" -Level DEBUG
+                    }
+                }
+
                 $status.AppLockerGPOs += [PSCustomObject]@{
                     Type      = $gpoType
                     Name      = $gpoName
                     Exists    = [bool]$gpo
                     GPOId     = if ($gpo) { $gpo.Id } else { $null }
                     GpoState  = $gpoStateLabel
+                    LinkedOUs = $linkedOUs
                     Status    = if ($gpo -and $gpoStateLabel) { "Configured - $gpoStateLabel" } elseif ($gpo) { 'Configured' } else { 'Not Configured' }
                 }
             }

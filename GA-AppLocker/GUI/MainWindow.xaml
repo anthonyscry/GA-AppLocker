@@ -2711,7 +2711,7 @@ Width="1450"
                                         <Border Grid.Column="0" Background="#252526" CornerRadius="6" Padding="15" Margin="0,0,10,0">
                                             <StackPanel>
                                                 <TextBlock Text="AppLocker-DC" FontWeight="SemiBold" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,5"/>
-                                                <TextBlock Text="Domain Controllers OU" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,0,0,8"/>
+                                                <TextBlock x:Name="TxtGPO_DC_OU" Text="Domain Controllers OU" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,0,0,8"/>
                                                 <TextBlock x:Name="TxtGPO_DC_Status" Text="Not Configured" Foreground="{StaticResource WarningBrush}" FontSize="11"/>
                                             </StackPanel>
                                         </Border>
@@ -2720,7 +2720,7 @@ Width="1450"
                                         <Border Grid.Column="1" Background="#252526" CornerRadius="6" Padding="15" Margin="0,0,10,0">
                                             <StackPanel>
                                                 <TextBlock Text="AppLocker-Servers" FontWeight="SemiBold" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,5"/>
-                                                <TextBlock Text="Servers OU" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,0,0,8"/>
+                                                <TextBlock x:Name="TxtGPO_Servers_OU" Text="Servers OU" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,0,0,8"/>
                                                 <TextBlock x:Name="TxtGPO_Servers_Status" Text="Not Configured" Foreground="{StaticResource WarningBrush}" FontSize="11"/>
                                             </StackPanel>
                                         </Border>
@@ -2729,7 +2729,7 @@ Width="1450"
                                         <Border Grid.Column="2" Background="#252526" CornerRadius="6" Padding="15">
                                             <StackPanel>
                                                 <TextBlock Text="AppLocker-Workstations" FontWeight="SemiBold" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,5"/>
-                                                <TextBlock Text="Computers OU" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,0,0,8"/>
+                                                <TextBlock x:Name="TxtGPO_Workstations_OU" Text="Computers OU" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,0,0,8"/>
                                                 <TextBlock x:Name="TxtGPO_Workstations_Status" Text="Not Configured" Foreground="{StaticResource WarningBrush}" FontSize="11"/>
                                             </StackPanel>
                                         </Border>

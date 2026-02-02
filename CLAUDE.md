@@ -4,7 +4,7 @@
 
 GA-AppLocker is a PowerShell 5.1 WPF application for enterprise AppLocker policy management in air-gapped, classified, or highly secure environments. Complete workflow: AD Discovery → Artifact Scanning → Rule Generation → Policy Building → GPO Deployment.
 
-**Version:** 1.2.42 | **Tests:** 1554/1554 passing (100%) | **Exported Commands:** ~194
+**Version:** 1.2.43 | **Tests:** 1548/1548 passing (100%) | **Exported Commands:** ~194
 
 ## Quick Start
 
@@ -429,6 +429,7 @@ Invoke-Pester -Path '.\Tests\Unit\' -Output Detailed 2>&1 | Select-String '\[-\]
 
 | Version | Date | Key Changes |
 |---------|------|-------------|
+| 1.2.43 | Feb 1, 2026 | Setup panel shows actual linked OU paths instead of hardcoded labels (Get-SetupStatus adds LinkedOUs via Get-GPOReport XML, Setup.ps1 populates TxtGPO_{Type}_OU TextBlocks), V1229Session.Tests.ps1 refactor (5 redundant regex tests removed, Get-PhaseCollectionTypes converted to behavioral calls via dot-sourced Policy.ps1, function-definition regex converted to Get-Command for Software.ps1 global functions) |
 | 1.2.42 | Feb 1, 2026 | Fix hash rules not created from CSV-imported artifacts (IsSigned string "False" truthy in PS 5.1, added boolean coercion + defensive check), fix Deploy Edit tab OU splitting (commas in DNs broke split regex, now newlines only), WinRM GPOs toggle settings instead of links (GpoStatus enable/disable, both stay linked, mutual exclusivity preserved), Policy/Deploy column width adjustments |
 | 1.2.41 | Feb 1, 2026 | Wire BtnClearCompletedJobs click handler (Clear button was unresponsive), GPO Link Control rewrite to use Get-SetupStatus (proven reliable) instead of direct Get-GPO calls (fixes "Not Created" false negatives), Deploy Edit tab save refreshes jobs DataGrid, Setup panel AD group badges turn green when groups exist (6 badges), Software Compare tab Export Comparison Results button (CSV with Source column), fix 7 tests for GPO Link rewrite |
 | 1.2.40 | Feb 1, 2026 | Setup GPO status shows Enabled/Disabled state (Configured - Enabled/Disabled with green/orange color), wire BtnStartDeployment click handler (Create Deployment Job button was unresponsive), GPO Link Control per-GPO error isolation (one failing Get-GPO no longer breaks all three pills, Import-Module -ErrorAction Stop with fallback), Initialize All now creates Disable-WinRM GPO (was missing from Initialize-AppLockerEnvironment), Software Inventory panel split into Scan + Compare tabs (clearer workflow, step-by-step compare guide with baseline/comparison file info) |

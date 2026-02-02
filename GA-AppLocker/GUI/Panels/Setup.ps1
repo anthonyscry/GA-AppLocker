@@ -104,6 +104,22 @@ function Update-SetupStatus {
                 }
             }
 
+            # Update GPO linked OU labels
+            foreach ($gpo in $status.Data.AppLockerGPOs) {
+                $ouLabel = $Window.FindName("TxtGPO_$($gpo.Type)_OU")
+                if ($ouLabel) {
+                    if ($gpo.LinkedOUs -and @($gpo.LinkedOUs).Count -gt 0) {
+                        $ouLabel.Text = ($gpo.LinkedOUs -join ', ')
+                    }
+                    elseif (-not $gpo.Exists) {
+                        $ouLabel.Text = 'Not Created'
+                    }
+                    else {
+                        $ouLabel.Text = 'No OU linked'
+                    }
+                }
+            }
+
             # Update AD Structure group badges (green if exists, grey if not)
             if ($status.Data.ADStructure -and $status.Data.ADStructure.Groups) {
                 $greenBg = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#1B5E20')

@@ -2,6 +2,23 @@
 
 All notable changes to GA-AppLocker will be documented in this file.
 
+## [1.2.43] - 2026-02-01
+
+### Improvements
+
+- **Setup panel shows actual linked OU paths** -- GPO cards now display the real linked OU paths (e.g., `lab.local/Member Servers`) instead of hardcoded labels like "Servers OU". `Get-SetupStatus` now adds `LinkedOUs` property via `Get-GPOReport` XML parsing, and Setup.ps1 populates `TxtGPO_{Type}_OU` TextBlocks
+- **V1229Session.Tests.ps1 refactor** -- Reduced fragile source-code regex assertions:
+  - Removed 5 redundant regex tests (ValidateRange, safety pattern checks already covered behaviorally)
+  - Converted `Get-PhaseCollectionTypes` tests from regex to behavioral calls via dot-sourced Policy.ps1
+  - Converted Software.ps1 global function existence checks from regex to `Get-Command`
+  - Added explanatory comments on remaining source-pattern tests
+
+### Stats
+
+- **Version:** 1.2.43
+- **Tests:** 1548/1548 passing (100%)
+- **Exported Commands:** ~194
+
 ## [1.2.42] - 2026-02-01
 
 ### Bug Fixes & Features
