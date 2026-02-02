@@ -2,6 +2,17 @@
 
 All notable changes to GA-AppLocker will be documented in this file.
 
+## [1.2.49] - 2026-02-02
+
+### Bug Fixes
+
+- **Software Inventory no longer auto-populates remote machines** -- Removed auto-populate from AD Discovery on panel navigation. Machine list starts blank; user enters hostnames manually or uses Scanner machine list as fallback.
+- **Admin Allow button creates Appx rule** -- Template now includes all 5 collection types (was missing Appx). Creates EXE, DLL, MSI, Script, and Appx allow-all rules for AppLocker-Admins.
+- **Dedupe no longer merges rules for different principals** -- Duplicate detection key now includes `UserOrGroupSid` and `Action`. Rules for SYSTEM, Local Service, Network Service, and Administrators with the same path/hash are NOT duplicates. Previously, dedupe treated `*` path rules for all SIDs as duplicates and removed all but one.
+- **Policy Builder phase message shows correct phase** -- When rules are excluded by phase filter, message now shows which phase includes each excluded type (e.g., "Dll: 5 rule(s) (included at Phase 5)") instead of generic "excluded by Phase 4 filter".
+- **Scanner DataGrid horizontal scrollbar** -- Artifact DataGrid now shows horizontal scrollbar when columns exceed visible width, allowing user to scroll right to see all columns.
+- **Scanner scan paths textbox restored** -- Config tab now shows the scan paths TextBox with default paths (Program Files, System32, etc.) pre-populated from config. Users can add additional paths on new lines.
+
 ## [1.2.48] - 2026-02-02
 
 ### Features

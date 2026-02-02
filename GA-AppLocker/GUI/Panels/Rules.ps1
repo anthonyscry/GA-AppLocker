@@ -1397,14 +1397,14 @@ function global:Invoke-AddDenyBrowserRules {
 function global:Invoke-AddAdminAllowRules {
     <#
     .SYNOPSIS
-        Creates allow-all path rules for AppLocker-Admins across all 4 collection types.
+        Creates allow-all path rules for AppLocker-Admins across all 5 collection types.
     .DESCRIPTION
-        Uses the AppLocker-Admins Default (Allow All) template to create 4 allow-all
-        path rules (EXE, DLL, MSI, Script) so admins can run anything.
+        Uses the AppLocker-Admins Default (Allow All) template to create 5 allow-all
+        path rules (EXE, DLL, MSI, Script, Appx) so admins can run anything.
     #>
     param($Window)
 
-    $confirm = Show-AppLockerMessageBox "This will create Allow-All rules for AppLocker-Admins:`n`n  - Allow All EXE`n  - Allow All DLL`n  - Allow All MSI`n  - Allow All Scripts`n`nStatus: Approved | Action: Allow | Target: AppLocker-Admins`n`nDo you want to continue?" 'Create Admin Allow Rules' 'YesNo' 'Question'
+    $confirm = Show-AppLockerMessageBox "This will create Allow-All rules for AppLocker-Admins:`n`n  - Allow All EXE`n  - Allow All DLL`n  - Allow All MSI`n  - Allow All Scripts`n  - Allow All Appx`n`nStatus: Approved | Action: Allow | Target: AppLocker-Admins`n`nDo you want to continue?" 'Create Admin Allow Rules' 'YesNo' 'Question'
     
 
     if ($confirm -ne 'Yes') { return }

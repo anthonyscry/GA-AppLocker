@@ -344,19 +344,7 @@ function global:Set-ActivePanel {
         try { Update-SetupStatus -Window $Window } catch { }
     }
 
-    # Auto-populate Software remote machines from AD Discovery (online + WinRM)
-    if ($PanelName -eq 'PanelSoftware') {
-        $machineBox = $Window.FindName('TxtSoftwareRemoteMachines')
-        if ($machineBox -and [string]::IsNullOrWhiteSpace($machineBox.Text)) {
-            $winrmMachines = @($script:DiscoveredMachines | Where-Object {
-                $_.IsOnline -eq $true -and $_.WinRMStatus -eq 'Available'
-            } | ForEach-Object { $_.Hostname })
-            if ($winrmMachines.Count -gt 0) {
-                $machineBox.Text = $winrmMachines -join "`n"
-                Write-Log -Message "Software panel: auto-populated $($winrmMachines.Count) online+WinRM machines from AD Discovery"
-            }
-        }
-    }
+    # Software panel: user enters machines manually (no auto-populate from AD Discovery)
     
     # Auto-save session state on panel change
     Save-CurrentSessionState

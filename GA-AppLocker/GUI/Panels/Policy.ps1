@@ -691,15 +691,28 @@ function global:Invoke-AddRulesToPolicy {
         $_.Status -eq 'Approved' -and $_.Id -notin $currentRuleIds -and $_.CollectionType -in $allowedCollections
     }
 
-    # Also count how many approved rules were excluded by the phase filter
-    $excludedByPhase = @($rulesResult.Data | Where-Object {
+    # Also count how many approved rules were excluded by the phase filter, grouped by type
+    $excludedRules = @($rulesResult.Data | Where-Object {
         $_.Status -eq 'Approved' -and $_.Id -notin $currentRuleIds -and $_.CollectionType -notin $allowedCollections
-    }).Count
+    })
+    $excludedByPhase = $excludedRules.Count
+
+    # Build a helper that maps excluded collection types to which phase includes them
+    $phaseMap = @{ 'Exe' = 1; 'Script' = 2; 'Msi' = 3; 'Appx' = 4; 'Dll' = 5 }
+    $excludedDetail = ''
+    if ($excludedByPhase -gt 0) {
+        $excludedGroups = $excludedRules | Group-Object CollectionType
+        $details = foreach ($g in $excludedGroups) {
+            $includedAtPhase = $phaseMap[$g.Name]
+            "$($g.Name): $($g.Count) rule(s) (included at Phase $includedAtPhase)"
+        }
+        $excludedDetail = $details -join "`n"
+    }
 
     if ($availableRules.Count -eq 0) {
         $msg = 'No approved rules available to add.'
         if ($excludedByPhase -gt 0) {
-            $msg += "`n`n$excludedByPhase rule(s) excluded by Phase $phase filter.`nAllowed types: $($allowedCollections -join ', ')"
+            $msg += "`n`n$excludedByPhase rule(s) excluded by Phase $phase filter:`n$excludedDetail"
         }
         Show-AppLockerMessageBox $msg 'No Rules' 'OK' 'Information'
         return
@@ -709,7 +722,7 @@ function global:Invoke-AddRulesToPolicy {
     $breakdown = $availableRules | Group-Object CollectionType | ForEach-Object { "$($_.Name): $($_.Count)" }
     $confirmMsg = "Add $($availableRules.Count) approved rule(s) to this policy?`n`nPhase $phase collections: $($allowedCollections -join ', ')`n`nBreakdown:`n$($breakdown -join "`n")"
     if ($excludedByPhase -gt 0) {
-        $confirmMsg += "`n`n($excludedByPhase rule(s) excluded - not in Phase $phase)"
+        $confirmMsg += "`n`nExcluded from Phase ${phase}:`n$excludedDetail"
     }
 
     $confirm = Show-AppLockerMessageBox $confirmMsg 'Add Rules' 'YesNo' 'Question'

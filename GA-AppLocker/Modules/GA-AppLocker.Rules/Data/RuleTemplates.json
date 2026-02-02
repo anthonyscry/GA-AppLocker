@@ -483,7 +483,7 @@
   },
 
   "AppLocker-Admins Default (Allow All)": {
-    "Description": "Default allow-all rules for AppLocker-Admins group across all 4 collection types (EXE, DLL, MSI, Script). Admins can run anything.",
+    "Description": "Default allow-all rules for AppLocker-Admins group across all 5 collection types (EXE, DLL, MSI, Script, Appx). Admins can run anything.",
     "Category": "Baseline",
     "Rules": [
       {
@@ -517,6 +517,14 @@
         "Action": "Allow",
         "UserOrGroup": "RESOLVE:AppLocker-Admins",
         "CollectionType": "Script"
+      },
+      {
+        "Name": "AppLocker-Admins - Allow All Appx",
+        "Type": "Path",
+        "Path": "*",
+        "Action": "Allow",
+        "UserOrGroup": "RESOLVE:AppLocker-Admins",
+        "CollectionType": "Appx"
       }
     ]
   },

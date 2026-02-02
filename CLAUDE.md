@@ -4,7 +4,7 @@
 
 GA-AppLocker is a PowerShell 5.1 WPF application for enterprise AppLocker policy management in air-gapped, classified, or highly secure environments. Complete workflow: AD Discovery → Artifact Scanning → Rule Generation → Policy Building → GPO Deployment.
 
-**Version:** 1.2.48 | **Tests:** 1282/1282 passing (100%) | **Exported Commands:** ~194
+**Version:** 1.2.49 | **Tests:** 1282/1282 passing (100%) | **Exported Commands:** ~194
 
 ## Quick Start
 
@@ -429,6 +429,7 @@ Invoke-Pester -Path '.\Tests\Unit\' -Output Detailed 2>&1 | Select-String '\[-\]
 
 | Version | Date | Key Changes |
 |---------|------|-------------|
+| 1.2.49 | Feb 2, 2026 | Fix 6 bugs: (1) Software Inventory no longer auto-populates remote machines from AD Discovery, (2) Admin Allow button now creates Appx rule (5 types, was 4), (3) Dedupe no longer merges rules for different principals/actions (key includes UserOrGroupSid+Action), (4) Policy Builder excluded-rules message shows which phase includes each type (e.g., "Dll: 5 rules (included at Phase 5)"), (5) Scanner DataGrid horizontal scrollbar, (6) Scanner Config tab scan paths textbox restored |
 | 1.2.48 | Feb 2, 2026 | Service Allow button on Rules panel -- creates 20 mandatory baseline allow-all path rules (SYSTEM S-1-5-18, Local Service S-1-5-19, Network Service S-1-5-20, BUILTIN\Administrators S-1-5-32-544) across all 5 collection types (Exe, Dll, Msi, Script, Appx), Status Approved, Path *. Button order reordered: Service Allow, Admin Allow, Deny Paths, Deny Browsers, Dedupe, Delete |
 | 1.2.47 | Feb 1, 2026 | Performance: Save-JsonIndex rewrite (StringBuilder manual JSON serialization replaces ConvertTo-Json, 10-50x faster for 3000+ rule indexes), Remove-DuplicateRules uses Remove-RulesBulk instead of manual per-file deletion loop, ConvertTo-Json depth reduced from 10 to 5 across Storage module (flat PSCustomObjects don't need deep serialization) |
 | 1.2.46 | Feb 1, 2026 | Remove Deploy Edit tab entirely (Deploy panel now 3 tabs: Create, Actions, GPO Status), Deploy XML import preserves Approved status (-Status 'Approved' on Import-RulesFromXml), Policy Create description box height aligned with Edit tab, major test cleanup: V1229Session.Tests.ps1 rewritten behavioral-only (1489->670 lines, ~350->63 tests), V1228Regression.Tests.ps1 deleted (behavioral tests merged into V1229), removed ~266 fragile regex pattern-matching tests (test count 1548->1282, zero lost behavioral coverage) |

@@ -142,7 +142,7 @@ function Remove-DuplicateRules {
             switch ($rule.RuleType) {
                 'Hash' {
                     if ($RuleType -eq 'Hash' -or $RuleType -eq 'All') {
-                        $key = "$($rule.Hash)_$($rule.CollectionType)".ToLower()
+                        $key = "$($rule.Hash)_$($rule.CollectionType)_$($rule.UserOrGroupSid)_$($rule.Action)".ToLower()
                         if (-not $hashGroups.ContainsKey($key)) {
                             $hashGroups[$key] = [System.Collections.Generic.List[PSCustomObject]]::new()
                         }
@@ -151,7 +151,7 @@ function Remove-DuplicateRules {
                 }
                 'Publisher' {
                     if ($RuleType -eq 'Publisher' -or $RuleType -eq 'All') {
-                        $key = "$($rule.PublisherName)_$($rule.ProductName)_$($rule.CollectionType)".ToLower()
+                        $key = "$($rule.PublisherName)_$($rule.ProductName)_$($rule.CollectionType)_$($rule.UserOrGroupSid)_$($rule.Action)".ToLower()
                         if (-not $pubGroups.ContainsKey($key)) {
                             $pubGroups[$key] = [System.Collections.Generic.List[PSCustomObject]]::new()
                         }
@@ -160,7 +160,7 @@ function Remove-DuplicateRules {
                 }
                 'Path' {
                     if ($RuleType -eq 'Path' -or $RuleType -eq 'All') {
-                        $key = "$($rule.Path)_$($rule.CollectionType)".ToLower()
+                        $key = "$($rule.Path)_$($rule.CollectionType)_$($rule.UserOrGroupSid)_$($rule.Action)".ToLower()
                         if (-not $pathGroups.ContainsKey($key)) {
                             $pathGroups[$key] = [System.Collections.Generic.List[PSCustomObject]]::new()
                         }
@@ -399,7 +399,7 @@ function Find-DuplicateRules {
 
         if ($RuleType -eq 'Hash' -or $RuleType -eq 'All') {
             $hashRules = $allRules | Where-Object { $_.RuleType -eq 'Hash' }
-            $hashGroups = $hashRules | Group-Object { "$($_.Hash)_$($_.CollectionType)" } | Where-Object { $_.Count -gt 1 }
+            $hashGroups = $hashRules | Group-Object { "$($_.Hash)_$($_.CollectionType)_$($_.UserOrGroupSid)_$($_.Action)" } | Where-Object { $_.Count -gt 1 }
             
             foreach ($group in $hashGroups) {
                 $result.HashDuplicates += ($group.Count - 1)  # -1 because one will be kept
@@ -414,7 +414,7 @@ function Find-DuplicateRules {
 
         if ($RuleType -eq 'Publisher' -or $RuleType -eq 'All') {
             $pubRules = $allRules | Where-Object { $_.RuleType -eq 'Publisher' }
-            $pubGroups = $pubRules | Group-Object { "$($_.PublisherName)_$($_.ProductName)_$($_.CollectionType)" } | Where-Object { $_.Count -gt 1 }
+            $pubGroups = $pubRules | Group-Object { "$($_.PublisherName)_$($_.ProductName)_$($_.CollectionType)_$($_.UserOrGroupSid)_$($_.Action)" } | Where-Object { $_.Count -gt 1 }
             
             foreach ($group in $pubGroups) {
                 $result.PublisherDuplicates += ($group.Count - 1)
@@ -429,7 +429,7 @@ function Find-DuplicateRules {
 
         if ($RuleType -eq 'Path' -or $RuleType -eq 'All') {
             $pathRules = $allRules | Where-Object { $_.RuleType -eq 'Path' }
-            $pathGroups = $pathRules | Group-Object { "$($_.Path)_$($_.CollectionType)" } | Where-Object { $_.Count -gt 1 }
+            $pathGroups = $pathRules | Group-Object { "$($_.Path)_$($_.CollectionType)_$($_.UserOrGroupSid)_$($_.Action)" } | Where-Object { $_.Count -gt 1 }
             
             foreach ($group in $pathGroups) {
                 $result.PathDuplicates += ($group.Count - 1)
