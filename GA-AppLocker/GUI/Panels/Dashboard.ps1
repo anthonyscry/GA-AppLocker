@@ -40,25 +40,39 @@ function Initialize-DashboardPanel {
                 param($sender, $e)
                 if ($sender -and -not $sender.IsEnabled) { return }
                 Invoke-ButtonAction -Action $sender.Tag
-                try { global:Update-DashboardGpoToggles -Window $global:GA_MainWindow } catch { }
+                try { Invoke-DashboardGpoRefresh -Window $global:GA_MainWindow } catch { }
             }.GetNewClosure())
         }
     }
 
-    # Load dashboard data
-    Update-DashboardStats -Window $Window
+    # Load dashboard data (defer to allow initial render)
+    try {
+        $Window.Dispatcher.BeginInvoke(
+            [System.Windows.Threading.DispatcherPriority]::Background,
+            [Action]{ Update-DashboardStats -Window $global:GA_MainWindow }
+        )
+    } catch { Update-DashboardStats -Window $Window }
     try { Update-ModuleStatus -Window $Window } catch { }
-    try { Update-DashboardGpoToggles -Window $Window } catch { }
+    try { Invoke-DashboardGpoRefresh -Window $Window } catch { }
 }
 
 function global:Update-DashboardGpoToggles {
-    param($Window)
+    param(
+        $Window,
+        $Status
+    )
 
     $win = if ($Window) { $Window } else { $global:GA_MainWindow }
     if (-not $win) { return }
 
+    $hasStatus = $PSBoundParameters.ContainsKey('Status')
     $status = $null
-    try { $status = Get-SetupStatus } catch { }
+    if ($hasStatus) {
+        $status = $Status
+    }
+    else {
+        try { $status = Get-SetupStatus } catch { }
+    }
     $hasGP = Get-Module -ListAvailable -Name GroupPolicy
 
     $toggleEnable = $win.FindName('BtnDashToggleEnableWinRM')
@@ -106,6 +120,28 @@ function global:Update-DashboardGpoToggles {
                 }
             }
         }
+    }
+}
+
+function global:Invoke-DashboardGpoRefresh {
+    param($Window)
+
+    $win = if ($Window) { $Window } else { $global:GA_MainWindow }
+    if (-not $win) { return }
+
+    Invoke-AsyncOperation -ScriptBlock {
+        Get-SetupStatus
+    } -NoLoadingOverlay -OnComplete {
+        param($Result)
+        Invoke-UIUpdate {
+            Update-DashboardGpoToggles -Window $win -Status $Result
+        }
+    } -OnError {
+        param($ErrorMessage)
+        Invoke-UIUpdate {
+            Update-DashboardGpoToggles -Window $win -Status $null
+        }
+        try { Write-Log -Level Warning -Message "Dashboard GPO status refresh failed: $ErrorMessage" } catch { }
     }
 }
 

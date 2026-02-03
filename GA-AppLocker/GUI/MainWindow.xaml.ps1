@@ -328,6 +328,7 @@ function global:Set-ActivePanel {
     # Auto-refresh Dashboard stats on navigation
     if ($PanelName -eq 'PanelDashboard') {
         try { Update-DashboardStats -Window $Window } catch { }
+        try { Invoke-DashboardGpoRefresh -Window $Window } catch { }
     }
 
     # Auto-refresh Policy grid on navigation
