@@ -2,6 +2,35 @@
 
 All notable changes to GA-AppLocker will be documented in this file.
 
+## [1.2.60] - 2026-02-03
+
+### Fixed
+- **Bug 1: WinRM button label now stays constant**
+  - Dashboard "Enable WinRM" button label no longer changes to "Disable WinRM" when toggled
+  - Toggle state (IsChecked) indicates status, label stays "Enable WinRM" for clarity
+  - File: `GA-AppLocker\GUI\Panels\Dashboard.ps1` line 103
+
+- **Bug 2: AD Discovery DataGrid auto-refreshes after connectivity test**
+  - After "Test Connectivity" completes, DataGrid now automatically updates
+  - No longer requires manual "Refresh" button click to see updated WinRM status
+  - Added `$dataGrid.Items.Refresh()` call after connectivity test
+  - File: `GA-AppLocker\GUI\Panels\ADDiscovery.ps1` lines 717-724
+
+- **Bug 3: Rules panel bulk buttons no longer crash**
+  - Fixed "The term 'Write-StorageLog' is not recognized" error
+  - Fixed "The term 'Initialize-JsonIndex' is not recognized" error
+  - Removed `script:` scope prefix from internal Storage module functions
+  - Functions now accessible to all dot-sourced files within the module
+  - Files: `GA-AppLocker\Modules\GA-AppLocker.Storage\GA-AppLocker.Storage.psm1` line 16, `GA-AppLocker\Modules\GA-AppLocker.Storage\Functions\RuleStorage.ps1` line 73
+
+### Added
+- **Behavioral tests for v1.2.60 bug fixes** (10 tests, all passing)
+  - `Tests/Behavioral/GUI/Dashboard.WinRMButton.Tests.ps1` - Verify button label consistency
+  - `Tests/Behavioral/GUI/ADDiscovery.AutoRefresh.Tests.ps1` - Verify auto-refresh behavior
+  - `Tests/Behavioral/GUI/RulesPanel.BulkButtons.Tests.ps1` - Verify Storage module scope fix
+
+---
+
 ## [1.2.59] - 2026-02-03
 
 ### Added

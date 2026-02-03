@@ -1,4 +1,4 @@
-# GA-AppLocker v1.2.59
+# GA-AppLocker v1.2.60
 
 Enterprise AppLocker policy management for air-gapped, classified, and highly secure Windows environments. Complete workflow from AD discovery through GPO deployment — no internet required.
 
@@ -143,6 +143,7 @@ All data stored locally in `%LOCALAPPDATA%\GA-AppLocker\`:
 
 | Version | Date | Key Changes |
 |---------|------|-------------|
+| 1.2.60 | Feb 3, 2026 | Fix 3 critical bugs from user testing: (1) WinRM button label now stays "Enable WinRM" (toggle state shows status), (2) AD Discovery DataGrid auto-refreshes after connectivity test (no manual refresh needed), (3) Rules panel bulk buttons no longer crash (Initialize-JsonIndex and Write-StorageLog scope fix). Added 10 behavioral tests. |
 | 1.2.59 | Feb 3, 2026 | AD Discovery panel UI improvements: Added "Selected: N" count label (updates in real-time), added "Refresh" button, standardized filter textbox height (Padding="6,4" FontSize="11"), changed "Filter:" to "Search:" for consistency with other panels. |
 | 1.2.58 | Feb 3, 2026 | Fix 3 bugs: (1) Test Connectivity now correctly tests only selected machines (Get-CheckedMachines .ToArray() fix for PS 5.1 List<T> enumeration), (2) Dashboard GPO toggles enable after Initialize All (window ref fix), (3) Local scan blocks when not elevated (clearer UX). Added Run-Dashboard-ForceFresh.ps1 for module cache clearing. |
 | 1.2.57 | Feb 3, 2026 | Superseded by v1.2.58 due to PowerShell module caching issues (served v1.2.55 from cache despite v1.2.57 on disk). |
