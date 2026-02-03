@@ -161,22 +161,14 @@ function Start-AppLockerDashboard {
 
         Write-AppLockerLog -Message 'Main window loaded successfully'
 
-        # Force software rendering on servers/RDP (hardware acceleration often fails on DCs)
+        # Force software rendering ALWAYS (hardware acceleration fails on DCs/RDP)
         # This fixes the "must resize to refresh" issue on Domain Controllers
         try {
-            $isRdp = [System.Windows.Forms.SystemInformation]::TerminalServerSession
-            # Check for Server OS (ProductType 2=DC, 3=Server; Workstation=1)
-            $osProductType = (Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\ProductOptions' -ErrorAction SilentlyContinue).ProductType
-            $isServerOs = $osProductType -in @('LanmanNT', 'ServerNT')
-            
-            if ($isRdp -or $isServerOs) {
-                # Force software-only rendering -- hardware acceleration unreliable on servers/RDP
-                [System.Windows.Media.RenderOptions]::ProcessRenderMode = [System.Windows.Interop.RenderMode]::SoftwareOnly
-                Write-AppLockerLog -Message "Software rendering enabled (RDP=$isRdp, ServerOS=$isServerOs)"
-            }
+            [System.Windows.Media.RenderOptions]::ProcessRenderMode = [System.Windows.Interop.RenderMode]::SoftwareOnly
+            Write-AppLockerLog -Message "Software rendering FORCED (unconditional)"
         }
         catch {
-            Write-AppLockerLog -Level DEBUG -Message "Render mode detection failed: $($_.Exception.Message)"
+            Write-AppLockerLog -Level WARNING -Message "Failed to set software rendering: $($_.Exception.Message)"
         }
 
         # Initialize window (wire up navigation, panels, etc.)
@@ -257,15 +249,25 @@ function Start-AppLockerDashboard {
                 )
             } catch { }
             
-            # RDP fix: delayed second render pass (RDP channel may not be ready on first pass)
+            # RDP fix: programmatic resize hack (simulates manual resize that fixes rendering)
+            # This is the nuclear option - actually resize the window which forces full re-layout
             try {
                 $rdpTimer = [System.Windows.Threading.DispatcherTimer]::new()
-                $rdpTimer.Interval = [TimeSpan]::FromMilliseconds(200)
+                $rdpTimer.Interval = [TimeSpan]::FromMilliseconds(300)
                 $rdpTimer.Add_Tick({
                     param($s, $e)
                     $s.Stop()
                     try {
-                        $global:GA_MainWindow.InvalidateVisual()
+                        # Store original size
+                        $w = $global:GA_MainWindow.Width
+                        $h = $global:GA_MainWindow.Height
+                        # Resize by 1px (triggers full layout recalc)
+                        $global:GA_MainWindow.Width = $w + 1
+                        $global:GA_MainWindow.Height = $h + 1
+                        $global:GA_MainWindow.UpdateLayout()
+                        # Restore original size
+                        $global:GA_MainWindow.Width = $w
+                        $global:GA_MainWindow.Height = $h
                         $global:GA_MainWindow.UpdateLayout()
                     } catch { }
                 })
@@ -273,11 +275,13 @@ function Start-AppLockerDashboard {
             } catch { }
         })
 
-        # ContentRendered event - fires after window content is fully rendered
-        # Third line of defense for RDP rendering issues
+        # ContentRendered event - second resize hack as backup
         $window.add_ContentRendered({
             try {
-                $global:GA_MainWindow.InvalidateVisual()
+                $w = $global:GA_MainWindow.Width
+                $global:GA_MainWindow.Width = $w + 1
+                $global:GA_MainWindow.UpdateLayout()
+                $global:GA_MainWindow.Width = $w
                 $global:GA_MainWindow.UpdateLayout()
             } catch { }
         })
