@@ -40,8 +40,7 @@ function Initialize-RulesPanel {
         if ($btn -and $btn.Tag) {
             $btn.Add_Click({
                     param($sender, $e)
-                    # Explicitly use global: scope to ensure function is found
-                    & (Get-Command -Name 'Invoke-ButtonAction' -CommandType Function) -Action $sender.Tag
+                    Invoke-ButtonAction -Action $sender.Tag
                 }.GetNewClosure())
         }
     }
