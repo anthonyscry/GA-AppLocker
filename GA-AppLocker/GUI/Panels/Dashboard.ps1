@@ -60,13 +60,12 @@ function global:Update-DashboardGpoToggles {
     $win = if ($Window) { $Window } else { $global:GA_MainWindow }
     if (-not $win) { return }
 
-    $hasStatus = $PSBoundParameters.ContainsKey('Status')
-    $status = $null
-    if ($hasStatus) {
-        $status = $Status
+    # Simplified parameter handling - avoid intermediate null assignment that causes scope issues
+    if ($null -eq $Status) {
+        try { $status = Get-SetupStatus } catch { $status = $null }
     }
     else {
-        try { $status = Get-SetupStatus } catch { }
+        $status = $Status
     }
     $hasGP = Get-Module -ListAvailable -Name GroupPolicy
 

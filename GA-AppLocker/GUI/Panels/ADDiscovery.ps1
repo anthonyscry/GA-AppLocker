@@ -648,7 +648,8 @@ function global:Invoke-ConnectivityTest {
     if ($machineCount) { $machineCount.Text = 'Testing connectivity...' }
 
     # Use selected machines if any are selected; otherwise fall back to all discovered machines
-    $checkedMachines = Get-CheckedMachines -Window $win
+    # Wrap in @() to ensure array context is preserved (PS pipeline can lose array wrapper)
+    $checkedMachines = @(Get-CheckedMachines -Window $win)
     try { Write-AppLockerLog -Message "Invoke-ConnectivityTest: Get-CheckedMachines returned $($checkedMachines.Count) machines" -Level DEBUG -NoConsole } catch { }
 
     if ($checkedMachines.Count -gt 0) {

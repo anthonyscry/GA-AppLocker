@@ -295,6 +295,18 @@ function global:Invoke-StartArtifactScan {
         return
     }
 
+    # Check elevation for local scans (required to access C:\Program Files, C:\Windows\System32)
+    if ($scanLocal) {
+        $isElevated = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+        if (-not $isElevated) {
+            $result = Show-AppLockerMessageBox "Local scans require Administrator privileges to access system directories (Program Files, Windows).`n`nPlease restart the application as Administrator for full system scanning.`n`nContinue anyway? (Only user-accessible paths will be scanned)" "Elevation Required" "YesNo" "Warning"
+            if ($result -eq 'No') {
+                return
+            }
+            Write-Log -Level Warning -Message "Local scan started without elevation - system directories may be inaccessible"
+        }
+    }
+
     if ($scanRemote -and (-not $script:SelectedScanMachines -or $script:SelectedScanMachines.Count -eq 0)) {
         Show-AppLockerMessageBox "Remote scan selected but no machines have been added.`n`nTo add machines:`n1. Go to AD Discovery panel`n2. Select machines from the OU tree`n3. Click 'Add to Scanner'`n`nOr uncheck 'Remote' and use 'Local' scan only." 'No Machines Selected' 'OK' 'Warning'
         return
