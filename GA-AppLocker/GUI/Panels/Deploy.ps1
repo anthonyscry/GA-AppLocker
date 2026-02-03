@@ -55,25 +55,14 @@ function Initialize-DeploymentPanel {
     # Load policies into combo box
     global:Refresh-DeployPolicyCombo -Window $Window
 
-    # Wire up GPO dropdown to show/hide custom textbox
-    $gpoCombo = $Window.FindName('CboDeployTargetGPO')
-    $customGpoBox = $Window.FindName('TxtDeployCustomGPO')
-    if ($gpoCombo -and $customGpoBox) {
-        $gpoCombo.Add_SelectionChanged({
-                param($sender, $e)
-                $selectedItem = $sender.SelectedItem
-                $customBox = $global:GA_MainWindow.FindName('TxtDeployCustomGPO')
-                if ($customBox) {
-                    if ($selectedItem -and $selectedItem.Tag -eq 'Custom') {
-                        $customBox.Visibility = 'Visible'
-                    }
-                    else {
-                        $customBox.Visibility = 'Collapsed'
-                    }
-                }
-            })
+    # Target GPO is defined on the policy (no deploy-time selection)
+    $policyCombo = $Window.FindName('CboDeployPolicy')
+    if ($policyCombo) {
+        $policyCombo.Add_SelectionChanged({
+            try { global:Update-DeployTargetGpoHint -Window $global:GA_MainWindow } catch { }
+        })
     }
-
+    try { global:Update-DeployTargetGpoHint -Window $Window } catch { }
 
 
     # Check module status
@@ -157,6 +146,7 @@ function global:Refresh-DeployPolicyCombo {
         }
 
         Write-Log -Message "Refresh-DeployPolicyCombo: Loaded $($deployable.Count) policies into dropdown"
+        try { global:Update-DeployTargetGpoHint -Window $Window } catch { }
     }
     catch {
         Write-Log -Message "Refresh-DeployPolicyCombo: Exception - $($_.Exception.Message)" -Level 'Error'
@@ -221,6 +211,9 @@ function global:Update-DeploymentJobsDataGrid {
         
         # Update counters
         Update-JobCounters -Window $Window -Jobs $Result.Data
+
+        $refresh = $Window.FindName('TxtDeployLastRefresh')
+        if ($refresh) { $refresh.Text = "Updated $(Get-Date -Format 'HH:mm:ss')" }
     }
 
     # Use async for initial/refresh loads
@@ -336,42 +329,49 @@ function global:Update-SelectedJobInfo {
 
 }
 
+function global:Update-DeployTargetGpoHint {
+    param($Window)
+
+    $win = if ($Window) { $Window } else { $global:GA_MainWindow }
+    if (-not $win) { return }
+
+    $policyCombo = $win.FindName('CboDeployPolicy')
+    $warning = $win.FindName('TxtDeployTargetGpoWarning')
+    $btnSet = $win.FindName('BtnSetTargetGpo')
+    if (-not $policyCombo) { return }
+
+    $selectedPolicy = if ($policyCombo.SelectedItem) { $policyCombo.SelectedItem.Tag } else { $null }
+    if ($selectedPolicy) { $global:GA_DeploySelectedPolicyId = $selectedPolicy.PolicyId }
+
+    $hasTarget = $false
+    if ($selectedPolicy -and -not [string]::IsNullOrWhiteSpace($selectedPolicy.TargetGPO)) { $hasTarget = $true }
+
+    if ($warning) { $warning.Visibility = if ($hasTarget) { 'Collapsed' } else { 'Visible' } }
+    if ($btnSet) { $btnSet.Visibility = if ($hasTarget) { 'Collapsed' } else { 'Visible' } }
+}
+
 function global:Invoke-CreateDeploymentJob {
     param($Window)
 
     $policyCombo = $Window.FindName('CboDeployPolicy')
-    $gpoCombo = $Window.FindName('CboDeployTargetGPO')
-    $customGpoBox = $Window.FindName('TxtDeployCustomGPO')
 
     if (-not $policyCombo.SelectedItem) {
         Show-AppLockerMessageBox 'Please select a policy to deploy.' 'Missing Policy' 'OK' 'Warning'
         return
     }
 
-    # Get GPO name from dropdown or custom textbox
-    $selectedGpo = $gpoCombo.SelectedItem
-    $gpoName = if ($selectedGpo -and $selectedGpo.Tag -eq 'Custom') {
-        $customGpoBox.Text
-    }
-    elseif ($selectedGpo) {
-        $selectedGpo.Tag
-    }
-    else {
-        $null
-    }
+    $policy = $policyCombo.SelectedItem.Tag
+    $gpoName = if ($policy -and $policy.TargetGPO) { $policy.TargetGPO } else { '' }
 
     if ([string]::IsNullOrWhiteSpace($gpoName)) {
-        Show-AppLockerMessageBox 'Please select or enter a target GPO name.' 'Missing GPO' 'OK' 'Warning'
+        Show-AppLockerMessageBox "Selected policy has no Target GPO.`n`nSet Target GPO on the Policy Create/Edit tab, then try again." 'Missing GPO' 'OK' 'Warning'
         return
     }
 
     try {
-        $policy = $policyCombo.SelectedItem.Tag
         $result = New-DeploymentJob -PolicyId $policy.PolicyId -GPOName $gpoName -Schedule 'Manual'
 
         if ($result.Success) {
-            # Reset custom GPO box if used
-            if ($customGpoBox) { $customGpoBox.Text = '' }
             Update-DeploymentJobsDataGrid -Window $Window
             Show-AppLockerMessageBox "Deployment job created for policy '$($policy.Name)'.`nTarget GPO: $gpoName" 'Success' 'OK' 'Information'
         }
@@ -407,6 +407,11 @@ function global:Invoke-DeploySelectedJob {
     $script:DeploymentCancelled = $false
     Update-DeploymentUIState -Window $Window -Deploying $true
     Update-DeploymentProgress -Window $Window -Text 'Initializing deployment...' -Percent 5
+    $script:DeployJobsLastRefresh = (Get-Date).AddSeconds(-5)
+    if ($script:CurrentDeploymentFilter -ne 'Running') {
+        $script:DeployPrevFilter = $script:CurrentDeploymentFilter
+        Update-DeploymentFilter -Window $Window -Filter 'Running'
+    }
 
     # Create synchronized hashtable for cross-thread communication
     $script:DeploySyncHash = [hashtable]::Synchronized(@{
@@ -481,6 +486,13 @@ function global:Invoke-DeploySelectedJob {
         $syncHash = $script:DeploySyncHash
         $win = $syncHash.Window
 
+        # Refresh deployment jobs periodically to show Running state
+        $now = Get-Date
+        if (-not $script:DeployJobsLastRefresh -or ((New-TimeSpan -Start $script:DeployJobsLastRefresh -End $now).TotalSeconds -ge 1)) {
+            $script:DeployJobsLastRefresh = $now
+            Update-DeploymentJobsDataGrid -Window $win
+        }
+
         # Update progress
         Update-DeploymentProgress -Window $win -Text $syncHash.StatusText -Percent $syncHash.Progress
 
@@ -527,6 +539,10 @@ function global:Invoke-DeploySelectedJob {
             $global:GA_DeploymentInProgress = $false
             Update-DeploymentUIState -Window $win -Deploying $false
             Update-DeploymentJobsDataGrid -Window $win
+            if ($script:DeployPrevFilter -and $script:CurrentDeploymentFilter -eq 'Running') {
+                Update-DeploymentFilter -Window $win -Filter $script:DeployPrevFilter
+            }
+            $script:DeployPrevFilter = $null
 
             if ($syncHash.Error) {
                 Update-DeploymentProgress -Window $win -Text "Error: $($syncHash.Error)" -Percent 0
@@ -656,13 +672,10 @@ function global:Invoke-BackupGpoPolicy {
     #>
     param($Window)
 
-    # Ask which GPO to backup from
-    $gpoCombo = $Window.FindName('CboDeployTargetGPO')
-    $gpoName = if ($gpoCombo -and $gpoCombo.SelectedItem -and $gpoCombo.SelectedItem.Tag -ne 'Custom') {
-        $gpoCombo.SelectedItem.Tag
-    } else {
-        'AppLocker-Servers'
-    }
+    # Use policy target GPO when possible; fall back to AppLocker-Servers
+    $policyCombo = $Window.FindName('CboDeployPolicy')
+    $selectedPolicy = if ($policyCombo -and $policyCombo.SelectedItem) { $policyCombo.SelectedItem.Tag } else { $null }
+    $gpoName = if ($selectedPolicy -and $selectedPolicy.TargetGPO) { $selectedPolicy.TargetGPO } else { 'AppLocker-Servers' }
 
     $confirm = Show-AppLockerMessageBox "Backup current AppLocker policy from GPO '$gpoName'?`n`nThis will use Get-AppLockerPolicy to export the`neffective policy to an XML backup file." 'Backup GPO Policy' 'YesNo' 'Question'
     

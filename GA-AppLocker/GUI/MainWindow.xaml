@@ -31,6 +31,32 @@ Width="1450"
         <SolidColorBrush x:Key="RejectedBrush" Color="#D13438"/>
         <SolidColorBrush x:Key="PurpleBrush" Color="#8764B8"/>
 
+        <!-- Toggle Switch Style (Dashboard toggles) -->
+        <Style x:Key="ToggleSwitchStyle" TargetType="ToggleButton">
+            <Setter Property="Width" Value="46"/>
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Grid Width="46" Height="24">
+                            <Border x:Name="SwitchTrack" CornerRadius="12" Background="#666666"/>
+                            <Ellipse x:Name="SwitchThumb" Width="20" Height="20" Fill="White" Margin="2" HorizontalAlignment="Left"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="SwitchTrack" Property="Background" Value="#4CAF50"/>
+                                <Setter TargetName="SwitchThumb" Property="HorizontalAlignment" Value="Right"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Navigation Button Style -->
         <Style x:Key="NavButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
@@ -810,84 +836,145 @@ Width="1450"
                             </Grid>
                         </Border>
                         
-                        <!-- Column 3: Quick Actions + Activity -->
-                        <!-- Getting Started -->
-                        <Border Grid.Column="4" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="15">
-                            <StackPanel>
-                                <TextBlock Text="GETTING STARTED" FontSize="11" FontWeight="SemiBold" 
-                                           Foreground="{StaticResource MutedBrush}" Margin="0,0,0,15"/>
-                                
-                                <Button x:Name="BtnGettingStarted1" Tag="NavDiscovery"
-                                        HorizontalAlignment="Stretch" Margin="0,0,0,8" Padding="10,8"
-                                        Background="Transparent" BorderThickness="0" Cursor="Hand"
-                                        HorizontalContentAlignment="Stretch">
-                                    <Grid>
+                        <!-- Column 3: Quick Actions + Status -->
+                        <StackPanel Grid.Column="4">
+                            <!-- Getting Started -->
+                            <Border Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="15" Margin="0,0,0,15">
+                                <StackPanel>
+                                    <TextBlock Text="GETTING STARTED" FontSize="11" FontWeight="SemiBold" 
+                                               Foreground="{StaticResource MutedBrush}" Margin="0,0,0,15"/>
+                                    
+                                    <Button x:Name="BtnGettingStarted1" Tag="NavDiscovery"
+                                            HorizontalAlignment="Stretch" Margin="0,0,0,8" Padding="10,8"
+                                            Background="Transparent" BorderThickness="0" Cursor="Hand"
+                                            HorizontalContentAlignment="Stretch">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="24"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="1." Grid.Column="0" Foreground="{StaticResource PrimaryBrush}" FontWeight="Bold"/>
+                                            <TextBlock Text="Discover machines in AD" Grid.Column="1" Foreground="{StaticResource ForegroundBrush}" TextWrapping="Wrap"/>
+                                        </Grid>
+                                    </Button>
+                                    
+                                    <Button x:Name="BtnGettingStarted2" Tag="NavScanner"
+                                            HorizontalAlignment="Stretch" Margin="0,0,0,8" Padding="10,8"
+                                            Background="Transparent" BorderThickness="0" Cursor="Hand"
+                                            HorizontalContentAlignment="Stretch">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="24"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="2." Grid.Column="0" Foreground="{StaticResource PrimaryBrush}" FontWeight="Bold"/>
+                                            <TextBlock Text="Scan for software" Grid.Column="1" Foreground="{StaticResource ForegroundBrush}" TextWrapping="Wrap"/>
+                                        </Grid>
+                                    </Button>
+                                    
+                                    <Button x:Name="BtnGettingStarted3" Tag="NavRules"
+                                            HorizontalAlignment="Stretch" Margin="0,0,0,8" Padding="10,8"
+                                            Background="Transparent" BorderThickness="0" Cursor="Hand"
+                                            HorizontalContentAlignment="Stretch">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="24"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="3." Grid.Column="0" Foreground="{StaticResource PrimaryBrush}" FontWeight="Bold"/>
+                                            <TextBlock Text="Generate rules" Grid.Column="1" Foreground="{StaticResource ForegroundBrush}" TextWrapping="Wrap"/>
+                                        </Grid>
+                                    </Button>
+                                    
+                                    <Button x:Name="BtnGettingStarted4" Tag="NavPolicy"
+                                            HorizontalAlignment="Stretch" Margin="0,0,0,8" Padding="10,8"
+                                            Background="Transparent" BorderThickness="0" Cursor="Hand"
+                                            HorizontalContentAlignment="Stretch">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="24"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="4." Grid.Column="0" Foreground="{StaticResource PrimaryBrush}" FontWeight="Bold"/>
+                                            <TextBlock Text="Build policies" Grid.Column="1" Foreground="{StaticResource ForegroundBrush}" TextWrapping="Wrap"/>
+                                        </Grid>
+                                    </Button>
+                                    
+                                    <Button x:Name="BtnGettingStarted5" Tag="NavDeploy"
+                                            HorizontalAlignment="Stretch" Margin="0,0,0,8" Padding="10,8"
+                                            Background="Transparent" BorderThickness="0" Cursor="Hand"
+                                            HorizontalContentAlignment="Stretch">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="24"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="5." Grid.Column="0" Foreground="{StaticResource PrimaryBrush}" FontWeight="Bold"/>
+                                            <TextBlock Text="Deploy to GPO" Grid.Column="1" Foreground="{StaticResource ForegroundBrush}" TextWrapping="Wrap"/>
+                                        </Grid>
+                                    </Button>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Deployment Module Status -->
+                            <Border Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="15" Margin="0,0,0,15">
+                                <StackPanel>
+                                    <TextBlock Text="DEPLOYMENT STATUS" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,15"/>
+
+                                    <Grid Margin="0,0,0,8">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="24"/>
+                                            <ColumnDefinition Width="Auto"/>
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="1." Grid.Column="0" Foreground="{StaticResource PrimaryBrush}" FontWeight="Bold"/>
-                                        <TextBlock Text="Discover machines in AD" Grid.Column="1" Foreground="{StaticResource ForegroundBrush}" TextWrapping="Wrap"/>
+                                        <TextBlock Text="GroupPolicy Module:" Foreground="{StaticResource ForegroundBrush}"/>
+                                        <TextBlock x:Name="TxtGPModuleStatus" Grid.Column="1" Text="Checking..." 
+                                                   Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Right"/>
                                     </Grid>
-                                </Button>
-                                
-                                <Button x:Name="BtnGettingStarted2" Tag="NavScanner"
-                                        HorizontalAlignment="Stretch" Margin="0,0,0,8" Padding="10,8"
-                                        Background="Transparent" BorderThickness="0" Cursor="Hand"
-                                        HorizontalContentAlignment="Stretch">
+
                                     <Grid>
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="24"/>
+                                            <ColumnDefinition Width="Auto"/>
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="2." Grid.Column="0" Foreground="{StaticResource PrimaryBrush}" FontWeight="Bold"/>
-                                        <TextBlock Text="Scan for software" Grid.Column="1" Foreground="{StaticResource ForegroundBrush}" TextWrapping="Wrap"/>
+                                        <TextBlock Text="AppLocker Module:" Foreground="{StaticResource ForegroundBrush}"/>
+                                        <TextBlock x:Name="TxtALModuleStatus" Grid.Column="1" Text="Checking..." 
+                                                   Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Right"/>
                                     </Grid>
-                                </Button>
-                                
-                                <Button x:Name="BtnGettingStarted3" Tag="NavRules"
-                                        HorizontalAlignment="Stretch" Margin="0,0,0,8" Padding="10,8"
-                                        Background="Transparent" BorderThickness="0" Cursor="Hand"
-                                        HorizontalContentAlignment="Stretch">
+
+                                </StackPanel>
+                            </Border>
+
+                            <!-- GPO Toggle -->
+                            <Border Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="15">
+                                <StackPanel>
+                                    <TextBlock Text="GPO TOGGLE" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
                                     <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="24"/>
-                                            <ColumnDefinition Width="*"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Text="3." Grid.Column="0" Foreground="{StaticResource PrimaryBrush}" FontWeight="Bold"/>
-                                        <TextBlock Text="Generate rules" Grid.Column="1" Foreground="{StaticResource ForegroundBrush}" TextWrapping="Wrap"/>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock x:Name="TxtDashEnableWinRMLabel" Grid.Row="0" Grid.Column="0" Text="Enable WinRM" Foreground="{StaticResource ForegroundBrush}" FontSize="11" VerticalAlignment="Center" Margin="0,0,0,8"/>
+                                            <ToggleButton x:Name="BtnDashToggleEnableWinRM" Grid.Row="0" Grid.Column="1" Style="{StaticResource ToggleSwitchStyle}" Tag="ToggleEnableWinRM" Margin="0,0,0,8" IsEnabled="False"/>
+
+                                            <TextBlock Grid.Row="1" Grid.Column="0" Text="GPO: DC" Foreground="{StaticResource ForegroundBrush}" FontSize="11" VerticalAlignment="Center" Margin="0,0,0,8"/>
+                                            <ToggleButton x:Name="BtnDashToggleGpoDC" Grid.Row="1" Grid.Column="1" Style="{StaticResource ToggleSwitchStyle}" Tag="ToggleGpoLinkDC" Margin="0,0,0,8" IsEnabled="False"/>
+
+                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="GPO: Servers" Foreground="{StaticResource ForegroundBrush}" FontSize="11" VerticalAlignment="Center" Margin="0,0,0,8"/>
+                                            <ToggleButton x:Name="BtnDashToggleGpoServers" Grid.Row="2" Grid.Column="1" Style="{StaticResource ToggleSwitchStyle}" Tag="ToggleGpoLinkServers" Margin="0,0,0,8" IsEnabled="False"/>
+
+                                            <TextBlock Grid.Row="3" Grid.Column="0" Text="GPO: Workstations" Foreground="{StaticResource ForegroundBrush}" FontSize="11" VerticalAlignment="Center"/>
+                                            <ToggleButton x:Name="BtnDashToggleGpoWks" Grid.Row="3" Grid.Column="1" Style="{StaticResource ToggleSwitchStyle}" Tag="ToggleGpoLinkWks" Margin="0,2,0,0" IsEnabled="False"/>
                                     </Grid>
-                                </Button>
-                                
-                                <Button x:Name="BtnGettingStarted4" Tag="NavPolicy"
-                                        HorizontalAlignment="Stretch" Margin="0,0,0,8" Padding="10,8"
-                                        Background="Transparent" BorderThickness="0" Cursor="Hand"
-                                        HorizontalContentAlignment="Stretch">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="24"/>
-                                            <ColumnDefinition Width="*"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Text="4." Grid.Column="0" Foreground="{StaticResource PrimaryBrush}" FontWeight="Bold"/>
-                                        <TextBlock Text="Build policies" Grid.Column="1" Foreground="{StaticResource ForegroundBrush}" TextWrapping="Wrap"/>
-                                    </Grid>
-                                </Button>
-                                
-                                <Button x:Name="BtnGettingStarted5" Tag="NavDeploy"
-                                        HorizontalAlignment="Stretch" Margin="0,0,0,8" Padding="10,8"
-                                        Background="Transparent" BorderThickness="0" Cursor="Hand"
-                                        HorizontalContentAlignment="Stretch">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="24"/>
-                                            <ColumnDefinition Width="*"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Text="5." Grid.Column="0" Foreground="{StaticResource PrimaryBrush}" FontWeight="Bold"/>
-                                        <TextBlock Text="Deploy to GPO" Grid.Column="1" Foreground="{StaticResource ForegroundBrush}" TextWrapping="Wrap"/>
-                                    </Grid>
-                                </Button>
-                            </StackPanel>
-                        </Border>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
                     </Grid>
                 </Grid>
 
@@ -1018,10 +1105,30 @@ Width="1450"
                                     <!-- Machine Type Filter Buttons -->
                                     <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                                         <Button x:Name="BtnFilterAll" Content="All" Background="#3E3E42" Foreground="White" Padding="10,4" BorderThickness="0" Margin="0,0,4,0" FontSize="11" Cursor="Hand"/>
-                                        <Button x:Name="BtnFilterWorkstations" Content="&#x1F5A5; Workstations" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="10,4" BorderThickness="0" Margin="0,0,4,0" FontSize="11" Cursor="Hand"/>
-                                        <Button x:Name="BtnFilterServers" Content="&#x1F5A7; Servers" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="10,4" BorderThickness="0" Margin="0,0,4,0" FontSize="11" Cursor="Hand"/>
-                                        <Button x:Name="BtnFilterDCs" Content="&#x1F3E2; DCs" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="10,4" BorderThickness="0" Margin="0,0,4,0" FontSize="11" Cursor="Hand"/>
-                                        <Button x:Name="BtnFilterOnline" Content="&#x1F7E2; Online" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="10,4" BorderThickness="0" FontSize="11" Cursor="Hand"/>
+                                        <Button x:Name="BtnFilterWorkstations" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="10,4" BorderThickness="0" Margin="0,0,4,0" FontSize="11" Cursor="Hand">
+                                            <TextBlock>
+                                                <Run Text="&#x1F5A5; " Foreground="{StaticResource PrimaryBrush}"/>
+                                                <Run Text="Workstations"/>
+                                            </TextBlock>
+                                        </Button>
+                                        <Button x:Name="BtnFilterServers" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="10,4" BorderThickness="0" Margin="0,0,4,0" FontSize="11" Cursor="Hand">
+                                            <TextBlock>
+                                                <Run Text="&#x1F5A7; " Foreground="{StaticResource WarningBrush}"/>
+                                                <Run Text="Servers"/>
+                                            </TextBlock>
+                                        </Button>
+                                        <Button x:Name="BtnFilterDCs" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="10,4" BorderThickness="0" Margin="0,0,4,0" FontSize="11" Cursor="Hand">
+                                            <TextBlock>
+                                                <Run Text="&#x1F3E2; " Foreground="#9C27B0"/>
+                                                <Run Text="DCs"/>
+                                            </TextBlock>
+                                        </Button>
+                                        <Button x:Name="BtnFilterOnline" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="10,4" BorderThickness="0" FontSize="11" Cursor="Hand">
+                                            <TextBlock>
+                                                <Run Text="&#x1F7E2; " Foreground="{StaticResource SuccessBrush}"/>
+                                                <Run Text="Online"/>
+                                            </TextBlock>
+                                        </Button>
                                     </StackPanel>
                                 </StackPanel>
 
@@ -1188,35 +1295,37 @@ Width="1450"
                                                      BorderBrush="#3E3E42" Padding="6,4" FontSize="11" FontFamily="Consolas"
                                                      AcceptsReturn="True" TextWrapping="NoWrap"
                                                      VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"/>
+
+                                            <!-- Remote Machines (only shown when Remote scan checked) -->
+                                            <StackPanel x:Name="ScanMachinesSection" Margin="0,12,0,0" Visibility="Collapsed">
+                                                <TextBlock Text="REMOTE MACHINES" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,6"/>
+                                                <TextBlock Text="Only machines with WinRM Available can be selected." Foreground="{StaticResource MutedBrush}" FontSize="10" TextWrapping="Wrap" Margin="0,0,0,6"/>
+                                                <TextBlock x:Name="TxtWinRMAvailableCount" Text="WinRM available: 0" Foreground="{StaticResource MutedBrush}" FontSize="10" Margin="0,0,0,6"/>
+                                                <DockPanel Margin="0,0,0,6">
+                                                    <TextBlock Text="SELECTED" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" DockPanel.Dock="Left"/>
+                                                    <TextBlock x:Name="ScanMachineCount" Text="0" FontSize="10" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" DockPanel.Dock="Right" HorizontalAlignment="Right"/>
+                                                </DockPanel>
+                                                <Border Background="#1E1E1E" CornerRadius="4" Padding="4" Height="160">
+                                                    <ListBox x:Name="ScanMachineList" Background="Transparent" BorderThickness="0" Foreground="{StaticResource ForegroundBrush}" SelectionMode="Extended">
+                                                        <ListBox.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <TextBlock Text="{Binding}" Foreground="{StaticResource ForegroundBrush}" FontSize="11"/>
+                                                            </DataTemplate>
+                                                        </ListBox.ItemTemplate>
+                                                    </ListBox>
+                                                </Border>
+                                                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                                    <Button x:Name="BtnSelectMachines" Content="+ Add" Background="Transparent" Foreground="{StaticResource PrimaryBrush}" BorderThickness="0" Padding="0" Cursor="Hand" Margin="0,0,15,0"/>
+                                                    <Button x:Name="BtnRemoveScanMachines" Content="- Remove" Background="Transparent" Foreground="{StaticResource ErrorBrush}" BorderThickness="0" Padding="0" Cursor="Hand" Margin="0,0,15,0"/>
+                                                    <Button x:Name="BtnClearScanMachines" Content="Clear All" Background="Transparent" Foreground="{StaticResource MutedBrush}" BorderThickness="0" Padding="0" Cursor="Hand"/>
+                                                </StackPanel>
+                                            </StackPanel>
                                         </StackPanel>
                                     </ScrollViewer>
                                 </TabItem>
+
                                 
-                                <!-- Tab 2: Machines -->
-                                <TabItem Header="Machines">
-                                    <StackPanel Margin="15">
-                                        <DockPanel Margin="0,0,0,10">
-                                            <TextBlock Text="SELECTED" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" DockPanel.Dock="Left"/>
-                                            <TextBlock x:Name="ScanMachineCount" Text="0" FontSize="10" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" DockPanel.Dock="Right" HorizontalAlignment="Right"/>
-                                        </DockPanel>
-                                        <Border Background="#1E1E1E" CornerRadius="4" Padding="4" Height="180">
-                                            <ListBox x:Name="ScanMachineList" Background="Transparent" BorderThickness="0" Foreground="{StaticResource ForegroundBrush}" SelectionMode="Extended">
-                                                <ListBox.ItemTemplate>
-                                                    <DataTemplate>
-                                                        <TextBlock Text="{Binding}" Foreground="{StaticResource ForegroundBrush}" FontSize="11"/>
-                                                    </DataTemplate>
-                                                </ListBox.ItemTemplate>
-                                            </ListBox>
-                                        </Border>
-                                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                                            <Button x:Name="BtnSelectMachines" Content="+ Add" Background="Transparent" Foreground="{StaticResource PrimaryBrush}" BorderThickness="0" Padding="0" Cursor="Hand" Margin="0,0,15,0"/>
-                                            <Button x:Name="BtnRemoveScanMachines" Content="- Remove" Background="Transparent" Foreground="{StaticResource ErrorBrush}" BorderThickness="0" Padding="0" Cursor="Hand" Margin="0,0,15,0"/>
-                                            <Button x:Name="BtnClearScanMachines" Content="Clear All" Background="Transparent" Foreground="{StaticResource MutedBrush}" BorderThickness="0" Padding="0" Cursor="Hand"/>
-                                        </StackPanel>
-                                    </StackPanel>
-                                </TabItem>
-                                
-                                <!-- Tab 3: History -->
+                                <!-- Tab 2: History -->
                                 <TabItem Header="History">
                                     <StackPanel Margin="15">
                                         <DockPanel Margin="0,0,0,10">
@@ -1593,10 +1702,10 @@ Width="1450"
                                           IsReadOnly="True">
                                     <DataGrid.Columns>
                                         <DataGridTextColumn Header="Type" Binding="{Binding RuleType}" Width="80"/>
-                                        <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="180"/>
-                                        <DataGridTextColumn Header="Publisher" Binding="{Binding PublisherName}" Width="160"/>
+                                        <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="120"/>
+                                        <DataGridTextColumn Header="Publisher" Binding="{Binding PublisherName}" Width="120"/>
                                         <DataGridTextColumn Header="Product" Binding="{Binding ProductName}" Width="*"/>
-                                        <DataGridTemplateColumn Header="Group" Width="100" SortMemberPath="GroupName">
+                                        <DataGridTemplateColumn Header="Group" Width="85" SortMemberPath="GroupName">
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate>
                                                     <StackPanel Orientation="Horizontal">
@@ -1624,7 +1733,7 @@ Width="1450"
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
-                                        <DataGridTextColumn Header="Collection" Binding="{Binding Collection}" Width="80"/>
+                                        <DataGridTextColumn Header="Collection" Binding="{Binding Collection}" Width="65"/>
                                         <DataGridTemplateColumn Header="Action" Width="60" SortMemberPath="Action">
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate>
@@ -1645,7 +1754,7 @@ Width="1450"
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
-                                        <DataGridTemplateColumn Header="Status" Width="85" SortMemberPath="Status">
+                                        <DataGridTemplateColumn Header="Status" Width="Auto" SortMemberPath="Status">
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate>
                                                     <Border CornerRadius="3" Padding="5,2" HorizontalAlignment="Center">
@@ -1802,7 +1911,7 @@ Width="1450"
 
                         <!-- Left: Tabbed Policy Options -->
                         <Border Grid.Column="0" Background="{StaticResource SidebarBrush}" CornerRadius="8" Margin="0,0,10,0" VerticalAlignment="Stretch">
-                            <TabControl Background="Transparent" BorderThickness="0" Padding="0" VerticalAlignment="Stretch">
+                            <TabControl x:Name="PolicyTabControl" Background="Transparent" BorderThickness="0" Padding="0" VerticalAlignment="Stretch">
                                 <TabControl.Resources>
                                     <Style TargetType="TabItem">
                                         <Setter Property="Background" Value="Transparent"/>
@@ -1879,6 +1988,7 @@ Width="1450"
                                                     Content="Create Policy"
                                                     Style="{StaticResource PrimaryButtonStyle}"
                                                     Tag="CreatePolicy"/>
+
                                         </StackPanel>
                                     </ScrollViewer>
                                 </TabItem>
@@ -1900,14 +2010,14 @@ Width="1450"
                                                  VerticalContentAlignment="Top" Margin="0,0,0,10"/>
 
                                         <TextBlock Text="Enforcement Mode:" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,5"/>
-                                        <ComboBox x:Name="CboEditEnforcement" Style="{StaticResource ComboBoxStyle}" Margin="0,0,0,10">
+                                        <ComboBox x:Name="CboEditEnforcement" Style="{StaticResource ComboBoxStyle}" Margin="0,0,0,15">
                                             <ComboBoxItem Content="Audit Only" Tag="AuditOnly"/>
                                             <ComboBoxItem Content="Enabled (Enforce)" Tag="Enabled"/>
                                             <ComboBoxItem Content="Not Configured" Tag="NotConfigured"/>
                                         </ComboBox>
 
                                         <TextBlock Text="Deployment Phase:" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,5"/>
-                                        <ComboBox x:Name="CboEditPhase" Style="{StaticResource ComboBoxStyle}" Margin="0,0,0,10">
+                                        <ComboBox x:Name="CboEditPhase" Style="{StaticResource ComboBoxStyle}" Margin="0,0,0,15">
                                             <ComboBoxItem Content="Phase 1: EXE Only" Tag="1"/>
                                             <ComboBoxItem Content="Phase 2: EXE + Script" Tag="2"/>
                                             <ComboBoxItem Content="Phase 3: EXE + Script + MSI" Tag="3"/>
@@ -1927,40 +2037,13 @@ Width="1450"
                                                  Style="{StaticResource TextBoxStyle}" 
                                                  Visibility="Collapsed"
                                                  Tag="Enter custom GPO name..."
-                                                 Margin="0,0,0,10"/>
+                                                 Margin="0,0,0,15"/>
 
                                         <Button x:Name="BtnSavePolicyChanges" Content="Save Changes" 
                                                 Style="{StaticResource PrimaryButtonStyle}"
                                                 Tag="SavePolicyChanges"/>
                                     </StackPanel>
                                     </ScrollViewer>
-                                </TabItem>
-                                
-                                <!-- Tab 3: Policy Rules -->
-                                <TabItem Header="Rules">
-                                    <StackPanel Margin="15">
-                                        <TextBlock Text="POLICY RULES" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
-
-                                        <TextBlock Text="Selected Policy:" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,5"/>
-                                        <TextBlock x:Name="TxtSelectedPolicyName" 
-                                                   Text="(Select a policy)" 
-                                                   Foreground="{StaticResource MutedBrush}" 
-                                                   FontStyle="Italic" Margin="0,0,0,10"/>
-
-                                        <TextBlock Text="Rules in Policy:" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,5"/>
-                                        <TextBlock x:Name="TxtPolicyRuleCount" 
-                                                   Text="0 rules" 
-                                                   Foreground="{StaticResource MutedBrush}" Margin="0,0,0,15"/>
-
-                                        <StackPanel Orientation="Horizontal">
-                                            <Button x:Name="BtnAddRulesToPolicy" Content="Add Rules" 
-                                                    Style="{StaticResource ButtonStyle}" MinWidth="90" Margin="0,0,5,0"
-                                                    Tag="AddRulesToPolicy"/>
-                                            <Button x:Name="BtnRemoveRulesFromPolicy" Content="Remove" 
-                                                    Style="{StaticResource ButtonStyle}" MinWidth="70"
-                                                    Tag="RemoveRulesFromPolicy"/>
-                                        </StackPanel>
-                                    </StackPanel>
                                 </TabItem>
                             </TabControl>
                         </Border>
@@ -1981,6 +2064,7 @@ Width="1450"
                                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
                                                 <TextBlock Text="Search:" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="0,0,8,0" FontSize="11"/>
                                                 <TextBox x:Name="TxtPolicyFilter" Width="150" Background="#1E1E1E" Foreground="{StaticResource ForegroundBrush}" BorderBrush="#3E3E42" Padding="6,4" FontSize="11"/>
+                                                <TextBlock x:Name="TxtPolicySelectedCount" Text="Selected: 0" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="10,0,0,0" FontSize="10"/>
                                                 <Button x:Name="BtnRefreshPolicies" Content="Refresh" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="10,4" BorderThickness="0" Margin="8,0,0,0" FontSize="11" Tag="RefreshPolicies"/>
                                             </StackPanel>
                                         </DockPanel>
@@ -1999,7 +2083,7 @@ Width="1450"
                                     <DataGrid x:Name="PoliciesDataGrid" Grid.Row="1"
                                               Style="{StaticResource DataGridStyle}"
                                               AutoGenerateColumns="False"
-                                              SelectionMode="Single"
+                                              SelectionMode="Extended"
                                               IsReadOnly="True">
                                         <DataGrid.Columns>
                                             <DataGridTextColumn Header="Policy Name" Binding="{Binding Name}" Width="150"/>
@@ -2055,23 +2139,33 @@ Width="1450"
                                     </DataGrid>
 
                                     <!-- Action Buttons -->
-                                    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,10,0,0">
-                                        <Button x:Name="BtnActivatePolicy" Content="Activate" 
-                                                Style="{StaticResource ButtonStyle}" MinWidth="70" Margin="0,0,5,0"
-                                                Background="{StaticResource ActiveBrush}" Tag="ActivatePolicy"/>
-                                        <Button x:Name="BtnArchivePolicy" Content="Archive" 
-                                                Style="{StaticResource ButtonStyle}" MinWidth="65" Margin="0,0,5,0"
-                                                Background="{StaticResource ArchivedBrush}" Tag="ArchivePolicy"/>
-                                        <Border Width="1" Background="{StaticResource BorderBrush}" Margin="5,0,10,0"/>
-                                        <Button x:Name="BtnExportPolicy" Content="Export XML" 
-                                                Style="{StaticResource ButtonStyle}" MinWidth="80" Margin="0,0,5,0"
-                                                Tag="ExportPolicy"/>
-                                        <Button x:Name="BtnDeletePolicy" Content="Delete" 
-                                                Style="{StaticResource ButtonStyle}" MinWidth="60" Margin="0,0,5,0"
-                                                Tag="DeletePolicy"/>
-                                        <Button x:Name="BtnDeployPolicy" Content="Deploy" 
-                                                Style="{StaticResource PrimaryButtonStyle}" MinWidth="70"
-                                                Tag="DeployPolicy"/>
+                                    <StackPanel Grid.Row="2" Margin="0,10,0,0">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="RULES:" Foreground="{StaticResource MutedBrush}" FontSize="10" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                            <Button x:Name="BtnAddRulesToPolicyAction" Content="Add" 
+                                                    Style="{StaticResource ButtonStyle}" MinWidth="55" Padding="8,4" Margin="0,0,5,0"
+                                                    Tag="AddRulesToPolicy"/>
+                                            <Button x:Name="BtnImportRulesToPolicyAction" Content="Import" 
+                                                    Style="{StaticResource ButtonStyle}" MinWidth="60" Padding="8,4" Margin="0,0,5,0"
+                                                    Tag="ImportRulesToPolicy"/>
+                                            <Button x:Name="BtnRemoveRulesFromPolicyAction" Content="Remove" 
+                                                    Style="{StaticResource ButtonStyle}" MinWidth="65" Padding="8,4" Margin="0,0,10,0"
+                                                    Tag="RemoveRulesFromPolicy"/>
+
+                                            <TextBlock Text="POLICY:" Foreground="{StaticResource MutedBrush}" FontSize="10" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                            <Button x:Name="BtnActivatePolicy" Content="Activate" 
+                                                    Style="{StaticResource ButtonStyle}" MinWidth="70" Padding="8,4" Margin="0,0,5,0"
+                                                    Background="{StaticResource ActiveBrush}" Tag="ActivatePolicy"/>
+                                            <Button x:Name="BtnArchivePolicy" Content="Archive" 
+                                                    Style="{StaticResource ButtonStyle}" MinWidth="65" Padding="8,4" Margin="0,0,5,0"
+                                                    Background="{StaticResource ArchivedBrush}" Tag="ArchivePolicy"/>
+                                            <Button x:Name="BtnDeletePolicy" Content="Delete" 
+                                                    Style="{StaticResource ButtonStyle}" MinWidth="60" Padding="8,4" Margin="0,0,5,0"
+                                                    Tag="DeletePolicy"/>
+                                            <Button x:Name="BtnDeployPolicy" Content="Deploy" 
+                                                    Style="{StaticResource PrimaryButtonStyle}" MinWidth="70" Padding="8,4"
+                                                    Tag="DeployPolicy"/>
+                                        </StackPanel>
                                     </StackPanel>
                                 </Grid>
                             </Border>
@@ -2148,19 +2242,9 @@ Width="1450"
                                             <TextBlock Text="Select Policy:" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,5"/>
                                             <ComboBox x:Name="CboDeployPolicy" Style="{StaticResource ComboBoxStyle}" Margin="0,0,0,10"/>
 
-                                            <TextBlock Text="Target GPO:" Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,5"/>
-                                            <ComboBox x:Name="CboDeployTargetGPO" Style="{StaticResource ComboBoxStyle}" Margin="0,0,0,5">
-                                                <ComboBoxItem Content="AppLocker-DC" Tag="AppLocker-DC"/>
-                                                <ComboBoxItem Content="AppLocker-Servers" Tag="AppLocker-Servers" IsSelected="True"/>
-                                                <ComboBoxItem Content="AppLocker-Workstations" Tag="AppLocker-Workstations"/>
-                                                <ComboBoxItem Content="Custom GPO..." Tag="Custom"/>
-                                            </ComboBox>
-                                            
-                                            <TextBox x:Name="TxtDeployCustomGPO" 
-                                                     Style="{StaticResource TextBoxStyle}" 
-                                                     Visibility="Collapsed"
-                                                     Tag="Enter custom GPO name..."
-                                                     Margin="0,0,0,15"/>
+                                            <TextBlock Text="Target GPO is taken from the selected policy." Foreground="{StaticResource MutedBrush}" FontSize="10" Margin="0,0,0,5"/>
+                                            <TextBlock x:Name="TxtDeployTargetGpoWarning" Text="Selected policy has no Target GPO." Foreground="{StaticResource WarningBrush}" FontSize="10" Margin="0,0,0,6" Visibility="Collapsed"/>
+                                            <Button x:Name="BtnSetTargetGpo" Content="Set Target GPO" Style="{StaticResource ButtonStyle}" Margin="0,0,0,15" Tag="GoToPolicyTargetGpo" Visibility="Collapsed"/>
 
                                             <Button x:Name="BtnStartDeployment" 
                                                     Content="Create Deployment Job"
@@ -2169,130 +2253,46 @@ Width="1450"
                                         </StackPanel>
                                     </ScrollViewer>
                                 </TabItem>
-                                
 
-
-                                <!-- Tab 3: Quick Actions -->
+                                <!-- Tab 2: Actions -->
                                 <TabItem Header="Actions">
                                     <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                    <StackPanel Margin="15">
-                                        <TextBlock Text="JOB ACTIONS" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
+                                        <StackPanel Margin="15">
+                                            <TextBlock Text="JOB ACTIONS" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
 
-                                        <Button x:Name="BtnDeployJob" Content="Deploy Selected Job" 
-                                                Style="{StaticResource PrimaryButtonStyle}" Margin="0,0,0,5"
-                                                Tag="DeploySelectedJob"/>
-                                        <Button x:Name="BtnStopDeployment" Content="Stop Deployment" 
-                                                Style="{StaticResource ButtonStyle}" Margin="0,0,0,5"
-                                                Tag="StopDeployment" IsEnabled="False"/>
-                                        <Button x:Name="BtnCancelSelected" Content="Cancel Selected Job" 
-                                                Style="{StaticResource ButtonStyle}" Margin="0,0,0,5"
-                                                Tag="CancelDeploymentJob"/>
-                                        <Button x:Name="BtnViewDeployLog" Content="View Job Details" 
-                                                Style="{StaticResource ButtonStyle}" Margin="0,0,0,5"
-                                                Tag="ViewDeploymentLog"/>
-                                        <Button x:Name="BtnClearCompletedJobs" Content="Clear Completed Jobs" 
-                                                Style="{StaticResource ButtonStyle}" Margin="0,0,0,15"
-                                                Tag="ClearCompletedJobs"/>
+                                            <Button x:Name="BtnDeployJob" Content="Deploy Selected Job" 
+                                                    Style="{StaticResource PrimaryButtonStyle}" Margin="0,0,0,5"
+                                                    Tag="DeploySelectedJob"/>
+                                            <Button x:Name="BtnStopDeployment" Content="Stop Deployment" 
+                                                    Style="{StaticResource ButtonStyle}" Margin="0,0,0,5"
+                                                    Tag="StopDeployment" IsEnabled="False"/>
+                                            <Button x:Name="BtnCancelSelected" Content="Cancel Selected Job" 
+                                                    Style="{StaticResource ButtonStyle}" Margin="0,0,0,5"
+                                                    Tag="CancelDeploymentJob"/>
+                                            <Button x:Name="BtnViewDeployLog" Content="View Job Details" 
+                                                    Style="{StaticResource ButtonStyle}" Margin="0,0,0,5"
+                                                    Tag="ViewDeploymentLog"/>
+                                            <Button x:Name="BtnClearCompletedJobs" Content="Clear Completed Jobs" 
+                                                    Style="{StaticResource ButtonStyle}" Margin="0,0,0,15"
+                                                    Tag="ClearCompletedJobs"/>
 
-                                        <TextBlock Text="POLICY BACKUP" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
+                                            <TextBlock Text="POLICY BACKUP" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,10"/>
 
-                                        <Button x:Name="BtnBackupGpoPolicy" Content="Backup GPO Policy" 
-                                                Style="{StaticResource ButtonStyle}" Margin="0,0,0,5"
-                                                Background="#1565C0" Tag="BackupGpoPolicy"
-                                                ToolTip="Export current AppLocker policy from a GPO to XML backup"/>
-                                        <Button x:Name="BtnImportPolicyXml" Content="Import Policy from XML" 
-                                                Style="{StaticResource ButtonStyle}" Margin="0,0,0,5"
-                                                Tag="ImportDeployPolicyXml"
-                                                ToolTip="Import an AppLocker XML policy as rules"/>
-                                        <Button x:Name="BtnExportPolicyXml" Content="Export Policy to XML" 
-                                                Style="{StaticResource ButtonStyle}" Margin="0,0,0,5"
-                                                Tag="ExportDeployPolicyXml"
-                                                ToolTip="Export a GA-AppLocker policy to AppLocker XML"/>
+                                            <Button x:Name="BtnBackupGpoPolicy" Content="Backup GPO Policy" 
+                                                    Style="{StaticResource ButtonStyle}" Margin="0,0,0,5"
+                                                    Background="#1565C0" Tag="BackupGpoPolicy"
+                                                    ToolTip="Export current AppLocker policy from a GPO to XML backup"/>
+                                            <Button x:Name="BtnImportPolicyXml" Content="Import Policy from XML" 
+                                                    Style="{StaticResource ButtonStyle}" Margin="0,0,0,5"
+                                                    Tag="ImportDeployPolicyXml"
+                                                    ToolTip="Import an AppLocker XML policy as rules"/>
+                                            <Button x:Name="BtnExportPolicyXml" Content="Export Policy to XML" 
+                                                    Style="{StaticResource ButtonStyle}" Margin="0,0,0,5"
+                                                    Tag="ExportDeployPolicyXml"
+                                                    ToolTip="Export a GA-AppLocker policy to AppLocker XML"/>
 
-                                        <TextBlock Text="GPO LINK CONTROL" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,15,0,10"/>
-
-                                        <!-- AppLocker-DC -->
-                                        <Border Background="#252526" CornerRadius="6" Padding="10" Margin="0,0,0,5">
-                                            <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                </Grid.ColumnDefinitions>
-                                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                                                    <TextBlock Text="AppLocker-DC" FontWeight="SemiBold" Foreground="{StaticResource ForegroundBrush}" FontSize="11"/>
-                                                    <TextBlock Text="Domain Controllers" Foreground="{StaticResource MutedBrush}" FontSize="9" Margin="0,2,0,0"/>
-                                                    <TextBlock x:Name="TxtGpoLinkedOUDC" Text="" Foreground="#888888" FontSize="8" Margin="0,2,0,0" TextTrimming="CharacterEllipsis"/>
-                                                </StackPanel>
-                                                <Button Grid.Column="1" x:Name="BtnToggleGpoLinkDC" Content="..." 
-                                                        Background="#3E3E42" Foreground="Gray" FontWeight="SemiBold" FontSize="10"
-                                                        Padding="14,5" BorderThickness="0" VerticalAlignment="Center" Tag="ToggleGpoLinkDC"/>
-                                            </Grid>
-                                        </Border>
-
-                                        <!-- AppLocker-Servers -->
-                                        <Border Background="#252526" CornerRadius="6" Padding="10" Margin="0,0,0,5">
-                                            <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                </Grid.ColumnDefinitions>
-                                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                                                    <TextBlock Text="AppLocker-Servers" FontWeight="SemiBold" Foreground="{StaticResource ForegroundBrush}" FontSize="11"/>
-                                                    <TextBlock Text="Member Servers" Foreground="{StaticResource MutedBrush}" FontSize="9" Margin="0,2,0,0"/>
-                                                    <TextBlock x:Name="TxtGpoLinkedOUServers" Text="" Foreground="#888888" FontSize="8" Margin="0,2,0,0" TextTrimming="CharacterEllipsis"/>
-                                                </StackPanel>
-                                                <Button Grid.Column="1" x:Name="BtnToggleGpoLinkServers" Content="..." 
-                                                        Background="#3E3E42" Foreground="Gray" FontWeight="SemiBold" FontSize="10"
-                                                        Padding="14,5" BorderThickness="0" VerticalAlignment="Center" Tag="ToggleGpoLinkServers"/>
-                                            </Grid>
-                                        </Border>
-
-                                        <!-- AppLocker-Workstations -->
-                                        <Border Background="#252526" CornerRadius="6" Padding="10" Margin="0,0,0,5">
-                                            <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                </Grid.ColumnDefinitions>
-                                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                                                    <TextBlock Text="AppLocker-Workstations" FontWeight="SemiBold" Foreground="{StaticResource ForegroundBrush}" FontSize="11"/>
-                                                    <TextBlock Text="Workstations / Computers" Foreground="{StaticResource MutedBrush}" FontSize="9" Margin="0,2,0,0"/>
-                                                    <TextBlock x:Name="TxtGpoLinkedOUWks" Text="" Foreground="#888888" FontSize="8" Margin="0,2,0,0" TextTrimming="CharacterEllipsis"/>
-                                                </StackPanel>
-                                                <Button Grid.Column="1" x:Name="BtnToggleGpoLinkWks" Content="..." 
-                                                        Background="#3E3E42" Foreground="Gray" FontWeight="SemiBold" FontSize="10"
-                                                        Padding="14,5" BorderThickness="0" VerticalAlignment="Center" Tag="ToggleGpoLinkWks"/>
-                                            </Grid>
-                                        </Border>
-                                    </StackPanel>
+                                        </StackPanel>
                                     </ScrollViewer>
-                                </TabItem>
-
-                                <!-- Tab 4: GPO Status -->
-                                <TabItem Header="Status">
-                                    <StackPanel Margin="15">
-                                        <TextBlock Text="GPO STATUS" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,15"/>
-
-                                        <Grid Margin="0,0,0,10">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto"/>
-                                                <ColumnDefinition Width="*"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Text="GroupPolicy Module:" Foreground="{StaticResource ForegroundBrush}"/>
-                                            <TextBlock x:Name="TxtGPModuleStatus" Grid.Column="1" Text="Checking..." 
-                                                       Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Right"/>
-                                        </Grid>
-
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto"/>
-                                                <ColumnDefinition Width="*"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Text="AppLocker Module:" Foreground="{StaticResource ForegroundBrush}"/>
-                                            <TextBlock x:Name="TxtALModuleStatus" Grid.Column="1" Text="Checking..." 
-                                                       Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Right"/>
-                                        </Grid>
-                                    </StackPanel>
                                 </TabItem>
                             </TabControl>
                         </Border>
@@ -2313,6 +2313,7 @@ Width="1450"
                                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
                                             <TextBlock Text="Search:" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="0,0,8,0" FontSize="11"/>
                                             <TextBox x:Name="TxtDeployFilter" Width="150" Background="#1E1E1E" Foreground="{StaticResource ForegroundBrush}" BorderBrush="#3E3E42" Padding="6,4" FontSize="11"/>
+                                            <TextBlock x:Name="TxtDeployLastRefresh" Text="Updated --:--" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="10,0,0,0" FontSize="10"/>
                                             <Button x:Name="BtnRefreshDeployments" Content="Refresh" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="10,4" BorderThickness="0" Margin="8,0,0,0" FontSize="11" Tag="RefreshDeployments"/>
                                         </StackPanel>
                                     </DockPanel>

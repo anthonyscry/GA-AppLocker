@@ -4,7 +4,7 @@
 
 GA-AppLocker is a PowerShell 5.1 WPF application for enterprise AppLocker policy management in air-gapped, classified, or highly secure environments. Complete workflow: AD Discovery → Artifact Scanning → Rule Generation → Policy Building → GPO Deployment.
 
-**Version:** 1.2.52 | **Tests:** 1282/1282 passing (100%) | **Exported Commands:** ~195
+**Version:** 1.2.53 | **Tests:** not run (not requested) | **Exported Commands:** ~195
 
 ## Quick Start
 
@@ -429,6 +429,7 @@ Invoke-Pester -Path '.\Tests\Unit\' -Output Detailed 2>&1 | Select-String '\[-\]
 
 | Version | Date | Key Changes |
 |---------|------|-------------|
+| 1.2.53 | Feb 2, 2026 | UI/UX and workflow: dashboard GPO toggle switches (Enable WinRM + DC/Servers/Workstations) with disabled state when RSAT/GPOs missing; Policy Builder actions consolidated (rules actions in bottom row, export removed, multi-select with bulk delete and Selected count); Deploy tabs split back to Create/Actions using policy Target GPO; Scanner remote machines in Config with WinRM gating and connectivity quick link; policy refresh no overlay. |
 | 1.2.52 | Feb 2, 2026 | Performance and UX: remove session auto-restore (always starts on Dashboard), save session state silently on close (no per-panel saves), cache policy list to avoid reload on every Policy navigation/filters (refresh forces reload), and use Get-PolicyCount for Dashboard policies count (no JSON parsing). |
 | 1.2.51 | Feb 2, 2026 | Fix startup freeze/hand cursor bug: Update-WorkflowBreadcrumb was reading all 1,142 policy JSON files (Get-AllPolicies) and loading the full rules index (Get-AllRules -Take 1) just to get counts, blocking WPF STA thread for 10-20+ seconds. Replaced with Get-PolicyCount (counts directory entries, no JSON parsing) and Get-RuleCounts (reads in-memory index). Removed duplicate breadcrumb call during init (was called in both Restore-PreviousSessionState and Initialize-MainWindow). Startup breadcrumb now takes ~2ms instead of ~28s. New exported function: Get-PolicyCount. |
 | 1.2.50 | Feb 2, 2026 | Fix 3 startup bugs: (1) White screen on startup fixed by deferred InvalidateVisual+UpdateLayout in Loaded event (WPF wasn't triggering initial render pass), (2) "Loading policies..." overlay that never finishes fixed by adding 60-second safety timeout to Invoke-AsyncOperation (auto-hides overlay, stops runspace, shows warning toast), (3) App always starts on Dashboard now (removed session panel restore that navigated to last panel on startup, which triggered async policy loading before UI was ready) |

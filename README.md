@@ -1,4 +1,4 @@
-# GA-AppLocker v1.2.50
+# GA-AppLocker v1.2.53
 
 Enterprise AppLocker policy management for air-gapped, classified, and highly secure Windows environments. Complete workflow from AD discovery through GPO deployment — no internet required.
 
@@ -53,7 +53,7 @@ AD Discovery ──► Artifact Scanning ──► Rule Generation ──► Pol
 - **Rule history & versioning** with rollback capability
 - **Bulk operations**: Service Allow (20 rules), Admin Allow (5 rules), Deny Browsers (8 rules), Deny Paths (21 rules), batch status/group/action changes
 - **Policy comparison & snapshots** with restore
-- **Deploy panel** — Select policy, create deployment jobs, backup/export/import policies, GPO status monitoring
+- **Deploy panel** — Select policy, create deployment jobs, backup/export/import policies; GPO status and toggles on Dashboard
 - **Tiered credentials** (T0/T1/T2) with DPAPI encryption
 - **Scheduled scans** with configurable targets
 - **Software inventory** — Scan local/remote installed software, CSV export/import, cross-system comparison
@@ -65,7 +65,7 @@ AD Discovery ──► Artifact Scanning ──► Rule Generation ──► Pol
 - **Drag-and-drop**: Drop files to scan or import rules/policies
 - **Context menus**: Right-click rules for approve/reject/delete/copy
 - **Toast notifications** and loading overlays for async operations
-- **Session persistence** across restarts (machines, credentials, selected policy — 7-day expiry; always starts on Dashboard)
+- **Session state saved on close** (no auto-restore; always starts on Dashboard)
 - **Global search** across rules, policies, and artifacts
 - **Workflow breadcrumb** showing progress through stages
 
@@ -187,13 +187,13 @@ Machines need WinRM enabled so you can scan them remotely. Pick ONE method:
 ### PHASE 4: Scan for Software Artifacts
 
 1. Go to **Scanner** panel (Ctrl+4)
-2. Verify your machines are listed in the Machines tab
-3. Go to the **Config** tab:
+2. In **Config**, enable **Scan Remote Machines** and add targets in **Remote Machines** (WinRM-available only)
+3. In **Config**:
    - Check scan paths (default: Program Files, System32)
    - Check file types (EXE, DLL, MSI, scripts)
    - Set target group (default: AppLocker-Users)
 4. Click **Start Local Scan** (scans your own machine) and/or **Start Remote Scan** (scans the added machines)
-5. Wait for the progress bar to finish -- artifacts appear in the Results tab
+5. Wait for the progress bar to finish -- artifacts appear in the Results pane
 
 ### PHASE 5: Generate Rules
 
@@ -229,11 +229,11 @@ Machines need WinRM enabled so you can scan them remotely. Pick ONE method:
 
 1. Go to **Deploy** panel (Ctrl+7)
 2. Select your policy from the dropdown on the **Create** tab
-3. Set the target GPO (AppLocker-DC, AppLocker-Servers, or AppLocker-Workstations)
+3. Target GPO is set in the **Policy** panel (Create/Edit) — verify it there
 4. Click **Create Deployment Job**
 5. Go to the **Actions** tab -- click **Deploy**
 6. The policy is pushed to the GPO. Run `gpupdate /force` on target machines or wait for propagation.
-7. Use the **GPO Status** tab to verify GPOs are Enabled and linked to the correct OUs
+7. Use the **Dashboard** GPO toggles/status to verify GPOs are Enabled and linked to the correct OUs
 
 ### PHASE 8: Monitor and Enforce
 

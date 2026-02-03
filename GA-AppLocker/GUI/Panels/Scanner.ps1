@@ -54,6 +54,18 @@ function Initialize-ScannerPanel {
     $btnBrowsePath = $Window.FindName('BtnBrowsePath')
     if ($btnBrowsePath) { $btnBrowsePath.Add_Click({ Invoke-BrowseScanPath -Window $global:GA_MainWindow }) }
 
+    # Remote scan toggle - show/hide machines section
+    $chkRemote = $Window.FindName('ChkScanRemote')
+    if ($chkRemote) {
+        $chkRemote.Add_Checked({
+            try { global:Update-ScanRemoteSectionVisibility -Window $global:GA_MainWindow } catch { }
+        })
+        $chkRemote.Add_Unchecked({
+            try { global:Update-ScanRemoteSectionVisibility -Window $global:GA_MainWindow } catch { }
+        })
+        try { global:Update-ScanRemoteSectionVisibility -Window $Window } catch { }
+    }
+
     # High risk paths checkbox handler - add/remove paths from textbox
     $chkHighRisk = $Window.FindName('ChkIncludeHighRisk')
     if ($chkHighRisk) {
@@ -223,6 +235,37 @@ function Initialize-ScannerPanel {
     catch {
         Write-Log -Level Error -Message "Failed to load scheduled scans: $($_.Exception.Message)"
     }
+}
+
+function global:Update-ScanRemoteSectionVisibility {
+    param($Window)
+
+    $win = if ($Window) { $Window } else { $global:GA_MainWindow }
+    if (-not $win) { return }
+
+    $chkRemote = $win.FindName('ChkScanRemote')
+    $section = $win.FindName('ScanMachinesSection')
+    if (-not $section) { return }
+
+    $isRemote = if ($chkRemote) { [bool]$chkRemote.IsChecked } else { $false }
+    $section.Visibility = if ($isRemote) { 'Visible' } else { 'Collapsed' }
+
+    if ($isRemote) {
+        try { global:Update-WinRMAvailableCount -Window $win } catch { }
+    }
+}
+
+function global:Update-WinRMAvailableCount {
+    param($Window)
+
+    $win = if ($Window) { $Window } else { $global:GA_MainWindow }
+    if (-not $win) { return }
+
+    $txt = $win.FindName('TxtWinRMAvailableCount')
+    if (-not $txt) { return }
+
+    $available = @($script:DiscoveredMachines | Where-Object { $_.WinRMStatus -eq 'Available' })
+    $txt.Text = "WinRM available: $($available.Count)"
 }
 
 function global:Invoke-StartArtifactScan {
@@ -996,15 +1039,35 @@ function global:Invoke-SelectMachinesForScan {
         return
     }
 
+    $availableMachines = @($script:DiscoveredMachines | Where-Object { $_.WinRMStatus -eq 'Available' })
+    if ($availableMachines.Count -eq 0) {
+        $msg = "No machines with WinRM available.`n`nRun Test Connectivity in AD Discovery and ensure WinRM is enabled on targets."
+        $confirm = Show-AppLockerMessageBox $msg 'No WinRM Targets' 'YesNo' 'Question'
+        if ($confirm -eq 'Yes') {
+            Set-ActivePanel -PanelName 'PanelDiscovery'
+            try { Invoke-ButtonAction -Action 'TestConnectivity' } catch { }
+        }
+        return
+    }
+
     # First check if any machines are checked in the Discovery DataGrid
     $checkedMachines = Get-CheckedMachines -Window $Window
     if ($checkedMachines.Count -gt 0) {
-        # Use the checked machines directly -- no dialog needed
-        $selectedMachines = $checkedMachines
+        # Use the checked machines directly -- only WinRM available
+        $selectedMachines = @($checkedMachines | Where-Object { $_.WinRMStatus -eq 'Available' })
+        if ($selectedMachines.Count -eq 0) {
+            $msg = "Selected machines do not have WinRM available.`n`nRun Test Connectivity in AD Discovery and select WinRM-available machines."
+            $confirm = Show-AppLockerMessageBox $msg 'No WinRM Targets' 'YesNo' 'Question'
+            if ($confirm -eq 'Yes') {
+                Set-ActivePanel -PanelName 'PanelDiscovery'
+                try { Invoke-ButtonAction -Action 'TestConnectivity' } catch { }
+            }
+            return
+        }
     }
     else {
-        # No checkboxes checked -- fall back to selection dialog with all machines
-        $selectedMachines = Show-MachineSelectionDialog -ParentWindow $Window -Machines $script:DiscoveredMachines
+        # No checkboxes checked -- fall back to selection dialog with WinRM-available machines
+        $selectedMachines = Show-MachineSelectionDialog -ParentWindow $Window -Machines $availableMachines
     }
     
     if ($null -eq $selectedMachines) { return }

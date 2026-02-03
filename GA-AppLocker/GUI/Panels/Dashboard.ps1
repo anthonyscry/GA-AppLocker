@@ -27,8 +27,86 @@ function Initialize-DashboardPanel {
     $btnGS5 = $Window.FindName('BtnGettingStarted5')
     if ($btnGS5) { $btnGS5.Add_Click({ Invoke-ButtonAction -Action 'NavDeploy' }) }
 
+    $dashButtons = @(
+        'BtnDashToggleEnableWinRM',
+        'BtnDashToggleGpoDC',
+        'BtnDashToggleGpoServers',
+        'BtnDashToggleGpoWks'
+    )
+    foreach ($btnName in $dashButtons) {
+        $btn = $Window.FindName($btnName)
+        if ($btn -and $btn.Tag) {
+            $btn.Add_Click({
+                param($sender, $e)
+                if ($sender -and -not $sender.IsEnabled) { return }
+                Invoke-ButtonAction -Action $sender.Tag
+                try { global:Update-DashboardGpoToggles -Window $global:GA_MainWindow } catch { }
+            }.GetNewClosure())
+        }
+    }
+
     # Load dashboard data
     Update-DashboardStats -Window $Window
+    try { Update-ModuleStatus -Window $Window } catch { }
+    try { Update-DashboardGpoToggles -Window $Window } catch { }
+}
+
+function global:Update-DashboardGpoToggles {
+    param($Window)
+
+    $win = if ($Window) { $Window } else { $global:GA_MainWindow }
+    if (-not $win) { return }
+
+    $status = $null
+    try { $status = Get-SetupStatus } catch { }
+    $hasGP = Get-Module -ListAvailable -Name GroupPolicy
+
+    $toggleEnable = $win.FindName('BtnDashToggleEnableWinRM')
+    $toggleEnableLabel = $win.FindName('TxtDashEnableWinRMLabel')
+    $toggleGpoDC = $win.FindName('BtnDashToggleGpoDC')
+    $toggleGpoServers = $win.FindName('BtnDashToggleGpoServers')
+    $toggleGpoWks = $win.FindName('BtnDashToggleGpoWks')
+
+    if (-not $status -or -not $status.Success -or -not $status.Data -or -not $hasGP) {
+        if ($toggleEnable) { $toggleEnable.IsEnabled = $false; $toggleEnable.IsChecked = $false }
+        if ($toggleGpoDC) { $toggleGpoDC.IsEnabled = $false; $toggleGpoDC.IsChecked = $false }
+        if ($toggleGpoServers) { $toggleGpoServers.IsEnabled = $false; $toggleGpoServers.IsChecked = $false }
+        if ($toggleGpoWks) { $toggleGpoWks.IsEnabled = $false; $toggleGpoWks.IsChecked = $false }
+        if ($toggleEnableLabel) { $toggleEnableLabel.Text = 'Enable WinRM' }
+        return
+    }
+    if ($toggleEnable -and $status.Data.WinRM) {
+        $winrmExists = $true
+        if ($status.Data.WinRM.PSObject.Properties.Name -contains 'Exists') {
+            $winrmExists = [bool]$status.Data.WinRM.Exists
+        }
+        $isEnabled = ($status.Data.WinRM.Status -eq 'Enabled')
+        $toggleEnable.IsChecked = $isEnabled
+        $toggleEnable.IsEnabled = [bool]$hasGP -and $winrmExists
+        if ($toggleEnableLabel) { $toggleEnableLabel.Text = if ($isEnabled) { 'Disable WinRM' } else { 'Enable WinRM' } }
+    }
+
+    if ($status.Data.AppLockerGPOs) {
+        foreach ($gpo in $status.Data.AppLockerGPOs) {
+            $toggle = switch ($gpo.Type) {
+                'DC' { $win.FindName('BtnDashToggleGpoDC') }
+                'Servers' { $win.FindName('BtnDashToggleGpoServers') }
+                'Workstations' { $win.FindName('BtnDashToggleGpoWks') }
+                default { $null }
+            }
+
+            if ($toggle) {
+                if (-not $hasGP -or -not $gpo.Exists) {
+                    $toggle.IsEnabled = $false
+                    $toggle.IsChecked = $false
+                }
+                else {
+                    $toggle.IsEnabled = $true
+                    $toggle.IsChecked = ($gpo.GpoState -eq 'Enabled')
+                }
+            }
+        }
+    }
 }
 
 function global:Update-DashboardStats {

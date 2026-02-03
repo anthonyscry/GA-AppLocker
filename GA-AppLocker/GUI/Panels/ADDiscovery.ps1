@@ -609,6 +609,8 @@ function global:Invoke-ConnectivityTest {
             if ($machineCount) {
                 $machineCount.Text = "$($summary.OnlineCount)/$($summary.TotalMachines) online, $($summary.WinRMAvailable) WinRM"
             }
+            Show-Toast -Message "Connectivity complete. WinRM available: $($summary.WinRMAvailable). Return to Scanner to select targets." -Type 'Info'
+            try { global:Update-WinRMAvailableCount -Window $Window } catch { }
         }
     }
 

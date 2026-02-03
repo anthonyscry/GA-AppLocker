@@ -129,7 +129,7 @@ function global:Invoke-ButtonAction {
         'ViewRuleHistory' { Invoke-ViewRuleHistory -Window $win }
         # Policy panel
         'CreatePolicy' { Invoke-CreatePolicy -Window $win }
-        'RefreshPolicies' { Update-PoliciesDataGrid -Window $win -Async -Force }
+        'RefreshPolicies' { Update-PoliciesDataGrid -Window $win -Async -Force -NoOverlay }
         'ActivatePolicy' { Set-SelectedPolicyStatus -Window $win -Status 'Active' }
         'ArchivePolicy' { Set-SelectedPolicyStatus -Window $win -Status 'Archived' }
         'DeletePolicy' { Invoke-DeleteSelectedPolicy -Window $win }
@@ -137,6 +137,9 @@ function global:Invoke-ButtonAction {
         'DeployPolicy' { Invoke-DeploySelectedPolicy -Window $win }
         'AddRulesToPolicy' { Invoke-AddRulesToPolicy -Window $win }
         'RemoveRulesFromPolicy' { Invoke-RemoveRulesFromPolicy -Window $win }
+        'ImportRulesToPolicy' { Invoke-ImportRulesToPolicy -Window $win }
+        'ShowPolicyRules' { Invoke-ShowPolicyRules -Window $win }
+        'GoToPolicyTargetGpo' { Invoke-ShowPolicyTargetGpo -Window $win }
         'SavePolicyChanges' { Invoke-SavePolicyChanges -Window $win }
         'ComparePolicies' { Invoke-ComparePolicies -Window $win }
         'ExportDiffReport' { Invoke-ExportDiffReport -Window $win }

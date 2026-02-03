@@ -28,8 +28,8 @@ function Initialize-PolicyPanel {
     # Wire up action buttons
     $actionButtons = @(
         'BtnCreatePolicy', 'BtnRefreshPolicies', 'BtnActivatePolicy', 
-        'BtnArchivePolicy', 'BtnExportPolicy', 'BtnDeletePolicy', 'BtnDeployPolicy',
-        'BtnAddRulesToPolicy', 'BtnRemoveRulesFromPolicy',
+        'BtnArchivePolicy', 'BtnDeletePolicy', 'BtnDeployPolicy',
+        'BtnAddRulesToPolicyAction', 'BtnRemoveRulesFromPolicyAction', 'BtnImportRulesToPolicyAction',
         'BtnSavePolicyChanges', 'BtnComparePolicies', 'BtnExportDiffReport'
     )
 
@@ -84,7 +84,7 @@ function Initialize-PolicyPanel {
     if ($dataGrid) {
         $dataGrid.Add_SelectionChanged({
                 param($sender, $e)
-                Update-SelectedPolicyInfo -Window $global:GA_MainWindow
+                try { Update-SelectedPolicyInfo -Window $global:GA_MainWindow } catch { }
             })
     }
 
@@ -99,7 +99,8 @@ function global:Update-PoliciesDataGrid {
     param(
         $Window,
         [switch]$Async,
-        [switch]$Force
+        [switch]$Force,
+        [switch]$NoOverlay
     )
 
     $dataGrid = $Window.FindName('PoliciesDataGrid')
@@ -182,6 +183,8 @@ function global:Update-PoliciesDataGrid {
 
         # Update counters using already-fetched data
         Update-PolicyCounters -Window $Window -Policies $Result.Data
+
+        try { Update-SelectedPolicyInfo -Window $Window } catch { }
     }
 
     # Use async for initial/refresh loads
@@ -197,7 +200,7 @@ function global:Update-PoliciesDataGrid {
         }.GetNewClosure() -OnError {
             param($ErrorMessage)
             Write-Log -Level Error -Message "Failed to load policies: $ErrorMessage"
-        }.GetNewClosure()
+        }.GetNewClosure() -NoLoadingOverlay:$NoOverlay
     }
     else {
         # Synchronous fallback
@@ -282,113 +285,136 @@ function global:Update-PoliciesFilter {
 function global:Update-SelectedPolicyInfo {
     param($Window)
 
-    $dataGrid = $Window.FindName('PoliciesDataGrid')
-    if (-not $dataGrid) { return }
-    $selectedItem = $dataGrid.SelectedItem
+    try {
+        $dataGrid = $Window.FindName('PoliciesDataGrid')
+        if (-not $dataGrid) { return }
 
-    if ($selectedItem) {
-        $script:SelectedPolicyId = $selectedItem.PolicyId
-        $global:GA_SelectedPolicyId = $selectedItem.PolicyId
-        
-        $txtName = $Window.FindName('TxtSelectedPolicyName')
-        if ($txtName) {
-            $txtName.Text = $selectedItem.Name
-            $txtName.FontStyle = 'Normal'
-            $txtName.Foreground = [System.Windows.Media.Brushes]::White
-        }
-        
-        $ruleCount = if ($selectedItem.RuleIds) { $selectedItem.RuleIds.Count } else { 0 }
-        $txtRuleCount = $Window.FindName('TxtPolicyRuleCount')
-        if ($txtRuleCount) { $txtRuleCount.Text = "$ruleCount rules" }
-        
-        # Update Edit tab - Name and Description
-        $txtEditName = $Window.FindName('TxtEditPolicyName')
-        if ($txtEditName) { $txtEditName.Text = $selectedItem.Name }
-        
-        $txtEditDesc = $Window.FindName('TxtEditPolicyDescription')
-        if ($txtEditDesc) { $txtEditDesc.Text = if ($selectedItem.Description) { $selectedItem.Description } else { '' } }
-        
-        # Set enforcement mode dropdown
-        $cboEnforcement = $Window.FindName('CboEditEnforcement')
-        if ($cboEnforcement) {
-            $enfIndex = switch ($selectedItem.EnforcementMode) {
-                'AuditOnly' { 0 }
-                'Enabled' { 1 }
-                'NotConfigured' { 2 }
-                default { 0 }
+        $selectedItems = @($dataGrid.SelectedItems | Where-Object { $_ -ne $null })
+        $selectedCount = $selectedItems.Count
+        $selectedCountText = $Window.FindName('TxtPolicySelectedCount')
+        if ($selectedCountText) { $selectedCountText.Text = "Selected: $selectedCount" }
+
+        $selectedItem = $dataGrid.SelectedItem
+
+        if ($selectedCount -eq 1 -and $selectedItem) {
+            $script:SelectedPolicyId = $selectedItem.PolicyId
+            $global:GA_SelectedPolicyId = $selectedItem.PolicyId
+
+            $ruleCount = if ($selectedItem.RuleIds) { $selectedItem.RuleIds.Count } else { 0 }
+            $txtRuleCount = $Window.FindName('TxtPolicyRuleCount')
+            if ($txtRuleCount) { $txtRuleCount.Text = "$ruleCount rules" }
+
+            $txtName = $Window.FindName('TxtSelectedPolicyName')
+            if ($txtName) {
+                $txtName.Text = $selectedItem.Name
+                $txtName.FontStyle = 'Normal'
+                $txtName.Foreground = [System.Windows.Media.Brushes]::White
             }
-            $cboEnforcement.SelectedIndex = $enfIndex
-        }
-        
-        # Set phase dropdown
-        $cboPhase = $Window.FindName('CboEditPhase')
-        if ($cboPhase) {
-            $phaseIndex = if ($selectedItem.Phase) { [int]$selectedItem.Phase - 1 } else { 0 }
-            if ($phaseIndex -lt 0) { $phaseIndex = 0 }
-            if ($phaseIndex -gt 4) { $phaseIndex = 4 }
-            $cboPhase.SelectedIndex = $phaseIndex
-        }
-        
-        # Set Target GPO dropdown
-        $cboGPO = $Window.FindName('CboEditTargetGPO')
-        $txtCustomGPO = $Window.FindName('TxtEditCustomGPO')
-        if ($cboGPO) {
-            $gpoValue = if ($selectedItem.TargetGPO) { $selectedItem.TargetGPO } else { '' }
-            # Match against known GPO names
-            $matched = $false
-            for ($i = 0; $i -lt $cboGPO.Items.Count; $i++) {
-                $item = $cboGPO.Items[$i]
-                if ($item.Tag -eq $gpoValue) {
-                    $cboGPO.SelectedIndex = $i
-                    $matched = $true
-                    break
+
+            $editHint = $Window.FindName('TxtPolicyEditHint')
+            if ($editHint) { $editHint.Visibility = 'Collapsed' }
+
+            $txtEditName = $Window.FindName('TxtEditPolicyName')
+            if ($txtEditName) { $txtEditName.Text = $selectedItem.Name; $txtEditName.IsEnabled = $true }
+
+            $txtEditDesc = $Window.FindName('TxtEditPolicyDescription')
+            if ($txtEditDesc) { $txtEditDesc.Text = if ($selectedItem.Description) { $selectedItem.Description } else { '' }; $txtEditDesc.IsEnabled = $true }
+
+            $cboEnforcement = $Window.FindName('CboEditEnforcement')
+            if ($cboEnforcement) {
+                $cboEnforcement.IsEnabled = $true
+                $enfIndex = switch ($selectedItem.EnforcementMode) {
+                    'AuditOnly' { 0 }
+                    'Enabled' { 1 }
+                    'NotConfigured' { 2 }
+                    default { 0 }
                 }
+                $cboEnforcement.SelectedIndex = $enfIndex
             }
-            if (-not $matched -and $gpoValue.Length -gt 0) {
-                # Custom GPO name — select "Custom..." and fill textbox
+
+            $cboPhase = $Window.FindName('CboEditPhase')
+            if ($cboPhase) {
+                $cboPhase.IsEnabled = $true
+                $phaseIndex = if ($selectedItem.Phase) { [int]$selectedItem.Phase - 1 } else { 0 }
+                if ($phaseIndex -lt 0) { $phaseIndex = 0 }
+                if ($phaseIndex -gt 4) { $phaseIndex = 4 }
+                $cboPhase.SelectedIndex = $phaseIndex
+            }
+
+            $cboGPO = $Window.FindName('CboEditTargetGPO')
+            $txtCustomGPO = $Window.FindName('TxtEditCustomGPO')
+            if ($cboGPO) {
+                $cboGPO.IsEnabled = $true
+                $gpoValue = if ($selectedItem.TargetGPO) { $selectedItem.TargetGPO } else { '' }
+                $matched = $false
                 for ($i = 0; $i -lt $cboGPO.Items.Count; $i++) {
-                    if ($cboGPO.Items[$i].Tag -eq 'Custom') {
+                    $item = $cboGPO.Items[$i]
+                    if ($item.Tag -eq $gpoValue) {
                         $cboGPO.SelectedIndex = $i
+                        $matched = $true
                         break
                     }
                 }
-                if ($txtCustomGPO) {
-                    $txtCustomGPO.Text = $gpoValue
-                    $txtCustomGPO.Visibility = 'Visible'
+                if (-not $matched -and $gpoValue.Length -gt 0) {
+                    for ($i = 0; $i -lt $cboGPO.Items.Count; $i++) {
+                        if ($cboGPO.Items[$i].Tag -eq 'Custom') {
+                            $cboGPO.SelectedIndex = $i
+                            break
+                        }
+                    }
+                    if ($txtCustomGPO) {
+                        $txtCustomGPO.Text = $gpoValue
+                        $txtCustomGPO.Visibility = 'Visible'
+                    }
+                }
+                elseif ($txtCustomGPO) {
+                    $txtCustomGPO.Text = ''
+                    $txtCustomGPO.Visibility = 'Collapsed'
                 }
             }
-            elseif ($txtCustomGPO) {
-                $txtCustomGPO.Text = ''
-                $txtCustomGPO.Visibility = 'Collapsed'
+            if ($txtCustomGPO) { $txtCustomGPO.IsEnabled = $true }
+
+            $btnSave = $Window.FindName('BtnSavePolicyChanges')
+            if ($btnSave) { $btnSave.IsEnabled = $true }
+        }
+        else {
+            $script:SelectedPolicyId = $null
+            $global:GA_SelectedPolicyId = $null
+
+            $txtRuleCount = $Window.FindName('TxtPolicyRuleCount')
+            if ($txtRuleCount) { $txtRuleCount.Text = '0 rules' }
+
+            $txtName = $Window.FindName('TxtSelectedPolicyName')
+            if ($txtName) {
+                $txtName.Text = '(Select a policy)'
+                $txtName.FontStyle = 'Italic'
+                $txtName.Foreground = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.Color]::FromRgb(158, 158, 158))
             }
+
+            $editHint = $Window.FindName('TxtPolicyEditHint')
+            if ($editHint) {
+                $editHint.Text = if ($selectedCount -gt 1) { 'Multiple policies selected. Edit disabled.' } else { 'Select a policy to edit.' }
+                $editHint.Visibility = 'Visible'
+            }
+
+            $txtEditName = $Window.FindName('TxtEditPolicyName')
+            if ($txtEditName) { $txtEditName.Text = ''; $txtEditName.IsEnabled = $false }
+            $txtEditDesc = $Window.FindName('TxtEditPolicyDescription')
+            if ($txtEditDesc) { $txtEditDesc.Text = ''; $txtEditDesc.IsEnabled = $false }
+            $cboEnforcement = $Window.FindName('CboEditEnforcement')
+            if ($cboEnforcement) { $cboEnforcement.IsEnabled = $false }
+            $cboPhase = $Window.FindName('CboEditPhase')
+            if ($cboPhase) { $cboPhase.IsEnabled = $false }
+            $cboGPO = $Window.FindName('CboEditTargetGPO')
+            if ($cboGPO) { $cboGPO.IsEnabled = $false; $cboGPO.SelectedIndex = 0 }
+            $txtCustomGPO = $Window.FindName('TxtEditCustomGPO')
+            if ($txtCustomGPO) { $txtCustomGPO.Text = ''; $txtCustomGPO.Visibility = 'Collapsed'; $txtCustomGPO.IsEnabled = $false }
+            $btnSave = $Window.FindName('BtnSavePolicyChanges')
+            if ($btnSave) { $btnSave.IsEnabled = $false }
         }
     }
-    else {
-        $script:SelectedPolicyId = $null
-        $global:GA_SelectedPolicyId = $null
-        
-        $txtName = $Window.FindName('TxtSelectedPolicyName')
-        if ($txtName) {
-            $txtName.Text = '(Select a policy)'
-            $txtName.FontStyle = 'Italic'
-            $txtName.Foreground = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.Color]::FromRgb(158, 158, 158))
-        }
-        
-        $txtRuleCount = $Window.FindName('TxtPolicyRuleCount')
-        if ($txtRuleCount) { $txtRuleCount.Text = '0 rules' }
-        
-        # Reset Edit tab
-        $txtEditName = $Window.FindName('TxtEditPolicyName')
-        if ($txtEditName) { $txtEditName.Text = '' }
-        
-        $txtEditDesc = $Window.FindName('TxtEditPolicyDescription')
-        if ($txtEditDesc) { $txtEditDesc.Text = '' }
-        
-        $cboGPO = $Window.FindName('CboEditTargetGPO')
-        if ($cboGPO) { $cboGPO.SelectedIndex = 0 }
-        
-        $txtCustomGPO = $Window.FindName('TxtEditCustomGPO')
-        if ($txtCustomGPO) { $txtCustomGPO.Text = ''; $txtCustomGPO.Visibility = 'Collapsed' }
+    catch {
+        Write-Log -Level Warning -Message "Update-SelectedPolicyInfo failed: $($_.Exception.Message)"
     }
 }
 
@@ -449,6 +475,7 @@ function global:Invoke-SavePolicyChanges {
         
         if ($result.Success) {
             Update-PoliciesDataGrid -Window $Window -Force
+            Select-PolicyInGrid -Window $Window -PolicyId $script:SelectedPolicyId
             Update-SelectedPolicyInfo -Window $Window
             Show-Toast -Message "Policy '$editName' updated successfully." -Type 'Success'
         }
@@ -525,6 +552,12 @@ function global:Invoke-CreatePolicy {
             if ($cboTargetGPO) { $cboTargetGPO.SelectedIndex = 0 } # Reset to (None)
             
             Update-PoliciesDataGrid -Window $Window -Force
+            $script:SelectedPolicyId = $result.Data.PolicyId
+            $global:GA_SelectedPolicyId = $result.Data.PolicyId
+            Select-PolicyInGrid -Window $Window -PolicyId $result.Data.PolicyId
+            Update-SelectedPolicyInfo -Window $Window
+            $tab = $Window.FindName('PolicyTabControl')
+            if ($tab) { $tab.SelectedIndex = 1 }
             Update-WorkflowBreadcrumb -Window $Window
             Show-Toast -Message "Policy '$name' created successfully (Phase $phase)." -Type 'Success'
         }
@@ -567,31 +600,52 @@ function global:Set-SelectedPolicyStatus {
 function global:Invoke-DeleteSelectedPolicy {
     param($Window)
 
-    if (-not $script:SelectedPolicyId) {
-        Show-AppLockerMessageBox 'Please select a policy to delete.' 'No Selection' 'OK' 'Information'
+    $dataGrid = $Window.FindName('PoliciesDataGrid')
+    $selected = if ($dataGrid) { @($dataGrid.SelectedItems | Where-Object { $_ -ne $null }) } else { @() }
+
+    if (-not $selected -or $selected.Count -eq 0) {
+        Show-AppLockerMessageBox 'Please select one or more policies to delete.' 'No Selection' 'OK' 'Information'
         return
     }
 
-    $confirm = Show-AppLockerMessageBox 'Are you sure you want to delete this policy?' 'Confirm Delete' 'YesNo' 'Warning'
+    $confirmMsg = if ($selected.Count -eq 1) {
+        'Are you sure you want to delete this policy?'
+    } else {
+        "Are you sure you want to delete $($selected.Count) policies?"
+    }
 
+    $confirm = Show-AppLockerMessageBox $confirmMsg 'Confirm Delete' 'YesNo' 'Warning'
     if ($confirm -ne 'Yes') { return }
 
-    try {
-        $result = Remove-Policy -PolicyId $script:SelectedPolicyId -Force
-        
-        if ($result.Success) {
-            $script:SelectedPolicyId = $null
-            $global:GA_SelectedPolicyId = $null
-            Update-PoliciesDataGrid -Window $Window -Force
-            Update-SelectedPolicyInfo -Window $Window
-            Show-AppLockerMessageBox 'Policy deleted.' 'Deleted' 'OK' 'Information'
+    $errors = [System.Collections.Generic.List[string]]::new()
+    $deleted = 0
+
+    foreach ($policy in $selected) {
+        try {
+            $result = Remove-Policy -PolicyId $policy.PolicyId -Force
+            if ($result.Success) {
+                $deleted++
+            }
+            else {
+                [void]$errors.Add("$($policy.Name): $($result.Error)")
+            }
         }
-        else {
-            Show-AppLockerMessageBox "Failed: $($result.Error)" 'Error' 'OK' 'Error'
+        catch {
+            [void]$errors.Add("$($policy.Name): $($_.Exception.Message)")
         }
     }
-    catch {
-        Show-AppLockerMessageBox "Error: $($_.Exception.Message)" 'Error' 'OK' 'Error'
+
+    $script:SelectedPolicyId = $null
+    $global:GA_SelectedPolicyId = $null
+    Update-PoliciesDataGrid -Window $Window -Force
+    Update-SelectedPolicyInfo -Window $Window
+
+    if ($errors.Count -eq 0) {
+        Show-AppLockerMessageBox "Deleted $deleted policy(s)." 'Deleted' 'OK' 'Information'
+    }
+    else {
+        $errorText = ($errors -join "`n")
+        Show-AppLockerMessageBox "Deleted $deleted policy(s).`n`nFailed:`n$errorText" 'Delete Completed' 'OK' 'Warning'
     }
 }
 
@@ -786,6 +840,99 @@ function global:Invoke-RemoveRulesFromPolicy {
         else {
             Show-AppLockerMessageBox "Failed: $($result.Error)" 'Error' 'OK' 'Error'
         }
+    }
+}
+
+function global:Select-PolicyInGrid {
+    param(
+        $Window,
+        [string]$PolicyId
+    )
+
+    $dataGrid = $Window.FindName('PoliciesDataGrid')
+    if (-not $dataGrid -or -not $dataGrid.ItemsSource) { return }
+
+    foreach ($item in $dataGrid.ItemsSource) {
+        if ($item.PolicyId -eq $PolicyId) {
+            $dataGrid.SelectedItem = $item
+            $dataGrid.ScrollIntoView($item)
+            break
+        }
+    }
+}
+
+function global:Invoke-ShowPolicyRules {
+    param($Window)
+
+    $tab = $Window.FindName('PolicyTabControl')
+    if ($tab) { $tab.SelectedIndex = 1 }
+
+    $rulesSection = $Window.FindName('PolicyRulesSection')
+    if ($rulesSection) { $rulesSection.BringIntoView() }
+}
+
+function global:Invoke-ShowPolicyTargetGpo {
+    param($Window)
+
+    if (-not $global:GA_DeploySelectedPolicyId) {
+        Show-Toast -Message 'Select a policy in Deployment first.' -Type 'Warning'
+        return
+    }
+
+    Set-ActivePanel -PanelName 'PanelPolicy'
+
+    Update-PoliciesDataGrid -Window $Window
+    Select-PolicyInGrid -Window $Window -PolicyId $global:GA_DeploySelectedPolicyId
+    Update-SelectedPolicyInfo -Window $Window
+
+    $tab = $Window.FindName('PolicyTabControl')
+    if ($tab) { $tab.SelectedIndex = 1 }
+
+    $cbo = $Window.FindName('CboEditTargetGPO')
+    if ($cbo) { $cbo.Focus() }
+}
+
+function global:Invoke-ImportRulesToPolicy {
+    param($Window)
+
+    if (-not $script:SelectedPolicyId) {
+        Show-AppLockerMessageBox 'Please select a policy first.' 'No Selection' 'OK' 'Information'
+        return
+    }
+
+    $dialog = [Microsoft.Win32.OpenFileDialog]::new()
+    $dialog.Filter = 'XML Files (*.xml)|*.xml'
+    $dialog.Title = 'Import AppLocker Rules (XML)'
+
+    if (-not $dialog.ShowDialog()) { return }
+
+    try {
+        $importResult = Import-RulesFromXml -Path $dialog.FileName -Status 'Approved' -SkipDuplicates
+        if (-not $importResult.Success) {
+            Show-AppLockerMessageBox "Import failed: $($importResult.Error)" 'Import Rules' 'OK' 'Error'
+            return
+        }
+
+        $ruleIds = @($importResult.Data | ForEach-Object { $_.Id } | Where-Object { $_ })
+        if ($ruleIds.Count -eq 0) {
+            Show-AppLockerMessageBox 'No new rules were imported (all duplicates or empty).' 'Import Rules' 'OK' 'Information'
+            return
+        }
+
+        $addResult = Add-RuleToPolicy -PolicyId $script:SelectedPolicyId -RuleId $ruleIds
+        if ($addResult.Success) {
+            Update-PoliciesDataGrid -Window $Window -Force
+            Update-SelectedPolicyInfo -Window $Window
+            $msg = "Imported $($ruleIds.Count) rule(s) and added to policy."
+            if ($importResult.SkippedCount -gt 0) { $msg += " $($importResult.SkippedCount) duplicate(s) skipped." }
+            Show-AppLockerMessageBox $msg 'Import Rules' 'OK' 'Information'
+        }
+        else {
+            Show-AppLockerMessageBox "Failed to add imported rules: $($addResult.Error)" 'Import Rules' 'OK' 'Error'
+        }
+    }
+    catch {
+        Show-AppLockerMessageBox "Error: $($_.Exception.Message)" 'Import Rules' 'OK' 'Error'
     }
 }
 

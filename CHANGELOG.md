@@ -2,6 +2,26 @@
 
 All notable changes to GA-AppLocker will be documented in this file.
 
+## [1.2.53] - 2026-02-02
+
+### UI/UX
+
+- **Dashboard GPO toggles** — New on/off switches for Enable WinRM and AppLocker GPOs (DC/Servers/Workstations). Toggles are disabled when RSAT/GroupPolicy is unavailable or GPOs don’t exist. Enable WinRM label flips between Enable/Disable based on status.
+- **Policy Builder actions** — Rules actions moved into the bottom action row (Add/Import/Remove), policy actions grouped alongside (Activate/Archive/Delete/Deploy). Export XML removed from Policy Builder (use Deploy backup/export instead).
+- **Policy selection** — Multi-select enabled with bulk delete support and a live “Selected: X” counter.
+- **Deploy panel** — Create and Actions tabs restored (split), with target GPO now read from the policy.
+- **Scanner config** — Remote machines managed in Config only, shown when Remote scan checked; WinRM-available count and gating; quick link to run Test Connectivity when none are available.
+
+### Performance
+
+- **Policy refresh** — Refresh no longer blocks navigation (no loading overlay for Refresh).
+
+### Stats
+
+- **Version:** 1.2.53
+- **Tests:** not run (not requested)
+- **Exported Commands:** ~195
+
 ## [1.2.50] - 2026-02-02
 
 ### Bug Fixes

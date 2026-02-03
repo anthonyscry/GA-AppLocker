@@ -486,8 +486,8 @@ The application automatically saves and restores UI state across restarts.
 
 ### How It Works
 
-1. **Auto-Save**: Session state is saved whenever the user navigates between panels
-2. **Auto-Restore**: On startup, previous session is restored if less than 7 days old
+1. **Save on Close**: Session state is saved when the app closes (not on every panel change)
+2. **No Auto-Restore**: App always starts on Dashboard; saved state is not auto-applied
 3. **Expiry**: Sessions older than 7 days are automatically deleted
 
 ### Session State Functions
