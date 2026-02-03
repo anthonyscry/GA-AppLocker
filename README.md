@@ -132,14 +132,17 @@ All data stored locally in `%LOCALAPPDATA%\GA-AppLocker\`:
 ## Testing
 
 ```powershell
-# Pester unit tests (1282/1282 passing — 100%)
-Invoke-Pester -Path Tests\Unit\ -Output Detailed
+# Behavioral tests (current code validation - 6/6 passing)
+.\Tests\Behavioral\
 
-# UI automation (requires interactive PowerShell session)
-.\Tests\Automation\UI\FlaUIBot.ps1 -TestMode Standard
+# Note: Legacy test suite (1313 tests, obsolete after v1.2.46) has been archived to Tests\Legacy_Archived\
+# and permanently excluded via Tests/.gitignore. Behavioral tests only test current functionality.
+```
 
-# Full automated suite with mock data
-.\Tests\Automation\Run-AutomatedTests.ps1 -All -UseMockData
+Legacy automation (opt-in):
+
+```powershell
+.\Tests\Legacy\Automation\Run-AutomatedTests.ps1 -Workflows -UseMockData
 ```
 
 ## Standard Operating Procedure
