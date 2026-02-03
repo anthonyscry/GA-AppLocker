@@ -100,7 +100,8 @@ function global:Update-DashboardGpoToggles {
         $isEnabled = ($status.Data.WinRM.Status -eq 'Enabled')
         $toggleEnable.IsChecked = $isEnabled
         $toggleEnable.IsEnabled = [bool]$hasGP -and $winrmExists
-        if ($toggleEnableLabel) { $toggleEnableLabel.Text = if ($isEnabled) { 'Disable WinRM' } else { 'Enable WinRM' } }
+        # Keep label constant - toggle state (checked/unchecked) indicates status
+        if ($toggleEnableLabel) { $toggleEnableLabel.Text = 'Enable WinRM' }
     }
 
     if ($status.Data.AppLockerGPOs) {

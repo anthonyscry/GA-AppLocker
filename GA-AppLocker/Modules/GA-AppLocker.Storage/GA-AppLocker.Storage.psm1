@@ -12,7 +12,8 @@
 #>
 
 #region ===== SAFE LOGGING =====
-function script:Write-StorageLog {
+# Changed from script: to regular function so dot-sourced files can call it
+function Write-StorageLog {
     param([string]$Message, [string]$Level = 'INFO')
     if (Get-Command -Name 'Write-AppLockerLog' -ErrorAction SilentlyContinue) {
         Write-AppLockerLog -Message "[Storage] $Message" -Level $Level

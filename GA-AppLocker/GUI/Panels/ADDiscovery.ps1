@@ -715,6 +715,13 @@ function global:Invoke-ConnectivityTest {
             }
 
             Update-MachineDataGrid -Window $win -Machines $script:DiscoveredMachines
+            
+            # Force DataGrid visual refresh
+            $dataGrid = $win.FindName('MachineDataGrid')
+            if ($dataGrid) {
+                $dataGrid.Items.Refresh()
+            }
+            
             Update-WorkflowBreadcrumb -Window $win
 
             $summary = $Result.Summary

@@ -69,7 +69,8 @@ function Reset-RulesIndexCache {
     Write-Verbose "Rules index cache reset - will reload from disk on next access"
 }
 
-function script:Initialize-JsonIndex {
+# Changed from script: to regular function so BulkOperations.ps1 can call it
+function Initialize-JsonIndex {
     [CmdletBinding()]
     param([switch]$Force)
     
