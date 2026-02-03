@@ -24,6 +24,42 @@ function Initialize-DiscoveryPanel {
         $btnTest.Add_Click($script:ADDiscovery_Handlers['btnTest'])
     }
 
+    # Wire up Refresh Machines button
+    $btnRefreshMachines = $Window.FindName('BtnRefreshMachines')
+    if ($btnRefreshMachines) {
+        $script:ADDiscovery_Handlers['btnRefreshMachines'] = {
+            $win = $script:MainWindow
+            if (-not $win) { $win = $global:GA_MainWindow }
+            if ($script:DiscoveredMachines -and $script:DiscoveredMachines.Count -gt 0) {
+                Update-MachineDataGrid -Window $win -Machines $script:DiscoveredMachines
+                $machineCount = $win.FindName('DiscoveryMachineCount')
+                if ($machineCount) {
+                    $machineCount.Text = "$($script:DiscoveredMachines.Count) machines"
+                }
+            }
+        }
+        $btnRefreshMachines.Add_Click($script:ADDiscovery_Handlers['btnRefreshMachines'])
+    }
+
+    # Wire up DataGrid SelectionChanged to update selected count
+    $dataGrid = $Window.FindName('MachineDataGrid')
+    if ($dataGrid) {
+        $script:ADDiscovery_Handlers['dataGridSelection'] = {
+            param($sender, $e)
+            $win = $script:MainWindow
+            if (-not $win) { $win = $global:GA_MainWindow }
+            $selectedCount = $win.FindName('TxtMachineSelectedCount')
+            if ($selectedCount) {
+                $count = 0
+                if ($sender.SelectedItems) {
+                    try { $count = @($sender.SelectedItems).Count } catch { $count = 0 }
+                }
+                $selectedCount.Text = "Selected: $count"
+            }
+        }
+        $dataGrid.Add_SelectionChanged($script:ADDiscovery_Handlers['dataGridSelection'])
+    }
+
     # Wire up text filter box for machine search
     $filterBox = $Window.FindName('MachineFilterBox')
     if ($filterBox) {

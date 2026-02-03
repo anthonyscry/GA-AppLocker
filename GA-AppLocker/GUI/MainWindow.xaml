@@ -1089,16 +1089,34 @@ Width="1450"
                                                    Foreground="{StaticResource MutedBrush}"
                                                    DockPanel.Dock="Left"/>
                                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
-                                            <TextBlock Text="Filter:"
+                                            <TextBlock Text="Search:"
                                                        Foreground="{StaticResource MutedBrush}"
                                                        VerticalAlignment="Center"
-                                                       Margin="0,0,8,0"/>
+                                                       Margin="0,0,8,0"
+                                                       FontSize="11"/>
                                             <TextBox x:Name="MachineFilterBox"
                                                      Width="150"
                                                      Background="#1E1E1E"
                                                      Foreground="{StaticResource ForegroundBrush}"
                                                      BorderBrush="#3E3E42"
-                                                     Padding="8,5"/>
+                                                     Padding="6,4"
+                                                     FontSize="11"/>
+                                            <TextBlock x:Name="TxtMachineSelectedCount"
+                                                       Text="Selected: 0"
+                                                       Foreground="{StaticResource MutedBrush}"
+                                                       VerticalAlignment="Center"
+                                                       Margin="10,0,0,0"
+                                                       FontSize="10"/>
+                                            <Button x:Name="BtnRefreshMachines"
+                                                    Content="Refresh"
+                                                    Background="Transparent"
+                                                    Foreground="{StaticResource MutedBrush}"
+                                                    Padding="10,4"
+                                                    BorderThickness="0"
+                                                    Margin="8,0,0,0"
+                                                    FontSize="11"
+                                                    Cursor="Hand"
+                                                    Tag="RefreshMachines"/>
                                         </StackPanel>
                                     </DockPanel>
 
