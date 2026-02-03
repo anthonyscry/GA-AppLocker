@@ -558,9 +558,22 @@ function global:Update-MachineDataGrid {
 
     $dataGrid = $Window.FindName('MachineDataGrid')
     if ($dataGrid) {
+        $filterBox = $Window.FindName('MachineFilterBox')
+        $filterText = if ($filterBox -and $filterBox.Text) { $filterBox.Text.Trim() } else { '' }
+        $visibleMachines = if ([string]::IsNullOrWhiteSpace($filterText)) {
+            $Machines
+        } else {
+            @($Machines | Where-Object {
+                $_.Hostname -like "*$filterText*" -or
+                $_.MachineType -like "*$filterText*" -or
+                $_.OperatingSystem -like "*$filterText*" -or
+                $_.DistinguishedName -like "*$filterText*"
+            })
+        }
+
         # Add status icon property for display
         # Wrap in @() to ensure array for DataGrid ItemsSource (PS 5.1 compatible)
-        $machinesWithIcon = @($Machines | ForEach-Object {
+        $machinesWithIcon = @($visibleMachines | ForEach-Object {
             $statusIcon = switch ($_.IsOnline) {
                 $true  { [char]0x2714 }   # ✔ (online)
                 $false { [char]0x2716 }   # ✖ (offline)
@@ -571,7 +584,10 @@ function global:Update-MachineDataGrid {
             $_
         })
 
+        $dataGrid.ItemsSource = $null
         $dataGrid.ItemsSource = $machinesWithIcon
+        try { $dataGrid.Items.Refresh() } catch { }
+        try { $dataGrid.UpdateLayout() } catch { }
     }
 }
 
