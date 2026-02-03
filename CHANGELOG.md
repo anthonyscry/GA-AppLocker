@@ -2,6 +2,23 @@
 
 All notable changes to GA-AppLocker will be documented in this file.
 
+## [1.2.59] - 2026-02-03
+
+### Added
+- **AD Discovery panel UI improvements**
+  - Added "Selected: N" count label (updates in real-time as selection changes)
+  - Added "Refresh" button to manually refresh machine list after connectivity tests
+  - File: `GA-AppLocker\GUI\MainWindow.xaml` lines 1104-1119
+  - File: `GA-AppLocker\GUI\Panels\ADDiscovery.ps1` (handlers added after line 25)
+
+### Changed
+- **Standardized filter textbox heights across all panels**
+  - Changed AD Discovery filter from `Padding="8,5"` to `Padding="6,4"` with `FontSize="11"`
+  - Changed "Filter:" label to "Search:" for consistency with Rules/Policy panels
+  - File: `GA-AppLocker\GUI\MainWindow.xaml` lines 1092-1103
+
+---
+
 ## [1.2.58] - 2026-02-03
 
 ### Fixed
