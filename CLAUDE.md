@@ -4,7 +4,7 @@
 
 GA-AppLocker is a PowerShell 5.1 WPF application for enterprise AppLocker policy management in air-gapped, classified, or highly secure environments. Complete workflow: AD Discovery → Artifact Scanning → Rule Generation → Policy Building → GPO Deployment.
 
-**Version:** 1.2.55 | **Tests:** not run (not requested) | **Exported Commands:** ~195
+**Version:** 1.2.56 | **Tests:** not run (not requested) | **Exported Commands:** ~195
 
 ## Quick Start
 
@@ -429,6 +429,8 @@ Invoke-Pester -Path '.\Tests\Unit\' -Output Detailed 2>&1 | Select-String '\[-\]
 
 | Version | Date | Key Changes |
 |---------|------|-------------|
+| 1.2.56 | Feb 3, 2026 | Fix 2 bugs: (1) Test Connectivity now correctly tests only selected machines (Get-CheckedMachines 3-method fallback: SelectedItems → SelectedItem → SelectedIndex fixes WPF/PowerShell COM interop issue), (2) Dashboard GPO toggles enable after Initialize All completes (pass global main window instead of Setup panel window, enhanced diagnostic logging). |
+| 1.2.55 | Feb 3, 2026 | Fix 5 bugs: (1) Test Connectivity ignores machine selection (window ref + .GetNewClosure fix), (2) Connectivity test too slow (runspace pool replaces Start-Job for ping/WinRM), (3) Update-SetupStatus errors at startup (silenced module checks), (4) Dashboard scrolls instead of scaling (ScrollViewer → Grid), (5) GPO toggles stay grey after init (sync call for Get-SetupStatus). |
 | 1.2.54 | Feb 3, 2026 | Fix 2 bugs: (1) Dashboard GPO toggles stay grey after setup - added Invoke-DashboardGpoRefresh call after Initialize-AppLockerEnvironment completes, (2) Test Connectivity freezes UI - parallelized WinRM tests using Start-Job instead of sequential Test-WSMan loop (was blocking even with 1 machine due to WinRM timeout). |
 | 1.2.53 | Feb 2, 2026 | UI/UX and workflow: dashboard GPO toggle switches (Enable WinRM + DC/Servers/Workstations) with disabled state when RSAT/GPOs missing; Policy Builder actions consolidated (rules actions in bottom row, export removed, multi-select with bulk delete and Selected count); Deploy tabs split back to Create/Actions using policy Target GPO; Scanner remote machines in Config with WinRM gating and connectivity quick link; policy refresh no overlay. |
 | 1.2.52 | Feb 2, 2026 | Performance and UX: remove session auto-restore (always starts on Dashboard), save session state silently on close (no per-panel saves), cache policy list to avoid reload on every Policy navigation/filters (refresh forces reload), and use Get-PolicyCount for Dashboard policies count (no JSON parsing). |
