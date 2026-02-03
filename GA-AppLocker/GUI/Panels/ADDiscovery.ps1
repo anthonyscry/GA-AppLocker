@@ -544,8 +544,15 @@ function global:Get-CheckedMachines {
     .SYNOPSIS
         Returns selected (highlighted) machines from the MachineDataGrid.
     .DESCRIPTION
-        Uses DataGrid's built-in SelectedItems (blue highlight rows via click/Shift/Ctrl).
-        If no machines are selected, returns an empty array.
+        Uses multiple fallback methods to get selected rows from the DataGrid:
+        1. SelectedItems collection (multi-select via Shift/Ctrl+click)
+        2. SelectedItem property (single item click)
+        3. SelectedIndex + Items[index] (last resort)
+        
+        WPF DataGrid has known issues with SelectedItems.Count returning 0 in PowerShell
+        COM interop scenarios, even when rows are visually selected. Multiple fallbacks
+        ensure we catch the selection regardless of how it was made.
+        
         Filters out non-machine objects (e.g. WPF NewItemPlaceholder).
         Used by Test Connectivity and Scanner to operate on selected machines only.
     #>
@@ -563,22 +570,64 @@ function global:Get-CheckedMachines {
         return @()
     }
 
-    if ($null -eq $dataGrid.SelectedItems -or $dataGrid.SelectedItems.Count -eq 0) {
-        try { Write-AppLockerLog -Message "Get-CheckedMachines: No items selected (SelectedItems.Count=0)" -Level DEBUG -NoConsole } catch { }
-        return @()
+    # Log diagnostic info for debugging selection issues
+    $itemsCount = if ($dataGrid.Items) { @($dataGrid.Items).Count } else { 0 }
+    $selectedItemsCount = 0
+    if ($dataGrid.SelectedItems) {
+        try { $selectedItemsCount = @($dataGrid.SelectedItems).Count } catch { $selectedItemsCount = 0 }
     }
-
-    try { Write-AppLockerLog -Message "Get-CheckedMachines: Found $($dataGrid.SelectedItems.Count) selected items" -Level DEBUG -NoConsole } catch { }
+    $selectedIndex = $dataGrid.SelectedIndex
+    $hasSelectedItem = ($null -ne $dataGrid.SelectedItem)
+    try { 
+        Write-AppLockerLog -Message "Get-CheckedMachines: DataGrid has $itemsCount items, SelectedItems=$selectedItemsCount, SelectedIndex=$selectedIndex, HasSelectedItem=$hasSelectedItem" -Level INFO -NoConsole 
+    } catch { }
 
     $selected = [System.Collections.Generic.List[PSCustomObject]]::new()
-    foreach ($item in $dataGrid.SelectedItems) {
-        if ($null -eq $item) { continue }
-        if ($null -eq $item.PSObject) { continue }
-        if ($item.PSObject.Properties.Name -notcontains 'Hostname') { continue }
-        [void]$selected.Add($item)
+
+    # Helper function to check if an item is a valid machine object
+    $isValidMachine = {
+        param($item)
+        if ($null -eq $item) { return $false }
+        if ($null -eq $item.PSObject) { return $false }
+        if ($item.PSObject.Properties.Name -notcontains 'Hostname') { return $false }
+        return $true
     }
 
-    try { Write-AppLockerLog -Message "Get-CheckedMachines: Returning $($selected.Count) valid machines" -Level DEBUG -NoConsole } catch { }
+    # Method 1: Try SelectedItems collection (multi-select)
+    if ($dataGrid.SelectedItems) {
+        try {
+            foreach ($item in $dataGrid.SelectedItems) {
+                if (& $isValidMachine $item) {
+                    [void]$selected.Add($item)
+                }
+            }
+        } catch {
+            try { Write-AppLockerLog -Message "Get-CheckedMachines: SelectedItems enumeration failed: $($_.Exception.Message)" -Level DEBUG -NoConsole } catch { }
+        }
+    }
+
+    # Method 2: Fallback to SelectedItem (single selection) if SelectedItems yielded nothing
+    if ($selected.Count -eq 0 -and $dataGrid.SelectedItem) {
+        try { Write-AppLockerLog -Message "Get-CheckedMachines: SelectedItems empty, trying SelectedItem fallback" -Level DEBUG -NoConsole } catch { }
+        if (& $isValidMachine $dataGrid.SelectedItem) {
+            [void]$selected.Add($dataGrid.SelectedItem)
+        }
+    }
+
+    # Method 3: Fallback to SelectedIndex if still nothing
+    if ($selected.Count -eq 0 -and $selectedIndex -ge 0 -and $dataGrid.Items -and $selectedIndex -lt $itemsCount) {
+        try { Write-AppLockerLog -Message "Get-CheckedMachines: Trying SelectedIndex fallback (index=$selectedIndex)" -Level DEBUG -NoConsole } catch { }
+        try {
+            $item = $dataGrid.Items[$selectedIndex]
+            if (& $isValidMachine $item) {
+                [void]$selected.Add($item)
+            }
+        } catch {
+            try { Write-AppLockerLog -Message "Get-CheckedMachines: SelectedIndex fallback failed: $($_.Exception.Message)" -Level DEBUG -NoConsole } catch { }
+        }
+    }
+
+    try { Write-AppLockerLog -Message "Get-CheckedMachines: Returning $($selected.Count) valid machines" -Level INFO -NoConsole } catch { }
     return @($selected)
 }
 
