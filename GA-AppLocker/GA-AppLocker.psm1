@@ -39,6 +39,7 @@ $script:APP_TITLE = 'GA-AppLocker Dashboard'
 Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName PresentationCore
 Add-Type -AssemblyName WindowsBase
+Add-Type -AssemblyName System.Windows.Forms  # For RDP session detection
 #endregion
 
 #region ===== NESTED MODULES =====
@@ -160,6 +161,24 @@ function Start-AppLockerDashboard {
 
         Write-AppLockerLog -Message 'Main window loaded successfully'
 
+        # Force software rendering on servers/RDP (hardware acceleration often fails on DCs)
+        # This fixes the "must resize to refresh" issue on Domain Controllers
+        try {
+            $isRdp = [System.Windows.Forms.SystemInformation]::TerminalServerSession
+            # Check for Server OS (ProductType 2=DC, 3=Server; Workstation=1)
+            $osProductType = (Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\ProductOptions' -ErrorAction SilentlyContinue).ProductType
+            $isServerOs = $osProductType -in @('LanmanNT', 'ServerNT')
+            
+            if ($isRdp -or $isServerOs) {
+                # Force software-only rendering -- hardware acceleration unreliable on servers/RDP
+                [System.Windows.Media.RenderOptions]::ProcessRenderMode = [System.Windows.Interop.RenderMode]::SoftwareOnly
+                Write-AppLockerLog -Message "Software rendering enabled (RDP=$isRdp, ServerOS=$isServerOs)"
+            }
+        }
+        catch {
+            Write-AppLockerLog -Level DEBUG -Message "Render mode detection failed: $($_.Exception.Message)"
+        }
+
         # Initialize window (wire up navigation, panels, etc.)
         # Initialize-MainWindow is defined in MainWindow.xaml.ps1, dot-sourced above.
         try {
@@ -218,6 +237,7 @@ function Start-AppLockerDashboard {
         })
 
         # Add loaded event to force layout pass (fixes white screen on startup)
+        # RDP sessions need multiple render passes due to channel latency
         $window.add_Loaded({
             try {
                 Write-AppLockerLog -Message 'Window Loaded event fired'
@@ -235,6 +255,30 @@ function Start-AppLockerDashboard {
                         $global:GA_MainWindow.UpdateLayout()
                     }
                 )
+            } catch { }
+            
+            # RDP fix: delayed second render pass (RDP channel may not be ready on first pass)
+            try {
+                $rdpTimer = [System.Windows.Threading.DispatcherTimer]::new()
+                $rdpTimer.Interval = [TimeSpan]::FromMilliseconds(200)
+                $rdpTimer.Add_Tick({
+                    param($s, $e)
+                    $s.Stop()
+                    try {
+                        $global:GA_MainWindow.InvalidateVisual()
+                        $global:GA_MainWindow.UpdateLayout()
+                    } catch { }
+                })
+                $rdpTimer.Start()
+            } catch { }
+        })
+
+        # ContentRendered event - fires after window content is fully rendered
+        # Third line of defense for RDP rendering issues
+        $window.add_ContentRendered({
+            try {
+                $global:GA_MainWindow.InvalidateVisual()
+                $global:GA_MainWindow.UpdateLayout()
             } catch { }
         })
 
