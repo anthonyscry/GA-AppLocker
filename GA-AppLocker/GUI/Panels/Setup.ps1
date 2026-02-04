@@ -185,17 +185,17 @@ function global:Invoke-InitializeWinRM {
         if ($disableResult.Success) { $summary += "DisableWinRM: Created (settings disabled)" } else { $summary += "DisableWinRM: Failed - $($disableResult.Error)" }
 
         if ($enableResult.Success -or $disableResult.Success) {
-            Show-AppLockerMessageBox "WinRM GPOs initialized!`n`n$($summary -join "`n")" 'Success' 'OK' 'Information'
+            Show-Toast -Message "WinRM GPOs initialized. $($summary -join '; ')" -Type 'Success' -DurationMs 6000
         }
         else {
-            Show-AppLockerMessageBox "Both GPOs failed:`n`n$($summary -join "`n")" 'Error' 'OK' 'Error'
+            Show-Toast -Message "WinRM GPO creation failed: $($summary -join '; ')" -Type 'Error' -DurationMs 6000
         }
 
         Update-SetupStatus -Window $Window
     }
     catch {
         Hide-LoadingOverlay
-        Show-AppLockerMessageBox "Error: $($_.Exception.Message)" 'Error' 'OK' 'Error'
+        Show-Toast -Message "WinRM initialization error: $($_.Exception.Message)" -Type 'Error' -DurationMs 6000
     }
 }
 
@@ -209,13 +209,13 @@ function global:Invoke-ToggleWinRMGPO {
     try {
         $status = Get-SetupStatus
         if (-not $status.Success) {
-            Show-AppLockerMessageBox 'Could not read GPO status.' 'Error' 'OK' 'Error'
+            Show-Toast -Message 'Could not read GPO status.' -Type 'Error' -DurationMs 5000
             return
         }
 
         $gpoStatus = $status.Data.$StatusProperty
         if (-not $gpoStatus -or -not $gpoStatus.Exists) {
-            Show-AppLockerMessageBox "GPO '$GPOName' does not exist. Initialize WinRM GPOs first." 'Not Found' 'OK' 'Warning'
+            Show-Toast -Message "GPO '$GPOName' does not exist. Initialize WinRM GPOs first." -Type 'Warning' -DurationMs 6000
             return
         }
 
@@ -279,15 +279,15 @@ function global:Invoke-ToggleWinRMGPO {
                 }
             }
 
-            Show-AppLockerMessageBox $message 'Success' 'OK' 'Information'
+            Show-Toast -Message $message -Type 'Success' -DurationMs 5000
             Update-SetupStatus -Window $Window
         }
         else {
-            Show-AppLockerMessageBox "Failed: $($result.Error)" 'Error' 'OK' 'Error'
+            Show-Toast -Message "Failed: $($result.Error)" -Type 'Error' -DurationMs 6000
         }
     }
     catch {
-        Show-AppLockerMessageBox "Error: $($_.Exception.Message)" 'Error' 'OK' 'Error'
+        Show-Toast -Message "Error: $($_.Exception.Message)" -Type 'Error' -DurationMs 6000
     }
 }
 
@@ -302,13 +302,13 @@ function global:Invoke-RemoveWinRMGPOByName {
     try {
         $status = Get-SetupStatus
         if (-not $status.Success) {
-            Show-AppLockerMessageBox 'Could not read GPO status.' 'Error' 'OK' 'Error'
+            Show-Toast -Message 'Could not read GPO status.' -Type 'Error' -DurationMs 5000
             return
         }
 
         $gpoStatus = $status.Data.$StatusProperty
         if (-not $gpoStatus -or -not $gpoStatus.Exists) {
-            Show-AppLockerMessageBox "GPO '$GPOName' does not exist. Nothing to remove." 'Not Found' 'OK' 'Warning'
+            Show-Toast -Message "GPO '$GPOName' does not exist. Nothing to remove." -Type 'Warning' -DurationMs 5000
             return
         }
 
@@ -319,15 +319,15 @@ function global:Invoke-RemoveWinRMGPOByName {
         $result = & $RemoveFunction -GPOName $GPOName
 
         if ($result.Success) {
-            Show-AppLockerMessageBox "$GPOName removed." 'Removed' 'OK' 'Information'
+            Show-Toast -Message "$GPOName removed." -Type 'Success' -DurationMs 5000
             Update-SetupStatus -Window $Window
         }
         else {
-            Show-AppLockerMessageBox "Failed: $($result.Error)" 'Error' 'OK' 'Error'
+            Show-Toast -Message "Failed: $($result.Error)" -Type 'Error' -DurationMs 6000
         }
     }
     catch {
-        Show-AppLockerMessageBox "Error: $($_.Exception.Message)" 'Error' 'OK' 'Error'
+        Show-Toast -Message "Error: $($_.Exception.Message)" -Type 'Error' -DurationMs 6000
     }
 }
 
@@ -339,19 +339,24 @@ function global:Invoke-InitializeAppLockerGPOs {
 
         if ($confirm -ne 'Yes') { return }
 
+        Show-LoadingOverlay -Message 'Creating AppLocker GPOs...' -SubMessage 'Domain Controllers, Servers, Workstations'
+
         $result = Initialize-AppLockerGPOs
 
         if ($result.Success) {
-            $summary = $result.Data | ForEach-Object { "- $($_.Name): $($_.Status)" }
-            Show-AppLockerMessageBox "AppLocker GPOs created!`n`n$($summary -join "`n")" 'Success' 'OK' 'Information'
-            Update-SetupStatus -Window $Window
+            $summary = $result.Data | ForEach-Object { "$($_.Name): $($_.Status)" }
+            Show-Toast -Message "AppLocker GPOs created. $($summary -join '; ')" -Type 'Success' -DurationMs 6000
         }
         else {
-            Show-AppLockerMessageBox "Failed: $($result.Error)" 'Error' 'OK' 'Error'
+            Show-Toast -Message "Initialize AppLocker GPOs failed: $($result.Error)" -Type 'Error' -DurationMs 6000
         }
     }
     catch {
-        Show-AppLockerMessageBox "Error: $($_.Exception.Message)" 'Error' 'OK' 'Error'
+        Show-Toast -Message "Initialize AppLocker GPOs error: $($_.Exception.Message)" -Type 'Error' -DurationMs 6000
+    }
+    finally {
+        Hide-LoadingOverlay
+        Update-SetupStatus -Window $Window
     }
 }
 
@@ -363,19 +368,24 @@ function global:Invoke-InitializeADStructure {
 
         if ($confirm -ne 'Yes') { return }
 
+        Show-LoadingOverlay -Message 'Creating AD structure...' -SubMessage 'OU and security groups'
+
         $result = Initialize-ADStructure
 
         if ($result.Success) {
-            $groupSummary = $result.Data.Groups | ForEach-Object { "- $($_.Name): $($_.Status)" }
-            Show-AppLockerMessageBox "AD Structure created!`n`nOU: $($result.Data.OUPath)`n`nGroups:`n$($groupSummary -join "`n")" 'Success' 'OK' 'Information'
-            Update-SetupStatus -Window $Window
+            $groupSummary = $result.Data.Groups | ForEach-Object { "$($_.Name): $($_.Status)" }
+            Show-Toast -Message "AD structure created. OU: $($result.Data.OUPath); Groups: $($groupSummary -join '; ')" -Type 'Success' -DurationMs 6000
         }
         else {
-            Show-AppLockerMessageBox "Failed: $($result.Error)" 'Error' 'OK' 'Error'
+            Show-Toast -Message "Initialize AD structure failed: $($result.Error)" -Type 'Error' -DurationMs 6000
         }
     }
     catch {
-        Show-AppLockerMessageBox "Error: $($_.Exception.Message)" 'Error' 'OK' 'Error'
+        Show-Toast -Message "Initialize AD structure error: $($_.Exception.Message)" -Type 'Error' -DurationMs 6000
+    }
+    finally {
+        Hide-LoadingOverlay
+        Update-SetupStatus -Window $Window
     }
 }
 
@@ -387,10 +397,16 @@ function global:Invoke-InitializeAll {
 
         if ($confirm -ne 'Yes') { return }
 
+        Show-LoadingOverlay -Message 'Running full initialization...' -SubMessage 'WinRM, AppLocker GPOs, AD structure'
+
         $result = Initialize-AppLockerEnvironment
 
         if ($result.Success) {
-            Show-AppLockerMessageBox "Full initialization complete!`n`nEnable WinRM GPO: $(if ($result.Data.WinRM.Success) { 'Success' } else { 'Failed' })`nDisable WinRM GPO: $(if ($result.Data.DisableWinRM.Success) { 'Success' } else { 'Failed' })`nAppLocker GPOs: $(if ($result.Data.AppLockerGPOs.Success) { 'Success' } else { 'Failed' })`nAD Structure: $(if ($result.Data.ADStructure.Success) { 'Success' } else { 'Failed' })" 'Initialization Complete' 'OK' 'Information'
+            $winrmEnable = if ($result.Data.WinRM.Success) { 'Success' } else { 'Failed' }
+            $winrmDisable = if ($result.Data.DisableWinRM.Success) { 'Success' } else { 'Failed' }
+            $gposStatus = if ($result.Data.AppLockerGPOs.Success) { 'Success' } else { 'Failed' }
+            $adStatus = if ($result.Data.ADStructure.Success) { 'Success' } else { 'Failed' }
+            Show-Toast -Message "Full initialization complete. WinRM: $winrmEnable/$winrmDisable; GPOs: $gposStatus; AD: $adStatus" -Type 'Success' -DurationMs 6000
             Update-SetupStatus -Window $Window
             # Refresh Dashboard GPO toggles so they turn green (use global main window, not Setup panel window)
             try { 
@@ -402,11 +418,14 @@ function global:Invoke-InitializeAll {
             }
         }
         else {
-            Show-AppLockerMessageBox "Failed: $($result.Error)" 'Error' 'OK' 'Error'
+            Show-Toast -Message "Full initialization failed: $($result.Error)" -Type 'Error' -DurationMs 6000
         }
     }
     catch {
-        Show-AppLockerMessageBox "Error: $($_.Exception.Message)" 'Error' 'OK' 'Error'
+        Show-Toast -Message "Full initialization error: $($_.Exception.Message)" -Type 'Error' -DurationMs 6000
+    }
+    finally {
+        Hide-LoadingOverlay
     }
 }
 
