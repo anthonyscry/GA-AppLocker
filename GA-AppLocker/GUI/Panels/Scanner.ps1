@@ -272,7 +272,7 @@ function global:Invoke-StartArtifactScan {
     param($Window)
 
     if ($script:ScanInProgress) {
-        Show-AppLockerMessageBox 'A scan is already in progress.' 'Scan Active' 'OK' 'Warning'
+        Show-Toast -Message 'A scan is already in progress.' -Type 'Warning'
         return
     }
 
@@ -291,7 +291,7 @@ function global:Invoke-StartArtifactScan {
 
     # Validate
     if (-not $scanLocal -and -not $scanRemote) {
-        Show-AppLockerMessageBox 'Please select at least one scan type (Local or Remote).' 'Configuration Error' 'OK' 'Warning'
+        Show-Toast -Message 'Please select at least one scan type (Local or Remote).' -Type 'Warning'
         return
     }
 
@@ -299,13 +299,13 @@ function global:Invoke-StartArtifactScan {
     if ($scanLocal) {
         $isElevated = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
         if (-not $isElevated) {
-            Show-AppLockerMessageBox "Local scans require Administrator privileges to access system directories (Program Files, Windows).`n`nPlease close the application and restart as Administrator.`n`nAlternatively, use Remote Scan to scan machines via WinRM (which uses elevated credentials)." "Elevation Required" "OK" "Error"
+            Show-Toast -Message "Local scans require Administrator privileges to access system directories (Program Files, Windows).`n`nPlease restart as Administrator or use Remote Scan via WinRM." -Type 'Error'
             return
         }
     }
 
     if ($scanRemote -and (-not $script:SelectedScanMachines -or $script:SelectedScanMachines.Count -eq 0)) {
-        Show-AppLockerMessageBox "Remote scan selected but no machines have been added.`n`nTo add machines:`n1. Go to AD Discovery panel`n2. Select machines from the OU tree`n3. Click 'Add to Scanner'`n`nOr uncheck 'Remote' and use 'Local' scan only." 'No Machines Selected' 'OK' 'Warning'
+        Show-Toast -Message "Remote scan selected but no machines have been added. Use AD Discovery to add machines or uncheck Remote." -Type 'Warning'
         return
     }
 
@@ -497,7 +497,7 @@ function global:Invoke-StartArtifactScan {
                         $statusLabel.Text = "Error"
                         $statusLabel.Foreground = [System.Windows.Media.Brushes]::OrangeRed
                     }
-                    Show-AppLockerMessageBox "Scan error: $($syncHash.Error)" 'Error' 'OK' 'Error'
+                    Show-Toast -Message "Scan error: $($syncHash.Error)" -Type 'Error'
                 }
                 elseif ($syncHash.Result -and $syncHash.Result.Success) {
                     $result = $syncHash.Result
@@ -547,7 +547,8 @@ function global:Invoke-StartArtifactScan {
                                 $reason = if ($_.Value.Error) { $_.Value.Error } else { 'No response (check WinRM/firewall)' }
                                 "  $($_.Key): $reason"
                             }) -join "`n"
-                            Show-AppLockerMessageBox "Scan completed but $($failed.Count) machine(s) failed:`n`n$failDetails`n`nCommon causes:`n- WinRM not enabled (run Enable-PSRemoting on target)`n- Firewall blocking port 5985/5986`n- No credential stored for machine's tier`n- Machine offline" 'Partial Scan Results' 'OK' 'Warning'
+                            Write-AppLockerLog -Message "Partial scan: $($failed.Count) machine(s) failed.`n$failDetails" -Level 'WARN'
+                            Show-Toast -Message "Scan partial: $($result.Summary.TotalArtifacts) artifacts; $($failed.Count) machine(s) failed. See log for details." -Type 'Warning'
                             $toastType = 'Warning'
                         }
                     }
@@ -558,7 +559,7 @@ function global:Invoke-StartArtifactScan {
                     Update-ScanProgress -Window $win -Text "Scan failed: $errorMsg" -Percent 0
                     $win.FindName('ScanStatusLabel').Text = "Failed"
                     $win.FindName('ScanStatusLabel').Foreground = [System.Windows.Media.Brushes]::OrangeRed
-                    Show-AppLockerMessageBox "Scan failed: $errorMsg" 'Scan Error' 'OK' 'Error'
+                    Show-Toast -Message "Scan failed: $errorMsg" -Type 'Error'
                 }
             }
         })
@@ -774,7 +775,7 @@ function global:Invoke-LoadSelectedScan {
 
     $listBox = $Window.FindName('SavedScansList')
     if (-not $listBox.SelectedItem) {
-        Show-AppLockerMessageBox 'Please select a saved scan to load.' 'No Selection' 'OK' 'Information'
+        Show-Toast -Message 'Please select a saved scan to load.' -Type 'Warning'
         return
     }
 
@@ -837,7 +838,7 @@ function global:Invoke-LoadSelectedScan {
         Update-ScanProgress -Window $Window -Text "$statusText`: $($selectedScan.ScanName)" -Percent 100
     }
     else {
-        Show-AppLockerMessageBox "Failed to load scan: $($result.Error)" 'Error' 'OK' 'Error'
+        Show-Toast -Message "Failed to load scan: $($result.Error)" -Type 'Error'
     }
 }
 
@@ -846,7 +847,7 @@ function global:Invoke-DeleteSelectedScan {
 
     $listBox = $Window.FindName('SavedScansList')
     if (-not $listBox.SelectedItem) {
-        Show-AppLockerMessageBox 'Please select a saved scan to delete.' 'No Selection' 'OK' 'Information'
+        Show-Toast -Message 'Please select a saved scan to delete.' -Type 'Warning'
         return
     }
 
@@ -860,7 +861,7 @@ function global:Invoke-DeleteSelectedScan {
         
         if (Test-Path $scanFile) {
             Remove-Item -Path $scanFile -Force
-            Show-AppLockerMessageBox "Scan '$($selectedScan.ScanName)' deleted." 'Deleted' 'OK' 'Information'
+            Show-Toast -Message "Scan '$($selectedScan.ScanName)' deleted." -Type 'Success'
             Update-SavedScansList -Window $Window
         }
     }
@@ -959,10 +960,10 @@ function global:Invoke-ImportArtifacts {
                 $statusLabel.Foreground = [System.Windows.Media.Brushes]::LightGreen
             }
 
-            Show-AppLockerMessageBox $messageText 'Import Complete' 'OK' 'Information'
+            Show-Toast -Message $messageText -Type 'Success'
         }
         catch {
-            Show-AppLockerMessageBox "Import failed: $($_.Exception.Message)" 'Error' 'OK' 'Error'
+            Show-Toast -Message "Import failed: $($_.Exception.Message)" -Type 'Error'
         }
     }
 }
@@ -979,7 +980,7 @@ function global:Invoke-ExportArtifacts {
     }
     
     if ($artifacts.Count -eq 0) {
-        Show-AppLockerMessageBox 'No artifacts to export. Run a scan or adjust filters.' 'No Data' 'OK' 'Information'
+        Show-Toast -Message 'No artifacts to export. Run a scan or adjust filters.' -Type 'Warning'
         return
     }
 
@@ -1007,10 +1008,10 @@ function global:Invoke-ExportArtifacts {
             $totalCount = if ($script:CurrentScanArtifacts) { $script:CurrentScanArtifacts.Count } else { 0 }
             $filterInfo = if ($artifacts.Count -lt $totalCount) { " (filtered from $totalCount total)" } else { "" }
             
-            Show-AppLockerMessageBox "Exported $($artifacts.Count) artifacts$filterInfo to:`n$($dialog.FileName)" 'Export Complete' 'OK' 'Information'
+            Show-Toast -Message "Exported $($artifacts.Count) artifacts$filterInfo to $($dialog.FileName)" -Type 'Success'
         }
         catch {
-            Show-AppLockerMessageBox "Export failed: $($_.Exception.Message)" 'Error' 'OK' 'Error'
+            Show-Toast -Message "Export failed: $($_.Exception.Message)" -Type 'Error'
         }
     }
 }
