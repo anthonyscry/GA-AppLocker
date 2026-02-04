@@ -100,6 +100,16 @@ function Get-PolicyCount {
     param()
 
     try {
+        try {
+            Initialize-PolicyIndex
+            if ($script:PolicyIndexLoaded -and $script:PolicyIndex -and $script:PolicyIndex.Policies) {
+                return @($script:PolicyIndex.Policies).Count
+            }
+        }
+        catch {
+            Write-AppLockerLog -Message "Get-PolicyCount index load failed: $($_.Exception.Message)" -Level 'DEBUG'
+        }
+
         $dataPath = Get-AppLockerDataPath
         $policiesPath = Join-Path $dataPath 'Policies'
 
@@ -138,29 +148,12 @@ function Get-AllPolicies {
     )
 
     try {
-        $dataPath = Get-AppLockerDataPath
-        $policiesPath = Join-Path $dataPath 'Policies'
-
-        if (-not (Test-Path $policiesPath)) {
-            return @{
-                Success = $true
-                Data    = @()
-            }
-        }
-
-        $policyFiles = Get-ChildItem -Path $policiesPath -Filter '*.json' -File
+        Initialize-PolicyIndex
         $policies = [System.Collections.Generic.List[PSCustomObject]]::new()
 
-        foreach ($file in $policyFiles) {
-            try {
-                $policy = Get-Content -Path $file.FullName -Raw | ConvertFrom-Json
-                
-                if ([string]::IsNullOrEmpty($Status) -or $policy.Status -eq $Status) {
-                    [void]$policies.Add($policy)
-                }
-            }
-            catch {
-                Write-AppLockerLog -Message "Failed to read policy file $($file.Name): $($_.Exception.Message)" -Level 'DEBUG'
+        foreach ($policy in @($script:PolicyIndex.Policies)) {
+            if ([string]::IsNullOrEmpty($Status) -or $policy.Status -eq $Status) {
+                [void]$policies.Add($policy)
             }
         }
 
