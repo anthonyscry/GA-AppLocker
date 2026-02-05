@@ -43,7 +43,10 @@ function Add-RuleToPolicy {
             $policy | Add-Member -NotePropertyName 'RuleIds' -NotePropertyValue @() -Force
         }
 
-        $currentRules = [System.Collections.Generic.List[string]]::new($policy.RuleIds)
+        $currentRules = [System.Collections.Generic.List[string]]::new()
+        foreach ($existingId in @($policy.RuleIds)) {
+            if ($existingId) { [void]$currentRules.Add([string]$existingId) }
+        }
         $addedCount = 0
 
         foreach ($id in $RuleId) {

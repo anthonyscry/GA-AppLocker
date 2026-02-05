@@ -33,7 +33,7 @@ Describe 'Behavioral Workflow: mock artifacts to rules' -Tag @('Behavioral','Wor
         $result = ConvertFrom-Artifact -Artifact $artArray -PreferredRuleType Auto
 
         $result.Success | Should -BeTrue
-        $result.Data.Count | Should -BeLessThanOrEqual $artifacts.Count
+        ($result.Data.Count -le $artifacts.Count) | Should -BeTrue
         ($result.Data | Where-Object { $_.RuleType -eq 'Publisher' }).Count | Should -BeGreaterThan 0
     }
 }
