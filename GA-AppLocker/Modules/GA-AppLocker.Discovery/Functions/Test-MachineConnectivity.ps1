@@ -63,6 +63,12 @@ function Test-PingConnectivity {
     )
 
     $pingResults = @{}
+    $invalidHostnamePattern = '[^A-Za-z0-9\.-]'
+    $effectiveThrottle = if ($ThrottleLimit -gt 0) { $ThrottleLimit } else { 1 }
+
+    if ($PSBoundParameters.ContainsKey('TimeoutSeconds') -and -not $PSBoundParameters.ContainsKey('TimeoutMs')) {
+        $TimeoutMs = $TimeoutSeconds * 1000
+    }
 
     if (-not $Hostnames -or $Hostnames.Count -eq 0) {
         return $pingResults
@@ -71,6 +77,21 @@ function Test-PingConnectivity {
     # For small lists (<=5), use simple sequential to avoid job overhead
     if ($Hostnames.Count -le 5) {
         foreach ($hostname in $Hostnames) {
+            if ($null -eq $hostname) {
+                try {
+                    Write-AppLockerLog -Level Warning -Message "Invalid hostname for ping: <null>"
+                }
+                catch { }
+                continue
+            }
+            if ([string]::IsNullOrWhiteSpace($hostname) -or $hostname -match $invalidHostnamePattern) {
+                try {
+                    Write-AppLockerLog -Level Warning -Message "Invalid hostname for ping: '$hostname'"
+                }
+                catch { }
+                $pingResults[$hostname] = $false
+                continue
+            }
             try {
                 $ping = Get-WmiObject -Class Win32_PingStatus -Filter "Address='$hostname' AND Timeout=$TimeoutMs" -ErrorAction SilentlyContinue
                 $pingResults[$hostname] = ($null -ne $ping -and $ping.StatusCode -eq 0)
@@ -82,12 +103,27 @@ function Test-PingConnectivity {
     }
     else {
         # Parallel: use runspace pool (much faster than Start-Job due to lower overhead)
-        $runspacePool = [RunspaceFactory]::CreateRunspacePool(1, [Math]::Min($ThrottleLimit, $Hostnames.Count))
+        $runspacePool = [RunspaceFactory]::CreateRunspacePool(1, [Math]::Min($effectiveThrottle, $Hostnames.Count))
         $runspacePool.Open()
         
         $runspaces = [System.Collections.Generic.List[PSCustomObject]]::new()
         
         foreach ($hostname in $Hostnames) {
+            if ($null -eq $hostname) {
+                try {
+                    Write-AppLockerLog -Level Warning -Message "Invalid hostname for ping: <null>"
+                }
+                catch { }
+                continue
+            }
+            if ([string]::IsNullOrWhiteSpace($hostname) -or $hostname -match $invalidHostnamePattern) {
+                try {
+                    Write-AppLockerLog -Level Warning -Message "Invalid hostname for ping: '$hostname'"
+                }
+                catch { }
+                $pingResults[$hostname] = $false
+                continue
+            }
             $powershell = [PowerShell]::Create()
             $powershell.RunspacePool = $runspacePool
             
@@ -111,7 +147,9 @@ function Test-PingConnectivity {
         }
         
         # Wait for all runspaces with overall timeout
-        $deadline = [datetime]::Now.AddSeconds($TimeoutSeconds + 10)
+        $timeoutSecondsForDeadline = [Math]::Ceiling($TimeoutMs / 1000)
+        $batchCount = [Math]::Ceiling($Hostnames.Count / $effectiveThrottle)
+        $deadline = [datetime]::Now.AddSeconds(($timeoutSecondsForDeadline * $batchCount) + 10)
         
         foreach ($rs in $runspaces) {
             try {
@@ -128,6 +166,10 @@ function Test-PingConnectivity {
                 else {
                     # Timed out
                     $pingResults[$rs.Hostname] = $false
+                    try {
+                        $rs.PowerShell.Stop()
+                    }
+                    catch { }
                 }
             }
             catch {
@@ -184,9 +226,24 @@ function Test-MachineConnectivity {
         return $result
     }
 
+    $Machines = @($Machines | Where-Object { $_ -ne $null })
+    if (-not $Machines -or $Machines.Count -eq 0) {
+        $result.Success = $true
+        $result.Data = @()
+        $result.Summary = [PSCustomObject]@{
+            TotalMachines    = 0
+            OnlineCount      = 0
+            OfflineCount     = 0
+            WinRMAvailable   = 0
+            WinRMUnavailable = 0
+        }
+        return $result
+    }
+
     try {
         $onlineCount = 0
         $winrmCount = 0
+        $effectiveThrottle = if ($ThrottleLimit -gt 0) { $ThrottleLimit } else { 1 }
 
         #region --- Ping Test (delegates to Test-PingConnectivity) ---
         $timeoutMs = $TimeoutSeconds * 1000
@@ -196,7 +253,7 @@ function Test-MachineConnectivity {
             -Hostnames $hostnames `
             -TimeoutMs $timeoutMs `
             -TimeoutSeconds $TimeoutSeconds `
-            -ThrottleLimit $ThrottleLimit
+            -ThrottleLimit $effectiveThrottle
         #endregion
 
         #region --- Apply Ping Results + WinRM Test (Parallel) ---
@@ -205,7 +262,15 @@ function Test-MachineConnectivity {
         # First pass: apply ping results and identify online machines
         $onlineMachines = [System.Collections.ArrayList]::new()
         foreach ($machine in $Machines) {
-            $isOnline = if ($pingResults.ContainsKey($machine.Hostname)) { $pingResults[$machine.Hostname] } else { $false }
+            $hostname = $machine.Hostname
+            if ([string]::IsNullOrWhiteSpace($hostname)) {
+                $machine | Add-Member -NotePropertyName 'IsOnline' -NotePropertyValue $false -Force
+                $machine | Add-Member -NotePropertyName 'WinRMStatus' -NotePropertyValue 'Offline' -Force
+                [void]$testedMachines.Add($machine)
+                continue
+            }
+
+            $isOnline = if ($pingResults.ContainsKey($hostname)) { $pingResults[$hostname] } else { $false }
             $machine | Add-Member -NotePropertyName 'IsOnline' -NotePropertyValue $isOnline -Force
             if ($isOnline) { 
                 $onlineCount++
@@ -222,7 +287,7 @@ function Test-MachineConnectivity {
             $winrmResults = @{}
             
             # Use runspace pool for much lower overhead than Start-Job
-            $runspacePool = [RunspaceFactory]::CreateRunspacePool(1, [Math]::Min($ThrottleLimit, $onlineMachines.Count))
+            $runspacePool = [RunspaceFactory]::CreateRunspacePool(1, [Math]::Min($effectiveThrottle, $onlineMachines.Count))
             $runspacePool.Open()
             
             $runspaces = [System.Collections.Generic.List[PSCustomObject]]::new()
@@ -266,6 +331,10 @@ function Test-MachineConnectivity {
                     else {
                         # Timed out - mark as unavailable
                         $winrmResults[$rs.Hostname] = $false
+                        try {
+                            $rs.PowerShell.Stop()
+                        }
+                        catch { }
                     }
                 }
                 catch {

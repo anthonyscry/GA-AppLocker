@@ -155,6 +155,7 @@ function Get-LocalArtifacts {
 
             $stats.PathsScanned++
             Write-ScanLog -Message "Scanning: $scanPath"
+            $loggedAccessDenied = $false
 
             # Note: -Include only works properly with -Recurse
             # For non-recursive scans, use -Filter with multiple calls or wildcard in path
@@ -166,22 +167,64 @@ function Get-LocalArtifacts {
                     File        = $true
                     Recurse     = $true
                     ErrorAction = 'SilentlyContinue'
+                    ErrorVariable = 'accessErrors'
                 }
                 if ($MaxDepth -gt 0) {
                     $getChildParams.Depth = $MaxDepth
                 }
-                $foundFiles = Get-ChildItem @getChildParams
-                if ($foundFiles) {
-                    foreach ($f in $foundFiles) { [void]$allFiles.Add($f) }
+                try {
+                    $accessErrors = $null
+                    $foundFiles = Get-ChildItem @getChildParams
+                    if ($foundFiles) {
+                        foreach ($f in $foundFiles) { [void]$allFiles.Add($f) }
+                    }
+                    if ($accessErrors) {
+                        foreach ($err in $accessErrors) {
+                            if ($err.Exception -is [System.UnauthorizedAccessException]) {
+                                if (-not $loggedAccessDenied) {
+                                    Write-ScanLog -Level Warning -Message "Access denied scanning: $scanPath"
+                                    $stats.Errors++
+                                    $loggedAccessDenied = $true
+                                }
+                                break
+                            }
+                        }
+                    }
+                }
+                catch [System.UnauthorizedAccessException] {
+                    Write-ScanLog -Level Warning -Message "Access denied scanning: $scanPath"
+                    $stats.Errors++
+                    continue
                 }
             }
             else {
                 # Non-recursive: use wildcard paths for each extension
                 foreach ($ext in $Extensions) {
                     $wildcardPath = Join-Path $scanPath "*$ext"
-                    $extFiles = Get-ChildItem -Path $wildcardPath -File -ErrorAction SilentlyContinue
-                    if ($extFiles) {
-                        foreach ($f in $extFiles) { [void]$allFiles.Add($f) }
+                    try {
+                        $extErrors = $null
+                        $extFiles = Get-ChildItem -Path $wildcardPath -File -ErrorAction SilentlyContinue -ErrorVariable extErrors
+                        if ($extFiles) {
+                            foreach ($f in $extFiles) { [void]$allFiles.Add($f) }
+                        }
+                        if ($extErrors) {
+                            foreach ($err in $extErrors) {
+                                if ($err.Exception -is [System.UnauthorizedAccessException]) {
+                                    if (-not $loggedAccessDenied) {
+                                        Write-ScanLog -Level Warning -Message "Access denied scanning: $scanPath"
+                                        $stats.Errors++
+                                        $loggedAccessDenied = $true
+                                    }
+                                    break
+                                }
+                            }
+                        }
+                    }
+                    catch [System.UnauthorizedAccessException] {
+                        Write-ScanLog -Level Warning -Message "Access denied scanning: $scanPath"
+                        $stats.Errors++
+                        $loggedAccessDenied = $true
+                        continue
                     }
                 }
             }
@@ -400,7 +443,7 @@ function Get-LocalArtifacts {
             # Cleanup RunspacePool
             $pool.Close()
             $pool.Dispose()
-            $stats.Errors = [Math]::Max(0, $totalFiles - $completedFiles + $stats.Errors - $artifacts.Count)
+            $stats.Errors = [Math]::Max($stats.Errors, $totalFiles - $artifacts.Count)
             #endregion
         }
         else {
