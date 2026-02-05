@@ -44,7 +44,7 @@ function Initialize-RuleIndexFromRules {
             }
         }
 
-        $rulesList = [System.Collections.Generic.List[PSCustomObject]]::new()
+        $rulesList = [System.Collections.Generic.List``1]::new()
         $hashIndex = @{}
         $publisherIndex = @{}
         $publisherOnlyIndex = @{}

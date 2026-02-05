@@ -25,13 +25,53 @@ function Write-StorageLog {
 #endregion
 
 #region ===== DOT-SOURCE FUNCTIONS =====
-Get-RuleStoragePath = Join-Path $PSScriptRoot 'Functions\Get-RuleStoragePath.ps1'
-if (Test-Path $Get-RuleStoragePath) {
-    . $Get-RuleStoragePath
+$functionPath = Join-Path $PSScriptRoot 'Functions'
+if (Test-Path $functionPath) {
+    # Load files in specific order for dependencies
+    $loadOrder = @(
+        'RuleStorage.ps1',      # Core JSON storage (renamed from JsonIndexFallback.ps1)
+        'BulkOperations.ps1',   # Bulk operations
+        'IndexWatcher.ps1',     # File watcher
+        'RuleRepository.ps1',    # Repository pattern
+        'Initialize-RuleIndexFromRules.ps1'  # Task 1: Rules index rebuild
+    )
+    
+    foreach ($fileName in $loadOrder) {
+        $filePath = Join-Path $functionPath $fileName
+        if (Test-Path $filePath) {
+            try {
+                . $filePath
+                Write-StorageLog -Message "Loaded $fileName"
+            }
+            catch {
+                Write-StorageLog -Message "Failed to load $fileName : $($_.Exception.Message)" -Level 'ERROR'
+            }
+        }
+    }
+    
+    # Load any remaining function files
+    Get-ChildItem -Path $functionPath -Filter '*.ps1' -File | 
+        Where-Object { $_.Name -notin $loadOrder } |
+        ForEach-Object {
+            try {
+                . $_.FullName
+            }
+            catch {
+                Write-StorageLog -Message "Failed to load $($_.Name): $($_.Exception.Message)" -Level 'ERROR'
+            }
+        }
 }
 #endregion
 
 Write-StorageLog -Message "Storage module loaded (JSON-only mode)"
+
+# Initialize rule index from rule files (Task 1)
+try {
+    Initialize-RuleIndexFromRules -Force
+}
+catch {
+    Write-StorageLog -Message "Failed to initialize rule index at startup: $($_.Exception.Message)" -Level Error
+}
 
 Export-ModuleMember -Function @(
     # Rule Storage Operations (JSON-based)
@@ -55,7 +95,6 @@ Export-ModuleMember -Function @(
     'Update-RuleStatusInIndex',
     
     # Index Management
-    '"Initialize-RuleIndexFromRules"'
     'Initialize-RuleIndexFromRules',
     'Reset-RulesIndexCache',
     'Rebuild-RulesIndex',
@@ -77,18 +116,6 @@ Export-ModuleMember -Function @(
     'Invoke-RuleBatchOperation',
     'Test-RuleExistsInRepository',
     
-    # Backwards Compatibility Aliases (needed by Rules module)
-    'Get-RulesFromDatabase',
-    'Get-RuleFromDatabase',
-    'Add-RuleToDatabase',
-    'Update-RuleInDatabase',
-    'Remove-RuleFromDatabase',
-    'Initialize-RuleDatabase',
-    'Get-RuleDatabasePath',
-    'Test-RuleDatabaseExists'
-)
-    'Initialize-RuleIndexFromRules',
-
     # Backwards Compatibility Aliases (needed by Rules module)
     'Get-RulesFromDatabase',
     'Get-RuleFromDatabase',
