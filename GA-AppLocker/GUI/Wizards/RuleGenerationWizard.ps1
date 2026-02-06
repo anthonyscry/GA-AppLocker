@@ -288,6 +288,7 @@ function global:Show-WizardStep2 {
         -ArgumentList @($modulePath, $artifacts, $settings) `
         -OnComplete $onComplete `
         -OnTimeout $onTimeout `
+        -NoLoadingOverlay `
         -LoadingMessage 'Calculating preview...' `
         -TimeoutSeconds 60
     
@@ -447,6 +448,7 @@ function global:Start-WizardBatchGeneration {
         -ArgumentList @($modulePath, $artifacts, $settings) `
         -OnComplete $onComplete `
         -OnTimeout $onTimeout `
+        -NoLoadingOverlay `
         -LoadingMessage 'Generating rules...' `
         -LoadingSubMessage 'Batch processing artifacts...' `
         -TimeoutSeconds 300

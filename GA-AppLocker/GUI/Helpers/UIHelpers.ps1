@@ -163,11 +163,16 @@ function global:Invoke-BackgroundWork {
         [string]$LoadingMessage = 'Processing...',
         [string]$LoadingSubMessage = '',
 
+        [switch]$NoLoadingOverlay,
+
         [int]$TimeoutSeconds = 60
     )
 
-    # Show overlay immediately
-    Show-LoadingOverlay -Message $LoadingMessage -SubMessage $LoadingSubMessage
+    # Show overlay only for operations that request it
+    $usesOverlay = -not $NoLoadingOverlay
+    if ($usesOverlay) {
+        Show-LoadingOverlay -Message $LoadingMessage -SubMessage $LoadingSubMessage
+    }
 
     # Create bare MTA runspace (NO module import -- fast startup)
     $rs = [runspacefactory]::CreateRunspace()
@@ -194,6 +199,7 @@ function global:Invoke-BackgroundWork {
         Handle     = $handle
         StartTime  = [DateTime]::UtcNow
         Timeout    = $TimeoutSeconds
+        UsesOverlay = $usesOverlay
         OnComplete = $OnComplete
         OnTimeout  = $OnTimeout
     }
@@ -227,6 +233,15 @@ function global:Stop-BackgroundWork {
         try { Hide-LoadingOverlay } catch { }
         if ($global:GA_BackgroundTimer) {
             try { $global:GA_BackgroundTimer.Stop() } catch { }
+        }
+    }
+    else {
+        $hasOverlayJobs = $false
+        foreach ($j in @($global:GA_BackgroundJobs.Values)) {
+            if ($j -and $j.UsesOverlay) { $hasOverlayJobs = $true; break }
+        }
+        if (-not $hasOverlayJobs) {
+            try { Hide-LoadingOverlay } catch { }
         }
     }
 
@@ -319,6 +334,17 @@ function global:Start-BackgroundMonitor {
             # Remove completed jobs
             foreach ($id in $completedIds) {
                 [void]$global:GA_BackgroundJobs.Remove($id)
+            }
+
+            # Keep overlay visible only while overlay-using jobs remain
+            if ($global:GA_BackgroundJobs.Count -gt 0) {
+                $hasOverlayJobs = $false
+                foreach ($j in @($global:GA_BackgroundJobs.Values)) {
+                    if ($j -and $j.UsesOverlay) { $hasOverlayJobs = $true; break }
+                }
+                if (-not $hasOverlayJobs) {
+                    try { Hide-LoadingOverlay } catch { }
+                }
             }
 
             # Auto-stop timer when no jobs remain

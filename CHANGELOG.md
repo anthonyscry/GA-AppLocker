@@ -2,6 +2,14 @@
 
 All notable changes to GA-AppLocker will be documented in this file.
 
+## [1.2.77] - 2026-02-06
+
+### Fixed
+- **Wizard Generate lockup** -- Rule Generation Wizard preview/generate background jobs now run with `-NoLoadingOverlay`, so the global overlay no longer blocks wizard interaction while generation runs.
+- **Overlay cross-job blocking** -- `Invoke-BackgroundWork` now tracks per-job overlay usage and only keeps the global overlay visible while overlay-enabled jobs remain.
+
+---
+
 ## [1.2.76] - 2026-02-06
 
 ### Fixed
