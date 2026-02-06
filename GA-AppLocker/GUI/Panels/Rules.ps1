@@ -484,6 +484,41 @@ function global:Reset-RulesSelectionState {
     Update-RulesSelectionCount -Window $Window
 }
 
+function global:Refresh-RulesPanelAfterGeneration {
+    <#
+    .SYNOPSIS
+        Resets filters and refreshes Rules grid after rule generation/import.
+    #>
+    param(
+        $Window,
+        [switch]$Navigate
+    )
+
+    $win = if ($Window) { $Window } else { $global:GA_MainWindow }
+    if (-not $win) { return }
+
+    if ($Navigate) {
+        try { Set-ActivePanel -PanelName 'PanelRules' } catch { }
+    }
+
+    try { Reset-RulesIndexCache } catch { }
+
+    # Clear text filter to avoid "no rules" confusion after generation
+    $txtFilter = $win.FindName('TxtRuleFilter')
+    if ($txtFilter) { $txtFilter.Text = '' }
+
+    # Force both filter dimensions back to All for immediate visibility
+    $script:CurrentRulesTypeFilter = 'All'
+    $script:CurrentRulesFilter = 'All'
+
+    try {
+        Update-RulesFilter -Window $win -Filter 'All'
+    }
+    catch {
+        try { Update-RulesDataGrid -Window $win } catch { }
+    }
+}
+
 function global:Invoke-AddSelectedRulesToPolicy {
     param($Window)
 

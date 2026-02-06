@@ -598,18 +598,18 @@ function global:Close-RuleGenerationWizard {
     $script:WizardState.IsGenerating = $false
     
     # Always refresh rules panel when wizard closes (rules may have been created)
-    # Reset cache to force reload from disk on next query
-    try { Reset-RulesIndexCache } catch { }
-    
-    # Invalidate any cached queries
+    # Invalidate cached query slices used by search/stats
     try {
         Clear-AppLockerCache -Pattern 'GlobalSearch_*' | Out-Null
         Clear-AppLockerCache -Pattern 'RuleCounts*' | Out-Null
         Clear-AppLockerCache -Pattern 'RuleQuery*' | Out-Null
     } catch { }
-    
-    # Refresh the rules grid directly
-    Update-RulesDataGrid -Window $global:GA_MainWindow
+
+    # Refresh Rules panel and reset filters so newly created rules are always visible
+    try { Refresh-RulesPanelAfterGeneration -Window $global:GA_MainWindow } catch {
+        try { Reset-RulesIndexCache } catch { }
+        try { Update-RulesDataGrid -Window $global:GA_MainWindow } catch { }
+    }
     
     # Refresh dashboard stats and sidebar counts
     Update-DashboardStats -Window $global:GA_MainWindow

@@ -1817,8 +1817,10 @@ function global:Invoke-DirectRuleGenerationWithSettings {
         else {
             Show-Toast -Message 'Rule generation completed.' -Type 'Info'
         }
-        try { Set-ActivePanel -PanelName 'PanelRules' } catch { }
-        try { Update-RulesDataGrid -Window $win } catch { }
+        try { Refresh-RulesPanelAfterGeneration -Window $win -Navigate } catch {
+            try { Set-ActivePanel -PanelName 'PanelRules' } catch { }
+            try { Update-RulesDataGrid -Window $win } catch { }
+        }
         $global:GA_RuleGen_Window = $null
     }
 
@@ -1888,8 +1890,10 @@ function global:Invoke-DirectRuleGeneration {
         else {
             Show-Toast -Message 'Rule generation completed.' -Type 'Info'
         }
-        try { Set-ActivePanel -PanelName 'PanelRules' } catch { }
-        try { Update-RulesDataGrid -Window $win } catch { }
+        try { Refresh-RulesPanelAfterGeneration -Window $win -Navigate } catch {
+            try { Set-ActivePanel -PanelName 'PanelRules' } catch { }
+            try { Update-RulesDataGrid -Window $win } catch { }
+        }
         $global:GA_RuleGen_Window = $null
     }
 

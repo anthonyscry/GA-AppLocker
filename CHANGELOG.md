@@ -2,6 +2,15 @@
 
 All notable changes to GA-AppLocker will be documented in this file.
 
+## [1.2.75] - 2026-02-06
+
+### Fixed
+- **Rules grid appears empty after successful generation** -- added `Refresh-RulesPanelAfterGeneration` to reset Rules view state after generation/import flows.
+- **Post-generation visibility hardening** -- Rules panel refresh now clears text filter, resets type/status filters to `All`, resets index cache, and reloads the grid so new rules are immediately visible.
+- **Scanner/Wizard handoff consistency** -- scanner direct generation callbacks and wizard close path now use the same Rules refresh helper to avoid stale/filtered UI state.
+
+---
+
 ## [1.2.74] - 2026-02-06
 
 ### Fixed
