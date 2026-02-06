@@ -2,6 +2,13 @@
 
 All notable changes to GA-AppLocker will be documented in this file.
 
+## [1.2.67] - 2026-02-05
+
+### Fixed
+- Includes local software scan freeze fix that was omitted from v1.2.66 package.
+
+---
+
 ## [1.2.66] - 2026-02-05
 
 ### Fixed

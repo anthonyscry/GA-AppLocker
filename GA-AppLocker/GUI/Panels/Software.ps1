@@ -117,52 +117,160 @@ function global:Invoke-ScanLocalSoftware {
     #>
     param($Window)
 
+    if ($script:SoftwareLocalScanInProgress) {
+        Show-Toast -Message 'A local software scan is already in progress.' -Type 'Warning'
+        return
+    }
+
+    $script:SoftwareLocalScanInProgress = $true
     Show-LoadingOverlay -Message 'Scanning installed software...' -SubMessage $env:COMPUTERNAME
+    try { Request-UiRender -Window $Window } catch { }
 
-    try {
-        $results = Get-InstalledSoftware -MachineName $env:COMPUTERNAME
-        $script:SoftwareInventory = $results
+    $script:SoftwareLocalSyncHash = [hashtable]::Synchronized(@{
+            Window     = $Window
+            Hostname   = $env:COMPUTERNAME
+            Result     = $null
+            Error      = $null
+            IsComplete = $false
+            StatusText = 'Reading installed software...'
+        })
 
-        Update-SoftwareDataGrid -Window $Window
-        Update-SoftwareStats -Window $Window
+    $script:SoftwareLocalRunspace = [runspacefactory]::CreateRunspace()
+    $script:SoftwareLocalRunspace.ApartmentState = 'STA'
+    $script:SoftwareLocalRunspace.ThreadOptions = 'ReuseThread'
+    $script:SoftwareLocalRunspace.Open()
 
-        $statusText = $Window.FindName('TxtSoftwareStatus')
-        if ($statusText) { $statusText.Text = "Scanned $($results.Count) programs on $env:COMPUTERNAME" }
+    $script:SoftwareLocalPowerShell = [powershell]::Create()
+    $script:SoftwareLocalPowerShell.Runspace = $script:SoftwareLocalRunspace
 
-        $lastScan = $Window.FindName('TxtSoftwareLastScan')
-        if ($lastScan) { $lastScan.Text = "$env:COMPUTERNAME - $(Get-Date -Format 'MM/dd HH:mm')" }
+    [void]$script:SoftwareLocalPowerShell.AddScript({
+        param($SyncHash)
 
-        # Update baseline info on Compare tab
-        $baselineFile = $Window.FindName('TxtSoftwareBaselineFile')
-        if ($baselineFile) { $baselineFile.Text = "Scan: $env:COMPUTERNAME ($($results.Count) items)" }
-
-        # Auto-save local scan CSV: hostname_softwarelist_ddMMMYY.csv
         try {
-            $appDataPath = Get-AppLockerDataPath
-            $scansFolder = [System.IO.Path]::Combine($appDataPath, 'Scans')
-            if (-not [System.IO.Directory]::Exists($scansFolder)) {
-                [System.IO.Directory]::CreateDirectory($scansFolder) | Out-Null
-            }
-            $dateSuffix = (Get-Date).ToString('ddMMMyy').ToUpper()
-            $csvName = "$($env:COMPUTERNAME)_softwarelist_${dateSuffix}.csv"
-            $csvPath = [System.IO.Path]::Combine($scansFolder, $csvName)
-            $results |
-                Select-Object Machine, DisplayName, DisplayVersion, Publisher, InstallDate, InstallLocation, Architecture, Source |
-                Export-Csv -Path $csvPath -NoTypeInformation -Encoding UTF8
-            Write-AppLockerLog -Message "Auto-saved software list: $csvName" -Level 'INFO'
-        } catch {
-            Write-AppLockerLog -Message "Failed to auto-save local CSV: $($_.Exception.Message)" -Level 'ERROR'
-        }
+            $machineName = $SyncHash.Hostname
+            $SyncHash.StatusText = "Reading uninstall registry on $machineName..."
 
-        Show-Toast -Message "Found $($results.Count) installed programs on local machine. CSV saved to Scans folder." -Type 'Success'
-    }
-    catch {
-        Write-AppLockerLog -Message "Local software scan failed: $($_.Exception.Message)" -Level 'ERROR'
-        Show-Toast -Message "Scan failed: $($_.Exception.Message)" -Type 'Error'
-    }
-    finally {
-        Hide-LoadingOverlay
-    }
+            $paths = @(
+                'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*',
+                'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*'
+            )
+
+            $results = [System.Collections.Generic.List[PSCustomObject]]::new()
+            foreach ($item in (Get-ItemProperty -Path $paths -ErrorAction SilentlyContinue |
+                    Where-Object { $_.DisplayName -and $_.DisplayName.Trim() -ne '' })) {
+                [void]$results.Add([PSCustomObject]@{
+                    Machine         = $machineName
+                    DisplayName     = $item.DisplayName
+                    DisplayVersion  = if ($item.DisplayVersion) { $item.DisplayVersion } else { '' }
+                    Publisher       = if ($item.Publisher) { $item.Publisher } else { '' }
+                    InstallDate     = if ($item.InstallDate) { $item.InstallDate } else { '' }
+                    InstallLocation = if ($item.InstallLocation) { $item.InstallLocation } else { '' }
+                    Architecture    = if ($item.PSPath -like '*WOW6432*') { 'x86' } else { 'x64' }
+                    Source          = 'Local'
+                })
+            }
+
+            $SyncHash.StatusText = 'Reading installed roles/features...'
+            try {
+                if (Get-Command 'Get-WindowsFeature' -ErrorAction SilentlyContinue) {
+                    $features = @(Get-WindowsFeature -ErrorAction SilentlyContinue | Where-Object { $_.Installed })
+                    foreach ($feat in $features) {
+                        [void]$results.Add([PSCustomObject]@{
+                            Machine         = $machineName
+                            DisplayName     = "[Role/Feature] $($feat.DisplayName)"
+                            DisplayVersion  = ''
+                            Publisher       = 'Microsoft'
+                            InstallDate     = ''
+                            InstallLocation = ''
+                            Architecture    = if ($feat.FeatureType -eq 'Role') { 'Role' } else { 'Feature' }
+                            Source          = 'Local'
+                        })
+                    }
+                }
+            }
+            catch { }
+
+            $sorted = @($results | Sort-Object DisplayName)
+            $SyncHash.Result = $sorted
+            $SyncHash.StatusText = "Found $($sorted.Count) programs"
+        }
+        catch {
+            $SyncHash.Error = $_.Exception.Message
+        }
+        finally {
+            $SyncHash.IsComplete = $true
+        }
+    })
+
+    [void]$script:SoftwareLocalPowerShell.AddArgument($script:SoftwareLocalSyncHash)
+    $script:SoftwareLocalAsyncResult = $script:SoftwareLocalPowerShell.BeginInvoke()
+
+    $script:SoftwareLocalTimer = New-Object System.Windows.Threading.DispatcherTimer
+    $script:SoftwareLocalTimer.Interval = [TimeSpan]::FromMilliseconds(250)
+
+    $script:SoftwareLocalTimer.Add_Tick({
+        $syncHash = $script:SoftwareLocalSyncHash
+        $win = $syncHash.Window
+
+        Show-LoadingOverlay -Message 'Scanning installed software...' -SubMessage $syncHash.StatusText
+
+        if ($syncHash.IsComplete) {
+            $script:SoftwareLocalTimer.Stop()
+
+            try { $script:SoftwareLocalPowerShell.EndInvoke($script:SoftwareLocalAsyncResult) } catch { Write-AppLockerLog -Message "Software local EndInvoke cleanup: $($_.Exception.Message)" -Level 'DEBUG' }
+            if ($script:SoftwareLocalPowerShell) { $script:SoftwareLocalPowerShell.Dispose() }
+            if ($script:SoftwareLocalRunspace) {
+                $script:SoftwareLocalRunspace.Close()
+                $script:SoftwareLocalRunspace.Dispose()
+            }
+
+            Hide-LoadingOverlay
+            $script:SoftwareLocalScanInProgress = $false
+
+            if ($syncHash.Error) {
+                Write-AppLockerLog -Message "Local software scan failed: $($syncHash.Error)" -Level 'ERROR'
+                Show-Toast -Message "Scan failed: $($syncHash.Error)" -Type 'Error'
+                return
+            }
+
+            $results = @($syncHash.Result)
+            $script:SoftwareInventory = $results
+
+            Update-SoftwareDataGrid -Window $win
+            Update-SoftwareStats -Window $win
+
+            $statusText = $win.FindName('TxtSoftwareStatus')
+            if ($statusText) { $statusText.Text = "Scanned $($results.Count) programs on $($syncHash.Hostname)" }
+
+            $lastScan = $win.FindName('TxtSoftwareLastScan')
+            if ($lastScan) { $lastScan.Text = "$($syncHash.Hostname) - $(Get-Date -Format 'MM/dd HH:mm')" }
+
+            $baselineFile = $win.FindName('TxtSoftwareBaselineFile')
+            if ($baselineFile) { $baselineFile.Text = "Scan: $($syncHash.Hostname) ($($results.Count) items)" }
+
+            try {
+                $appDataPath = Get-AppLockerDataPath
+                $scansFolder = [System.IO.Path]::Combine($appDataPath, 'Scans')
+                if (-not [System.IO.Directory]::Exists($scansFolder)) {
+                    [System.IO.Directory]::CreateDirectory($scansFolder) | Out-Null
+                }
+                $dateSuffix = (Get-Date).ToString('ddMMMyy').ToUpper()
+                $csvName = "$($syncHash.Hostname)_softwarelist_${dateSuffix}.csv"
+                $csvPath = [System.IO.Path]::Combine($scansFolder, $csvName)
+                $results |
+                    Select-Object Machine, DisplayName, DisplayVersion, Publisher, InstallDate, InstallLocation, Architecture, Source |
+                    Export-Csv -Path $csvPath -NoTypeInformation -Encoding UTF8
+                Write-AppLockerLog -Message "Auto-saved software list: $csvName" -Level 'INFO'
+            }
+            catch {
+                Write-AppLockerLog -Message "Failed to auto-save local CSV: $($_.Exception.Message)" -Level 'ERROR'
+            }
+
+            Show-Toast -Message "Found $($results.Count) installed programs on local machine. CSV saved to Scans folder." -Type 'Success'
+        }
+    })
+
+    $script:SoftwareLocalTimer.Start()
 }
 
 function global:Invoke-ScanRemoteSoftware {
