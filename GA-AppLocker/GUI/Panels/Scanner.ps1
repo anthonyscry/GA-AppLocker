@@ -1730,10 +1730,7 @@ function global:Show-RuleGenerationConfigDialog {
             $result.PublisherLevel = $cboPublisherLevel.SelectedItem.Tag
             $result.Action = if ($rbAllow.IsChecked) { 'Allow' } else { 'Deny' }
             $rawSid = $cboTargetGroup.SelectedItem.Tag
-            if ($rawSid -and $rawSid.ToString().StartsWith('RESOLVE:')) {
-                try { $rawSid = Resolve-GroupSid -GroupName $rawSid } catch { }
-            }
-            $result.TargetSid = $rawSid
+            $result.TargetSid = if ($rawSid) { $rawSid.ToString() } else { 'S-1-5-11' }
             $result.UnsignedMode = $cboUnsignedMode.SelectedItem.Tag
             $result.Status = $cboStatus.SelectedItem.Tag
             $result.SkipDlls = $chkSkipDlls.IsChecked
@@ -1788,6 +1785,11 @@ function global:Invoke-DirectRuleGenerationWithSettings {
             if (Test-Path $modPath) { Import-Module $modPath -Force -ErrorAction Stop }
         }
 
+        $resolvedSid = if ($GenSettings.TargetSid) { [string]$GenSettings.TargetSid } else { 'S-1-5-11' }
+        if ($resolvedSid.StartsWith('RESOLVE:')) {
+            try { $resolvedSid = Resolve-GroupSid -GroupName $resolvedSid } catch { }
+        }
+
         $genParams = @{
             Artifacts      = $Artifacts
             Mode           = 'Smart'
@@ -1795,7 +1797,7 @@ function global:Invoke-DirectRuleGenerationWithSettings {
             Status         = $GenSettings.Status
             DedupeMode     = 'Smart'
             PublisherLevel = $GenSettings.PublisherLevel
-            UserOrGroupSid = $GenSettings.TargetSid
+            UserOrGroupSid = $resolvedSid
             UnsignedMode   = $GenSettings.UnsignedMode
         }
         if ($GenSettings.SkipDlls) { $genParams['SkipDlls'] = $true }
@@ -1827,6 +1829,7 @@ function global:Invoke-DirectRuleGenerationWithSettings {
     Invoke-BackgroundWork -ScriptBlock $bgWork `
         -ArgumentList @($modulePath, $script:CurrentScanArtifacts, $Settings) `
         -OnComplete $onComplete `
+        -NoLoadingOverlay `
         -LoadingMessage 'Generating Rules...' `
         -LoadingSubMessage "Processing $artifactCount artifacts..." `
         -TimeoutSeconds 300
@@ -1874,9 +1877,14 @@ function global:Invoke-DirectRuleGeneration {
             if (Test-Path $modPath) { Import-Module $modPath -Force -ErrorAction Stop }
         }
 
+        $resolvedSid = if ($TargetSid) { [string]$TargetSid } else { 'S-1-5-11' }
+        if ($resolvedSid.StartsWith('RESOLVE:')) {
+            try { $resolvedSid = Resolve-GroupSid -GroupName $resolvedSid } catch { }
+        }
+
         return Invoke-BatchRuleGeneration -Artifacts $Artifacts `
             -Mode 'Smart' -Action $Action -Status 'Pending' -DedupeMode 'Smart' `
-            -PublisherLevel $PublisherLevel -UserOrGroupSid $TargetSid -UnsignedMode $UnsignedMode
+            -PublisherLevel $PublisherLevel -UserOrGroupSid $resolvedSid -UnsignedMode $UnsignedMode
     }
 
     $onComplete = {
@@ -1900,6 +1908,7 @@ function global:Invoke-DirectRuleGeneration {
     Invoke-BackgroundWork -ScriptBlock $bgWork `
         -ArgumentList @($modulePath, $script:CurrentScanArtifacts, $action, $publisherLevel, $targetSid, $unsignedMode) `
         -OnComplete $onComplete `
+        -NoLoadingOverlay `
         -LoadingMessage 'Generating Rules...' `
         -LoadingSubMessage "Processing $artifactCount artifacts..." `
         -TimeoutSeconds 300

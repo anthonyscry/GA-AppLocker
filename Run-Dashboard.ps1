@@ -20,5 +20,31 @@ $modulePath = "$PSScriptRoot\GA-AppLocker\GA-AppLocker.psd1"
 if (-not (Test-Path $modulePath)) {
     $modulePath = "$PSScriptRoot\GA-AppLocker.psd1"
 }
-Import-Module $modulePath -Force -DisableNameChecking
-Start-AppLockerDashboard -SkipPrerequisites
+
+if (-not (Test-Path $modulePath)) {
+    Write-Host "ERROR: Module manifest not found. Expected one of:" -ForegroundColor Red
+    Write-Host "  $PSScriptRoot\GA-AppLocker\GA-AppLocker.psd1" -ForegroundColor Red
+    Write-Host "  $PSScriptRoot\GA-AppLocker.psd1" -ForegroundColor Red
+    exit 1
+}
+
+try {
+    Import-Module $modulePath -Force -DisableNameChecking -ErrorAction Stop
+}
+catch {
+    Write-Host "ERROR: Failed to import module: $($_.Exception.Message)" -ForegroundColor Red
+    exit 1
+}
+
+if (-not (Get-Command -Name 'Start-AppLockerDashboard' -ErrorAction SilentlyContinue)) {
+    Write-Host "ERROR: Start-AppLockerDashboard command was not exported after module import." -ForegroundColor Red
+    exit 1
+}
+
+try {
+    Start-AppLockerDashboard -SkipPrerequisites
+}
+catch {
+    Write-Host "ERROR: Dashboard failed to start: $($_.Exception.Message)" -ForegroundColor Red
+    exit 1
+}

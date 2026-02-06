@@ -2,6 +2,15 @@
 
 All notable changes to GA-AppLocker will be documented in this file.
 
+## [1.2.79] - 2026-02-06
+
+### Fixed
+- **Rule Generation Settings dialog lockup on Generate** -- scanner fallback generation paths now run with `-NoLoadingOverlay`, preventing global overlay click-blocking while generation is running.
+- **RESOLVE:* target group deadlock risk in background generation** -- moved `Resolve-GroupSid` execution into background runspace so Generate click does not block UI on AD/LDAP resolution latency.
+- **Run-Dashboard launcher hard-fail diagnostics** -- added explicit manifest existence checks, import error handling, command export validation, and dashboard start try/catch to surface startup errors clearly.
+
+---
+
 ## [1.2.78] - 2026-02-06
 
 ### Fixed
