@@ -5,7 +5,13 @@ Enterprise AppLocker policy management for air-gapped, classified, and highly se
 ## Quick Start
 
 ```powershell
-.\Run-Dashboard.ps1
+powershell -ExecutionPolicy Bypass -NoProfile -File .\Run-Dashboard.ps1
+```
+
+Force-clear module cache and start (if version caching is suspected):
+
+```powershell
+powershell -ExecutionPolicy Bypass -NoProfile -File .\Run-Dashboard-ForceFresh.ps1
 ```
 
 Or import manually:

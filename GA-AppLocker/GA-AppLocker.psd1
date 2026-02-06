@@ -9,7 +9,7 @@
     RootModule = 'GA-AppLocker.psm1'
 
     # Version number of this module
-    ModuleVersion = '1.2.61'
+    ModuleVersion = '1.2.62'
 
     # ID used to uniquely identify this module
     GUID = 'f1e2d3c4-b5a6-7890-1234-567890abcdef'
@@ -102,6 +102,8 @@ Features:
         'Get-AppLockerEventLogs',
         'Start-ArtifactScan',
         'Get-ScanResults',
+        'Get-DefaultScanPaths',
+        'Write-ScanLog',
         'Export-ScanResults',
         # Scanning - Scheduled
         'New-ScheduledScan',
@@ -116,6 +118,7 @@ Features:
         'ConvertFrom-Artifact',
         'Get-Rule',
         'Get-AllRules',
+        'Update-RulesGrid',
         'Remove-Rule',
         'Export-RulesToXml',
         'Set-RuleStatus',

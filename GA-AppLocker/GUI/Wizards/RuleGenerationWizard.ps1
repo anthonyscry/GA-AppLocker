@@ -354,7 +354,7 @@ function global:Start-WizardBatchGeneration {
     $progressCallback = {
         param($Percent, $Message)
         
-        $global:GA_MainWindow.Dispatcher.Invoke([Action]{
+        $null = $global:GA_MainWindow.Dispatcher.BeginInvoke([Action]{
             $progressBar = $global:GA_MainWindow.FindName('WizardProgressBar')
             $txtStatus = $global:GA_MainWindow.FindName('WizardTxtStatus')
             
@@ -428,7 +428,7 @@ function global:Complete-WizardGeneration {
     $script:WizardState.GenerationResult = $Result
     
     # Update UI on main thread
-    $global:GA_MainWindow.Dispatcher.Invoke([Action]{
+    $null = $global:GA_MainWindow.Dispatcher.BeginInvoke([Action]{
         $progressBar = $global:GA_MainWindow.FindName('WizardProgressBar')
         $txtStatus = $global:GA_MainWindow.FindName('WizardTxtStatus')
         $panelComplete = $global:GA_MainWindow.FindName('WizardPanelComplete')

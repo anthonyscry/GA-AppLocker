@@ -315,7 +315,7 @@ function Invoke-UIUpdate {
     }
     else {
         # Marshal to UI thread
-        $win.Dispatcher.Invoke([action]$Action, [System.Windows.Threading.DispatcherPriority]::Normal)
+        $null = $win.Dispatcher.BeginInvoke([action]$Action, [System.Windows.Threading.DispatcherPriority]::Normal)
     }
 }
 

@@ -36,7 +36,7 @@ function Get-LocalArtifacts {
     [OutputType([PSCustomObject])]
     param(
         [Parameter()]
-        [string[]]$Paths = (Get-DefaultScanPaths),
+        [string[]]$Paths = $null,
 
         [Parameter()]
         [string[]]$Extensions = $script:ArtifactExtensions,
@@ -77,9 +77,15 @@ function Get-LocalArtifacts {
         Write-ScanLog -Message "Extensions parameter: $($Extensions -join ', ')"
         Write-ScanLog -Message "SkipDllScanning: $SkipDllScanning, SkipWshScanning: $SkipWshScanning, SkipShellScanning: $SkipShellScanning"
         
-        # Defensive: If $Paths is null (can happen in runspace contexts where
-        # Get-DefaultScanPaths is not resolved when parameter defaults evaluate),
-        # fall back to hardcoded defaults.
+        # If caller didn't supply paths, attempt module defaults first.
+        if (-not $Paths -or $Paths.Count -eq 0) {
+            try {
+                $Paths = @(Get-DefaultScanPaths)
+            }
+            catch { }
+        }
+
+        # Defensive: fall back to hardcoded defaults when default resolver is unavailable.
         if (-not $Paths -or $Paths.Count -eq 0) {
             $Paths = @(
                 'C:\Program Files',
@@ -153,6 +159,7 @@ function Get-LocalArtifacts {
         }
         
         $allFiles = [System.Collections.Generic.List[object]]::new()
+        $seenPaths = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
         
         foreach ($scanPath in $Paths) {
             if (-not (Test-Path $scanPath)) {
@@ -183,7 +190,11 @@ function Get-LocalArtifacts {
                     $accessErrors = $null
                     $foundFiles = Get-ChildItem @getChildParams
                     if ($foundFiles) {
-                        foreach ($f in $foundFiles) { [void]$allFiles.Add($f) }
+                        foreach ($f in $foundFiles) {
+                            if ($seenPaths.Add($f.FullName)) {
+                                [void]$allFiles.Add($f)
+                            }
+                        }
                     }
                     if ($accessErrors) {
                         foreach ($err in $accessErrors) {
@@ -212,7 +223,11 @@ function Get-LocalArtifacts {
                         $extErrors = $null
                         $extFiles = Get-ChildItem -Path $wildcardPath -File -ErrorAction SilentlyContinue -ErrorVariable extErrors
                         if ($extFiles) {
-                            foreach ($f in $extFiles) { [void]$allFiles.Add($f) }
+                            foreach ($f in $extFiles) {
+                                if ($seenPaths.Add($f.FullName)) {
+                                    [void]$allFiles.Add($f)
+                                }
+                            }
                         }
                         if ($extErrors) {
                             foreach ($err in $extErrors) {

@@ -12,7 +12,7 @@
 #>
 
 #region ===== SAFE LOGGING =====
-function script:Write-StorageLog {
+function Write-StorageLog {
     param([string]$Message, [string]$Level = 'INFO')
     if (Get-Command -Name 'Write-AppLockerLog' -ErrorAction SilentlyContinue) {
         Write-AppLockerLog -Message "[Storage] $Message" -Level $Level

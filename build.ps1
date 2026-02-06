@@ -376,10 +376,11 @@ function Invoke-PackageTask {
     $packageName = "GA-AppLocker_v$version.zip"
     $packagePath = Join-Path $OutputPath $packageName
 
-    # Include module + launcher + docs + troubleshooting scripts
+    # Include module + launchers + docs + troubleshooting scripts
     $filesToPackage = @(
         (Join-Path $script:ProjectRoot 'GA-AppLocker'),
         (Join-Path $script:ProjectRoot 'Run-Dashboard.ps1'),
+        (Join-Path $script:ProjectRoot 'Run-Dashboard-ForceFresh.ps1'),
         (Join-Path $script:ProjectRoot 'Troubleshooting'),
         (Join-Path $script:ProjectRoot 'README.md'),
         (Join-Path $script:ProjectRoot 'CHANGELOG.md')

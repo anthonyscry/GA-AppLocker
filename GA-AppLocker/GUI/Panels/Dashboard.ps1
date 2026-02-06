@@ -1,6 +1,68 @@
 #region Dashboard Panel Functions
 # Dashboard.ps1 - Dashboard panel initialization and stats
 
+$script:DashboardToggleBusy = $false
+$script:DashboardToggleEnabledSnapshot = @{}
+
+function global:Set-DashboardToggleInterlock {
+    param(
+        $Window,
+        [switch]$Busy,
+        [switch]$RestoreEnabled
+    )
+
+    $win = if ($Window) { $Window } else { $global:GA_MainWindow }
+    if (-not $win) { return }
+
+    $toggleNames = @(
+        'BtnDashToggleEnableWinRM',
+        'BtnDashToggleGpoDC',
+        'BtnDashToggleGpoServers',
+        'BtnDashToggleGpoWks'
+    )
+
+    if ($Busy) {
+        $script:DashboardToggleEnabledSnapshot = @{}
+        foreach ($name in $toggleNames) {
+            $btn = $win.FindName($name)
+            if ($btn) {
+                $script:DashboardToggleEnabledSnapshot[$name] = [bool]$btn.IsEnabled
+                $btn.IsEnabled = $false
+                $btn.Opacity = 0.65
+            }
+        }
+
+        $busyLabel = $win.FindName('TxtDashToggleBusyStatus')
+        if ($busyLabel) {
+            $busyLabel.Text = 'Applying changes...'
+            $busyLabel.Visibility = 'Visible'
+        }
+
+        try { $win.Cursor = [System.Windows.Input.Cursors]::Wait } catch { }
+        try { Request-UiRender -Window $win } catch { }
+        return
+    }
+
+    foreach ($name in $toggleNames) {
+        $btn = $win.FindName($name)
+        if (-not $btn) { continue }
+
+        $btn.Opacity = 1.0
+        if ($RestoreEnabled -and $script:DashboardToggleEnabledSnapshot.ContainsKey($name)) {
+            $btn.IsEnabled = [bool]$script:DashboardToggleEnabledSnapshot[$name]
+        }
+    }
+
+    $busyLabel = $win.FindName('TxtDashToggleBusyStatus')
+    if ($busyLabel) {
+        $busyLabel.Text = ''
+        $busyLabel.Visibility = 'Collapsed'
+    }
+
+    $script:DashboardToggleEnabledSnapshot = @{}
+    try { $win.Cursor = [System.Windows.Input.Cursors]::Arrow } catch { }
+}
+
 function Initialize-DashboardPanel {
     param($Window)
 
@@ -39,8 +101,32 @@ function Initialize-DashboardPanel {
             $btn.Add_Click({
                 param($sender, $e)
                 if ($sender -and -not $sender.IsEnabled) { return }
-                Invoke-ButtonAction -Action $sender.Tag
-                try { Invoke-DashboardGpoRefresh -Window $global:GA_MainWindow } catch { }
+                if ($script:DashboardToggleBusy) { return }
+
+                $script:DashboardToggleBusy = $true
+                $dashWindow = if ($Window) { $Window } else { $global:GA_MainWindow }
+                Set-DashboardToggleInterlock -Window $dashWindow -Busy
+
+                $refreshSucceeded = $true
+                try {
+                    Invoke-ButtonAction -Action $sender.Tag
+                }
+                finally {
+                    try {
+                        Invoke-DashboardGpoRefresh -Window $dashWindow
+                    }
+                    catch {
+                        $refreshSucceeded = $false
+                    }
+
+                    $script:DashboardToggleBusy = $false
+                    if ($refreshSucceeded) {
+                        Set-DashboardToggleInterlock -Window $dashWindow
+                    }
+                    else {
+                        Set-DashboardToggleInterlock -Window $dashWindow -RestoreEnabled
+                    }
+                }
             }.GetNewClosure())
         }
     }

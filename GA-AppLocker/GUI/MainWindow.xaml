@@ -972,6 +972,13 @@ Width="1450"
                                             <TextBlock Grid.Row="3" Grid.Column="0" Text="GPO: Workstations" Foreground="{StaticResource ForegroundBrush}" FontSize="11" VerticalAlignment="Center"/>
                                             <ToggleButton x:Name="BtnDashToggleGpoWks" Grid.Row="3" Grid.Column="1" Style="{StaticResource ToggleSwitchStyle}" Tag="ToggleGpoLinkWks" Margin="0,2,0,0" IsEnabled="False"/>
                                     </Grid>
+
+                                    <TextBlock x:Name="TxtDashToggleBusyStatus"
+                                               Text=""
+                                               Foreground="{StaticResource MutedBrush}"
+                                               FontSize="10"
+                                               Margin="0,8,0,0"
+                                               Visibility="Collapsed"/>
                                 </StackPanel>
                             </Border>
                         </StackPanel>

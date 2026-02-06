@@ -3,6 +3,9 @@
 
 # Script-scoped handler storage for cleanup
 $script:ADDiscovery_Handlers = @{}
+$script:ADDiscovery_FilterTimer = $null
+$script:ADDiscovery_FilterWindow = $null
+$script:ADDiscovery_FilterText = ''
 
 function Initialize-DiscoveryPanel {
     param($Window)
@@ -60,17 +63,31 @@ function Initialize-DiscoveryPanel {
         $dataGrid.Add_SelectionChanged($script:ADDiscovery_Handlers['dataGridSelection'])
     }
 
-    # Wire up text filter box for machine search
+    # Wire up text filter box for machine search (debounced)
     $filterBox = $Window.FindName('MachineFilterBox')
     if ($filterBox) {
-        $script:ADDiscovery_Handlers['filterBox'] = {
+        $script:ADDiscovery_FilterWindow = $Window
+
+        if (-not $script:ADDiscovery_FilterTimer) {
+            $script:ADDiscovery_FilterTimer = [System.Windows.Threading.DispatcherTimer]::new()
+            $script:ADDiscovery_FilterTimer.Interval = [TimeSpan]::FromMilliseconds(250)
+        }
+
+        if ($script:ADDiscovery_Handlers['filterTimerTick']) {
+            $script:ADDiscovery_FilterTimer.Remove_Tick($script:ADDiscovery_Handlers['filterTimerTick'])
+        }
+
+        $script:ADDiscovery_Handlers['filterTimerTick'] = {
             param($sender, $e)
+            $sender.Stop()
+
             if (-not $script:DiscoveredMachines -or $script:DiscoveredMachines.Count -eq 0) { return }
 
-            $text = $sender.Text.Trim()
+            $text = $script:ADDiscovery_FilterText
             if ([string]::IsNullOrEmpty($text)) {
                 $filtered = $script:DiscoveredMachines
-            } else {
+            }
+            else {
                 $filtered = @($script:DiscoveredMachines | Where-Object {
                     $_.Hostname -like "*$text*" -or
                     $_.MachineType -like "*$text*" -or
@@ -79,17 +96,31 @@ function Initialize-DiscoveryPanel {
                 })
             }
 
-            $win = $script:MainWindow
+            $win = $script:ADDiscovery_FilterWindow
+            if (-not $win) { $win = $script:MainWindow }
             if (-not $win) { $win = $global:GA_MainWindow }
+            if (-not $win) { return }
+
             Update-MachineDataGrid -Window $win -Machines $filtered
 
             $machineCount = $win.FindName('DiscoveryMachineCount')
             if ($machineCount) {
                 if ([string]::IsNullOrEmpty($text)) {
                     $machineCount.Text = "$($filtered.Count) machines"
-                } else {
+                }
+                else {
                     $machineCount.Text = "$($filtered.Count) of $($script:DiscoveredMachines.Count) machines (filter: '$text')"
                 }
+            }
+        }
+        $script:ADDiscovery_FilterTimer.Add_Tick($script:ADDiscovery_Handlers['filterTimerTick'])
+
+        $script:ADDiscovery_Handlers['filterBox'] = {
+            param($sender, $e)
+            $script:ADDiscovery_FilterText = $sender.Text.Trim()
+            if ($script:ADDiscovery_FilterTimer) {
+                $script:ADDiscovery_FilterTimer.Stop()
+                $script:ADDiscovery_FilterTimer.Start()
             }
         }
         $filterBox.Add_TextChanged($script:ADDiscovery_Handlers['filterBox'])
@@ -254,6 +285,12 @@ function Unregister-DiscoveryPanelEvents {
             try { $filterBox.Remove_TextChanged($script:ADDiscovery_Handlers['filterBox']) } catch { }
         }
     }
+
+    # Remove filter debounce timer handler
+    if ($script:ADDiscovery_Handlers['filterTimerTick'] -and $script:ADDiscovery_FilterTimer) {
+        try { $script:ADDiscovery_FilterTimer.Remove_Tick($script:ADDiscovery_Handlers['filterTimerTick']) } catch { }
+        try { $script:ADDiscovery_FilterTimer.Stop() } catch { }
+    }
     
     # Remove filter button handlers
     foreach ($btnName in @('BtnFilterAll','BtnFilterWorkstations','BtnFilterServers','BtnFilterDCs','BtnFilterOnline')) {
@@ -273,8 +310,10 @@ function Unregister-DiscoveryPanelEvents {
         }
     }
     
-    # Clear stored handlers
+    # Clear stored handlers/state
     $script:ADDiscovery_Handlers = @{}
+    $script:ADDiscovery_FilterWindow = $null
+    $script:ADDiscovery_FilterText = ''
 }
 
 function global:Invoke-DomainRefresh {
@@ -714,19 +753,25 @@ function global:Invoke-ConnectivityTest {
                 }
             }
 
-            # Update DataGrid on UI thread using Dispatcher
-            $win.Dispatcher.Invoke([action]{
-                Update-MachineDataGrid -Window $win -Machines $script:DiscoveredMachines
-                
-                # Force DataGrid visual refresh
-                $dataGrid = $win.FindName('MachineDataGrid')
-                if ($dataGrid) {
-                    # Update ItemsSource to force rebind
-                    $dataGrid.ItemsSource = $null
-                    $dataGrid.ItemsSource = $script:DiscoveredMachines
-                    $dataGrid.Items.Refresh()
-                }
-            })
+            # Update DataGrid immediately so WinRM status appears without manual refresh
+            $machinesForGrid = $script:DiscoveredMachines
+            $activeFilterText = if ($script:ADDiscovery_FilterText) { $script:ADDiscovery_FilterText.Trim() } else { '' }
+            if (-not [string]::IsNullOrWhiteSpace($activeFilterText)) {
+                $machinesForGrid = @($script:DiscoveredMachines | Where-Object {
+                    $_.Hostname -like "*$activeFilterText*" -or
+                    $_.MachineType -like "*$activeFilterText*" -or
+                    $_.OperatingSystem -like "*$activeFilterText*" -or
+                    $_.DistinguishedName -like "*$activeFilterText*"
+                })
+            }
+
+            Update-MachineDataGrid -Window $win -Machines $machinesForGrid
+
+            $dataGrid = $win.FindName('MachineDataGrid')
+            if ($dataGrid) {
+                $dataGrid.Items.Refresh()
+            }
+            try { Request-UiRender -Window $win } catch { }
             
             Update-WorkflowBreadcrumb -Window $win
 

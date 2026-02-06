@@ -50,6 +50,8 @@ function Test-PingConnectivity {
     param(
         [Parameter(Mandatory)]
         [AllowEmptyCollection()]
+        [AllowNull()]
+        [AllowEmptyString()]
         [string[]]$Hostnames,
 
         [Parameter()]
@@ -65,6 +67,7 @@ function Test-PingConnectivity {
     $pingResults = @{}
     $invalidHostnamePattern = '[^A-Za-z0-9\.-]'
     $effectiveThrottle = if ($ThrottleLimit -gt 0) { $ThrottleLimit } else { 1 }
+    $seenHostnames = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
 
     if ($PSBoundParameters.ContainsKey('TimeoutSeconds') -and -not $PSBoundParameters.ContainsKey('TimeoutMs')) {
         $TimeoutMs = $TimeoutSeconds * 1000
@@ -90,6 +93,9 @@ function Test-PingConnectivity {
                 }
                 catch { }
                 $pingResults[$hostname] = $false
+                continue
+            }
+            if (-not $seenHostnames.Add($hostname)) {
                 continue
             }
             try {
@@ -122,6 +128,9 @@ function Test-PingConnectivity {
                 }
                 catch { }
                 $pingResults[$hostname] = $false
+                continue
+            }
+            if (-not $seenHostnames.Add($hostname)) {
                 continue
             }
             $powershell = [PowerShell]::Create()
@@ -193,6 +202,7 @@ function Test-MachineConnectivity {
     param(
         [Parameter(Mandatory)]
         [AllowEmptyCollection()]
+        [AllowNull()]
         [array]$Machines,
 
         [Parameter()]
@@ -245,6 +255,16 @@ function Test-MachineConnectivity {
         $winrmCount = 0
         $effectiveThrottle = if ($ThrottleLimit -gt 0) { $ThrottleLimit } else { 1 }
 
+        $setMachineValue = {
+            param($Machine, [string]$Name, $Value)
+            if ($Machine.PSObject.Properties[$Name]) {
+                $Machine.$Name = $Value
+            }
+            else {
+                $Machine | Add-Member -NotePropertyName $Name -NotePropertyValue $Value -Force
+            }
+        }
+
         #region --- Ping Test (delegates to Test-PingConnectivity) ---
         $timeoutMs = $TimeoutSeconds * 1000
         $hostnames = @($Machines | ForEach-Object { $_.Hostname })
@@ -264,95 +284,123 @@ function Test-MachineConnectivity {
         foreach ($machine in $Machines) {
             $hostname = $machine.Hostname
             if ([string]::IsNullOrWhiteSpace($hostname)) {
-                $machine | Add-Member -NotePropertyName 'IsOnline' -NotePropertyValue $false -Force
-                $machine | Add-Member -NotePropertyName 'WinRMStatus' -NotePropertyValue 'Offline' -Force
+                & $setMachineValue $machine 'IsOnline' $false
+                & $setMachineValue $machine 'WinRMStatus' 'Offline'
                 [void]$testedMachines.Add($machine)
                 continue
             }
 
             $isOnline = if ($pingResults.ContainsKey($hostname)) { $pingResults[$hostname] } else { $false }
-            $machine | Add-Member -NotePropertyName 'IsOnline' -NotePropertyValue $isOnline -Force
+            & $setMachineValue $machine 'IsOnline' $isOnline
             if ($isOnline) { 
                 $onlineCount++
                 if ($TestWinRM) { [void]$onlineMachines.Add($machine) }
             }
             else {
-                $machine | Add-Member -NotePropertyName 'WinRMStatus' -NotePropertyValue 'Offline' -Force
+                & $setMachineValue $machine 'WinRMStatus' 'Offline'
             }
             [void]$testedMachines.Add($machine)
         }
         
-        # Parallel WinRM test for online machines using runspace pool (faster than Start-Job)
+        # Parallel WinRM test for online machines using batched runspace pool
         if ($TestWinRM -and $onlineMachines.Count -gt 0) {
             $winrmResults = @{}
-            
-            # Use runspace pool for much lower overhead than Start-Job
-            $runspacePool = [RunspaceFactory]::CreateRunspacePool(1, [Math]::Min($effectiveThrottle, $onlineMachines.Count))
-            $runspacePool.Open()
-            
-            $runspaces = [System.Collections.Generic.List[PSCustomObject]]::new()
-            
+            $uniqueOnlineHostnames = [System.Collections.Generic.List[string]]::new()
+            $seenOnlineHostnames = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+
             foreach ($machine in $onlineMachines) {
-                $powershell = [PowerShell]::Create()
-                $powershell.RunspacePool = $runspacePool
-                
-                [void]$powershell.AddScript({
-                    param($Hostname)
+                $hostname = [string]$machine.Hostname
+                if ([string]::IsNullOrWhiteSpace($hostname)) { continue }
+                if ($seenOnlineHostnames.Add($hostname)) {
+                    [void]$uniqueOnlineHostnames.Add($hostname)
+                }
+            }
+
+            if ($uniqueOnlineHostnames.Count -gt 0) {
+                $threadCount = [Math]::Min($effectiveThrottle, $uniqueOnlineHostnames.Count)
+                $runspacePool = [RunspaceFactory]::CreateRunspacePool(1, $threadCount)
+                $runspacePool.Open()
+
+                $batchSize = [Math]::Max(5, [Math]::Min(25, [int][Math]::Ceiling($uniqueOnlineHostnames.Count / [Math]::Max(1, $threadCount * 2))))
+                $runspaces = [System.Collections.Generic.List[PSCustomObject]]::new()
+
+                for ($i = 0; $i -lt $uniqueOnlineHostnames.Count; $i += $batchSize) {
+                    $end = [Math]::Min($i + $batchSize - 1, $uniqueOnlineHostnames.Count - 1)
+                    $batch = @($uniqueOnlineHostnames[$i..$end])
+
+                    $powershell = [PowerShell]::Create()
+                    $powershell.RunspacePool = $runspacePool
+
+                    [void]$powershell.AddScript({
+                        param($Hostnames)
+                        $batchResults = @{}
+                        foreach ($hostname in $Hostnames) {
+                            try {
+                                $null = Test-WSMan -ComputerName $hostname -ErrorAction Stop
+                                $batchResults[$hostname] = $true
+                            }
+                            catch {
+                                $batchResults[$hostname] = $false
+                            }
+                        }
+                        return [PSCustomObject]@{ Results = $batchResults }
+                    }).AddArgument($batch)
+
+                    $handle = $powershell.BeginInvoke()
+                    [void]$runspaces.Add([PSCustomObject]@{
+                        PowerShell = $powershell
+                        Handle     = $handle
+                        Hostnames  = $batch
+                    })
+                }
+
+                # Wait for all runspaces with timeout (3 seconds per machine, min 15 sec total)
+                $totalTimeout = [Math]::Max(15, $uniqueOnlineHostnames.Count * 3)
+                $deadline = [datetime]::Now.AddSeconds($totalTimeout)
+
+                foreach ($rs in $runspaces) {
                     try {
-                        $null = Test-WSMan -ComputerName $Hostname -ErrorAction Stop
-                        return @{ Hostname = $Hostname; Available = $true }
+                        $remainingMs = [Math]::Max(100, ($deadline - [datetime]::Now).TotalMilliseconds)
+                        if ($rs.Handle.AsyncWaitHandle.WaitOne([int]$remainingMs)) {
+                            $rsResult = $rs.PowerShell.EndInvoke($rs.Handle)
+                            foreach ($resultItem in @($rsResult)) {
+                                if ($resultItem -and $resultItem.Results) {
+                                    foreach ($hostname in $resultItem.Results.Keys) {
+                                        $winrmResults[$hostname] = [bool]$resultItem.Results[$hostname]
+                                    }
+                                }
+                            }
+                        }
+                        else {
+                            # Timed out - mark batch as unavailable
+                            foreach ($hostname in $rs.Hostnames) {
+                                $winrmResults[$hostname] = $false
+                            }
+                            try {
+                                $rs.PowerShell.Stop()
+                            }
+                            catch { }
+                        }
                     }
                     catch {
-                        return @{ Hostname = $Hostname; Available = $false }
-                    }
-                }).AddArgument($machine.Hostname)
-                
-                $handle = $powershell.BeginInvoke()
-                [void]$runspaces.Add([PSCustomObject]@{
-                    PowerShell = $powershell
-                    Handle     = $handle
-                    Hostname   = $machine.Hostname
-                })
-            }
-            
-            # Wait for all runspaces with timeout (3 seconds per machine, min 15 sec total)
-            $totalTimeout = [Math]::Max(15, $onlineMachines.Count * 3)
-            $deadline = [datetime]::Now.AddSeconds($totalTimeout)
-            
-            foreach ($rs in $runspaces) {
-                try {
-                    $remainingMs = [Math]::Max(100, ($deadline - [datetime]::Now).TotalMilliseconds)
-                    if ($rs.Handle.AsyncWaitHandle.WaitOne([int]$remainingMs)) {
-                        $rsResult = $rs.PowerShell.EndInvoke($rs.Handle)
-                        if ($rsResult -and $rsResult.Hostname) {
-                            $winrmResults[$rsResult.Hostname] = $rsResult.Available
+                        foreach ($hostname in $rs.Hostnames) {
+                            $winrmResults[$hostname] = $false
                         }
                     }
-                    else {
-                        # Timed out - mark as unavailable
-                        $winrmResults[$rs.Hostname] = $false
-                        try {
-                            $rs.PowerShell.Stop()
-                        }
-                        catch { }
+                    finally {
+                        $rs.PowerShell.Dispose()
                     }
                 }
-                catch {
-                    $winrmResults[$rs.Hostname] = $false
-                }
-                finally {
-                    $rs.PowerShell.Dispose()
-                }
+
+                $runspacePool.Close()
+                $runspacePool.Dispose()
             }
-            
-            $runspacePool.Close()
-            $runspacePool.Dispose()
-            
+
             # Apply WinRM results
             foreach ($machine in $testedMachines) {
                 if ($machine.IsOnline) {
                     $available = if ($winrmResults.ContainsKey($machine.Hostname)) { $winrmResults[$machine.Hostname] } else { $false }
-                    $machine | Add-Member -NotePropertyName 'WinRMStatus' -NotePropertyValue $(if ($available) { 'Available' } else { 'Unavailable' }) -Force
+                    & $setMachineValue $machine 'WinRMStatus' $(if ($available) { 'Available' } else { 'Unavailable' })
                     if ($available) { $winrmCount++ }
                 }
             }

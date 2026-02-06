@@ -162,7 +162,13 @@ function global:Update-RulesDataGrid {
             return
         }
 
-        $rules = $Result.Data
+        $rules = @($Result.Data)
+
+        if (-not $rules -or $rules.Count -eq 0) {
+            $DataGrid.ItemsSource = $null
+            Update-RuleCounters -Window $Window -Rules @()
+            return
+        }
 
         # Apply type filter
         if ($TypeFilter -and $TypeFilter -ne 'All') {
@@ -310,6 +316,24 @@ function global:Update-RulesDataGrid {
         Write-Log -Level Error -Message "Failed to update rules grid: $($_.Exception.Message)"
         $dataGrid.ItemsSource = $null
     }
+}
+
+function global:Update-RulesGrid {
+    param(
+        [Parameter()]
+        [array]$Rules
+    )
+
+    if (-not $Rules) {
+        return
+    }
+
+    $ruleList = [System.Collections.Generic.List[PSCustomObject]]::new()
+    foreach ($rule in $Rules) {
+        [void]$ruleList.Add([PSCustomObject]$rule)
+    }
+
+    return $true
 }
 
 function global:Update-RuleCounters {
@@ -698,14 +722,72 @@ function global:Set-SelectedRuleStatus {
     
     $count = $selectedItems.Count
     
-    # For large selections, use batch processing with loading overlay
+    # For large selections, use async batch processing to keep UI responsive
     if ($count -gt 50) {
-        Show-LoadingOverlay -Message "Updating $count rules to '$Status'..." -SubMessage 'Please wait'
-        # Pump the message queue so overlay actually renders before we start
-        [System.Windows.Threading.Dispatcher]::CurrentDispatcher.Invoke(
-            [System.Windows.Threading.DispatcherPriority]::Background,
-            [Action]{}
-        )
+        $ruleIds = @($selectedItems | ForEach-Object { $_.Id })
+
+        Invoke-AsyncOperation -ScriptBlock {
+            param($RuleIds, $Status)
+
+            $dataPath = Get-AppLockerDataPath
+            $rulePath = Join-Path $dataPath 'Rules'
+            $updatedIds = [System.Collections.Generic.List[string]]::new()
+            $errors = [System.Collections.Generic.List[string]]::new()
+            $now = Get-Date -Format 'o'
+
+            foreach ($id in $RuleIds) {
+                try {
+                    $ruleFile = Join-Path $rulePath "$id.json"
+                    if (Test-Path $ruleFile) {
+                        $rule = Get-Content -Path $ruleFile -Raw | ConvertFrom-Json
+                        $rule.Status = $Status
+                        $rule.ModifiedDate = $now
+                        $rule | ConvertTo-Json -Depth 10 | Set-Content -Path $ruleFile -Encoding UTF8
+                        [void]$updatedIds.Add($id)
+                    }
+                }
+                catch {
+                    [void]$errors.Add("Rule $id`: $($_.Exception.Message)")
+                }
+            }
+
+            if ($updatedIds.Count -gt 0) {
+                try {
+                    Update-RuleStatusInIndex -RuleIds $updatedIds.ToArray() -Status $Status | Out-Null
+                }
+                catch {
+                    [void]$errors.Add("Index update failed: $($_.Exception.Message)")
+                }
+            }
+
+            return [PSCustomObject]@{
+                Updated = $updatedIds.Count
+                Errors = $errors.ToArray()
+            }
+        } -Arguments @{ RuleIds = $ruleIds; Status = $Status } -LoadingMessage "Updating $count rules to '$Status'..." -LoadingSubMessage 'Please wait' -OnComplete {
+            param($Result)
+
+            Reset-RulesSelectionState -Window $Window
+            Update-RulesDataGrid -Window $Window
+            Update-DashboardStats -Window $Window
+            Update-WorkflowBreadcrumb -Window $Window
+
+            $updated = if ($Result -and $Result.Updated) { $Result.Updated } else { 0 }
+            $errorCount = if ($Result -and $Result.Errors) { $Result.Errors.Count } else { 0 }
+
+            if ($updated -gt 0) {
+                Show-Toast -Message "Updated $updated rule(s) to '$Status'." -Type 'Success'
+            }
+            if ($errorCount -gt 0) {
+                Write-Log -Level Warning -Message "Errors updating rules: $errorCount failures"
+                Show-Toast -Message "$errorCount rule(s) failed to update." -Type 'Warning'
+            }
+        } -OnError {
+            param($ErrorMessage)
+            Show-Toast -Message "Failed to update rules: $ErrorMessage" -Type 'Error'
+        }
+
+        return
     }
 
     try {
@@ -715,23 +797,9 @@ function global:Set-SelectedRuleStatus {
         $updated = 0
         $errors = @()
         $updatedIds = [System.Collections.Generic.List[string]]::new()
-        $processedCount = 0
         $now = Get-Date -Format 'o'
         
         foreach ($item in $selectedItems) {
-            $processedCount++
-            
-            # Update loading overlay progress and pump UI events for large batches
-            if ($count -gt 50 -and $processedCount % 100 -eq 0) {
-                $pct = [math]::Round(($processedCount / $count) * 100)
-                Show-LoadingOverlay -Message "Updating $count rules to '$Status'..." -SubMessage "$processedCount of $count ($pct%)"
-                # Pump the message queue to keep UI responsive
-                [System.Windows.Threading.Dispatcher]::CurrentDispatcher.Invoke(
-                    [System.Windows.Threading.DispatcherPriority]::Background,
-                    [Action]{}
-                )
-            }
-            
             try {
                 $ruleFile = Join-Path $rulePath "$($item.Id).json"
                 if (Test-Path $ruleFile) {
@@ -756,11 +824,6 @@ function global:Set-SelectedRuleStatus {
         
         if ($errors.Count -gt 0) {
             Write-Log -Level Warning -Message "Errors updating rules: $($errors.Count) failures"
-        }
-    }
-    finally {
-        if ($count -gt 50) {
-            Hide-LoadingOverlay
         }
     }
 
@@ -1565,8 +1628,6 @@ function global:Invoke-ChangeSelectedRulesAction {
 
     $newAction = $dialog.Tag
 
-    Show-LoadingOverlay -Message "Changing action to '$newAction'..." -SubMessage "$($selectedItems.Count) rule(s)"
-
     try {
         $dataPath = Get-AppLockerDataPath
         $rulePath = Join-Path $dataPath 'Rules'
@@ -1574,21 +1635,80 @@ function global:Invoke-ChangeSelectedRulesAction {
         $count = $selectedItems.Count
         $now = Get-Date -Format 'o'
         $updatedIds = [System.Collections.Generic.List[string]]::new()
-        $processedCount = 0
+        $syncOverlayShown = $false
 
-        foreach ($item in $selectedItems) {
-            $processedCount++
+        if ($count -gt 50) {
+            $ruleIds = @($selectedItems | ForEach-Object { $_.Id })
 
-            # Pump UI every 100 rules for large batches
-            if ($count -gt 50 -and $processedCount % 100 -eq 0) {
-                $pct = [math]::Round(($processedCount / $count) * 100)
-                Show-LoadingOverlay -Message "Changing action to '$newAction'..." -SubMessage "$processedCount of $count ($pct%)"
-                [System.Windows.Threading.Dispatcher]::CurrentDispatcher.Invoke(
-                    [System.Windows.Threading.DispatcherPriority]::Background,
-                    [Action]{}
-                )
+            Invoke-AsyncOperation -ScriptBlock {
+                param($RuleIds, $ActionValue)
+
+                $dataPath = Get-AppLockerDataPath
+                $rulePath = Join-Path $dataPath 'Rules'
+                $updatedIds = [System.Collections.Generic.List[string]]::new()
+                $errors = [System.Collections.Generic.List[string]]::new()
+                $now = Get-Date -Format 'o'
+
+                foreach ($id in $RuleIds) {
+                    try {
+                        $ruleFile = Join-Path $rulePath "$id.json"
+                        if (Test-Path $ruleFile) {
+                            $rule = Get-Content -Path $ruleFile -Raw | ConvertFrom-Json
+                            $rule.Action = $ActionValue
+                            $rule.ModifiedDate = $now
+                            $json = $rule | ConvertTo-Json -Depth 10
+                            Set-Content -Path $ruleFile -Value $json -Encoding UTF8
+                            [void]$updatedIds.Add($id)
+                        }
+                    }
+                    catch {
+                        [void]$errors.Add("Rule $id`: $($_.Exception.Message)")
+                    }
+                }
+
+                if ($updatedIds.Count -gt 0) {
+                    try {
+                        Reset-RulesIndexCache
+                        Update-RuleStatusInIndex -RuleIds @($updatedIds) -Status $null -Action $ActionValue | Out-Null
+                    }
+                    catch {
+                        [void]$errors.Add("Index update failed: $($_.Exception.Message)")
+                    }
+                }
+
+                return [PSCustomObject]@{
+                    Updated = $updatedIds.Count
+                    Errors = $errors.ToArray()
+                }
+            } -Arguments @{ RuleIds = $ruleIds; ActionValue = $newAction } -LoadingMessage "Changing action to '$newAction'..." -LoadingSubMessage "$count rule(s)" -OnComplete {
+                param($Result)
+
+                Reset-RulesSelectionState -Window $Window
+                Update-RulesDataGrid -Window $Window
+                Update-DashboardStats -Window $Window
+
+                $updated = if ($Result -and $Result.Updated) { $Result.Updated } else { 0 }
+                $errorCount = if ($Result -and $Result.Errors) { $Result.Errors.Count } else { 0 }
+
+                if ($updated -gt 0) {
+                    Show-Toast -Message "Changed $updated rule(s) to '$newAction'." -Type 'Success'
+                }
+                if ($errorCount -gt 0) {
+                    Write-Log -Level Warning -Message "Errors updating rule actions: $errorCount failures"
+                    Show-Toast -Message "$errorCount rule(s) failed to update." -Type 'Warning'
+                }
+            } -OnError {
+                param($ErrorMessage)
+                Show-Toast -Message "Failed to change action: $ErrorMessage" -Type 'Error'
             }
 
+            return
+        }
+
+        Show-LoadingOverlay -Message "Changing action to '$newAction'..." -SubMessage "$($selectedItems.Count) rule(s)"
+        $syncOverlayShown = $true
+
+        foreach ($item in $selectedItems) {
             try {
                 $ruleFile = Join-Path $rulePath "$($item.Id).json"
                 if (Test-Path $ruleFile) {
@@ -1616,7 +1736,9 @@ function global:Invoke-ChangeSelectedRulesAction {
         }
     }
     finally {
-        Hide-LoadingOverlay
+        if ($syncOverlayShown) {
+            Hide-LoadingOverlay
+        }
     }
 
     Reset-RulesSelectionState -Window $Window
@@ -1711,8 +1833,6 @@ function global:Invoke-ChangeSelectedRulesGroup {
         }
     }
 
-    Show-LoadingOverlay -Message "Changing target group to '$groupName'..." -SubMessage "$($selectedItems.Count) rule(s)"
-
     try {
         $dataPath = Get-AppLockerDataPath
         $rulePath = Join-Path $dataPath 'Rules'
@@ -1720,21 +1840,80 @@ function global:Invoke-ChangeSelectedRulesGroup {
         $count = $selectedItems.Count
         $now = Get-Date -Format 'o'
         $updatedIds = [System.Collections.Generic.List[string]]::new()
-        $processedCount = 0
+        $syncOverlayShown = $false
 
-        foreach ($item in $selectedItems) {
-            $processedCount++
+        if ($count -gt 50) {
+            $ruleIds = @($selectedItems | ForEach-Object { $_.Id })
 
-            # Pump UI every 100 rules for large batches
-            if ($count -gt 50 -and $processedCount % 100 -eq 0) {
-                $pct = [math]::Round(($processedCount / $count) * 100)
-                Show-LoadingOverlay -Message "Changing target group to '$groupName'..." -SubMessage "$processedCount of $count ($pct%)"
-                [System.Windows.Threading.Dispatcher]::CurrentDispatcher.Invoke(
-                    [System.Windows.Threading.DispatcherPriority]::Background,
-                    [Action]{}
-                )
+            Invoke-AsyncOperation -ScriptBlock {
+                param($RuleIds, $Sid)
+
+                $dataPath = Get-AppLockerDataPath
+                $rulePath = Join-Path $dataPath 'Rules'
+                $updatedIds = [System.Collections.Generic.List[string]]::new()
+                $errors = [System.Collections.Generic.List[string]]::new()
+                $now = Get-Date -Format 'o'
+
+                foreach ($id in $RuleIds) {
+                    try {
+                        $ruleFile = Join-Path $rulePath "$id.json"
+                        if (Test-Path $ruleFile) {
+                            $rule = Get-Content -Path $ruleFile -Raw | ConvertFrom-Json
+                            $rule.UserOrGroupSid = $Sid
+                            $rule.ModifiedDate = $now
+                            $json = $rule | ConvertTo-Json -Depth 10
+                            Set-Content -Path $ruleFile -Value $json -Encoding UTF8
+                            [void]$updatedIds.Add($id)
+                        }
+                    }
+                    catch {
+                        [void]$errors.Add("Rule $id`: $($_.Exception.Message)")
+                    }
+                }
+
+                if ($updatedIds.Count -gt 0) {
+                    try {
+                        Reset-RulesIndexCache
+                        Update-RuleStatusInIndex -RuleIds @($updatedIds) -Status $null -UserOrGroupSid $Sid | Out-Null
+                    }
+                    catch {
+                        [void]$errors.Add("Index update failed: $($_.Exception.Message)")
+                    }
+                }
+
+                return [PSCustomObject]@{
+                    Updated = $updatedIds.Count
+                    Errors = $errors.ToArray()
+                }
+            } -Arguments @{ RuleIds = $ruleIds; Sid = $targetSid } -LoadingMessage "Changing target group to '$groupName'..." -LoadingSubMessage "$count rule(s)" -OnComplete {
+                param($Result)
+
+                Reset-RulesSelectionState -Window $Window
+                Update-RulesDataGrid -Window $Window
+                Update-DashboardStats -Window $Window
+
+                $updated = if ($Result -and $Result.Updated) { $Result.Updated } else { 0 }
+                $errorCount = if ($Result -and $Result.Errors) { $Result.Errors.Count } else { 0 }
+
+                if ($updated -gt 0) {
+                    Show-Toast -Message "Changed $updated rule(s) to group '$groupName' ($targetSid)." -Type 'Success'
+                }
+                if ($errorCount -gt 0) {
+                    Write-Log -Level Warning -Message "Errors updating target group: $errorCount failures"
+                    Show-Toast -Message "$errorCount rule(s) failed to update." -Type 'Warning'
+                }
+            } -OnError {
+                param($ErrorMessage)
+                Show-Toast -Message "Failed to change target group: $ErrorMessage" -Type 'Error'
             }
 
+            return
+        }
+
+        Show-LoadingOverlay -Message "Changing target group to '$groupName'..." -SubMessage "$($selectedItems.Count) rule(s)"
+        $syncOverlayShown = $true
+
+        foreach ($item in $selectedItems) {
             try {
                 $ruleFile = Join-Path $rulePath "$($item.Id).json"
                 if (Test-Path $ruleFile) {
@@ -1762,7 +1941,9 @@ function global:Invoke-ChangeSelectedRulesGroup {
         }
     }
     finally {
-        Hide-LoadingOverlay
+        if ($syncOverlayShown) {
+            Hide-LoadingOverlay
+        }
     }
 
     Reset-RulesSelectionState -Window $Window
