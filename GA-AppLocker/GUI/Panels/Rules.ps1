@@ -184,11 +184,18 @@ function global:Update-RulesDataGrid {
         if (-not [string]::IsNullOrWhiteSpace($TextFilter)) {
             $filterText = $TextFilter.ToLower()
             $rules = $rules | Where-Object {
-                $_.Name.ToLower().Contains($filterText) -or
-                $_.CollectionType.ToLower().Contains($filterText) -or
-                ($_.Description -and $_.Description.ToLower().Contains($filterText)) -or
-                ($_.GroupName -and $_.GroupName.ToLower().Contains($filterText)) -or
-                ($_.GroupVendor -and $_.GroupVendor.ToLower().Contains($filterText))
+                if ($null -eq $_) { return $false }
+                $name = if ($_.Name) { $_.Name.ToString().ToLower() } else { '' }
+                $collection = if ($_.CollectionType) { $_.CollectionType.ToString().ToLower() } else { '' }
+                $description = if ($_.Description) { $_.Description.ToString().ToLower() } else { '' }
+                $groupName = if ($_.GroupName) { $_.GroupName.ToString().ToLower() } else { '' }
+                $groupVendor = if ($_.GroupVendor) { $_.GroupVendor.ToString().ToLower() } else { '' }
+
+                $name.Contains($filterText) -or
+                $collection.Contains($filterText) -or
+                $description.Contains($filterText) -or
+                $groupName.Contains($filterText) -or
+                $groupVendor.Contains($filterText)
             }
         }
 
