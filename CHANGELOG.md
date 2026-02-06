@@ -2,6 +2,15 @@
 
 All notable changes to GA-AppLocker will be documented in this file.
 
+## [1.2.66] - 2026-02-05
+
+### Fixed
+- Fixed UI freeze after local software scan results populated.
+- Local software scan now runs in background runspace with live loading status.
+- Prevent duplicate local scans while one is in progress.
+
+---
+
 ## [1.2.65] - 2026-02-05
 
 ### Fixed
