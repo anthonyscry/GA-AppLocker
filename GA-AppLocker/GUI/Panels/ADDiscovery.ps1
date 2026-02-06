@@ -572,11 +572,11 @@ function global:Update-MachineDataGrid {
     if ($dataGrid) {
         # Add status icon property for display
         # Wrap in @() to ensure array for DataGrid ItemsSource (PS 5.1 compatible)
-        $machinesWithIcon = @($Machines | ForEach-Object {
+        $machinesWithIcon = @($Machines | Where-Object { $_ -ne $null } | ForEach-Object {
             $statusIcon = switch ($_.IsOnline) {
-                $true  { [char]0x2714 }   # ✔ (online)
-                $false { [char]0x2716 }   # ✖ (offline)
-                default { [char]0x2013 }  # – (unknown)
+                $true  { [char]0x2714 }   # check (online)
+                $false { [char]0x2716 }   # x (offline)
+                default { [char]0x2013 }  # dash (unknown)
             }
             $_ | Add-Member -NotePropertyName 'StatusIcon' -NotePropertyValue $statusIcon -Force
             # Output the object once (do NOT use -PassThru above, it causes duplicate output)
@@ -860,19 +860,29 @@ function global:Invoke-ConnectivityTest {
     $timer = [System.Windows.Threading.DispatcherTimer]::new()
     $timer.Interval = [TimeSpan]::FromMilliseconds(200)
 
+    # CRITICAL: $script: variables are NOT accessible inside .GetNewClosure() -- the closure
+    # creates its own module scope so $script: resolves to THAT module's private scope (always $null).
+    # Lesson #2 from CLAUDE.md. We must pass all cross-scope data through $ctx.
+    $allDiscoveredMachines = $script:DiscoveredMachines   # capture by reference
+    $currentFilterText     = $script:ADDiscovery_FilterText
+
     $ctx = @{
-        PS          = $ps
-        Runspace    = $runspace
-        AsyncResult = $asyncResult
-        Timer       = $timer
-        StartTime   = [DateTime]::UtcNow
-        Deadline    = 30          # seconds — absolute hard cap
-        Machines    = $machines
-        Win         = $win
+        PS            = $ps
+        Runspace      = $runspace
+        AsyncResult   = $asyncResult
+        Timer         = $timer
+        StartTime     = [DateTime]::UtcNow
+        Deadline      = 30
+        Machines      = $machines               # subset being tested
+        AllMachines   = $allDiscoveredMachines   # full list (same reference as $script:DiscoveredMachines)
+        FilterText    = $currentFilterText
+        Win           = $win
     }
 
     $timer.Add_Tick({
         $c = $ctx
+        if ($null -eq $c) { return }   # safety: closure captured nothing
+
         $elapsed = ([DateTime]::UtcNow - $c.StartTime).TotalSeconds
         $done = $false
 
@@ -885,7 +895,6 @@ function global:Invoke-ConnectivityTest {
         $c.Timer.Stop()
 
         if ($timedOut -and -not $done) {
-            # Kill the runspace and report timeout
             try { $c.PS.Stop() } catch { }
             try { $c.PS.Dispose(); $c.Runspace.Close(); $c.Runspace.Dispose() } catch { }
             Hide-LoadingOverlay
@@ -903,6 +912,7 @@ function global:Invoke-ConnectivityTest {
 
             # Map background results back onto machine objects
             foreach ($m in $c.Machines) {
+                if ($null -eq $m) { continue }
                 $h = $m.Hostname
                 $isOnline = $false
                 if ($bg -and $bg.PingResults -and $bg.PingResults.ContainsKey($h)) {
@@ -923,25 +933,31 @@ function global:Invoke-ConnectivityTest {
                 else { $m | Add-Member -NotePropertyName 'WinRMStatus' -NotePropertyValue $winrmStatus -Force }
             }
 
-            # Merge tested machines back into full discovered list
+            # Merge tested machines back into full discovered list (via $ctx reference, NOT $script:)
             $testedByHost = @{}
-            foreach ($m in $c.Machines) { $testedByHost[$m.Hostname] = $m }
-            for ($i = 0; $i -lt $script:DiscoveredMachines.Count; $i++) {
-                $h_ = $script:DiscoveredMachines[$i].Hostname
-                if ($testedByHost.ContainsKey($h_)) {
-                    $script:DiscoveredMachines[$i] = $testedByHost[$h_]
+            foreach ($m in $c.Machines) {
+                if ($null -ne $m -and $m.Hostname) { $testedByHost[$m.Hostname] = $m }
+            }
+            if ($c.AllMachines -and $c.AllMachines.Count -gt 0) {
+                for ($i = 0; $i -lt $c.AllMachines.Count; $i++) {
+                    $h_ = $c.AllMachines[$i].Hostname
+                    if ($h_ -and $testedByHost.ContainsKey($h_)) {
+                        $c.AllMachines[$i] = $testedByHost[$h_]
+                    }
                 }
             }
 
             # Refresh DataGrid (respecting active text filter)
-            $machinesForGrid = $script:DiscoveredMachines
-            $activeFilterText = if ($script:ADDiscovery_FilterText) { $script:ADDiscovery_FilterText.Trim() } else { '' }
+            $machinesForGrid = if ($c.AllMachines) { $c.AllMachines } else { $c.Machines }
+            $activeFilterText = if ($c.FilterText) { $c.FilterText.Trim() } else { '' }
             if (-not [string]::IsNullOrWhiteSpace($activeFilterText)) {
-                $machinesForGrid = @($script:DiscoveredMachines | Where-Object {
-                    $_.Hostname -like "*$activeFilterText*" -or
-                    $_.MachineType -like "*$activeFilterText*" -or
-                    $_.OperatingSystem -like "*$activeFilterText*" -or
-                    $_.DistinguishedName -like "*$activeFilterText*"
+                $machinesForGrid = @($machinesForGrid | Where-Object {
+                    $_ -ne $null -and (
+                        $_.Hostname -like "*$activeFilterText*" -or
+                        $_.MachineType -like "*$activeFilterText*" -or
+                        $_.OperatingSystem -like "*$activeFilterText*" -or
+                        $_.DistinguishedName -like "*$activeFilterText*"
+                    )
                 })
             }
             Update-MachineDataGrid -Window $c.Win -Machines $machinesForGrid

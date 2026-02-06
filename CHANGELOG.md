@@ -2,6 +2,15 @@
 
 All notable changes to GA-AppLocker will be documented in this file.
 
+## [1.2.70] - 2026-02-06
+
+### Fixed
+- **CRITICAL**: Fix connectivity test timer callback using `$script:DiscoveredMachines` inside `.GetNewClosure()` -- resolves to `$null` because the closure creates its own module scope (PS Lesson #2). All cross-scope data now passed through `$ctx` hashtable instead.
+- Fix `Add-Member` null crash in `Update-MachineDataGrid` -- null machine objects in the pipeline now filtered out with `Where-Object { $_ -ne $null }`.
+- **Bulk delete** of 1400+ rules no longer freezes UI -- file deletion moved to background runspace with DispatcherTimer (60s deadline), index update and grid refresh run on UI thread after files are deleted.
+
+---
+
 ## [1.2.69] - 2026-02-05
 
 ### Fixed

@@ -848,6 +848,16 @@ function global:Set-SelectedRuleStatus {
 }
 
 function global:Invoke-DeleteSelectedRules {
+    <#
+    .SYNOPSIS
+        Deletes selected rules using a background runspace for file I/O to prevent UI freeze.
+    .DESCRIPTION
+        For large deletions (1000+ rules), the 1400 individual Remove-Item calls plus the
+        post-delete grid refresh (SID resolution via AD lookups) can block the WPF STA
+        thread for 10-60+ seconds. This rewrite moves file deletion to a background
+        runspace and uses a DispatcherTimer to poll for completion, then updates the
+        in-memory index and UI on the dispatcher thread.
+    #>
     param($Window)
 
     $selectedItems = Get-SelectedRules -Window $Window
@@ -864,70 +874,131 @@ function global:Invoke-DeleteSelectedRules {
 
     if ($confirm -ne 'Yes') { return }
 
-    Show-LoadingOverlay -Message "Deleting $count rules..." -SubMessage 'Please wait'
-    
-    try {
-        # Collect IDs to delete
-        $idsToDelete = @($selectedItems | ForEach-Object { $_.Id })
-        
-        # Use bulk delete for efficiency (uses transaction)
-        # Note: Using try-catch instead of Get-Command which can fail in WPF context
-        $deleteResult = $null
-        try {
-            $deleteResult = Remove-RulesBulk -RuleIds $idsToDelete
-        }
-        catch {
-            # Remove-RulesBulk not available, try fallback
-            $deleteResult = $null
-        }
-        
-        if ($deleteResult) {
-            if ($deleteResult.Success) {
-                $deleted = $deleteResult.RemovedCount
-                Show-Toast -Message "Deleted $deleted rule(s)." -Type 'Success'
-            }
-            else {
-                Show-Toast -Message "Delete failed: $($deleteResult.Error)" -Type 'Error'
-            }
-        }
-        else {
-            # Fallback to single-rule deletion
+    # Collect IDs to delete
+    $idsToDelete = @($selectedItems | ForEach-Object { $_.Id })
+
+    # Get the rules storage path while we're on the UI thread (module functions available)
+    $rulesPath = $null
+    try { $rulesPath = Get-RuleStoragePath } catch { }
+    if (-not $rulesPath) {
+        try { $rulesPath = Join-Path (Get-AppLockerDataPath) 'Rules' } catch { }
+    }
+    if (-not $rulesPath) {
+        $rulesPath = Join-Path $env:LOCALAPPDATA 'GA-AppLocker\Rules'
+    }
+
+    Show-LoadingOverlay -Message "Deleting $count rules..." -SubMessage 'Removing files...'
+
+    # --- Background runspace: delete .json files (no module import needed) ---
+    $runspace = [runspacefactory]::CreateRunspace()
+    $runspace.ApartmentState = 'MTA'
+    $runspace.Open()
+
+    $ps = [powershell]::Create()
+    $ps.Runspace = $runspace
+
+    [void]$ps.AddScript({
+        param([string[]]$RuleIds, [string]$RulesPath)
+        $deleted = 0
+        $failed = 0
+        foreach ($id in $RuleIds) {
             try {
-                $deleteResult = Remove-RuleFromDatabase -Id $idsToDelete
-                if ($deleteResult.Success) {
-                    $deleted = $deleteResult.RemovedCount
-                    Show-Toast -Message "Deleted $deleted rule(s)." -Type 'Success'
-                    
-                    # Invalidate caches
-                    try {
-                        Clear-AppLockerCache -Pattern 'GlobalSearch_*' | Out-Null
-                        Clear-AppLockerCache -Pattern 'RuleCounts*' | Out-Null
-                        Clear-AppLockerCache -Pattern 'RuleQuery*' | Out-Null
-                    } catch { Write-Log -Level Warning -Message "Cache clear failed: $($_.Exception.Message)" }
+                $filePath = [System.IO.Path]::Combine($RulesPath, "$id.json")
+                if ([System.IO.File]::Exists($filePath)) {
+                    [System.IO.File]::Delete($filePath)
+                    $deleted++
                 }
-                else {
-                    Show-Toast -Message "Delete failed: $($deleteResult.Error)" -Type 'Error'
-                }
+                else { $deleted++ }  # Already gone, count as success
+            }
+            catch { $failed++ }
+        }
+        return @{ Deleted = $deleted; Failed = $failed }
+    })
+    [void]$ps.AddArgument($idsToDelete)
+    [void]$ps.AddArgument($rulesPath)
+
+    $asyncResult = $ps.BeginInvoke()
+
+    # --- DispatcherTimer polls for background completion, 60 s hard deadline ---
+    $timer = [System.Windows.Threading.DispatcherTimer]::new()
+    $timer.Interval = [TimeSpan]::FromMilliseconds(200)
+
+    $ctx = @{
+        PS          = $ps
+        Runspace    = $runspace
+        AsyncResult = $asyncResult
+        Timer       = $timer
+        StartTime   = [DateTime]::UtcNow
+        Deadline    = 60
+        IdsToDelete = $idsToDelete
+        Count       = $count
+        Win         = $Window
+    }
+
+    $timer.Add_Tick({
+        $c = $ctx
+        $elapsed = ([DateTime]::UtcNow - $c.StartTime).TotalSeconds
+        $done = $false
+        try { $done = $c.AsyncResult.IsCompleted } catch { $done = $true }
+        $timedOut = ($elapsed -ge $c.Deadline)
+
+        if (-not $done -and -not $timedOut) { return }
+
+        $c.Timer.Stop()
+
+        if ($timedOut -and -not $done) {
+            try { $c.PS.Stop() } catch { }
+            try { $c.PS.Dispose(); $c.Runspace.Close(); $c.Runspace.Dispose() } catch { }
+            Hide-LoadingOverlay
+            Show-Toast -Message 'Rule deletion timed out after 60 seconds.' -Type 'Warning'
+            return
+        }
+
+        # --- Background file deletion complete, now update index on UI thread ---
+        try {
+            $bgResult = $null
+            try {
+                $output = $c.PS.EndInvoke($c.AsyncResult)
+                $bgResult = if ($output -and $output.Count -gt 0) { $output[0] } else { $null }
+            }
+            catch { }
+
+            # Update in-memory index (fast: hashtable removals + Save-JsonIndex)
+            try {
+                $null = Remove-RulesFromIndex -RuleIds $c.IdsToDelete
             }
             catch {
-                Show-Toast -Message "Delete function not available. Please update GA-AppLocker.Storage module." -Type 'Error'
+                try { Write-AppLockerLog -Message "Index update after delete failed: $($_.Exception.Message)" -Level WARNING -NoConsole } catch { }
             }
+
+            # Invalidate caches
+            try {
+                Clear-AppLockerCache -Pattern 'GlobalSearch_*' | Out-Null
+                Clear-AppLockerCache -Pattern 'RuleCounts*' | Out-Null
+                Clear-AppLockerCache -Pattern 'RuleQuery*' | Out-Null
+            } catch { }
+
+            $deletedN = if ($bgResult) { $bgResult.Deleted } else { $c.Count }
+
+            Hide-LoadingOverlay
+            Show-Toast -Message "Deleted $deletedN rule(s)." -Type 'Success'
+
+            # Reset selection and refresh grid
+            Reset-RulesSelectionState -Window $c.Win
+            Update-RulesDataGrid -Window $c.Win
+            try { Update-DashboardStats -Window $c.Win } catch { }
+            try { Update-WorkflowBreadcrumb -Window $c.Win } catch { }
         }
-    }
-    catch {
-        Show-Toast -Message "Error: $($_.Exception.Message)" -Type 'Error'
-    }
-    finally {
-        Hide-LoadingOverlay
-    }
-    
-    # Reset selection state and refresh the grid
-    Reset-RulesSelectionState -Window $Window
-    Update-RulesDataGrid -Window $Window
-    
-    # Refresh dashboard stats and sidebar counts
-    Update-DashboardStats -Window $Window
-    Update-WorkflowBreadcrumb -Window $Window
+        catch {
+            Hide-LoadingOverlay
+            Show-Toast -Message "Error finalizing delete: $($_.Exception.Message)" -Type 'Error'
+        }
+        finally {
+            try { $c.PS.Dispose(); $c.Runspace.Close(); $c.Runspace.Dispose() } catch { }
+        }
+    }.GetNewClosure())
+
+    $timer.Start()
 }
 
 function global:Invoke-ApproveTrustedVendors {
