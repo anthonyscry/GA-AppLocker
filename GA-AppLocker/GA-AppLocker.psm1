@@ -163,6 +163,18 @@ function Start-AppLockerDashboard {
         # Initialize window (wire up navigation, panels, etc.)
         # Initialize-MainWindow is defined in MainWindow.xaml.ps1, dot-sourced above.
         try {
+            if (-not (Get-Command -Name 'Write-Log' -ErrorAction SilentlyContinue)) {
+                function global:Write-Log {
+                    param([string]$Message, [string]$Level = 'Info')
+                    try {
+                        if (Get-Command -Name 'Write-AppLockerLog' -ErrorAction SilentlyContinue) {
+                            Write-AppLockerLog -Message $Message -Level $Level -NoConsole
+                        }
+                    }
+                    catch { }
+                }
+            }
+
             Initialize-MainWindow -Window $window
             Write-AppLockerLog -Message 'Window initialization completed'
         }

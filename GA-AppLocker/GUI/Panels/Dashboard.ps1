@@ -249,12 +249,26 @@ function global:Invoke-DashboardStatsRefresh {
     $win = if ($Window) { $Window } else { $global:GA_MainWindow }
     if (-not $win) { return }
 
+    if ($global:GA_DashboardStatsInProgress) { return }
+    $global:GA_DashboardStatsInProgress = $true
+
     $machineCount = if ($script:DiscoveredMachines) { $script:DiscoveredMachines.Count } else { 0 }
     $currentArtifacts = if ($script:CurrentScanArtifacts) { $script:CurrentScanArtifacts.Count } else { 0 }
     $cachedArtifacts = if ($script:CachedTotalArtifacts) { $script:CachedTotalArtifacts } else { $null }
+    $modulePath = (Get-Module GA-AppLocker).ModuleBase
 
-    Invoke-AsyncOperation -ScriptBlock {
-        param($MachineCount, $CurrentArtifacts, $CachedArtifacts)
+    $global:GA_DashboardStats_Window = $win
+
+    $bgWork = {
+        param($ModulePath, $MachineCount, $CurrentArtifacts, $CachedArtifacts)
+
+        $modulesDir = Join-Path $ModulePath 'Modules'
+        foreach ($mod in @('GA-AppLocker.Core', 'GA-AppLocker.Storage', 'GA-AppLocker.Scanning', 'GA-AppLocker.Policy')) {
+            $modPath = Join-Path $modulesDir "$mod\$mod.psd1"
+            if (Test-Path $modPath) {
+                try { Import-Module $modPath -Force -ErrorAction Stop } catch { }
+            }
+        }
 
         $stats = [PSCustomObject]@{
             MachineCount = $MachineCount
@@ -270,7 +284,8 @@ function global:Invoke-DashboardStatsRefresh {
             if ($countsResult.Success) {
                 $stats.RuleCounts = $countsResult
             }
-        } catch { }
+        }
+        catch { }
 
         if ($stats.RuleCounts) {
             try {
@@ -285,56 +300,75 @@ function global:Invoke-DashboardStatsRefresh {
                     }
                 }
                 $stats.PendingRules = @($pendingItems)
-            } catch { }
+            }
+            catch { }
         }
 
         try {
             $stats.PolicyCount = Get-PolicyCount
-        } catch { }
+        }
+        catch { }
 
         try {
             $scansResult = Get-ScanResults
             if ($scansResult.Success -and $scansResult.Data) {
                 $scanData = @($scansResult.Data)
                 $stats.RecentScans = @($scanData | Select-Object -First 5 | ForEach-Object {
-                    $dateDisplay = ''
-                    if ($_.Date) {
-                        try {
-                            $dateValue = $_.Date
-                            if ($dateValue -is [PSCustomObject] -and $dateValue.DateTime) {
-                                $dateDisplay = ([datetime]$dateValue.DateTime).ToString('MM/dd HH:mm')
+                        $dateDisplay = ''
+                        if ($_.Date) {
+                            try {
+                                $dateValue = $_.Date
+                                if ($dateValue -is [PSCustomObject] -and $dateValue.DateTime) {
+                                    $dateDisplay = ([datetime]$dateValue.DateTime).ToString('MM/dd HH:mm')
+                                }
+                                elseif ($dateValue -is [datetime]) {
+                                    $dateDisplay = $dateValue.ToString('MM/dd HH:mm')
+                                }
+                                elseif ($dateValue -is [string]) {
+                                    $dateDisplay = ([datetime]$dateValue).ToString('MM/dd HH:mm')
+                                }
                             }
-                            elseif ($dateValue -is [datetime]) {
-                                $dateDisplay = $dateValue.ToString('MM/dd HH:mm')
-                            }
-                            elseif ($dateValue -is [string]) {
-                                $dateDisplay = ([datetime]$dateValue).ToString('MM/dd HH:mm')
-                            }
-                        } catch { }
-                    }
-                    [PSCustomObject]@{
-                        Name  = $_.ScanName
-                        Date  = $dateDisplay
-                        Count = "$($_.Artifacts) items"
-                    }
-                })
+                            catch { }
+                        }
+                        [PSCustomObject]@{
+                            Name  = $_.ScanName
+                            Date  = $dateDisplay
+                            Count = "$($_.Artifacts) items"
+                        }
+                    })
             }
-        } catch { }
+        }
+        catch { }
 
         return $stats
-    } -Arguments @{
-        MachineCount = $machineCount
-        CurrentArtifacts = $currentArtifacts
-        CachedArtifacts = $cachedArtifacts
-    } -NoLoadingOverlay -OnComplete {
-        param($Result)
-        Invoke-UIUpdate {
-            Apply-DashboardStats -Window $win -Stats $Result
-        }
-    } -OnError {
-        param($ErrorMessage)
-        try { Write-Log -Level Warning -Message "Dashboard stats refresh failed: $ErrorMessage" } catch { }
     }
+
+    $onComplete = {
+        param($Result)
+        $winRef = $global:GA_DashboardStats_Window
+        $global:GA_DashboardStatsInProgress = $false
+        $global:GA_DashboardStats_Window = $null
+
+        if (-not $winRef -or -not $Result) { return }
+
+        Invoke-UIUpdate {
+            Apply-DashboardStats -Window $winRef -Stats $Result
+        }
+    }
+
+    $onTimeout = {
+        param($TimeoutMessage)
+        $global:GA_DashboardStatsInProgress = $false
+        $global:GA_DashboardStats_Window = $null
+        try { Write-Log -Level Warning -Message "Dashboard stats refresh timed out: $TimeoutMessage" } catch { }
+    }
+
+    Invoke-BackgroundWork -ScriptBlock $bgWork `
+        -ArgumentList @($modulePath, $machineCount, $currentArtifacts, $cachedArtifacts) `
+        -OnComplete $onComplete `
+        -OnTimeout $onTimeout `
+        -NoLoadingOverlay `
+        -TimeoutSeconds 60
 }
 
 function global:Apply-DashboardStats {

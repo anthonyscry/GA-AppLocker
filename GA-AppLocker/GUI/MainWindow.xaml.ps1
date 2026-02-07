@@ -54,9 +54,24 @@ if (Test-Path "$scriptPath\Wizards\RuleGenerationWizard.ps1") {
 # Wrapper to safely call module functions from code-behind scope
 function global:Write-Log {
     param([string]$Message, [string]$Level = 'Info')
-    if (Get-Command -Name 'Write-AppLockerLog' -ErrorAction SilentlyContinue) {
-        Write-AppLockerLog -Message $Message -Level $Level -NoConsole
+    try {
+        if (Get-Command -Name 'Write-AppLockerLog' -ErrorAction SilentlyContinue) {
+            Write-AppLockerLog -Message $Message -Level $Level -NoConsole
+            return
+        }
     }
+    catch { }
+
+    # Emergency fallback (never throw from logger)
+    try {
+        $ts = [DateTime]::Now.ToString('yyyy-MM-dd HH:mm:ss')
+        $logDir = [System.IO.Path]::Combine($env:LOCALAPPDATA, 'GA-AppLocker', 'Logs')
+        if ([System.IO.Directory]::Exists($logDir)) {
+            $logFile = [System.IO.Path]::Combine($logDir, "GA-AppLocker_$([DateTime]::Now.ToString('yyyy-MM-dd')).log")
+            [System.IO.File]::AppendAllText($logFile, "[$ts] [$Level] $Message`r`n")
+        }
+    }
+    catch { }
 }
 #endregion
 

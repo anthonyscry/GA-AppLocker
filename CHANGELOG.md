@@ -2,6 +2,15 @@
 
 All notable changes to GA-AppLocker will be documented in this file.
 
+## [1.2.80] - 2026-02-06
+
+### Fixed
+- **Post-action UI no-op after Admin Allow / dashboard actions** -- replaced dashboard stats refresh path from legacy `Invoke-AsyncOperation` to `Invoke-BackgroundWork` with an in-progress guard, removing the unstable runspace/timer path that could leave UI interactions effectively blocked.
+- **Startup error: `Write-Log` not recognized** -- hardened logging bootstrap by adding a fail-safe `Write-Log` implementation in `MainWindow.xaml.ps1` and an emergency fallback registration in `GA-AppLocker.psm1` before `Initialize-MainWindow`.
+- **Intermittent command lock behavior after UI faults** -- dashboard stats background refresh now times out cleanly and always clears in-progress state, preventing stale busy behavior after background failures.
+
+---
+
 ## [1.2.79] - 2026-02-06
 
 ### Fixed
