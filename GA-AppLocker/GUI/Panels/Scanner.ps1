@@ -900,8 +900,18 @@ function global:Invoke-ImportArtifacts {
     $dialog.Filter = 'CSV Files (*.csv)|*.csv|JSON Files (*.json)|*.json|All Files (*.*)|*.*'
     $dialog.FilterIndex = 1
     $dialog.Multiselect = $true
+    $dialog.RestoreDirectory = $true
 
-    if ($dialog.ShowDialog() -eq 'OK') {
+    $dialogResult = $null
+    try {
+        $dialogResult = $dialog.ShowDialog()
+    }
+    catch {
+        Show-Toast -Message "Import dialog failed: $($_.Exception.Message)" -Type 'Error'
+        return
+    }
+
+    if ($dialogResult -eq [System.Windows.Forms.DialogResult]::OK) {
         try {
             # Check if we should merge with existing artifacts
             $mergeMode = $false
@@ -921,10 +931,17 @@ function global:Invoke-ImportArtifacts {
                     '.csv' {
                         $csvData = @(Import-Csv -Path $filePath)
                         # CSV import returns ALL values as strings — coerce boolean fields
-                        # PS 5.1: "False" is truthy, must explicitly compare to 'True'
+                        # Accept common truthy/falsy variants (True/False, 1/0, yes/no)
                         foreach ($item in $csvData) {
                             if ($null -ne $item.IsSigned) {
-                                $item.IsSigned = ($item.IsSigned -eq 'True')
+                                $rawValue = $item.IsSigned
+                                if ($rawValue -is [bool]) {
+                                    $item.IsSigned = $rawValue
+                                }
+                                else {
+                                    $normalized = ([string]$rawValue).Trim().ToLowerInvariant()
+                                    $item.IsSigned = ($normalized -in @('true', '1', 'yes', 'y'))
+                                }
                             }
                         }
                         $csvData
@@ -1014,8 +1031,21 @@ function global:Invoke-ExportArtifacts {
     $dialog.Filter = 'CSV Files (*.csv)|*.csv|JSON Files (*.json)|*.json'
     $dialog.FilterIndex = 1
     $dialog.FileName = "Artifacts_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
+    $dialog.RestoreDirectory = $true
+    $dialog.CheckPathExists = $true
+    $dialog.OverwritePrompt = $true
+    try { $dialog.AutoUpgradeEnabled = $false } catch { }
 
-    if ($dialog.ShowDialog() -eq 'OK') {
+    $dialogResult = $null
+    try {
+        $dialogResult = $dialog.ShowDialog()
+    }
+    catch {
+        Show-Toast -Message "Export dialog failed: $($_.Exception.Message)" -Type 'Error'
+        return
+    }
+
+    if ($dialogResult -eq [System.Windows.Forms.DialogResult]::OK) {
         try {
             $extension = [System.IO.Path]::GetExtension($dialog.FileName).ToLower()
             

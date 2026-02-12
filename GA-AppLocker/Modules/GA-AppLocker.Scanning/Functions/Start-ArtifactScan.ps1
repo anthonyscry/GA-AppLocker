@@ -197,19 +197,73 @@ function Start-ArtifactScan {
         #region --- Remote Scans ---
         if ($Machines.Count -gt 0) {
             # Load tier mapping from config
-            $machineTypeTiers = @{ DomainController = 0; Server = 1; Workstation = 2; Unknown = 2 }
+            $machineTypeTiersRaw = @{ DomainController = 0; Server = 1; Workstation = 2; Unknown = 2 }
             try {
                 $config = Get-AppLockerConfig
                 if ($config.MachineTypeTiers) {
-                    $machineTypeTiers = @{}
-                    $config.MachineTypeTiers.PSObject.Properties | ForEach-Object { $machineTypeTiers[$_.Name] = $_.Value }
+                    $machineTypeTiersRaw = @{}
+                    $config.MachineTypeTiers.PSObject.Properties | ForEach-Object { $machineTypeTiersRaw[$_.Name] = $_.Value }
                 }
             }
             catch { Write-AppLockerLog -Message "Failed to load MachineTypeTiers config: $($_.Exception.Message)" -Level 'DEBUG' }
 
+            # Normalize tier values from config to integer tier indexes (supports 0/1/2, T0/T1/T2, Tier 0/1/2)
+            $ConvertToTierIndex = {
+                param($TierValue)
+
+                if ($TierValue -is [int]) {
+                    if ($TierValue -in @(0, 1, 2)) { return [int]$TierValue }
+                    return 2
+                }
+
+                if ($null -eq $TierValue) { return 2 }
+
+                $tierText = ([string]$TierValue).Trim().ToLowerInvariant()
+                if ($tierText -match '^[0-2]$') { return [int]$tierText }
+
+                switch -Regex ($tierText) {
+                    '^t0$|^tier\s*0$|^domaincontroller$|^domain\s*controller$' { return 0 }
+                    '^t1$|^tier\s*1$|^server$' { return 1 }
+                    '^t2$|^tier\s*2$|^workstation$|^unknown$' { return 2 }
+                    default { return 2 }
+                }
+            }
+
+            $machineTypeTiers = @{}
+            foreach ($k in $machineTypeTiersRaw.Keys) {
+                $machineTypeTiers[$k] = & $ConvertToTierIndex $machineTypeTiersRaw[$k]
+            }
+
+            # Normalize machine type names before tier lookup (handles missing/legacy values)
+            $ResolveMachineType = {
+                param($Machine)
+
+                $machineType = if ($Machine -and $Machine.MachineType) { ([string]$Machine.MachineType).Trim() } else { '' }
+                if (-not [string]::IsNullOrWhiteSpace($machineType)) {
+                    $typeLower = $machineType.ToLowerInvariant()
+                    switch -Regex ($typeLower) {
+                        '^domaincontroller$|^domain\s*controller$|^dc$' { return 'DomainController' }
+                        '^server$|^servers$' { return 'Server' }
+                        '^workstation$|^workstations$|^desktop$|^laptop$|^computer$|^computers$' { return 'Workstation' }
+                        '^unknown$' { return 'Unknown' }
+                    }
+                }
+
+                $osLower = if ($Machine -and $Machine.OperatingSystem) { ([string]$Machine.OperatingSystem).ToLowerInvariant() } else { '' }
+                if ($osLower -match 'server') { return 'Server' }
+                if ($osLower -match 'windows\s*10|windows\s*11|workstation') { return 'Workstation' }
+
+                $ouLower = if ($Machine -and $Machine.OU) { ([string]$Machine.OU).ToLowerInvariant() } else { '' }
+                if ($ouLower -match 'domain controllers|ou=tier0|ou=t0') { return 'DomainController' }
+                if ($ouLower -match 'ou=server|ou=servers|ou=srv|ou=tier1|ou=t1') { return 'Server' }
+                if ($ouLower -match 'ou=workstation|ou=workstations|ou=desktop|ou=laptop|ou=computers|ou=tier2|ou=t2') { return 'Workstation' }
+
+                return 'Unknown'
+            }
+
             # Group machines by tier for credential selection
             $machinesByTier = $Machines | Group-Object { 
-                $type = $_.MachineType
+                $type = & $ResolveMachineType $_
                 if ($machineTypeTiers.ContainsKey($type)) { $machineTypeTiers[$type] } else { 2 }
             }
 
@@ -221,7 +275,10 @@ function Start-ArtifactScan {
                 $tierMachines = $tierGroup.Group
                 $tierIndex++
 
-                $tierTypes = ($tierMachines | ForEach-Object { "$($_.Hostname)[$($_.MachineType)]" }) -join ', '
+                $tierTypes = ($tierMachines | ForEach-Object { 
+                    $resolvedType = & $ResolveMachineType $_
+                    "$($_.Hostname)[$resolvedType]"
+                }) -join ', '
                 Write-ScanLog -Message "Scanning Tier $tier machines ($($tierMachines.Count) hosts): $tierTypes"
                 
                 # Update progress for UI — show which machines are being scanned

@@ -11,6 +11,8 @@ BeforeAll {
     $script:DashboardPath = Join-Path $PSScriptRoot '..\..\..\GA-AppLocker\GUI\Panels\Dashboard.ps1'
     $script:MainWindowPath = Join-Path $PSScriptRoot '..\..\..\GA-AppLocker\GUI\MainWindow.xaml.ps1'
     $script:ModulePsm1Path = Join-Path $PSScriptRoot '..\..\..\GA-AppLocker\GA-AppLocker.psm1'
+    $script:ScannerPath = Join-Path $PSScriptRoot '..\..\..\GA-AppLocker\GUI\Panels\Scanner.ps1'
+    $script:StartScanPath = Join-Path $PSScriptRoot '..\..\..\GA-AppLocker\Modules\GA-AppLocker.Scanning\Functions\Start-ArtifactScan.ps1'
 }
 
 Describe 'Recent regressions: curated guardrails (v1.2.80+)' -Tag @('Behavioral', 'GUI', 'Curated') {
@@ -82,6 +84,31 @@ Describe 'Recent regressions: curated guardrails (v1.2.80+)' -Tag @('Behavioral'
             $content = Get-Content -Path $script:ModulePsm1Path -Raw
             $content.Contains("if (-not (Get-Command -Name 'Write-Log' -ErrorAction SilentlyContinue)) {") | Should -BeTrue
             $content -match 'Initialize-MainWindow\s+-Window\s+\$window' | Should -BeTrue
+        }
+    }
+
+    Context 'Scanner import/export and tier routing guardrails' {
+        It 'Coerces imported CSV IsSigned values using robust truthy parsing' {
+            $content = Get-Content -Path $script:ScannerPath -Raw
+            $content.Contains('$normalized = ([string]$rawValue).Trim().ToLowerInvariant()') | Should -BeTrue
+            $content.Contains("`$item.IsSigned = (`$normalized -in @('true', '1', 'yes', 'y'))") | Should -BeTrue
+        }
+
+        It 'Normalizes machine type tiers and machine type names before credential selection' {
+            $content = Get-Content -Path $script:StartScanPath -Raw
+            $content.Contains('$ConvertToTierIndex = {') | Should -BeTrue
+            $content.Contains('$ResolveMachineType = {') | Should -BeTrue
+            $content.Contains('$type = & $ResolveMachineType $_') | Should -BeTrue
+        }
+
+        It 'Wraps export SaveFileDialog.ShowDialog calls in try/catch to prevent UI crashes' {
+            $scannerContent = Get-Content -Path $script:ScannerPath -Raw
+            $rulesContent = Get-Content -Path $script:RulesPath -Raw
+
+            ([regex]::Matches($scannerContent, '\$dialogResult\s*=\s*\$dialog\.ShowDialog\(\)')).Count | Should -BeGreaterThan 1
+            ([regex]::Matches($rulesContent, '\$dialogResult\s*=\s*\$dialog\.ShowDialog\(\)')).Count | Should -BeGreaterThan 1
+            $scannerContent.Contains('$dialog.CheckPathExists = $true') | Should -BeTrue
+            ([regex]::Matches($rulesContent, '\$dialog\.CheckPathExists\s*=\s*\$true')).Count | Should -BeGreaterThan 1
         }
     }
 }
