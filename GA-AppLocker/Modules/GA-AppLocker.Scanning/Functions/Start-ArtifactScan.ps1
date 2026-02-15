@@ -110,6 +110,10 @@ function Start-ArtifactScan {
         $allArtifacts = [System.Collections.Generic.List[PSCustomObject]]::new()
         $allEvents = [System.Collections.Generic.List[PSCustomObject]]::new()
         $machineResults = @{}
+        $normalizationState = @{
+            CanNormalize = ($null -ne (Get-Command -Name 'Normalize-ArtifactRecord' -ErrorAction SilentlyContinue))
+            Warned       = $false
+        }
 
         function Resolve-ScanTierNumber {
             param(
@@ -184,7 +188,8 @@ function Start-ArtifactScan {
 
         function Add-NormalizedArtifacts {
             param(
-                [Parameter()]
+                [Parameter(Mandatory = $true)]
+                [ValidateNotNull()]
                 [AllowEmptyCollection()]
                 [System.Collections.Generic.List[PSCustomObject]]$Target,
 
@@ -192,16 +197,16 @@ function Start-ArtifactScan {
                 [array]$Artifacts = @()
             )
 
-            $canNormalizeArtifacts = $null -ne (Get-Command -Name 'Normalize-ArtifactRecord' -ErrorAction SilentlyContinue)
-            if (-not $canNormalizeArtifacts) {
-                Write-ScanLog -Level 'DEBUG' -Message 'Normalize-ArtifactRecord unavailable in scan scope; falling back to raw artifact records.'
+            if (-not $normalizationState.CanNormalize -and -not $normalizationState.Warned) {
+                Write-ScanLog -Level 'Warning' -Message 'Normalize-ArtifactRecord unavailable in scan scope; falling back to raw artifact records.'
+                $normalizationState.Warned = $true
             }
 
             foreach ($artifact in @($Artifacts)) {
                 if ($null -eq $artifact) { continue }
 
                 $artifactToAdd = $artifact
-                if ($canNormalizeArtifacts) {
+                if ($normalizationState.CanNormalize) {
                     try {
                         $normalizedArtifact = Normalize-ArtifactRecord -Artifact $artifact
                         if ($null -ne $normalizedArtifact) {
