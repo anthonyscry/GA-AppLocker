@@ -1031,13 +1031,33 @@ function global:Invoke-ImportArtifacts {
                         $artifactRecord | Add-Member -NotePropertyName 'SizeBytes' -NotePropertyValue $resolvedSizeBytes -Force
                     }
                 }
+                else {
+                    if ($artifactRecord.PSObject.Properties['SizeBytes']) {
+                        $artifactRecord.SizeBytes = $null
+                    }
+                    else {
+                        $artifactRecord | Add-Member -NotePropertyName 'SizeBytes' -NotePropertyValue $null -Force
+                    }
+                }
 
-                if (-not $artifactRecord.PSObject.Properties['PublisherName']) {
+                $publisherNameMissing = -not $artifactRecord.PSObject.Properties['PublisherName']
+                $publisherNameEmpty = $false
+                if (-not $publisherNameMissing) {
+                    $publisherNameEmpty = [string]::IsNullOrWhiteSpace([string]$artifactRecord.PublisherName)
+                }
+
+                if ($publisherNameMissing -or $publisherNameEmpty) {
                     $publisherNameValue = if ($artifactRecord.PSObject.Properties['Publisher']) { [string]$artifactRecord.Publisher } else { '' }
                     $artifactRecord | Add-Member -NotePropertyName 'PublisherName' -NotePropertyValue $publisherNameValue -Force
                 }
 
-                if (-not $artifactRecord.PSObject.Properties['SignerCertificate']) {
+                $signerCertificateMissing = -not $artifactRecord.PSObject.Properties['SignerCertificate']
+                $signerCertificateEmpty = $false
+                if (-not $signerCertificateMissing) {
+                    $signerCertificateEmpty = [string]::IsNullOrWhiteSpace([string]$artifactRecord.SignerCertificate)
+                }
+
+                if ($signerCertificateMissing -or $signerCertificateEmpty) {
                     $signerCertificateValue = if ($artifactRecord.PSObject.Properties['Signer']) { [string]$artifactRecord.Signer } else { '' }
                     $artifactRecord | Add-Member -NotePropertyName 'SignerCertificate' -NotePropertyValue $signerCertificateValue -Force
                 }
