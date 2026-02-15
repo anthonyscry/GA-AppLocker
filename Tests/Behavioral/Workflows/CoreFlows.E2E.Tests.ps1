@@ -258,9 +258,9 @@ Describe 'Meaningful E2E: critical workflows with edge cases' -Tag @('Behavioral
         Assert-MockCalled Get-CredentialForTier -ModuleName GA-AppLocker.Scanning -Times 1 -Exactly -ParameterFilter { $Tier -eq 1 }
     }
 
-    It 'Uses MachineTypeTiers hashtable mapping for DomainController as tier 0' {
+    It 'Uses MachineTypeTiers normalization for non-canonical DomainController values as tier 0' {
         $machines = @(
-            [PSCustomObject]@{ Hostname = 'dc01'; MachineType = 'DomainController' }
+            [PSCustomObject]@{ Hostname = 'dc01'; MachineType = 'domain controller' }
         )
 
         $script:TierZeroCredential = [PSCredential]::new(
@@ -271,7 +271,7 @@ Describe 'Meaningful E2E: critical workflows with edge cases' -Tag @('Behavioral
         Mock Get-AppLockerConfig {
             [PSCustomObject]@{
                 MachineTypeTiers = @{
-                    DomainController = 0
+                    dc               = 'T0'
                     Server           = 1
                     Workstation      = 2
                     Unknown          = 2
@@ -305,6 +305,8 @@ Describe 'Meaningful E2E: critical workflows with edge cases' -Tag @('Behavioral
 
         $scan.Success | Should -BeTrue
         Assert-MockCalled Get-CredentialForTier -ModuleName GA-AppLocker.Scanning -Times 1 -Exactly -ParameterFilter { $Tier -eq 0 }
+        Assert-MockCalled Get-CredentialForTier -ModuleName GA-AppLocker.Scanning -Times 0 -Exactly -ParameterFilter { $Tier -eq 1 }
+        Assert-MockCalled Get-CredentialForTier -ModuleName GA-AppLocker.Scanning -Times 0 -Exactly -ParameterFilter { $Tier -eq 2 }
     }
 
     It 'Accepts legacy T0/T1/T2 MachineTypeTiers values for credential selection' {
