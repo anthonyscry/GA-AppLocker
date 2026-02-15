@@ -22,7 +22,9 @@ function Initialize-ScannerPanel {
                 'C:\Program Files (x86)',
                 'C:\ProgramData',
                 'C:\Windows\System32',
-                'C:\Windows\SysWOW64'
+                'C:\Windows\SysWOW64',
+                'C:\Users\*\AppData\Local\Programs',
+                'C:\Users\*\AppData\Local\Microsoft\WindowsApps'
             )
         }
         $txtPaths.Text = $paths -join "`n"
@@ -72,27 +74,101 @@ function Initialize-ScannerPanel {
         $chkHighRisk.Add_Checked({
             $txtPaths = $global:GA_MainWindow.FindName('TxtScanPaths')
             if ($txtPaths) {
+                $lineBreak = [Environment]::NewLine
+                $existingLines = [System.Collections.Generic.List[string]]::new()
+                foreach ($line in ($txtPaths.Text -split "`r?`n")) {
+                    $trimmedLine = $line.Trim()
+                    if (-not [string]::IsNullOrWhiteSpace($trimmedLine)) {
+                        [void]$existingLines.Add($trimmedLine)
+                    }
+                }
+
+                $existingKeys = @{}
+                foreach ($line in $existingLines) {
+                    $normalizedLine = $line
+                    if ($normalizedLine.Length -gt 3 -and $normalizedLine.EndsWith('\')) {
+                        $normalizedLine = $normalizedLine.TrimEnd('\\')
+                    }
+                    $existingKeys[$normalizedLine.ToLowerInvariant()] = $true
+                }
+
+                if (-not $existingKeys.ContainsKey('# --- high risk paths ---')) {
+                    [void]$existingLines.Add('# --- HIGH RISK PATHS ---')
+                    $existingKeys['# --- high risk paths ---'] = $true
+                }
+
                 $highRiskPaths = @(
-                    "# --- HIGH RISK PATHS ---",
                     [Environment]::GetFolderPath('UserProfile') + '\Downloads',
                     [Environment]::GetFolderPath('Desktop'),
-                    $env:TEMP
-                ) -join "`n"
-                $txtPaths.Text = $txtPaths.Text.TrimEnd() + "`n" + $highRiskPaths
+                    $env:TEMP,
+                    $env:LOCALAPPDATA + '\Temp'
+                )
+
+                foreach ($highRiskPath in $highRiskPaths) {
+                    if ([string]::IsNullOrWhiteSpace($highRiskPath)) { continue }
+
+                    $trimmedPath = $highRiskPath.Trim()
+                    if ($trimmedPath.Length -gt 3 -and $trimmedPath.EndsWith('\')) {
+                        $trimmedPath = $trimmedPath.TrimEnd('\\')
+                    }
+
+                    $key = $trimmedPath.ToLowerInvariant()
+                    if (-not $existingKeys.ContainsKey($key)) {
+                        [void]$existingLines.Add($trimmedPath)
+                        $existingKeys[$key] = $true
+                    }
+                }
+
+                $txtPaths.Text = $existingLines -join $lineBreak
             }
         })
         $chkHighRisk.Add_Unchecked({
             $txtPaths = $global:GA_MainWindow.FindName('TxtScanPaths')
             if ($txtPaths) {
-                # Remove high risk section
-                $lines = $txtPaths.Text -split "`n" | Where-Object { 
-                    $_ -notmatch "HIGH RISK PATHS" -and 
-                    $_ -notmatch "\\Downloads$" -and 
-                    $_ -notmatch "\\Desktop$" -and
-                    $_ -notmatch "\\Temp$" -and
-                    $_ -notmatch "\\Local\\Temp$"
+                $lineBreak = [Environment]::NewLine
+                $highRiskKeys = @{}
+                foreach ($highRiskPath in @(
+                    [Environment]::GetFolderPath('UserProfile') + '\Downloads',
+                    [Environment]::GetFolderPath('Desktop'),
+                    $env:TEMP,
+                    $env:LOCALAPPDATA + '\Temp'
+                )) {
+                    if ([string]::IsNullOrWhiteSpace($highRiskPath)) { continue }
+
+                    $normalizedPath = $highRiskPath.Trim()
+                    if ($normalizedPath.Length -gt 3 -and $normalizedPath.EndsWith('\')) {
+                        $normalizedPath = $normalizedPath.TrimEnd('\\')
+                    }
+
+                    $highRiskKeys[$normalizedPath.ToLowerInvariant()] = $true
                 }
-                $txtPaths.Text = ($lines -join "`n").TrimEnd()
+
+                $cleanLines = [System.Collections.Generic.List[string]]::new()
+                foreach ($line in ($txtPaths.Text -split "`r?`n")) {
+                    $trimmedLine = $line.Trim()
+                    if ([string]::IsNullOrWhiteSpace($trimmedLine)) { continue }
+                    if ([string]::Equals($trimmedLine, '# --- HIGH RISK PATHS ---', [System.StringComparison]::OrdinalIgnoreCase)) { continue }
+
+                    $normalizedLine = $trimmedLine
+                    if ($normalizedLine.Length -gt 3 -and $normalizedLine.EndsWith('\')) {
+                        $normalizedLine = $normalizedLine.TrimEnd('\\')
+                    }
+
+                    $lineForMatch = $normalizedLine.ToLowerInvariant()
+                    if (
+                        $lineForMatch -match '^[a-z]:\\users\\\*\\downloads(\\\*)?$' -or
+                        $lineForMatch -match '^[a-z]:\\users\\\*\\desktop(\\\*)?$' -or
+                        $lineForMatch -match '^[a-z]:\\users\\\*\\appdata\\local\\temp(\\\*)?$' -or
+                        $lineForMatch -match '^[a-z]:\\users\\\*$'
+                    ) {
+                        continue
+                    }
+
+                    if ($highRiskKeys.ContainsKey($normalizedLine.ToLowerInvariant())) { continue }
+                    [void]$cleanLines.Add($trimmedLine)
+                }
+
+                $txtPaths.Text = $cleanLines -join $lineBreak
             }
         })
     }
@@ -109,7 +185,9 @@ function Initialize-ScannerPanel {
                         'C:\Program Files (x86)',
                         'C:\ProgramData',
                         'C:\Windows\System32',
-                        'C:\Windows\SysWOW64'
+                        'C:\Windows\SysWOW64',
+                        'C:\Users\*\AppData\Local\Programs',
+                        'C:\Users\*\AppData\Local\Microsoft\WindowsApps'
                     ) -join "`n"
                     $txtPaths.Text = $defaultPaths
                 }
@@ -1399,7 +1477,9 @@ function global:Invoke-CreateScheduledScan {
         $paths = @(
             'C:\Program Files',
             'C:\Program Files (x86)',
-            'C:\ProgramData'
+            'C:\ProgramData',
+            'C:\Users\*\AppData\Local\Programs',
+            'C:\Users\*\AppData\Local\Microsoft\WindowsApps'
         )
     }
     

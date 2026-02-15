@@ -54,8 +54,8 @@ function Get-DefaultScanPaths {
                 'C:\Windows\SysWOW64',
                 'C:\ProgramData',
                 'C:\Windows\Microsoft.NET',
-                "$env:LOCALAPPDATA\Programs",
-                "$env:LOCALAPPDATA\Microsoft\WindowsApps"
+                'C:\Users\*\AppData\Local\Programs',
+                'C:\Users\*\AppData\Local\Microsoft\WindowsApps'
             )
         }
     }

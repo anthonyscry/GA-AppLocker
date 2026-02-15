@@ -92,7 +92,9 @@ function Get-LocalArtifacts {
                 'C:\Program Files (x86)',
                 'C:\Windows\System32',
                 'C:\Windows\SysWOW64',
-                'C:\ProgramData'
+                'C:\ProgramData',
+                'C:\Users\*\AppData\Local\Programs',
+                'C:\Users\*\AppData\Local\Microsoft\WindowsApps'
             )
             Write-ScanLog -Level Warning -Message "Paths parameter was null; using hardcoded fallback paths"
         }

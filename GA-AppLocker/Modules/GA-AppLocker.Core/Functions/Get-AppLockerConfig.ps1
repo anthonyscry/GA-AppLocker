@@ -52,7 +52,9 @@ function Get-AppLockerConfig {
             'C:\Program Files (x86)',
             'C:\ProgramData',
             'C:\Windows\System32',
-            'C:\Windows\SysWOW64'
+            'C:\Windows\SysWOW64',
+            'C:\Users\*\AppData\Local\Programs',
+            'C:\Users\*\AppData\Local\Microsoft\WindowsApps'
         )
 
         # High-risk paths for attention

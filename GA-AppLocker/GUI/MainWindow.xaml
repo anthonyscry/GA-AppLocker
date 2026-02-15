@@ -1291,7 +1291,7 @@ Width="1450"
                                                       Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,6" IsChecked="True"
                                                       ToolTip="Skip legacy Windows Script Host files. These are common malware vectors with no modern enterprise use."/>
                                             <CheckBox x:Name="ChkSkipShellScanning" Content="Skip Shell Scripts (.ps1, .bat, .cmd)" 
-                                                      Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,6"
+                                                      Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,6" IsChecked="True"
                                                       ToolTip="Skip PowerShell and batch scripts. Disable this if you need Script rules for admin tools, login scripts, etc."/>
                                             
                                             <!-- Scan Paths -->
