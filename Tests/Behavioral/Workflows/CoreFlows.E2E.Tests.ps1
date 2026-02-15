@@ -164,12 +164,12 @@ Describe 'Meaningful E2E: critical workflows with edge cases' -Tag @('Behavioral
             ArtifactType      = 'EXE'
             CollectionType    = 'Exe'
             Publisher         = 'Contoso Ltd'
-            PublisherName     = 'CN=Contoso Ltd'
+            PublisherName     = 'CN=Contoso Publisher'
             ProductName       = 'Contoso RoundTrip'
             ProductVersion    = '1.2.3.4'
             FileVersion       = '1.2.3.4'
             IsSigned          = $true
-            SignerCertificate = 'CN=Contoso Ltd'
+            SignerCertificate = 'CN=Contoso Signer'
             SignatureStatus   = 'Valid'
             SHA256Hash        = ('D' * 64)
             FileSize          = 2048
@@ -190,7 +190,13 @@ Describe 'Meaningful E2E: critical workflows with edge cases' -Tag @('Behavioral
 
         $scan.Success | Should -BeTrue
 
-        $csv = Get-ChildItem -Path $scanPath -Filter '*_artifacts_*.csv' | Select-Object -First 1
+        $csvMatches = @(
+            Get-ChildItem -Path $scanPath -Filter '*_artifacts_*.csv' |
+                Where-Object { $_.Name -like 'HOST1_artifacts_*.csv' } |
+                Sort-Object -Property Name
+        )
+        $csvMatches.Count | Should -Be 1
+        $csv = $csvMatches[0]
         $csv | Should -Not -BeNullOrEmpty
 
         $imported = @(Import-Csv -Path $csv.FullName)
@@ -200,8 +206,9 @@ Describe 'Meaningful E2E: critical workflows with edge cases' -Tag @('Behavioral
         }
 
         $normalizedImported.Count | Should -Be 1
-        $normalizedImported[0].SignerCertificate | Should -Be 'CN=Contoso Ltd'
-        $normalizedImported[0].PublisherName | Should -Be 'CN=Contoso Ltd'
+        $normalizedImported[0].SignerCertificate | Should -Be 'CN=Contoso Signer'
+        $normalizedImported[0].PublisherName | Should -Be 'CN=Contoso Publisher'
+        $normalizedImported[0].SignerCertificate | Should -Not -Be $normalizedImported[0].PublisherName
 
         $convert = ConvertFrom-Artifact -Artifact @($normalizedImported) -PreferredRuleType Auto
         $convert.Success | Should -BeTrue
@@ -308,6 +315,7 @@ Describe 'Meaningful E2E: critical workflows with edge cases' -Tag @('Behavioral
 
         $scan.Success | Should -BeTrue
         Assert-MockCalled Get-CredentialForTier -ModuleName GA-AppLocker.Scanning -Times 1 -Exactly -ParameterFilter { $Tier -eq 1 }
+        Assert-MockCalled Get-RemoteArtifacts -ModuleName GA-AppLocker.Scanning -Times 1 -Exactly -ParameterFilter { $Credential -eq $script:TierTestCredential }
     }
 
     It 'Uses MachineTypeTiers normalization for non-canonical DomainController values as tier 0' {
@@ -357,11 +365,12 @@ Describe 'Meaningful E2E: critical workflows with edge cases' -Tag @('Behavioral
 
         $scan.Success | Should -BeTrue
         Assert-MockCalled Get-CredentialForTier -ModuleName GA-AppLocker.Scanning -Times 1 -Exactly -ParameterFilter { $Tier -eq 0 }
+        Assert-MockCalled Get-RemoteArtifacts -ModuleName GA-AppLocker.Scanning -Times 1 -Exactly -ParameterFilter { $Credential -eq $script:TierZeroCredential }
         Assert-MockCalled Get-CredentialForTier -ModuleName GA-AppLocker.Scanning -Times 0 -Exactly -ParameterFilter { $Tier -eq 1 }
         Assert-MockCalled Get-CredentialForTier -ModuleName GA-AppLocker.Scanning -Times 0 -Exactly -ParameterFilter { $Tier -eq 2 }
     }
 
-    It 'Accepts legacy T0/T1/T2 MachineTypeTiers values for credential selection' {
+    It 'Normalizes mixed MachineTypeTiers keys with legacy values for server credential selection' {
         $machines = @(
             [PSCustomObject]@{ Hostname = 'server02'; MachineType = 'Server' }
         )
@@ -373,11 +382,11 @@ Describe 'Meaningful E2E: critical workflows with edge cases' -Tag @('Behavioral
 
         Mock Get-AppLockerConfig {
             [PSCustomObject]@{
-                MachineTypeTiers = [PSCustomObject]@{
-                    DomainController = 'T0'
-                    Server           = 'T1'
-                    Workstation      = 'T2'
-                    Unknown          = 'T2'
+                MachineTypeTiers = @{
+                    'Domain Controller' = 'T0'
+                    'server'            = 'T1'
+                    'Workstation'       = 'T2'
+                    'Unknown'           = 'T2'
                 }
             }
         } -ModuleName GA-AppLocker.Scanning
@@ -408,6 +417,59 @@ Describe 'Meaningful E2E: critical workflows with edge cases' -Tag @('Behavioral
 
         $scan.Success | Should -BeTrue
         Assert-MockCalled Get-CredentialForTier -ModuleName GA-AppLocker.Scanning -Times 1 -Exactly -ParameterFilter { $Tier -eq 1 }
+        Assert-MockCalled Get-RemoteArtifacts -ModuleName GA-AppLocker.Scanning -Times 1 -Exactly -ParameterFilter { $Credential -eq $script:TierStringCredential }
+    }
+
+    It 'Falls back to canonical machine-type defaults when config omits some tier keys' {
+        $machines = @(
+            [PSCustomObject]@{ Hostname = 'dc02'; MachineType = 'domain controller' },
+            [PSCustomObject]@{ Hostname = 'server03'; MachineType = 'server' }
+        )
+
+        $script:MixedTierCredential = [PSCredential]::new(
+            'CONTOSO\\TierMixed',
+            (ConvertTo-SecureString 'P@ssw0rd!' -AsPlainText -Force)
+        )
+
+        Mock Get-AppLockerConfig {
+            [PSCustomObject]@{
+                MachineTypeTiers = @{
+                    Server = 'T1'
+                }
+            }
+        } -ModuleName GA-AppLocker.Scanning
+        Mock Get-CredentialForTier {
+            [PSCustomObject]@{
+                Success = $true
+                Data    = $script:MixedTierCredential
+                Error   = $null
+            }
+        } -ModuleName GA-AppLocker.Scanning
+        Mock Get-RemoteArtifacts {
+            $perMachine = @{}
+            foreach ($name in @($ComputerName)) {
+                $perMachine[$name] = [PSCustomObject]@{
+                    Success       = $true
+                    ArtifactCount = 0
+                    Error         = $null
+                }
+            }
+
+            [PSCustomObject]@{
+                Success    = $true
+                Data       = @()
+                Error      = $null
+                PerMachine = $perMachine
+            }
+        } -ModuleName GA-AppLocker.Scanning
+        Mock Write-ScanLog { } -ModuleName GA-AppLocker.Scanning
+
+        $scan = Start-ArtifactScan -Machines $machines
+
+        $scan.Success | Should -BeTrue
+        Assert-MockCalled Get-CredentialForTier -ModuleName GA-AppLocker.Scanning -Times 1 -Exactly -ParameterFilter { $Tier -eq 0 }
+        Assert-MockCalled Get-CredentialForTier -ModuleName GA-AppLocker.Scanning -Times 1 -Exactly -ParameterFilter { $Tier -eq 1 }
+        Assert-MockCalled Get-CredentialForTier -ModuleName GA-AppLocker.Scanning -Times 0 -Exactly -ParameterFilter { $Tier -eq 2 }
     }
 
     It 'Handles connectivity edge inputs without throwing and returns stable summary' {

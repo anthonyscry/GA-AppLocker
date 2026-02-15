@@ -1006,7 +1006,6 @@ function global:Invoke-ImportArtifacts {
                 if ($null -eq $Artifact) { return $null }
 
                 $artifactRecord = $Artifact
-                $requiresFallbackCoercion = $true
                 $artifactName = [string]$Artifact.FileName
                 if ([string]::IsNullOrWhiteSpace($artifactName)) { $artifactName = '<unknown>' }
                 $artifactPath = [string]$Artifact.FilePath
@@ -1018,7 +1017,6 @@ function global:Invoke-ImportArtifacts {
                         $normalizedArtifact = Normalize-ArtifactRecord -Artifact $Artifact
                         if ($null -ne $normalizedArtifact) {
                             $artifactRecord = $normalizedArtifact
-                            $requiresFallbackCoercion = $false
                         }
                         else {
                             Write-Log -Level 'Debug' -Message "ImportArtifacts: Normalize-ArtifactRecord returned null for '$($Artifact.FileName)' ($SourceType); applying fallback coercion."
@@ -1040,23 +1038,106 @@ function global:Invoke-ImportArtifacts {
                     $normalizationState.Warned = $true
                 }
 
-                if ($requiresFallbackCoercion) {
-                    # Import sources can carry booleans as strings; coerce canonical fields.
-                    if ($null -ne $artifactRecord.IsSigned) {
-                        $isSignedRaw = [string]$artifactRecord.IsSigned
-                        $artifactRecord.IsSigned = [string]::Equals($isSignedRaw, 'True', [System.StringComparison]::OrdinalIgnoreCase) -or $isSignedRaw -eq '1'
-                    }
+                # Enforce canonical import contract fields regardless of normalizer availability.
+                $rawIsSigned = $null
+                if ($artifactRecord.PSObject.Properties['IsSigned']) {
+                    $rawIsSigned = $artifactRecord.IsSigned
+                }
 
-                    $hasSizeBytes = $artifactRecord.PSObject.Properties['SizeBytes'] -and -not [string]::IsNullOrWhiteSpace([string]$artifactRecord.SizeBytes)
-                    $hasFileSize = $artifactRecord.PSObject.Properties['FileSize'] -and -not [string]::IsNullOrWhiteSpace([string]$artifactRecord.FileSize)
-                    if (-not $hasSizeBytes -and $hasFileSize) {
-                        try {
-                            $artifactRecord | Add-Member -NotePropertyName 'SizeBytes' -NotePropertyValue ([int64]$artifactRecord.FileSize) -Force
-                        }
-                        catch {
-                            Write-Log -Level 'Debug' -Message "ImportArtifacts: Failed to coerce FileSize '$($artifactRecord.FileSize)' to SizeBytes for '$($artifactRecord.FileName)' ($SourceType)"
-                        }
+                $coercedIsSigned = $false
+                if ($rawIsSigned -is [bool]) {
+                    $coercedIsSigned = $rawIsSigned
+                }
+                elseif ($rawIsSigned -is [string]) {
+                    $trimmedSigned = ([string]$rawIsSigned).Trim()
+                    $coercedIsSigned = $trimmedSigned -match '^(?i:true|1)$'
+                }
+                elseif ($null -ne $rawIsSigned) {
+                    try {
+                        $coercedIsSigned = [int64]$rawIsSigned -eq 1
                     }
+                    catch {
+                        Write-Log -Level 'Debug' -Message "ImportArtifacts: Failed to coerce IsSigned '$rawIsSigned' for '$($artifactRecord.FileName)' ($SourceType); defaulting to false."
+                        $coercedIsSigned = $false
+                    }
+                }
+
+                if ($artifactRecord.PSObject.Properties['IsSigned']) {
+                    $artifactRecord.IsSigned = $coercedIsSigned
+                }
+                else {
+                    $artifactRecord | Add-Member -NotePropertyName 'IsSigned' -NotePropertyValue $coercedIsSigned -Force
+                }
+
+                $rawSizeBytes = $null
+                $rawFileSize = $null
+                if ($artifactRecord.PSObject.Properties['SizeBytes']) {
+                    $rawSizeBytes = $artifactRecord.SizeBytes
+                }
+                if ($artifactRecord.PSObject.Properties['FileSize']) {
+                    $rawFileSize = $artifactRecord.FileSize
+                }
+
+                $resolvedSizeBytes = $null
+                $hasResolvedSize = $false
+
+                if ($null -ne $rawSizeBytes -and -not [string]::IsNullOrWhiteSpace([string]$rawSizeBytes)) {
+                    try {
+                        $resolvedSizeBytes = [int64]$rawSizeBytes
+                        $hasResolvedSize = $true
+                    }
+                    catch {
+                        Write-Log -Level 'Debug' -Message "ImportArtifacts: Invalid SizeBytes '$rawSizeBytes' for '$($artifactRecord.FileName)' ($SourceType); trying FileSize fallback."
+                    }
+                }
+
+                if (-not $hasResolvedSize -and $null -ne $rawFileSize -and -not [string]::IsNullOrWhiteSpace([string]$rawFileSize)) {
+                    try {
+                        $resolvedSizeBytes = [int64]$rawFileSize
+                        $hasResolvedSize = $true
+                    }
+                    catch {
+                        Write-Log -Level 'Warning' -Message "ImportArtifacts: Failed to coerce FileSize '$rawFileSize' to SizeBytes for '$($artifactRecord.FileName)' ($SourceType)."
+                    }
+                }
+
+                if ($hasResolvedSize) {
+                    if ($artifactRecord.PSObject.Properties['SizeBytes']) {
+                        $artifactRecord.SizeBytes = $resolvedSizeBytes
+                    }
+                    else {
+                        $artifactRecord | Add-Member -NotePropertyName 'SizeBytes' -NotePropertyValue $resolvedSizeBytes -Force
+                    }
+                }
+                else {
+                    if ($artifactRecord.PSObject.Properties['SizeBytes']) {
+                        $artifactRecord.SizeBytes = $null
+                    }
+                    else {
+                        $artifactRecord | Add-Member -NotePropertyName 'SizeBytes' -NotePropertyValue $null -Force
+                    }
+                }
+
+                $publisherNameMissing = -not $artifactRecord.PSObject.Properties['PublisherName']
+                $publisherNameEmpty = $false
+                if (-not $publisherNameMissing) {
+                    $publisherNameEmpty = [string]::IsNullOrWhiteSpace([string]$artifactRecord.PublisherName)
+                }
+
+                if ($publisherNameMissing -or $publisherNameEmpty) {
+                    $publisherNameValue = if ($artifactRecord.PSObject.Properties['Publisher']) { [string]$artifactRecord.Publisher } else { '' }
+                    $artifactRecord | Add-Member -NotePropertyName 'PublisherName' -NotePropertyValue $publisherNameValue -Force
+                }
+
+                $signerCertificateMissing = -not $artifactRecord.PSObject.Properties['SignerCertificate']
+                $signerCertificateEmpty = $false
+                if (-not $signerCertificateMissing) {
+                    $signerCertificateEmpty = [string]::IsNullOrWhiteSpace([string]$artifactRecord.SignerCertificate)
+                }
+
+                if ($signerCertificateMissing -or $signerCertificateEmpty) {
+                    $signerCertificateValue = if ($artifactRecord.PSObject.Properties['Signer']) { [string]$artifactRecord.Signer } else { '' }
+                    $artifactRecord | Add-Member -NotePropertyName 'SignerCertificate' -NotePropertyValue $signerCertificateValue -Force
                 }
 
                 return $artifactRecord
