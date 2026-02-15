@@ -236,9 +236,10 @@ function Initialize-ScannerPanel {
         }
     }
 
-    # Wire up text filter with debounce for better performance
+    # Wire up shared text filter with debounce for better performance
     $filterBox = $Window.FindName('ArtifactFilterBox')
-    if ($filterBox) {
+    $eventFilterBox = $Window.FindName('EventArtifactFilterBox')
+    if ($filterBox -or $eventFilterBox) {
         # Create debounce timer (300ms delay)
         $script:ArtifactFilterTimer = New-Object System.Windows.Threading.DispatcherTimer
         $script:ArtifactFilterTimer.Interval = [TimeSpan]::FromMilliseconds(300)
@@ -246,14 +247,68 @@ function Initialize-ScannerPanel {
             $script:ArtifactFilterTimer.Stop()
             if ($global:GA_MainWindow) {
                 Update-ArtifactDataGrid -Window $global:GA_MainWindow
+
+                $artifactSearch = $global:GA_MainWindow.FindName('ArtifactFilterBox')
+                $eventSearch = $global:GA_MainWindow.FindName('EventArtifactFilterBox')
+                $pathFilter = if ($artifactSearch) {
+                    [string]$artifactSearch.Text
+                }
+                elseif ($eventSearch) {
+                    [string]$eventSearch.Text
+                }
+                else {
+                    ''
+                }
+
+                if (-not $script:CurrentEventMetricsFilter -or $pathFilter -ne $script:CurrentEventMetricsFilter.PathFilter) {
+                    Set-EventMetricsFilterState -PathFilter $pathFilter
+                }
+
+                Update-EventMetricsUI -Window $global:GA_MainWindow
             }
         })
-        
-        $filterBox.Add_TextChanged({
-            # Reset and restart timer on each keystroke
-            $script:ArtifactFilterTimer.Stop()
-            $script:ArtifactFilterTimer.Start()
-        })
+
+        if ($filterBox -and $eventFilterBox -and ([string]$eventFilterBox.Text -ne [string]$filterBox.Text)) {
+            $eventFilterBox.Text = [string]$filterBox.Text
+        }
+
+        if ($filterBox) {
+            $filterBox.Add_TextChanged({
+                if ($script:IsSyncingSharedScanSearch) { return }
+
+                if ($global:GA_MainWindow) {
+                    $artifactSearch = $global:GA_MainWindow.FindName('ArtifactFilterBox')
+                    $eventSearch = $global:GA_MainWindow.FindName('EventArtifactFilterBox')
+                    if ($artifactSearch -and $eventSearch -and ([string]$eventSearch.Text -ne [string]$artifactSearch.Text)) {
+                        $script:IsSyncingSharedScanSearch = $true
+                        try { $eventSearch.Text = [string]$artifactSearch.Text } finally { $script:IsSyncingSharedScanSearch = $false }
+                    }
+                }
+
+                # Reset and restart timer on each keystroke
+                $script:ArtifactFilterTimer.Stop()
+                $script:ArtifactFilterTimer.Start()
+            })
+        }
+
+        if ($eventFilterBox) {
+            $eventFilterBox.Add_TextChanged({
+                if ($script:IsSyncingSharedScanSearch) { return }
+
+                if ($global:GA_MainWindow) {
+                    $artifactSearch = $global:GA_MainWindow.FindName('ArtifactFilterBox')
+                    $eventSearch = $global:GA_MainWindow.FindName('EventArtifactFilterBox')
+                    if ($artifactSearch -and $eventSearch -and ([string]$artifactSearch.Text -ne [string]$eventSearch.Text)) {
+                        $script:IsSyncingSharedScanSearch = $true
+                        try { $artifactSearch.Text = [string]$eventSearch.Text } finally { $script:IsSyncingSharedScanSearch = $false }
+                    }
+                }
+
+                # Reset and restart timer on each keystroke
+                $script:ArtifactFilterTimer.Stop()
+                $script:ArtifactFilterTimer.Start()
+            })
+        }
     }
 
     # Wire up Generate Rules from Artifacts button (launches wizard)
@@ -296,61 +351,57 @@ function Initialize-ScannerPanel {
         Write-Log -Level Error -Message "Failed to initialize event metrics state: $($_.Exception.Message)"
     }
 
-    $eventModeCombo = $Window.FindName('CboEventMode')
-    if ($eventModeCombo) {
-        $eventModeCombo.Add_SelectionChanged({
+    $eventModeButtons = @{
+        'BtnEventModeAll' = 'All'
+        'BtnEventModeBlocked' = 'Blocked'
+        'BtnEventModeAudit' = 'Audit'
+        'BtnEventModeAllowed' = 'Allowed'
+    }
+
+    foreach ($modeButtonName in $eventModeButtons.Keys) {
+        $modeButton = $Window.FindName($modeButtonName)
+        if ($modeButton) {
+            $modeValue = $eventModeButtons[$modeButtonName]
+            $modeButton.Tag = $modeValue
+            $modeButton.Add_Click({
+                param($sender, $e)
+
+                $selectedMode = if ($sender.Tag) { [string]$sender.Tag } else { 'All' }
+                if (-not $script:CurrentEventMetricsFilter -or $selectedMode -ne $script:CurrentEventMetricsFilter.Mode) {
+                    Set-EventMetricsFilterState -Mode $selectedMode
+                    if ($global:GA_MainWindow) {
+                        Update-EventModeButtons -Window $global:GA_MainWindow -Mode $selectedMode
+                        Update-EventMetricsUI -Window $global:GA_MainWindow
+                    }
+                }
+            })
+        }
+    }
+
+    $eventGrid = $Window.FindName('EventMetricsDataGrid')
+    if ($eventGrid) {
+        $eventGrid.Add_PreviewMouseRightButtonDown({
             param($sender, $e)
 
-            $selectedMode = Get-EventModeFromSelection -Selection $sender.SelectedItem
-            if (-not $script:CurrentEventMetricsFilter -or $selectedMode -ne $script:CurrentEventMetricsFilter.Mode) {
-                Set-EventMetricsFilterState -Mode $selectedMode
-                Update-EventMetricsUI -Window $global:GA_MainWindow
+            try {
+                if ($e -and $e.PSObject.Properties['OriginalSource']) {
+                    [void](Select-EventMetricsRowFromSource -DataGrid $sender -Source $e.OriginalSource)
+                }
+            }
+            catch {
+                Write-Log -Level Debug -Message "Failed to select event row on right-click: $($_.Exception.Message)"
             }
         })
     }
 
-    $eventMachineCombo = $Window.FindName('CboEventMachine')
-    if ($eventMachineCombo) {
-        $eventMachineCombo.Add_SelectionChanged({
-            param($sender, $e)
-
-            $selectedMachine = if ($sender.SelectedItem) { [string]$sender.SelectedItem } else { 'All' }
-            if (-not $script:CurrentEventMetricsFilter -or $selectedMachine -ne $script:CurrentEventMetricsFilter.Machine) {
-                Set-EventMetricsFilterState -Machine $selectedMachine
-                Update-EventMetricsUI -Window $global:GA_MainWindow
+    if ($eventGrid -and $eventGrid.ContextMenu) {
+        foreach ($item in $eventGrid.ContextMenu.Items) {
+            if ($item -is [System.Windows.Controls.MenuItem] -and $item.Tag -eq 'GenerateRuleFromEvent') {
+                $item.Add_Click({
+                    Invoke-GenerateRuleFromSelectedEvent -Window $global:GA_MainWindow
+                }.GetNewClosure())
             }
-        })
-    }
-
-    $eventPathFilter = $Window.FindName('TxtEventPathFilter')
-    if ($eventPathFilter) {
-        $eventPathFilter.Add_TextChanged({
-            param($sender, $e)
-
-            $pathFilter = if ($sender.Text) { [string]$sender.Text } else { '' }
-            if (-not $script:CurrentEventMetricsFilter -or $pathFilter -ne $script:CurrentEventMetricsFilter.PathFilter) {
-                Set-EventMetricsFilterState -PathFilter $pathFilter
-                Update-EventMetricsUI -Window $global:GA_MainWindow
-            }
-        })
-    }
-
-    $eventTopN = $Window.FindName('TxtEventTopN')
-    if ($eventTopN) {
-        $eventTopN.Add_TextChanged({
-            param($sender, $e)
-
-            $topNText = [string]$sender.Text
-            $parsedTopN = 20
-            if (-not [int]::TryParse($topNText, [ref]$parsedTopN)) {
-                $parsedTopN = 20
-            }
-
-            if (-not $script:CurrentEventMetricsFilter -or $parsedTopN -ne $script:CurrentEventMetricsFilter.TopN) {
-                Set-EventMetricsFilterState -TopN $parsedTopN
-                Update-EventMetricsUI -Window $global:GA_MainWindow
-            }
-        })
+        }
     }
 
     # Load saved scans list
@@ -972,7 +1023,7 @@ function global:Get-ScanEventMetrics {
     param(
         [Parameter(Mandatory)]
         $Events,
-        [ValidateSet('All', 'Blocked', 'Audit')]
+        [ValidateSet('All', 'Blocked', 'Audit', 'Allowed')]
         [string]$Mode = 'All',
         [string]$Machine = 'All',
         [string]$PathFilter = '',
@@ -992,6 +1043,9 @@ function global:Get-ScanEventMetrics {
     }
     elseif ($Mode -eq 'Audit') {
         $inputEvents = @($inputEvents | Where-Object { $_.IsAudit -eq $true })
+    }
+    elseif ($Mode -eq 'Allowed') {
+        $inputEvents = @($inputEvents | Where-Object { $_.IsBlocked -ne $true -and $_.IsAudit -ne $true })
     }
 
     $machineFilter = if ([string]::IsNullOrWhiteSpace($Machine) -or $Machine -eq 'All') { $null } else { [string]$Machine }
@@ -1080,18 +1134,33 @@ function global:Get-ScanEventMetrics {
 function global:Initialize-ScanEventMetricsState {
     param($Window)
 
+    $artifactsFilterBox = if ($Window) { $Window.FindName('ArtifactFilterBox') } else { $null }
+    $eventFilterBox = if ($Window) { $Window.FindName('EventArtifactFilterBox') } else { $null }
+    $initialPathFilter = if ($artifactsFilterBox) {
+        [string]$artifactsFilterBox.Text
+    }
+    elseif ($eventFilterBox) {
+        [string]$eventFilterBox.Text
+    }
+    else {
+        ''
+    }
+
     $script:CurrentEventMetricsFilter = @{
         Mode = 'All'
         Machine = 'All'
-        PathFilter = ''
+        PathFilter = $initialPathFilter
         TopN = 20
     }
 
     $win = if ($Window) { $Window } else { $global:GA_MainWindow }
     if (-not $win) { return }
 
-    $topNBox = $win.FindName('TxtEventTopN')
-    if ($topNBox) { $topNBox.Text = '20' }
+    $artifactSearchBox = $win.FindName('ArtifactFilterBox')
+    $eventSearchBox = $win.FindName('EventArtifactFilterBox')
+    if ($artifactSearchBox -and $eventSearchBox -and ([string]$eventSearchBox.Text -ne [string]$artifactSearchBox.Text)) {
+        $eventSearchBox.Text = [string]$artifactSearchBox.Text
+    }
 
     $modeCombo = $win.FindName('CboEventMode')
     if ($modeCombo) {
@@ -1099,9 +1168,12 @@ function global:Initialize-ScanEventMetricsState {
             [void]$modeCombo.Items.Add('All')
             [void]$modeCombo.Items.Add('Blocked')
             [void]$modeCombo.Items.Add('Audit')
+            [void]$modeCombo.Items.Add('Allowed')
         }
         $modeCombo.SelectedItem = 'All'
     }
+
+    Update-EventModeButtons -Window $win -Mode 'All'
 
     $machineCombo = $win.FindName('CboEventMachine')
     if ($machineCombo) {
@@ -1109,9 +1181,6 @@ function global:Initialize-ScanEventMetricsState {
         [void]$machineCombo.Items.Add('All')
         $machineCombo.SelectedIndex = 0
     }
-
-    $pathBox = $win.FindName('TxtEventPathFilter')
-    if ($pathBox) { $pathBox.Text = '' }
 
     if (-not $script:CurrentScanEventLogs) {
         $script:CurrentScanEventLogs = @()
@@ -1139,6 +1208,85 @@ function global:Get-EventModeFromSelection {
     if ($Selection.Content) { return [string]$Selection.Content }
     if ($Selection.Tag) { return [string]$Selection.Tag }
     return [string]$Selection
+}
+
+function global:Get-EventMetricsRowItemFromSource {
+    param($Source)
+
+    $current = $Source
+    while ($null -ne $current) {
+        $isDataGridRow = $false
+        try {
+            $isDataGridRow = ($current -is [System.Windows.Controls.DataGridRow])
+        }
+        catch {
+            $isDataGridRow = $false
+        }
+
+        if ($isDataGridRow) {
+            return $current.Item
+        }
+
+        if ($current.PSObject.Properties['RowItem']) {
+            return $current.RowItem
+        }
+
+        $next = $null
+        if ($current.PSObject.Properties['Parent']) {
+            $next = $current.Parent
+        }
+        else {
+            try {
+                $next = [System.Windows.Media.VisualTreeHelper]::GetParent($current)
+            }
+            catch {
+                $next = $null
+            }
+        }
+
+        if ($null -eq $next -or $next -eq $current) {
+            break
+        }
+
+        $current = $next
+    }
+
+    return $null
+}
+
+function global:Select-EventMetricsRowFromSource {
+    param(
+        $DataGrid,
+        $Source
+    )
+
+    if (-not $DataGrid -or $null -eq $Source) {
+        return $false
+    }
+
+    $rowItem = Get-EventMetricsRowItemFromSource -Source $Source
+    if ($null -eq $rowItem) {
+        return $false
+    }
+
+    try {
+        $DataGrid.SelectedItem = $rowItem
+    }
+    catch {
+        return $false
+    }
+
+    if ($DataGrid.PSObject.Properties['SelectedItems'] -and $null -ne $DataGrid.SelectedItems) {
+        try {
+            $DataGrid.SelectedItems.Clear()
+            [void]$DataGrid.SelectedItems.Add($rowItem)
+        }
+        catch {
+            # Ignore SelectedItems sync issues for non-WPF test doubles.
+        }
+    }
+
+    return $true
 }
 
 function global:Set-EventMetricsFilterState {
@@ -1180,6 +1328,41 @@ function global:Set-EventMetricsFilterState {
     }
 }
 
+function global:Update-EventModeButtons {
+    param(
+        $Window,
+        [string]$Mode = 'All'
+    )
+
+    if (-not $Window) { return }
+
+    $modeButtons = @{
+        'BtnEventModeAll' = 'All'
+        'BtnEventModeBlocked' = 'Blocked'
+        'BtnEventModeAudit' = 'Audit'
+        'BtnEventModeAllowed' = 'Allowed'
+    }
+
+    foreach ($buttonName in $modeButtons.Keys) {
+        $button = $Window.FindName($buttonName)
+        if (-not $button) { continue }
+
+        if ($modeButtons[$buttonName] -eq $Mode) {
+            $button.Background = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.Color]::FromRgb(62, 62, 66))
+            $button.Foreground = [System.Windows.Media.Brushes]::White
+        }
+        else {
+            $button.Background = [System.Windows.Media.Brushes]::Transparent
+            switch ($modeButtons[$buttonName]) {
+                'Blocked' { $button.Foreground = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.Color]::FromRgb(255, 140, 0)) }
+                'Audit' { $button.Foreground = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.Color]::FromRgb(0, 120, 212)) }
+                'Allowed' { $button.Foreground = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.Color]::FromRgb(16, 124, 16)) }
+                default { $button.Foreground = [System.Windows.Media.Brushes]::White }
+            }
+        }
+    }
+}
+
 function global:Update-EventMetricsUI {
     param($Window)
 
@@ -1206,6 +1389,7 @@ function global:Update-EventMetricsUI {
     $modeCombo = $win.FindName('CboEventMode')
 
     if ($modeCombo -and $mode) { $modeCombo.SelectedItem = $mode }
+    Update-EventModeButtons -Window $win -Mode $mode
     if ($emptyLabel) { $emptyLabel.Visibility = 'Collapsed' }
 
     if (-not $eventGrid) { return }
@@ -2425,10 +2609,23 @@ function global:Invoke-DirectRuleGenerationWithSettings {
     #>
     param(
         $Window,
-        [PSCustomObject]$Settings
+        [PSCustomObject]$Settings,
+        [PSCustomObject[]]$Artifacts
     )
-    
-    $artifactCount = $script:CurrentScanArtifacts.Count
+
+    $sourceArtifacts = if ($Artifacts -and @($Artifacts).Count -gt 0) {
+        @($Artifacts)
+    }
+    else {
+        @($script:CurrentScanArtifacts)
+    }
+
+    $artifactCount = $sourceArtifacts.Count
+    if ($artifactCount -eq 0) {
+        Show-Toast -Message 'No artifacts available for rule generation.' -Type 'Warning'
+        return
+    }
+
     Write-Log -Message "Starting batch rule generation for $artifactCount artifacts"
 
     # Stash in $global: for background runspace and OnComplete callback
@@ -2489,12 +2686,111 @@ function global:Invoke-DirectRuleGenerationWithSettings {
     }
 
     Invoke-BackgroundWork -ScriptBlock $bgWork `
-        -ArgumentList @($modulePath, $script:CurrentScanArtifacts, $Settings) `
+        -ArgumentList @($modulePath, $sourceArtifacts, $Settings) `
         -OnComplete $onComplete `
         -NoLoadingOverlay `
         -LoadingMessage 'Generating Rules...' `
         -LoadingSubMessage "Processing $artifactCount artifacts..." `
         -TimeoutSeconds 300
+}
+
+function global:Invoke-GenerateRuleFromSelectedEvent {
+    <#
+    .SYNOPSIS
+        Generates rules from the selected Event Metrics row using scanned artifact metadata.
+    .DESCRIPTION
+        Uses Smart generation mode (publisher first, hash fallback) by finding the matching
+        artifact in the current scan results based on path and machine.
+    #>
+    param($Window)
+
+    $win = if ($Window) { $Window } else { $global:GA_MainWindow }
+    if (-not $win) { return }
+
+    $eventGrid = $win.FindName('EventMetricsDataGrid')
+    if (-not $eventGrid) {
+        Show-Toast -Message 'Select an event row first.' -Type 'Warning'
+        return
+    }
+
+    $selectedEvent = $eventGrid.SelectedItem
+    if ($null -eq $selectedEvent -and $eventGrid.PSObject.Properties['CurrentItem'] -and $null -ne $eventGrid.CurrentItem) {
+        $selectedEvent = $eventGrid.CurrentItem
+    }
+
+    if ($null -eq $selectedEvent) {
+        Show-Toast -Message 'Select an event row first.' -Type 'Warning'
+        return
+    }
+    $filePath = if ($selectedEvent.PSObject.Properties['FilePath']) { [string]$selectedEvent.FilePath } else { '' }
+    $machineName = if ($selectedEvent.PSObject.Properties['Machine']) { [string]$selectedEvent.Machine } else { '' }
+
+    if ([string]::IsNullOrWhiteSpace($filePath) -or $filePath -eq '<unknown path>') {
+        Show-Toast -Message 'Selected event does not include a usable file path.' -Type 'Warning'
+        return
+    }
+
+    $matchingArtifacts = [System.Collections.Generic.List[PSCustomObject]]::new()
+    foreach ($artifact in @($script:CurrentScanArtifacts)) {
+        $artifactPath = if ($artifact.PSObject.Properties['FilePath']) { [string]$artifact.FilePath } else { '' }
+        if ([string]::IsNullOrWhiteSpace($artifactPath)) { continue }
+        if ($artifactPath -ine $filePath) { continue }
+
+        if (-not [string]::IsNullOrWhiteSpace($machineName)) {
+            $artifactMachine = if ($artifact.PSObject.Properties['ComputerName']) { [string]$artifact.ComputerName } else { '' }
+            if (-not [string]::IsNullOrWhiteSpace($artifactMachine) -and $artifactMachine -ine $machineName) {
+                continue
+            }
+        }
+
+        [void]$matchingArtifacts.Add($artifact)
+    }
+
+    if ($matchingArtifacts.Count -eq 0) {
+        Show-Toast -Message 'No scanned artifact metadata found for this event. Scan/import that file as an artifact, then try again.' -Type 'Warning'
+        return
+    }
+
+    $pubLevelCombo = $win.FindName('CboPublisherLevel')
+    $publisherLevel = if ($pubLevelCombo -and $pubLevelCombo.SelectedItem -and $pubLevelCombo.SelectedItem.Tag) {
+        [string]$pubLevelCombo.SelectedItem.Tag
+    }
+    else {
+        'PublisherProduct'
+    }
+
+    $rbAllow = $win.FindName('RbRuleAllow')
+    $action = if ($rbAllow -and $rbAllow.IsChecked) { 'Allow' } else { 'Deny' }
+
+    $targetCombo = $win.FindName('CboRuleTargetGroup')
+    $targetSid = if ($targetCombo -and $targetCombo.SelectedItem -and $targetCombo.SelectedItem.Tag) {
+        [string]$targetCombo.SelectedItem.Tag
+    }
+    else {
+        'S-1-5-11'
+    }
+
+    $unsignedCombo = $win.FindName('CboUnsignedMode')
+    $unsignedMode = if ($unsignedCombo -and $unsignedCombo.SelectedItem -and $unsignedCombo.SelectedItem.Tag) {
+        [string]$unsignedCombo.SelectedItem.Tag
+    }
+    else {
+        'Hash'
+    }
+
+    $settings = [PSCustomObject]@{
+        Action           = $action
+        Status           = 'Pending'
+        TargetSid        = $targetSid
+        PublisherLevel   = $publisherLevel
+        UnsignedMode     = $unsignedMode
+        SkipDlls         = $false
+        SkipWshScripts   = $false
+        SkipShellScripts = $false
+        SkipUnsigned     = $false
+    }
+
+    Invoke-DirectRuleGenerationWithSettings -Window $win -Settings $settings -Artifacts @($matchingArtifacts)
 }
 
 function global:Invoke-DirectRuleGeneration {

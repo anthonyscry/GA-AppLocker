@@ -97,6 +97,7 @@ function Add-MockEventMethods {
     $eventMethods = @(
         'Add_Click', 'Add_SelectionChanged', 'Add_SelectedItemChanged', 'Add_Checked', 'Add_Unchecked',
         'Add_TextChanged', 'Add_Loaded', 'Add_MouseDoubleClick', 'Add_PreviewMouseLeftButtonDown',
+        'Add_PreviewMouseRightButtonDown',
         'Add_Drop', 'Add_DragOver', 'Add_KeyDown', 'Add_PreviewKeyDown',
         'Add_MouseLeftButtonUp', 'Add_GotFocus', 'Add_LostFocus', 'Add_Expanded', 'Add_Collapsed',
         'Remove_Click', 'Remove_SelectionChanged', 'Remove_SelectedItemChanged', 'Remove_Checked', 'Remove_Unchecked'

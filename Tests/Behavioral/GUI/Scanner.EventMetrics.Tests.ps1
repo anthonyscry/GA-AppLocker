@@ -9,6 +9,15 @@ BeforeAll {
     . (Join-Path $PSScriptRoot '..\..\Helpers\MockWpfHelpers.ps1')
 
     $script:MainWindowXamlPath = Join-Path $PSScriptRoot '..\..\..\GA-AppLocker\GUI\MainWindow.xaml'
+
+    if (-not (Get-Command -Name 'Show-Toast' -ErrorAction SilentlyContinue)) {
+        function global:Show-Toast {
+            param(
+                [string]$Message,
+                [string]$Type
+            )
+        }
+    }
 }
 
 Describe 'Get-ScanEventMetrics' {
@@ -39,18 +48,21 @@ Describe 'Get-ScanEventMetrics' {
         $auditRow[0].Count | Should -Be 1
     }
 
-    It 'Filters to blocked or audit modes before grouping' {
+    It 'Filters to blocked, audit, or allowed modes before grouping' {
         $now = Get-Date
 
         $events = @(
             [PSCustomObject]@{ FilePath = 'C:\app\\x.exe'; ComputerName = 'WKS1'; EventType = 'EXE/DLL Blocked'; IsBlocked = $true;  IsAudit = $false; TimeCreated = $now },
-            [PSCustomObject]@{ FilePath = 'C:\app\\y.exe'; ComputerName = 'WKS1'; EventType = 'EXE/DLL Would Block (Audit)'; IsBlocked = $false; IsAudit = $true;  TimeCreated = $now }
+            [PSCustomObject]@{ FilePath = 'C:\app\\y.exe'; ComputerName = 'WKS1'; EventType = 'EXE/DLL Would Block (Audit)'; IsBlocked = $false; IsAudit = $true;  TimeCreated = $now },
+            [PSCustomObject]@{ FilePath = 'C:\app\\z.exe'; ComputerName = 'WKS1'; EventType = 'EXE/DLL Allowed'; IsBlocked = $false; IsAudit = $false; TimeCreated = $now }
         )
 
         (Get-ScanEventMetrics -Events $events -Mode 'Blocked' -TopN 20).Count | Should -Be 1
         (Get-ScanEventMetrics -Events $events -Mode 'Blocked' -TopN 20)[0].FilePath | Should -Be 'C:\app\\x.exe'
         (Get-ScanEventMetrics -Events $events -Mode 'Audit' -TopN 20).Count | Should -Be 1
         (Get-ScanEventMetrics -Events $events -Mode 'Audit' -TopN 20)[0].FilePath | Should -Be 'C:\app\\y.exe'
+        (Get-ScanEventMetrics -Events $events -Mode 'Allowed' -TopN 20).Count | Should -Be 1
+        (Get-ScanEventMetrics -Events $events -Mode 'Allowed' -TopN 20)[0].FilePath | Should -Be 'C:\app\\z.exe'
     }
 
     It 'Applies machine and path filters and top-N limit' {
@@ -92,8 +104,6 @@ Describe 'Update-EventMetricsUI filter behavior' {
             TxtEventMetricsEmpty = $emptyLabel
             CboEventMode = New-MockComboBox -Items @('All', 'Blocked', 'Audit') -SelectedIndex 0
             CboEventMachine = New-MockComboBox -Items @('All') -SelectedIndex 0
-            TxtEventPathFilter = New-MockTextBox -Text ''
-            TxtEventTopN = New-MockTextBox -Text '20'
             TxtEventTotalCount = New-MockTextBlock
             TxtEventBlockedCount = New-MockTextBlock
             TxtEventAuditCount = New-MockTextBlock
@@ -134,8 +144,6 @@ Describe 'Update-EventMetricsUI filter behavior' {
             TxtEventMetricsEmpty = $emptyLabel
             CboEventMode = New-MockComboBox -Items @('All', 'Blocked', 'Audit') -SelectedIndex 0
             CboEventMachine = New-MockComboBox -Items @('All', 'WKS1') -SelectedIndex 1
-            TxtEventPathFilter = New-MockTextBox -Text ''
-            TxtEventTopN = New-MockTextBox -Text '20'
             TxtEventTotalCount = New-MockTextBlock
             TxtEventBlockedCount = New-MockTextBlock
             TxtEventAuditCount = New-MockTextBlock
@@ -151,20 +159,184 @@ Describe 'Update-EventMetricsUI filter behavior' {
         [int]($win.FindName('TxtEventBlockedCount').Text) | Should -Be 0
         [int]($win.FindName('TxtEventAuditCount').Text) | Should -Be 0
     }
+
+    It 'Seeds event metrics path filter from shared artifact filter box' {
+        $win = New-MockWpfWindow -Elements @{
+            ArtifactFilterBox = New-MockTextBox -Text 'C:\app\\shared.exe'
+            EventMetricsDataGrid = New-MockDataGrid
+            TxtEventMetricsEmpty = New-MockTextBlock -Visibility 'Visible'
+            CboEventMode = New-MockComboBox -Items @('All') -SelectedIndex 0
+            CboEventMachine = New-MockComboBox -Items @('All') -SelectedIndex 0
+            TxtEventTotalCount = New-MockTextBlock
+            TxtEventBlockedCount = New-MockTextBlock
+            TxtEventAuditCount = New-MockTextBlock
+        }
+
+        Initialize-ScanEventMetricsState -Window $win
+
+        $script:CurrentEventMetricsFilter.PathFilter | Should -Be 'C:\app\\shared.exe'
+        @($script:CurrentEventMetricsFilter.Values).Count | Should -Be 4
+    }
+
+    It 'Seeds path filter from event tab search box when shared box is unavailable' {
+        $win = New-MockWpfWindow -Elements @{
+            EventArtifactFilterBox = New-MockTextBox -Text 'C:\logs\\blocked.exe'
+            EventMetricsDataGrid = New-MockDataGrid
+            TxtEventMetricsEmpty = New-MockTextBlock -Visibility 'Visible'
+            TxtEventTotalCount = New-MockTextBlock
+            TxtEventBlockedCount = New-MockTextBlock
+            TxtEventAuditCount = New-MockTextBlock
+        }
+
+        Initialize-ScanEventMetricsState -Window $win
+
+        $script:CurrentEventMetricsFilter.PathFilter | Should -Be 'C:\logs\\blocked.exe'
+    }
+}
+
+Describe 'Invoke-GenerateRuleFromSelectedEvent' {
+    BeforeEach {
+        $script:CurrentScanArtifacts = @()
+    }
+
+    It 'Generates rules from matching scanned artifact metadata' {
+        $selectedEvent = [PSCustomObject]@{
+            FilePath = 'C:\apps\\blocked.exe'
+            Machine = 'WKS1'
+            EventType = 'EXE/DLL Blocked'
+        }
+
+        $eventGrid = New-MockDataGrid -Data @($selectedEvent) -SelectedItem $selectedEvent
+        $win = New-MockWpfWindow -Elements @{
+            EventMetricsDataGrid = $eventGrid
+            RbRuleAllow = [PSCustomObject]@{ IsChecked = $true }
+            CboPublisherLevel = [PSCustomObject]@{ SelectedItem = [PSCustomObject]@{ Tag = 'PublisherProductFile' } }
+            CboRuleTargetGroup = [PSCustomObject]@{ SelectedItem = [PSCustomObject]@{ Tag = 'S-1-5-11' } }
+            CboUnsignedMode = [PSCustomObject]@{ SelectedItem = [PSCustomObject]@{ Tag = 'Hash' } }
+        }
+
+        $script:CurrentScanArtifacts = @(
+            [PSCustomObject]@{
+                FilePath = 'C:\apps\\blocked.exe'
+                ComputerName = 'WKS1'
+                FileName = 'blocked.exe'
+                SHA256Hash = 'abc123'
+                IsSigned = $true
+                SignerCertificate = 'CN=Contoso'
+                CollectionType = 'Exe'
+            }
+        )
+
+        Mock Invoke-DirectRuleGenerationWithSettings { }
+        Mock Show-Toast { }
+
+        Invoke-GenerateRuleFromSelectedEvent -Window $win
+
+        Should -Invoke Invoke-DirectRuleGenerationWithSettings -Times 1 -ParameterFilter {
+            @($Artifacts).Count -eq 1 -and
+            [string]$Artifacts[0].FilePath -eq 'C:\apps\\blocked.exe' -and
+            [string]$Settings.Action -eq 'Allow' -and
+            [string]$Settings.PublisherLevel -eq 'PublisherProductFile' -and
+            [string]$Settings.UnsignedMode -eq 'Hash'
+        }
+    }
+
+    It 'Shows warning when selected event has no matching scanned artifact metadata' {
+        $selectedEvent = [PSCustomObject]@{
+            FilePath = 'C:\apps\\missing.exe'
+            Machine = 'WKS1'
+            EventType = 'EXE/DLL Blocked'
+        }
+
+        $eventGrid = New-MockDataGrid -Data @($selectedEvent) -SelectedItem $selectedEvent
+        $win = New-MockWpfWindow -Elements @{
+            EventMetricsDataGrid = $eventGrid
+            RbRuleAllow = [PSCustomObject]@{ IsChecked = $true }
+            CboPublisherLevel = [PSCustomObject]@{ SelectedItem = [PSCustomObject]@{ Tag = 'PublisherProduct' } }
+            CboRuleTargetGroup = [PSCustomObject]@{ SelectedItem = [PSCustomObject]@{ Tag = 'S-1-5-11' } }
+            CboUnsignedMode = [PSCustomObject]@{ SelectedItem = [PSCustomObject]@{ Tag = 'Hash' } }
+        }
+
+        $script:CurrentScanArtifacts = @(
+            [PSCustomObject]@{ FilePath = 'C:\apps\\other.exe'; ComputerName = 'WKS1'; FileName = 'other.exe'; SHA256Hash = 'def456'; IsSigned = $false; CollectionType = 'Exe' }
+        )
+
+        Mock Invoke-DirectRuleGenerationWithSettings { }
+        Mock Show-Toast { }
+
+        Invoke-GenerateRuleFromSelectedEvent -Window $win
+
+        Should -Invoke Invoke-DirectRuleGenerationWithSettings -Times 0
+        Should -Invoke Show-Toast -Times 1 -ParameterFilter {
+            $Type -eq 'Warning' -and $Message -like '*No scanned artifact metadata*'
+        }
+    }
+}
+
+Describe 'Select-EventMetricsRowFromSource' {
+    It 'Selects the row item resolved from source chain' {
+        $rowItem = [PSCustomObject]@{ FilePath = 'C:\apps\\hit.exe'; Machine = 'WKS1' }
+        $rowNode = [PSCustomObject]@{ RowItem = $rowItem; Parent = $null }
+        $sourceNode = [PSCustomObject]@{ Parent = $rowNode }
+
+        $grid = New-MockDataGrid -Data @($rowItem)
+        $grid.SelectedItem = $null
+        $grid.SelectedItems.Clear()
+
+        $selected = Select-EventMetricsRowFromSource -DataGrid $grid -Source $sourceNode
+
+        $selected | Should -BeTrue
+        $grid.SelectedItem | Should -Be $rowItem
+        $grid.SelectedItems.Count | Should -Be 1
+        $grid.SelectedItems[0] | Should -Be $rowItem
+    }
+
+    It 'Returns false when no row item can be resolved' {
+        $rowItem = [PSCustomObject]@{ FilePath = 'C:\apps\\keep.exe'; Machine = 'WKS1' }
+        $sourceNode = [PSCustomObject]@{ Parent = $null }
+
+        $grid = New-MockDataGrid -Data @($rowItem)
+        $grid.SelectedItem = $rowItem
+        $grid.SelectedItems.Clear()
+        [void]$grid.SelectedItems.Add($rowItem)
+
+        $selected = Select-EventMetricsRowFromSource -DataGrid $grid -Source $sourceNode
+
+        $selected | Should -BeFalse
+        $grid.SelectedItem | Should -Be $rowItem
+        $grid.SelectedItems.Count | Should -Be 1
+    }
 }
 
 Describe 'MainWindow event metrics XAML controls' {
-    It 'Contains event-metrics counter, filter, and results controls' {
+    It 'Contains Scanner results subtabs and shared event metrics controls' {
         $mainWindowXaml = Get-Content -Path $script:MainWindowXamlPath -Raw
 
+        $mainWindowXaml | Should -Match 'x:Name="ArtifactFilterBox"'
+        $mainWindowXaml | Should -Match 'x:Name="EventArtifactFilterBox"'
+        $mainWindowXaml | Should -Match 'x:Name="ArtifactFilterBox"[^>]*(?<!Min)Width="220"'
+        $mainWindowXaml | Should -Match 'x:Name="EventArtifactFilterBox"[^>]*(?<!Min)Width="220"'
         $mainWindowXaml | Should -Match 'x:Name="TxtEventTotalCount"'
         $mainWindowXaml | Should -Match 'x:Name="TxtEventBlockedCount"'
         $mainWindowXaml | Should -Match 'x:Name="TxtEventAuditCount"'
-        $mainWindowXaml | Should -Match 'x:Name="CboEventMode"'
-        $mainWindowXaml | Should -Match 'x:Name="CboEventMachine"'
-        $mainWindowXaml | Should -Match 'x:Name="TxtEventPathFilter"'
-        $mainWindowXaml | Should -Match 'x:Name="TxtEventTopN"'
+        $mainWindowXaml | Should -Match 'x:Name="BtnEventModeAll"'
+        $mainWindowXaml | Should -Match 'x:Name="BtnEventModeBlocked"'
+        $mainWindowXaml | Should -Match 'x:Name="BtnEventModeAudit"'
+        $mainWindowXaml | Should -Match 'x:Name="BtnEventModeAllowed"'
         $mainWindowXaml | Should -Match 'x:Name="EventMetricsDataGrid"'
+        $mainWindowXaml | Should -Match 'Header="Generate Rule \(Publisher then Hash\)"'
         $mainWindowXaml | Should -Match 'x:Name="TxtEventMetricsEmpty"'
+
+        # Subtab layout is expected for scanner results region
+        $mainWindowXaml | Should -Match 'Header="Collected Artifacts"'
+        $mainWindowXaml | Should -Match 'Header="Event Metrics"'
+
+        # Path filter now reuses artifact search box for both artifact and event filtering
+        $mainWindowXaml | Should -Not -Match 'x:Name="TxtEventPathFilter"'
+        $mainWindowXaml | Should -Not -Match 'x:Name="TxtEventTopN"'
+        $mainWindowXaml | Should -Not -Match 'x:Name="CboEventMode"'
+        $mainWindowXaml | Should -Not -Match 'x:Name="CboEventMachine"'
+        $mainWindowXaml | Should -Not -Match 'Text="EVENT METRICS"'
+        $mainWindowXaml | Should -Not -Match 'Text="COLLECTED ARTIFACTS"'
     }
 }
