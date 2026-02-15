@@ -53,4 +53,23 @@ Describe 'Behavioral Rules: ConvertFrom-Artifact' -Tag @('Behavioral','Core') {
         $result.Data.Count | Should -Be 1
         $result.Data[0].RuleType | Should -Be 'Hash'
     }
+
+    It 'Normalizes legacy artifact fields into publisher-ready contract' {
+        $legacy = [PSCustomObject]@{
+            FileName = 'signed-app.exe'
+            FilePath = 'C:\Program Files\Contoso\signed-app.exe'
+            IsSigned = 'True'
+            FileSize = '2048'
+            SignerCertificate = 'CN=Contoso Ltd'
+            PublisherName = ''
+            ArtifactType = 'EXE'
+        }
+
+        $normalized = Normalize-ArtifactRecord -Artifact $legacy
+
+        $normalized.IsSigned | Should -BeTrue
+        $normalized.SizeBytes | Should -Be 2048
+        $normalized.SignerCertificate | Should -Be 'CN=Contoso Ltd'
+        $normalized.IsSigned.GetType().Name | Should -Be 'Boolean'
+    }
 }
