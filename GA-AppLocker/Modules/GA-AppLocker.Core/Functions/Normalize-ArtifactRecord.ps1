@@ -3,12 +3,20 @@ function Normalize-ArtifactRecord {
     [OutputType([PSCustomObject])]
     param(
         [Parameter(Mandatory)]
+        [ValidateNotNull()]
         [PSObject]$Artifact
     )
 
     $normalized = [ordered]@{}
-    foreach ($property in $Artifact.PSObject.Properties) {
-        $normalized[$property.Name] = $property.Value
+    if ($Artifact -is [System.Collections.IDictionary]) {
+        foreach ($entry in $Artifact.GetEnumerator()) {
+            $normalized[[string]$entry.Key] = $entry.Value
+        }
+    }
+    else {
+        foreach ($property in $Artifact.PSObject.Properties) {
+            $normalized[$property.Name] = $property.Value
+        }
     }
 
     $isSigned = $false
@@ -35,23 +43,52 @@ function Normalize-ArtifactRecord {
     $normalized['IsSigned'] = $isSigned
 
     $rawSizeBytes = $null
-    if ($normalized.Contains('SizeBytes')) {
+    $rawFileSize = $null
+    $hasSizeBytes = $normalized.Contains('SizeBytes')
+    $hasFileSize = $normalized.Contains('FileSize')
+
+    if ($hasSizeBytes) {
         $rawSizeBytes = $normalized['SizeBytes']
     }
 
-    if ($null -eq $rawSizeBytes -or ([string]$rawSizeBytes).Trim() -eq '') {
-        if ($normalized.Contains('FileSize')) {
-            $rawSizeBytes = $normalized['FileSize']
-        }
+    if ($hasFileSize) {
+        $rawFileSize = $normalized['FileSize']
     }
+
+    $parsedSizeBytes = $null
+    $sizeParsed = $false
 
     if ($null -ne $rawSizeBytes -and ([string]$rawSizeBytes).Trim() -ne '') {
         try {
-            $normalized['SizeBytes'] = [int64]$rawSizeBytes
+            $parsedSizeBytes = [int64]$rawSizeBytes
+            $sizeParsed = $true
         }
         catch {
-            $normalized['SizeBytes'] = $rawSizeBytes
+            $sizeParsed = $false
         }
+    }
+
+    if (-not $sizeParsed -and $null -ne $rawFileSize -and ([string]$rawFileSize).Trim() -ne '') {
+        try {
+            $parsedSizeBytes = [int64]$rawFileSize
+            $sizeParsed = $true
+        }
+        catch {
+            $sizeParsed = $false
+        }
+    }
+
+    if ($sizeParsed) {
+        $normalized['SizeBytes'] = $parsedSizeBytes
+    }
+    elseif ($hasSizeBytes) {
+        $normalized['SizeBytes'] = $rawSizeBytes
+    }
+    elseif ($hasFileSize) {
+        $normalized['SizeBytes'] = $rawFileSize
+    }
+    else {
+        $normalized['SizeBytes'] = $null
     }
 
     return [PSCustomObject]$normalized
