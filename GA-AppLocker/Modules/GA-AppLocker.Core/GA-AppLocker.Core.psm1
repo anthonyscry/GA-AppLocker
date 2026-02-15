@@ -81,6 +81,7 @@ Export-ModuleMember -Function @(
     'Set-AppLockerConfig',
     'Test-Prerequisites',
     'Get-AppLockerDataPath',
+    'Normalize-ArtifactRecord',
     # Session State
     'Save-SessionState',
     'Restore-SessionState',
