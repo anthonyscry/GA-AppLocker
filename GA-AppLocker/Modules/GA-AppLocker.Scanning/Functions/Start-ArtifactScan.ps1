@@ -184,17 +184,39 @@ function Start-ArtifactScan {
 
         function Add-NormalizedArtifacts {
             param(
-                [Parameter(Mandatory)]
+                [Parameter()]
+                [AllowEmptyCollection()]
                 [System.Collections.Generic.List[PSCustomObject]]$Target,
 
                 [Parameter()]
                 [array]$Artifacts = @()
             )
 
+            $canNormalizeArtifacts = $null -ne (Get-Command -Name 'Normalize-ArtifactRecord' -ErrorAction SilentlyContinue)
+            if (-not $canNormalizeArtifacts) {
+                Write-ScanLog -Level 'DEBUG' -Message 'Normalize-ArtifactRecord unavailable in scan scope; falling back to raw artifact records.'
+            }
+
             foreach ($artifact in @($Artifacts)) {
                 if ($null -eq $artifact) { continue }
-                $normalizedArtifact = Normalize-ArtifactRecord -Artifact $artifact
-                [void]$Target.Add($normalizedArtifact)
+
+                $artifactToAdd = $artifact
+                if ($canNormalizeArtifacts) {
+                    try {
+                        $normalizedArtifact = Normalize-ArtifactRecord -Artifact $artifact
+                        if ($null -ne $normalizedArtifact) {
+                            $artifactToAdd = $normalizedArtifact
+                        }
+                        else {
+                            Write-ScanLog -Level 'DEBUG' -Message 'Normalize-ArtifactRecord returned null; using raw artifact record.'
+                        }
+                    }
+                    catch {
+                        Write-ScanLog -Level 'DEBUG' -Message "Normalize-ArtifactRecord failed; using raw artifact record. Error: $($_.Exception.Message)"
+                    }
+                }
+
+                [void]$Target.Add($artifactToAdd)
             }
         }
 
