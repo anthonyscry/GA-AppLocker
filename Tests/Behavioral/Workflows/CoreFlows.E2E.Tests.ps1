@@ -370,7 +370,7 @@ Describe 'Meaningful E2E: critical workflows with edge cases' -Tag @('Behavioral
         Assert-MockCalled Get-CredentialForTier -ModuleName GA-AppLocker.Scanning -Times 0 -Exactly -ParameterFilter { $Tier -eq 2 }
     }
 
-    It 'Accepts legacy T0/T1/T2 MachineTypeTiers values for credential selection' {
+    It 'Normalizes mixed MachineTypeTiers keys with legacy values for server credential selection' {
         $machines = @(
             [PSCustomObject]@{ Hostname = 'server02'; MachineType = 'Server' }
         )
@@ -382,11 +382,11 @@ Describe 'Meaningful E2E: critical workflows with edge cases' -Tag @('Behavioral
 
         Mock Get-AppLockerConfig {
             [PSCustomObject]@{
-                MachineTypeTiers = [PSCustomObject]@{
-                    DomainController = 'T0'
-                    Server           = 'T1'
-                    Workstation      = 'T2'
-                    Unknown          = 'T2'
+                MachineTypeTiers = @{
+                    'Domain Controller' = 'T0'
+                    'server'            = 'T1'
+                    'Workstation'       = 'T2'
+                    'Unknown'           = 'T2'
                 }
             }
         } -ModuleName GA-AppLocker.Scanning
