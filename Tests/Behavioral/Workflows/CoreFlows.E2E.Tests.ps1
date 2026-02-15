@@ -194,13 +194,16 @@ Describe 'Meaningful E2E: critical workflows with edge cases' -Tag @('Behavioral
         $csv | Should -Not -BeNullOrEmpty
 
         $imported = @(Import-Csv -Path $csv.FullName)
+        $normalizedImported = [System.Collections.Generic.List[PSCustomObject]]::new()
         foreach ($item in $imported) {
-            if ($null -ne $item.IsSigned) {
-                $item.IsSigned = ($item.IsSigned -eq 'True')
-            }
+            [void]$normalizedImported.Add((Normalize-ArtifactRecord -Artifact $item))
         }
 
-        $convert = ConvertFrom-Artifact -Artifact $imported -PreferredRuleType Auto
+        $normalizedImported.Count | Should -Be 1
+        $normalizedImported[0].SignerCertificate | Should -Be 'CN=Contoso Ltd'
+        $normalizedImported[0].PublisherName | Should -Be 'CN=Contoso Ltd'
+
+        $convert = ConvertFrom-Artifact -Artifact @($normalizedImported) -PreferredRuleType Auto
         $convert.Success | Should -BeTrue
         $convert.Data.Count | Should -Be 1
         $convert.Data[0].RuleType | Should -Be 'Publisher'
@@ -253,6 +256,55 @@ Describe 'Meaningful E2E: critical workflows with edge cases' -Tag @('Behavioral
 
         $scan.Success | Should -BeTrue
         Assert-MockCalled Get-CredentialForTier -ModuleName GA-AppLocker.Scanning -Times 1 -Exactly -ParameterFilter { $Tier -eq 1 }
+    }
+
+    It 'Uses MachineTypeTiers hashtable mapping for DomainController as tier 0' {
+        $machines = @(
+            [PSCustomObject]@{ Hostname = 'dc01'; MachineType = 'DomainController' }
+        )
+
+        $script:TierZeroCredential = [PSCredential]::new(
+            'CONTOSO\Tier0',
+            (ConvertTo-SecureString 'P@ssw0rd!' -AsPlainText -Force)
+        )
+
+        Mock Get-AppLockerConfig {
+            [PSCustomObject]@{
+                MachineTypeTiers = @{
+                    DomainController = 0
+                    Server           = 1
+                    Workstation      = 2
+                    Unknown          = 2
+                }
+            }
+        } -ModuleName GA-AppLocker.Scanning
+        Mock Get-CredentialForTier {
+            [PSCustomObject]@{
+                Success = $true
+                Data    = $script:TierZeroCredential
+                Error   = $null
+            }
+        } -ModuleName GA-AppLocker.Scanning
+        Mock Get-RemoteArtifacts {
+            [PSCustomObject]@{
+                Success    = $true
+                Data       = @()
+                Error      = $null
+                PerMachine = @{
+                    'dc01' = [PSCustomObject]@{
+                        Success       = $true
+                        ArtifactCount = 0
+                        Error         = $null
+                    }
+                }
+            }
+        } -ModuleName GA-AppLocker.Scanning
+        Mock Write-ScanLog { } -ModuleName GA-AppLocker.Scanning
+
+        $scan = Start-ArtifactScan -Machines $machines
+
+        $scan.Success | Should -BeTrue
+        Assert-MockCalled Get-CredentialForTier -ModuleName GA-AppLocker.Scanning -Times 1 -Exactly -ParameterFilter { $Tier -eq 0 }
     }
 
     It 'Accepts legacy T0/T1/T2 MachineTypeTiers values for credential selection' {
