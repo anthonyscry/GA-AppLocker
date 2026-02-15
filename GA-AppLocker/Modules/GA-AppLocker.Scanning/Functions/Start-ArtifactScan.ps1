@@ -182,6 +182,22 @@ function Start-ArtifactScan {
             }
         }
 
+        function Add-NormalizedArtifacts {
+            param(
+                [Parameter(Mandatory)]
+                [System.Collections.Generic.List[PSCustomObject]]$Target,
+
+                [Parameter()]
+                [array]$Artifacts = @()
+            )
+
+            foreach ($artifact in @($Artifacts)) {
+                if ($null -eq $artifact) { continue }
+                $normalizedArtifact = Normalize-ArtifactRecord -Artifact $artifact
+                [void]$Target.Add($normalizedArtifact)
+            }
+        }
+
         # Configure progress ranges based on what's being scanned
         # to prevent local and remote progress bars from overlapping
         $hasLocal = $ScanLocal.IsPresent
@@ -220,7 +236,7 @@ function Start-ArtifactScan {
 
             $localResult = Get-LocalArtifacts @localParams
             if ($localResult.Success) {
-                foreach ($art in @($localResult.Data)) { [void]$allArtifacts.Add($art) }
+                Add-NormalizedArtifacts -Target $allArtifacts -Artifacts $localResult.Data
                 $machineResults[$env:COMPUTERNAME] = @{
                     Success       = $true
                     ArtifactCount = $localResult.Data.Count
@@ -255,7 +271,7 @@ function Start-ArtifactScan {
 
                 $appxResult = Get-AppxArtifacts @appxParams
                 if ($appxResult.Success) {
-                    foreach ($art in @($appxResult.Data)) { [void]$allArtifacts.Add($art) }
+                    Add-NormalizedArtifacts -Target $allArtifacts -Artifacts $appxResult.Data
                     Write-ScanLog -Message "Found $($appxResult.Data.Count) Appx packages"
                 }
                 else {
@@ -381,7 +397,7 @@ function Start-ArtifactScan {
 
                 $remoteResult = Get-RemoteArtifacts @remoteParams
                 if ($remoteResult.Success) {
-                    foreach ($art in @($remoteResult.Data)) { [void]$allArtifacts.Add($art) }
+                    Add-NormalizedArtifacts -Target $allArtifacts -Artifacts $remoteResult.Data
 
                     foreach ($machine in $computerNames) {
                         $machineInfo = $remoteResult.PerMachine[$machine]
