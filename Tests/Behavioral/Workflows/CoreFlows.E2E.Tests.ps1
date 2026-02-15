@@ -164,12 +164,12 @@ Describe 'Meaningful E2E: critical workflows with edge cases' -Tag @('Behavioral
             ArtifactType      = 'EXE'
             CollectionType    = 'Exe'
             Publisher         = 'Contoso Ltd'
-            PublisherName     = 'CN=Contoso Ltd'
+            PublisherName     = 'CN=Contoso Publisher'
             ProductName       = 'Contoso RoundTrip'
             ProductVersion    = '1.2.3.4'
             FileVersion       = '1.2.3.4'
             IsSigned          = $true
-            SignerCertificate = 'CN=Contoso Ltd'
+            SignerCertificate = 'CN=Contoso Signer'
             SignatureStatus   = 'Valid'
             SHA256Hash        = ('D' * 64)
             FileSize          = 2048
@@ -190,7 +190,13 @@ Describe 'Meaningful E2E: critical workflows with edge cases' -Tag @('Behavioral
 
         $scan.Success | Should -BeTrue
 
-        $csv = Get-ChildItem -Path $scanPath -Filter '*_artifacts_*.csv' | Select-Object -First 1
+        $csvMatches = @(
+            Get-ChildItem -Path $scanPath -Filter '*_artifacts_*.csv' |
+                Where-Object { $_.Name -like 'HOST1_artifacts_*.csv' } |
+                Sort-Object -Property Name
+        )
+        $csvMatches.Count | Should -Be 1
+        $csv = $csvMatches[0]
         $csv | Should -Not -BeNullOrEmpty
 
         $imported = @(Import-Csv -Path $csv.FullName)
@@ -200,8 +206,9 @@ Describe 'Meaningful E2E: critical workflows with edge cases' -Tag @('Behavioral
         }
 
         $normalizedImported.Count | Should -Be 1
-        $normalizedImported[0].SignerCertificate | Should -Be 'CN=Contoso Ltd'
-        $normalizedImported[0].PublisherName | Should -Be 'CN=Contoso Ltd'
+        $normalizedImported[0].SignerCertificate | Should -Be 'CN=Contoso Signer'
+        $normalizedImported[0].PublisherName | Should -Be 'CN=Contoso Publisher'
+        $normalizedImported[0].SignerCertificate | Should -Not -Be $normalizedImported[0].PublisherName
 
         $convert = ConvertFrom-Artifact -Artifact @($normalizedImported) -PreferredRuleType Auto
         $convert.Success | Should -BeTrue
@@ -308,6 +315,7 @@ Describe 'Meaningful E2E: critical workflows with edge cases' -Tag @('Behavioral
 
         $scan.Success | Should -BeTrue
         Assert-MockCalled Get-CredentialForTier -ModuleName GA-AppLocker.Scanning -Times 1 -Exactly -ParameterFilter { $Tier -eq 1 }
+        Assert-MockCalled Get-RemoteArtifacts -ModuleName GA-AppLocker.Scanning -Times 1 -Exactly -ParameterFilter { $Credential -eq $script:TierTestCredential }
     }
 
     It 'Uses MachineTypeTiers normalization for non-canonical DomainController values as tier 0' {
@@ -357,6 +365,7 @@ Describe 'Meaningful E2E: critical workflows with edge cases' -Tag @('Behavioral
 
         $scan.Success | Should -BeTrue
         Assert-MockCalled Get-CredentialForTier -ModuleName GA-AppLocker.Scanning -Times 1 -Exactly -ParameterFilter { $Tier -eq 0 }
+        Assert-MockCalled Get-RemoteArtifacts -ModuleName GA-AppLocker.Scanning -Times 1 -Exactly -ParameterFilter { $Credential -eq $script:TierZeroCredential }
         Assert-MockCalled Get-CredentialForTier -ModuleName GA-AppLocker.Scanning -Times 0 -Exactly -ParameterFilter { $Tier -eq 1 }
         Assert-MockCalled Get-CredentialForTier -ModuleName GA-AppLocker.Scanning -Times 0 -Exactly -ParameterFilter { $Tier -eq 2 }
     }
@@ -408,6 +417,7 @@ Describe 'Meaningful E2E: critical workflows with edge cases' -Tag @('Behavioral
 
         $scan.Success | Should -BeTrue
         Assert-MockCalled Get-CredentialForTier -ModuleName GA-AppLocker.Scanning -Times 1 -Exactly -ParameterFilter { $Tier -eq 1 }
+        Assert-MockCalled Get-RemoteArtifacts -ModuleName GA-AppLocker.Scanning -Times 1 -Exactly -ParameterFilter { $Credential -eq $script:TierStringCredential }
     }
 
     It 'Handles connectivity edge inputs without throwing and returns stable summary' {
