@@ -151,6 +151,159 @@ Describe 'Meaningful E2E: critical workflows with edge cases' -Tag @('Behavioral
         (@($paths | Sort-Object -Unique)).Count | Should -Be $paths.Count
     }
 
+    It 'Retains signer certificate in per-host CSV roundtrip so signed imports create publisher rules' {
+        $scanPath = Join-Path $script:TestDataRoot 'Scans'
+        if (-not (Test-Path $scanPath)) {
+            New-Item -Path $scanPath -ItemType Directory -Force | Out-Null
+        }
+
+        $signedArtifact = [PSCustomObject]@{
+            FileName          = 'signed-roundtrip.exe'
+            FilePath          = 'C:\Program Files\Contoso\signed-roundtrip.exe'
+            Extension         = '.exe'
+            ArtifactType      = 'EXE'
+            CollectionType    = 'Exe'
+            Publisher         = 'Contoso Ltd'
+            PublisherName     = 'CN=Contoso Ltd'
+            ProductName       = 'Contoso RoundTrip'
+            ProductVersion    = '1.2.3.4'
+            FileVersion       = '1.2.3.4'
+            IsSigned          = $true
+            SignerCertificate = 'CN=Contoso Ltd'
+            SignatureStatus   = 'Valid'
+            SHA256Hash        = ('D' * 64)
+            FileSize          = 2048
+            SizeBytes         = 2048
+            ComputerName      = 'HOST1'
+        }
+
+        Mock Get-LocalArtifacts {
+            return [PSCustomObject]@{
+                Success = $true
+                Data    = @($signedArtifact)
+                Error   = $null
+            }
+        } -ModuleName GA-AppLocker.Scanning
+        Mock Write-ScanLog { } -ModuleName GA-AppLocker.Scanning
+
+        $scan = Start-ArtifactScan -ScanLocal
+
+        $scan.Success | Should -BeTrue
+
+        $csv = Get-ChildItem -Path $scanPath -Filter '*_artifacts_*.csv' | Select-Object -First 1
+        $csv | Should -Not -BeNullOrEmpty
+
+        $imported = @(Import-Csv -Path $csv.FullName)
+        foreach ($item in $imported) {
+            if ($null -ne $item.IsSigned) {
+                $item.IsSigned = ($item.IsSigned -eq 'True')
+            }
+        }
+
+        $convert = ConvertFrom-Artifact -Artifact $imported -PreferredRuleType Auto
+        $convert.Success | Should -BeTrue
+        $convert.Data.Count | Should -Be 1
+        $convert.Data[0].RuleType | Should -Be 'Publisher'
+    }
+
+    It 'Uses MachineTypeTiers hashtable mapping when selecting credential tier for remote scan' {
+        $machines = @(
+            [PSCustomObject]@{ Hostname = 'server01'; MachineType = 'Server' }
+        )
+
+        $script:TierTestCredential = [PSCredential]::new(
+            'CONTOSO\Tier1',
+            (ConvertTo-SecureString 'P@ssw0rd!' -AsPlainText -Force)
+        )
+
+        Mock Get-AppLockerConfig {
+            [PSCustomObject]@{
+                MachineTypeTiers = @{
+                    DomainController = 0
+                    Server           = 1
+                    Workstation      = 2
+                    Unknown          = 2
+                }
+            }
+        } -ModuleName GA-AppLocker.Scanning
+        Mock Get-CredentialForTier {
+            [PSCustomObject]@{
+                Success = $true
+                Data    = $script:TierTestCredential
+                Error   = $null
+            }
+        } -ModuleName GA-AppLocker.Scanning
+        Mock Get-RemoteArtifacts {
+            [PSCustomObject]@{
+                Success    = $true
+                Data       = @()
+                Error      = $null
+                PerMachine = @{
+                    'server01' = [PSCustomObject]@{
+                        Success       = $true
+                        ArtifactCount = 0
+                        Error         = $null
+                    }
+                }
+            }
+        } -ModuleName GA-AppLocker.Scanning
+        Mock Write-ScanLog { } -ModuleName GA-AppLocker.Scanning
+
+        $scan = Start-ArtifactScan -Machines $machines
+
+        $scan.Success | Should -BeTrue
+        Assert-MockCalled Get-CredentialForTier -ModuleName GA-AppLocker.Scanning -Times 1 -Exactly -ParameterFilter { $Tier -eq 1 }
+    }
+
+    It 'Accepts legacy T0/T1/T2 MachineTypeTiers values for credential selection' {
+        $machines = @(
+            [PSCustomObject]@{ Hostname = 'server02'; MachineType = 'Server' }
+        )
+
+        $script:TierStringCredential = [PSCredential]::new(
+            'CONTOSO\Tier1',
+            (ConvertTo-SecureString 'P@ssw0rd!' -AsPlainText -Force)
+        )
+
+        Mock Get-AppLockerConfig {
+            [PSCustomObject]@{
+                MachineTypeTiers = [PSCustomObject]@{
+                    DomainController = 'T0'
+                    Server           = 'T1'
+                    Workstation      = 'T2'
+                    Unknown          = 'T2'
+                }
+            }
+        } -ModuleName GA-AppLocker.Scanning
+        Mock Get-CredentialForTier {
+            [PSCustomObject]@{
+                Success = $true
+                Data    = $script:TierStringCredential
+                Error   = $null
+            }
+        } -ModuleName GA-AppLocker.Scanning
+        Mock Get-RemoteArtifacts {
+            [PSCustomObject]@{
+                Success    = $true
+                Data       = @()
+                Error      = $null
+                PerMachine = @{
+                    'server02' = [PSCustomObject]@{
+                        Success       = $true
+                        ArtifactCount = 0
+                        Error         = $null
+                    }
+                }
+            }
+        } -ModuleName GA-AppLocker.Scanning
+        Mock Write-ScanLog { } -ModuleName GA-AppLocker.Scanning
+
+        $scan = Start-ArtifactScan -Machines $machines
+
+        $scan.Success | Should -BeTrue
+        Assert-MockCalled Get-CredentialForTier -ModuleName GA-AppLocker.Scanning -Times 1 -Exactly -ParameterFilter { $Tier -eq 1 }
+    }
+
     It 'Handles connectivity edge inputs without throwing and returns stable summary' {
         $machines = @(
             $null,

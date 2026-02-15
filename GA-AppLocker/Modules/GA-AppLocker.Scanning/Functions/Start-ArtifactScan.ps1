@@ -111,6 +111,77 @@ function Start-ArtifactScan {
         $allEvents = [System.Collections.Generic.List[PSCustomObject]]::new()
         $machineResults = @{}
 
+        function Resolve-ScanTierNumber {
+            param(
+                [object]$Value,
+                [int]$DefaultTier = 2
+            )
+
+            if ($null -eq $Value) { return $DefaultTier }
+
+            if ($Value -is [int] -or $Value -is [long] -or $Value -is [byte]) {
+                $candidate = [int]$Value
+                if ($candidate -in @(0, 1, 2)) { return $candidate }
+                return $DefaultTier
+            }
+
+            $rawValue = [string]$Value
+            if ([string]::IsNullOrWhiteSpace($rawValue)) { return $DefaultTier }
+
+            $normalized = $rawValue.Trim()
+            $tierMatch = [regex]::Match($normalized, '^(?:[Tt](?:ier)?)?\s*([0-2])$')
+            if ($tierMatch.Success) {
+                return [int]$tierMatch.Groups[1].Value
+            }
+
+            switch ($normalized.ToLowerInvariant()) {
+                'domaincontroller' { return 0 }
+                'domain controller' { return 0 }
+                'dc' { return 0 }
+                'server' { return 1 }
+                'srv' { return 1 }
+                'workstation' { return 2 }
+                'desktop' { return 2 }
+                'laptop' { return 2 }
+                'unknown' { return 2 }
+            }
+
+            return $DefaultTier
+        }
+
+        function Normalize-ScanMachineTypeKey {
+            param([string]$MachineType)
+
+            if ([string]::IsNullOrWhiteSpace($MachineType)) { return 'Unknown' }
+
+            $normalized = $MachineType.Trim().ToLowerInvariant()
+
+            switch ($normalized) {
+                'domaincontroller' { return 'DomainController' }
+                'domain controller' { return 'DomainController' }
+                'dc' { return 'DomainController' }
+                'server' { return 'Server' }
+                'srv' { return 'Server' }
+                'workstation' { return 'Workstation' }
+                'desktop' { return 'Workstation' }
+                'laptop' { return 'Workstation' }
+                'unknown' { return 'Unknown' }
+                default { return $MachineType.Trim() }
+            }
+        }
+
+        function Get-DefaultTierForMachineType {
+            param([string]$MachineType)
+
+            $normalizedType = Normalize-ScanMachineTypeKey -MachineType $MachineType
+
+            switch ($normalizedType) {
+                'DomainController' { return 0 }
+                'Server' { return 1 }
+                default { return 2 }
+            }
+        }
+
         # Configure progress ranges based on what's being scanned
         # to prevent local and remote progress bars from overlapping
         $hasLocal = $ScanLocal.IsPresent
@@ -200,16 +271,38 @@ function Start-ArtifactScan {
             $machineTypeTiers = @{ DomainController = 0; Server = 1; Workstation = 2; Unknown = 2 }
             try {
                 $config = Get-AppLockerConfig
-                if ($config.MachineTypeTiers) {
-                    $machineTypeTiers = @{}
-                    $config.MachineTypeTiers.PSObject.Properties | ForEach-Object { $machineTypeTiers[$_.Name] = $_.Value }
+                if ($config -and $config.MachineTypeTiers) {
+                    $resolvedMap = @{}
+                    $tierSource = $config.MachineTypeTiers
+
+                    if ($tierSource -is [System.Collections.IDictionary]) {
+                        foreach ($entry in $tierSource.GetEnumerator()) {
+                            $machineType = Normalize-ScanMachineTypeKey -MachineType ([string]$entry.Key)
+                            if ([string]::IsNullOrWhiteSpace($machineType)) { continue }
+                            $defaultTier = Get-DefaultTierForMachineType -MachineType $machineType
+                            $resolvedMap[$machineType] = Resolve-ScanTierNumber -Value $entry.Value -DefaultTier $defaultTier
+                        }
+                    }
+                    else {
+                        foreach ($prop in $tierSource.PSObject.Properties) {
+                            $machineType = Normalize-ScanMachineTypeKey -MachineType ([string]$prop.Name)
+                            if ([string]::IsNullOrWhiteSpace($machineType)) { continue }
+                            $defaultTier = Get-DefaultTierForMachineType -MachineType $machineType
+                            $resolvedMap[$machineType] = Resolve-ScanTierNumber -Value $prop.Value -DefaultTier $defaultTier
+                        }
+                    }
+
+                    if ($resolvedMap.Count -gt 0) {
+                        $machineTypeTiers = $resolvedMap
+                    }
                 }
             }
             catch { Write-AppLockerLog -Message "Failed to load MachineTypeTiers config: $($_.Exception.Message)" -Level 'DEBUG' }
 
             # Group machines by tier for credential selection
             $machinesByTier = $Machines | Group-Object { 
-                $type = $_.MachineType
+                $type = Normalize-ScanMachineTypeKey -MachineType ([string]$_.MachineType)
+                if ([string]::IsNullOrWhiteSpace($type)) { $type = 'Unknown' }
                 if ($machineTypeTiers.ContainsKey($type)) { $machineTypeTiers[$type] } else { 2 }
             }
 
@@ -217,7 +310,7 @@ function Start-ArtifactScan {
             $totalTiers = @($machinesByTier).Count
 
             foreach ($tierGroup in $machinesByTier) {
-                $tier = [int]$tierGroup.Name
+                $tier = Resolve-ScanTierNumber -Value $tierGroup.Name -DefaultTier 2
                 $tierMachines = $tierGroup.Group
                 $tierIndex++
 
@@ -396,7 +489,9 @@ function Start-ArtifactScan {
                     $safeHost = $hostName -replace '[\\/:*?"<>|]', '_'
                     $hostFile = Join-Path $scanPath "${safeHost}_artifacts_${dateStamp}.csv"
                     $group.Group | Select-Object FileName, FilePath, ArtifactType, CollectionType,
-                        Publisher, ProductName, FileVersion, IsSigned, SHA256Hash, FileSize, ComputerName |
+                        Publisher, PublisherName, ProductName, ProductVersion, FileVersion,
+                        IsSigned, SignerCertificate, SignatureStatus,
+                        SHA256Hash, FileSize, SizeBytes, ComputerName |
                         Export-Csv -Path $hostFile -NoTypeInformation -Encoding UTF8
                     Write-ScanLog -Message "Per-host CSV export: $hostFile ($($group.Count) artifacts)"
                 }

@@ -924,7 +924,22 @@ function global:Invoke-ImportArtifacts {
                         # PS 5.1: "False" is truthy, must explicitly compare to 'True'
                         foreach ($item in $csvData) {
                             if ($null -ne $item.IsSigned) {
-                                $item.IsSigned = ($item.IsSigned -eq 'True')
+                                $isSignedRaw = [string]$item.IsSigned
+                                $item.IsSigned = [string]::Equals($isSignedRaw, 'True', [System.StringComparison]::OrdinalIgnoreCase) -or $isSignedRaw -eq '1'
+                            }
+
+                            $hasSizeBytes = $item.PSObject.Properties['SizeBytes'] -and -not [string]::IsNullOrWhiteSpace([string]$item.SizeBytes)
+                            $hasFileSize = $item.PSObject.Properties['FileSize'] -and -not [string]::IsNullOrWhiteSpace([string]$item.FileSize)
+                            if (-not $hasSizeBytes -and $hasFileSize) {
+                                try {
+                                    $item | Add-Member -NotePropertyName 'SizeBytes' -NotePropertyValue ([int64]$item.FileSize) -Force
+                                }
+                                catch {
+                                    try {
+                                        Write-Log -Level 'Debug' -Message "ImportArtifacts: Failed to coerce FileSize '$($item.FileSize)' to SizeBytes for '$($item.FileName)'"
+                                    }
+                                    catch { }
+                                }
                             }
                         }
                         $csvData
@@ -1020,8 +1035,10 @@ function global:Invoke-ExportArtifacts {
             $extension = [System.IO.Path]::GetExtension($dialog.FileName).ToLower()
             
             # Remove display-only properties for cleaner export
-            $exportData = $artifacts | Select-Object FileName, FilePath, ArtifactType, Publisher, 
-                ProductName, FileVersion, IsSigned, SHA256Hash, FileSize, ComputerName
+            $exportData = $artifacts | Select-Object FileName, FilePath, Extension, ArtifactType, CollectionType,
+                Publisher, PublisherName, ProductName, ProductVersion, FileVersion,
+                IsSigned, SignerCertificate, SignatureStatus,
+                SHA256Hash, FileSize, SizeBytes, ComputerName
             
             switch ($extension) {
                 '.csv' { $exportData | Export-Csv -Path $dialog.FileName -NoTypeInformation -Encoding UTF8 }
