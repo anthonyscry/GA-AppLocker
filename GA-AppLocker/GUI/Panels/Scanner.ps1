@@ -913,6 +913,10 @@ function global:Invoke-ImportArtifacts {
 
             $allArtifacts = [System.Collections.Generic.List[PSCustomObject]]::new()
             $fileCount = 0
+            $normalizationState = @{
+                CanNormalize = ($null -ne (Get-Command -Name 'Normalize-ArtifactRecord' -ErrorAction SilentlyContinue))
+                Warned       = $false
+            }
             
             foreach ($filePath in $dialog.FileNames) {
                 $extension = [System.IO.Path]::GetExtension($filePath).ToLower()
@@ -920,29 +924,57 @@ function global:Invoke-ImportArtifacts {
                 $artifacts = switch ($extension) {
                     '.csv' {
                         $csvData = @(Import-Csv -Path $filePath)
-                        # CSV import returns ALL values as strings — coerce boolean fields
-                        # PS 5.1: "False" is truthy, must explicitly compare to 'True'
-                        foreach ($item in $csvData) {
-                            if ($null -ne $item.IsSigned) {
-                                $isSignedRaw = [string]$item.IsSigned
-                                $item.IsSigned = [string]::Equals($isSignedRaw, 'True', [System.StringComparison]::OrdinalIgnoreCase) -or $isSignedRaw -eq '1'
-                            }
+                        $normalizedCsvData = [System.Collections.Generic.List[PSCustomObject]]::new()
 
-                            $hasSizeBytes = $item.PSObject.Properties['SizeBytes'] -and -not [string]::IsNullOrWhiteSpace([string]$item.SizeBytes)
-                            $hasFileSize = $item.PSObject.Properties['FileSize'] -and -not [string]::IsNullOrWhiteSpace([string]$item.FileSize)
-                            if (-not $hasSizeBytes -and $hasFileSize) {
+                        foreach ($item in $csvData) {
+                            if ($null -eq $item) { continue }
+
+                            $artifactRecord = $item
+                            $requiresFallbackCoercion = $true
+
+                            if ($normalizationState.CanNormalize) {
                                 try {
-                                    $item | Add-Member -NotePropertyName 'SizeBytes' -NotePropertyValue ([int64]$item.FileSize) -Force
+                                    $normalizedArtifact = Normalize-ArtifactRecord -Artifact $item
+                                    if ($null -ne $normalizedArtifact) {
+                                        $artifactRecord = $normalizedArtifact
+                                        $requiresFallbackCoercion = $false
+                                    }
+                                    else {
+                                        Write-Log -Level 'Debug' -Message "ImportArtifacts: Normalize-ArtifactRecord returned null for '$($item.FileName)'; applying fallback coercion."
+                                    }
                                 }
                                 catch {
-                                    try {
-                                        Write-Log -Level 'Debug' -Message "ImportArtifacts: Failed to coerce FileSize '$($item.FileSize)' to SizeBytes for '$($item.FileName)'"
-                                    }
-                                    catch { }
+                                    Write-Log -Level 'Debug' -Message "ImportArtifacts: Normalize-ArtifactRecord failed for '$($item.FileName)'; applying fallback coercion. Error: $($_.Exception.Message)"
                                 }
                             }
+
+                            if (-not $normalizationState.CanNormalize -and -not $normalizationState.Warned) {
+                                Write-Log -Level 'Warning' -Message 'ImportArtifacts: Normalize-ArtifactRecord unavailable; applying fallback CSV coercion.'
+                                $normalizationState.Warned = $true
+                            }
+
+                            if ($requiresFallbackCoercion) {
+                                # CSV import returns string values; coerce the core canonical fields.
+                                if ($null -ne $artifactRecord.IsSigned) {
+                                    $isSignedRaw = [string]$artifactRecord.IsSigned
+                                    $artifactRecord.IsSigned = [string]::Equals($isSignedRaw, 'True', [System.StringComparison]::OrdinalIgnoreCase) -or $isSignedRaw -eq '1'
+                                }
+
+                                $hasSizeBytes = $artifactRecord.PSObject.Properties['SizeBytes'] -and -not [string]::IsNullOrWhiteSpace([string]$artifactRecord.SizeBytes)
+                                $hasFileSize = $artifactRecord.PSObject.Properties['FileSize'] -and -not [string]::IsNullOrWhiteSpace([string]$artifactRecord.FileSize)
+                                if (-not $hasSizeBytes -and $hasFileSize) {
+                                    try {
+                                        $artifactRecord | Add-Member -NotePropertyName 'SizeBytes' -NotePropertyValue ([int64]$artifactRecord.FileSize) -Force
+                                    }
+                                    catch {
+                                        Write-Log -Level 'Debug' -Message "ImportArtifacts: Failed to coerce FileSize '$($artifactRecord.FileSize)' to SizeBytes for '$($artifactRecord.FileName)'"
+                                    }
+                                }
+                            }
+
+                            [void]$normalizedCsvData.Add($artifactRecord)
                         }
-                        $csvData
+                        $normalizedCsvData.ToArray()
                     }
                     '.json' { @(Get-Content -Path $filePath -Raw | ConvertFrom-Json) }
                     default { throw "Unsupported file format: $extension" }
@@ -1034,11 +1066,14 @@ function global:Invoke-ExportArtifacts {
         try {
             $extension = [System.IO.Path]::GetExtension($dialog.FileName).ToLower()
             
-            # Remove display-only properties for cleaner export
-            $exportData = $artifacts | Select-Object FileName, FilePath, Extension, ArtifactType, CollectionType,
-                Publisher, PublisherName, ProductName, ProductVersion, FileVersion,
-                IsSigned, SignerCertificate, SignatureStatus,
-                SHA256Hash, FileSize, SizeBytes, ComputerName
+            # Export canonical artifact contract fields (keep aligned with scan CSV output).
+            $exportFields = @(
+                'FileName', 'FilePath', 'Extension', 'ArtifactType', 'CollectionType',
+                'Publisher', 'PublisherName', 'ProductName', 'ProductVersion', 'FileVersion',
+                'IsSigned', 'SignerCertificate', 'SignatureStatus',
+                'SHA256Hash', 'FileSize', 'SizeBytes', 'ComputerName'
+            )
+            $exportData = $artifacts | Select-Object -Property $exportFields
             
             switch ($extension) {
                 '.csv' { $exportData | Export-Csv -Path $dialog.FileName -NoTypeInformation -Encoding UTF8 }
