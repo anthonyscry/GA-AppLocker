@@ -288,6 +288,71 @@ function Initialize-ScannerPanel {
         })
     }
 
+    # Initialize event-metrics state and wire filter controls
+    try {
+        Set-EventMetricsFilterDefaults -Window $Window
+    }
+    catch {
+        Write-Log -Level Error -Message "Failed to initialize event metrics state: $($_.Exception.Message)"
+    }
+
+    $eventModeCombo = $Window.FindName('CboEventMode')
+    if ($eventModeCombo) {
+        $eventModeCombo.Add_SelectionChanged({
+            param($sender, $e)
+
+            $selectedMode = Get-EventModeFromSelection -Selection $sender.SelectedItem
+            if (-not $script:CurrentEventMetricsFilter -or $selectedMode -ne $script:CurrentEventMetricsFilter.Mode) {
+                Set-EventMetricsFilterState -Mode $selectedMode
+                Update-EventMetricsUI -Window $global:GA_MainWindow
+            }
+        })
+    }
+
+    $eventMachineCombo = $Window.FindName('CboEventMachine')
+    if ($eventMachineCombo) {
+        $eventMachineCombo.Add_SelectionChanged({
+            param($sender, $e)
+
+            $selectedMachine = if ($sender.SelectedItem) { [string]$sender.SelectedItem } else { 'All' }
+            if (-not $script:CurrentEventMetricsFilter -or $selectedMachine -ne $script:CurrentEventMetricsFilter.Machine) {
+                Set-EventMetricsFilterState -Machine $selectedMachine
+                Update-EventMetricsUI -Window $global:GA_MainWindow
+            }
+        })
+    }
+
+    $eventPathFilter = $Window.FindName('TxtEventPathFilter')
+    if ($eventPathFilter) {
+        $eventPathFilter.Add_TextChanged({
+            param($sender, $e)
+
+            $pathFilter = if ($sender.Text) { [string]$sender.Text } else { '' }
+            if (-not $script:CurrentEventMetricsFilter -or $pathFilter -ne $script:CurrentEventMetricsFilter.PathFilter) {
+                Set-EventMetricsFilterState -PathFilter $pathFilter
+                Update-EventMetricsUI -Window $global:GA_MainWindow
+            }
+        })
+    }
+
+    $eventTopN = $Window.FindName('TxtEventTopN')
+    if ($eventTopN) {
+        $eventTopN.Add_TextChanged({
+            param($sender, $e)
+
+            $topNText = [string]$sender.Text
+            $parsedTopN = 20
+            if (-not [int]::TryParse($topNText, [ref]$parsedTopN)) {
+                $parsedTopN = 20
+            }
+
+            if (-not $script:CurrentEventMetricsFilter -or $parsedTopN -ne $script:CurrentEventMetricsFilter.TopN) {
+                Set-EventMetricsFilterState -TopN $parsedTopN
+                Update-EventMetricsUI -Window $global:GA_MainWindow
+            }
+        })
+    }
+
     # Load saved scans list
     try {
         Update-SavedScansList -Window $Window
@@ -416,6 +481,8 @@ function global:Invoke-StartArtifactScan {
     $script:ScanInProgress = $true
     $global:GA_ScanInProgress = $true
     $script:ScanCancelled = $false
+    $script:CurrentScanEventLogs = @()
+    Set-EventMetricsFilterDefaults
     Update-ScanUIState -Window $Window -Scanning $true
     Update-ScanProgress -Window $Window -Text "Starting scan: $scanName" -Percent 5
     $statusLabel = $Window.FindName('ScanStatusLabel')
@@ -554,6 +621,7 @@ function global:Invoke-StartArtifactScan {
                 if (Get-Command -Name 'Hide-LoadingOverlay' -ErrorAction SilentlyContinue) {
                     Hide-LoadingOverlay
                 }
+                Set-EventMetricsFilterDefaults -Window $win
                 
                 $statusLabel = $win.FindName('ScanStatusLabel')
                 if ($statusLabel) {
@@ -598,6 +666,29 @@ function global:Invoke-StartArtifactScan {
                 }
                 elseif ($syncHash.Result -and $syncHash.Result.Success) {
                     $result = $syncHash.Result
+                    $script:CurrentScanEventLogs = if ($result.Data.EventLogs) { @($result.Data.EventLogs) } else { @() }
+
+                    $eventTotal = if ($result.Summary -and $result.Summary.PSObject.Properties['TotalEvents']) {
+                        $result.Summary.TotalEvents
+                    }
+                    else {
+                        $script:CurrentScanEventLogs.Count
+                    }
+
+                    $eventBlocked = @($script:CurrentScanEventLogs | Where-Object { $_.IsBlocked -eq $true }).Count
+                    $eventAudit = @($script:CurrentScanEventLogs | Where-Object { $_.IsAudit -eq $true }).Count
+
+                    $eventTotalLabel = $win.FindName('TxtEventTotalCount')
+                    if ($eventTotalLabel) { $eventTotalLabel.Text = "$eventTotal" }
+
+                    $eventBlockedLabel = $win.FindName('TxtEventBlockedCount')
+                    if ($eventBlockedLabel) { $eventBlockedLabel.Text = "$eventBlocked" }
+
+                    $eventAuditLabel = $win.FindName('TxtEventAuditCount')
+                    if ($eventAuditLabel) { $eventAuditLabel.Text = "$eventAudit" }
+
+                    Update-EventMetricsUI -Window $win
+
                     $script:CurrentScanArtifacts = $result.Data.Artifacts
                     Update-ArtifactDataGrid -Window $win
                     Update-ScanProgress -Window $win -Text "Scan complete: $($result.Summary.TotalArtifacts) artifacts" -Percent 100
@@ -653,6 +744,8 @@ function global:Invoke-StartArtifactScan {
                 }
                 else {
                     $errorMsg = if ($syncHash.Result) { $syncHash.Result.Error } else { "Unknown error" }
+                    $script:CurrentScanEventLogs = @()
+                    Update-EventMetricsUI -Window $win
                     Update-ScanProgress -Window $win -Text "Scan failed: $errorMsg" -Percent 0
                     $win.FindName('ScanStatusLabel').Text = "Failed"
                     $win.FindName('ScanStatusLabel').Foreground = [System.Windows.Media.Brushes]::OrangeRed
@@ -871,6 +964,323 @@ function global:Update-SavedScansList {
     }
 }
 
+function global:Get-ScanEventMetrics {
+    <#
+    .SYNOPSIS
+        Groups scan event log records for Scanner metrics display.
+    #>
+    param(
+        [Parameter(Mandatory)]
+        $Events,
+        [ValidateSet('All', 'Blocked', 'Audit')]
+        [string]$Mode = 'All',
+        [string]$Machine = 'All',
+        [string]$PathFilter = '',
+        [int]$TopN = 20
+    )
+
+    $inputEvents = @($Events)
+
+    if (-not $inputEvents -or $inputEvents.Count -eq 0) {
+        return @()
+    }
+
+    if ($TopN -le 0) { $TopN = 20 }
+
+    if ($Mode -eq 'Blocked') {
+        $inputEvents = @($inputEvents | Where-Object { $_.IsBlocked -eq $true })
+    }
+    elseif ($Mode -eq 'Audit') {
+        $inputEvents = @($inputEvents | Where-Object { $_.IsAudit -eq $true })
+    }
+
+    $machineFilter = if ([string]::IsNullOrWhiteSpace($Machine) -or $Machine -eq 'All') { $null } else { [string]$Machine }
+    $normalizedPathFilter = if ([string]::IsNullOrWhiteSpace($PathFilter)) { $null } else { [string]$PathFilter }
+
+    if ($machineFilter -or $normalizedPathFilter) {
+        $filteredEvents = [System.Collections.Generic.List[PSObject]]::new()
+
+        foreach ($event in @($inputEvents)) {
+            $eventPath = if ($null -ne $event.FilePath) { [string]$event.FilePath } else { '' }
+            if ([string]::IsNullOrWhiteSpace($eventPath)) { $eventPath = '<unknown path>' }
+
+            $eventMachine = if ($null -ne $event.ComputerName) { [string]$event.ComputerName } else { '' }
+            if ($machineFilter -and $eventMachine -ne $machineFilter) { continue }
+            if ($normalizedPathFilter -and $eventPath -notlike "*$normalizedPathFilter*") { continue }
+
+            [void]$filteredEvents.Add($event)
+        }
+
+        $inputEvents = @($filteredEvents)
+    }
+
+    if (-not $inputEvents -or $inputEvents.Count -eq 0) {
+        return @()
+    }
+
+    $groups = @{}
+
+    foreach ($event in @($inputEvents)) {
+        $rawPath = $event.FilePath
+        $filePath = if (-not [string]::IsNullOrWhiteSpace([string]$rawPath)) {
+            [string]$rawPath
+        }
+        else {
+            '<unknown path>'
+        }
+
+        $computerName = if ($null -ne $event.ComputerName) { [string]$event.ComputerName } else { '' }
+        $eventType = if ($null -ne $event.EventType) { [string]$event.EventType } else { '' }
+        $key = "$computerName|$filePath|$eventType"
+
+        if (-not $groups.ContainsKey($key)) {
+            $groups[$key] = [PSCustomObject]@{
+                FilePath     = $filePath
+                ComputerName = $computerName
+                EventType    = $eventType
+                Count        = 0
+                BlockedCount = 0
+                AuditCount   = 0
+                LastSeen     = $null
+            }
+        }
+
+        $metric = $groups[$key]
+        $metric.Count += 1
+
+        if ($event.IsBlocked -eq $true) { $metric.BlockedCount += 1 }
+        if ($event.IsAudit -eq $true) { $metric.AuditCount += 1 }
+
+        $time = $event.TimeCreated
+        if ($null -ne $time) {
+            try {
+                $parsedTime = [datetime]$time
+                if (($null -eq $metric.LastSeen) -or ($parsedTime -gt $metric.LastSeen)) {
+                    $metric.LastSeen = $parsedTime
+                }
+            }
+            catch {
+                # Ignore unparsable timestamps; last seen remains null when unavailable
+            }
+        }
+    }
+
+    $results = @($groups.Values | Sort-Object -Property @{
+            Expression = 'Count'
+            Descending = $true
+        }, @{
+            Expression = 'FilePath'
+            Descending = $false
+        } |
+        Select-Object -First $TopN)
+
+    return $results
+}
+
+function global:Initialize-ScanEventMetricsState {
+    param($Window)
+
+    $script:CurrentEventMetricsFilter = @{
+        Mode = 'All'
+        Machine = 'All'
+        PathFilter = ''
+        TopN = 20
+    }
+
+    $win = if ($Window) { $Window } else { $global:GA_MainWindow }
+    if (-not $win) { return }
+
+    $topNBox = $win.FindName('TxtEventTopN')
+    if ($topNBox) { $topNBox.Text = '20' }
+
+    $modeCombo = $win.FindName('CboEventMode')
+    if ($modeCombo) {
+        if ($modeCombo.Items.Count -eq 0) {
+            [void]$modeCombo.Items.Add('All')
+            [void]$modeCombo.Items.Add('Blocked')
+            [void]$modeCombo.Items.Add('Audit')
+        }
+        $modeCombo.SelectedItem = 'All'
+    }
+
+    $machineCombo = $win.FindName('CboEventMachine')
+    if ($machineCombo) {
+        $machineCombo.Items.Clear()
+        [void]$machineCombo.Items.Add('All')
+        $machineCombo.SelectedIndex = 0
+    }
+
+    $pathBox = $win.FindName('TxtEventPathFilter')
+    if ($pathBox) { $pathBox.Text = '' }
+
+    if (-not $script:CurrentScanEventLogs) {
+        $script:CurrentScanEventLogs = @()
+    }
+
+    Update-EventMetricsUI -Window $win
+}
+
+function global:Set-EventMetricsFilterDefaults {
+    <#
+    .SYNOPSIS
+        Resets event-metrics state and UI controls to defaults.
+    #>
+    param($Window)
+
+    $script:CurrentScanEventLogs = @()
+    Initialize-ScanEventMetricsState -Window $Window
+}
+
+function global:Get-EventModeFromSelection {
+    param($Selection)
+
+    if ($null -eq $Selection) { return 'All' }
+    if ($Selection -is [string]) { return $Selection }
+    if ($Selection.Content) { return [string]$Selection.Content }
+    if ($Selection.Tag) { return [string]$Selection.Tag }
+    return [string]$Selection
+}
+
+function global:Set-EventMetricsFilterState {
+    param(
+        [string]$Mode,
+        [string]$Machine,
+        [string]$PathFilter,
+        [int]$TopN
+    )
+
+    if (-not $script:CurrentEventMetricsFilter) {
+        $script:CurrentEventMetricsFilter = @{
+            Mode = 'All'
+            Machine = 'All'
+            PathFilter = ''
+            TopN = 20
+        }
+    }
+
+    if ($PSBoundParameters.ContainsKey('Mode')) {
+        $script:CurrentEventMetricsFilter.Mode = if ($Mode) { $Mode } else { 'All' }
+    }
+
+    if ($PSBoundParameters.ContainsKey('Machine')) {
+        $script:CurrentEventMetricsFilter.Machine = if ($Machine) { $Machine } else { 'All' }
+    }
+
+    if ($PSBoundParameters.ContainsKey('PathFilter')) {
+        $script:CurrentEventMetricsFilter.PathFilter = if ($null -eq $PathFilter) { '' } else { [string]$PathFilter }
+    }
+
+    if ($PSBoundParameters.ContainsKey('TopN')) {
+        if ($TopN -le 0) {
+            $script:CurrentEventMetricsFilter.TopN = 20
+        }
+        else {
+            $script:CurrentEventMetricsFilter.TopN = $TopN
+        }
+    }
+}
+
+function global:Update-EventMetricsUI {
+    param($Window)
+
+    $win = if ($Window) { $Window } else { $global:GA_MainWindow }
+    if (-not $win) { return }
+
+    $state = $script:CurrentEventMetricsFilter
+    if (-not $state) {
+        $state = @{ Mode = 'All'; Machine = 'All'; PathFilter = ''; TopN = 20 }
+        $script:CurrentEventMetricsFilter = $state
+    }
+
+    $mode = if ($state.Mode) { $state.Mode } else { 'All' }
+    $machine = if ($state.Machine) { $state.Machine } else { 'All' }
+    $pathFilter = if ($state.PathFilter) { $state.PathFilter } else { '' }
+    $topN = if ($state.TopN -le 0) { 20 } else { [int]$state.TopN }
+
+    $eventGrid = $win.FindName('EventMetricsDataGrid')
+    $emptyLabel = $win.FindName('TxtEventMetricsEmpty')
+    $totalLabel = $win.FindName('TxtEventTotalCount')
+    $blockedLabel = $win.FindName('TxtEventBlockedCount')
+    $auditLabel = $win.FindName('TxtEventAuditCount')
+    $machineCombo = $win.FindName('CboEventMachine')
+    $modeCombo = $win.FindName('CboEventMode')
+
+    if ($modeCombo -and $mode) { $modeCombo.SelectedItem = $mode }
+    if ($emptyLabel) { $emptyLabel.Visibility = 'Collapsed' }
+
+    if (-not $eventGrid) { return }
+
+    $events = @($script:CurrentScanEventLogs)
+    $total = $events.Count
+    $blocked = @($events | Where-Object { $_.IsBlocked -eq $true }).Count
+    $audit = @($events | Where-Object { $_.IsAudit -eq $true }).Count
+
+    if ($totalLabel) { $totalLabel.Text = "$total" }
+    if ($blockedLabel) { $blockedLabel.Text = "$blocked" }
+    if ($auditLabel) { $auditLabel.Text = "$audit" }
+
+    if (-not $events -or $events.Count -eq 0) {
+        if ($emptyLabel) { $emptyLabel.Visibility = 'Visible' }
+        $eventGrid.ItemsSource = $null
+        if ($machineCombo) {
+            $machineCombo.Items.Clear()
+            [void]$machineCombo.Items.Add('All')
+            $machineCombo.SelectedIndex = 0
+        }
+        return
+    }
+
+    $uniqueMachines = @(@($events | Where-Object { $_.ComputerName } | ForEach-Object { [string]$_.ComputerName } | Sort-Object -Unique))
+    if ($machineCombo) {
+        $currentMachine = $machineCombo.SelectedItem
+        $machineCombo.Items.Clear()
+        [void]$machineCombo.Items.Add('All')
+        foreach ($name in $uniqueMachines) { [void]$machineCombo.Items.Add($name) }
+        if ($machineCombo.Items.Contains($currentMachine)) {
+            $machineCombo.SelectedItem = $currentMachine
+        }
+        else {
+            $machineCombo.SelectedIndex = 0
+            $machine = 'All'
+        }
+    }
+
+    $filteredMetrics = Get-ScanEventMetrics -Events $events -Mode $mode -Machine $machine -PathFilter $pathFilter -TopN $topN
+
+    if (-not $filteredMetrics -or $filteredMetrics.Count -eq 0) {
+        if ($emptyLabel) { $emptyLabel.Visibility = 'Visible' }
+        $eventGrid.ItemsSource = $null
+        return
+    }
+
+    if ($emptyLabel) { $emptyLabel.Visibility = 'Collapsed' }
+
+    $display = [System.Collections.Generic.List[PSCustomObject]]::new()
+    $rank = 1
+    foreach ($metric in @($filteredMetrics)) {
+        $visibleDate = ''
+        if ($metric.LastSeen) {
+            try { $visibleDate = [datetime]$metric.LastSeen } catch { }
+        }
+
+        $row = [PSCustomObject]@{
+            Rank = $rank
+            FilePath = $metric.FilePath
+            Machine = $metric.ComputerName
+            EventType = $metric.EventType
+            Count = $metric.Count
+            Blocked = $metric.BlockedCount
+            Audit = $metric.AuditCount
+            LastSeen = $visibleDate
+        }
+
+        [void]$display.Add($row)
+        $rank += 1
+    }
+
+    $eventGrid.ItemsSource = @($display)
+}
+
 function global:Invoke-LoadSelectedScan {
     param($Window)
 
@@ -892,6 +1302,9 @@ function global:Invoke-LoadSelectedScan {
     $result = Get-ScanResults -ScanId $selectedScan.ScanId
 
     if ($result.Success) {
+        $script:CurrentScanEventLogs = @()
+        Set-EventMetricsFilterDefaults
+
         if ($mergeMode) {
             # Merge: add new artifacts, avoiding duplicates by hash (O(n+m) with HashSet)
             $existingHashes = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)

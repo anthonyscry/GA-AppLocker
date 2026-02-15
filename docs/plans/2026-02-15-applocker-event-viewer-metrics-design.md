@@ -84,7 +84,7 @@ Cons:
 Add in-memory session fields in `Scanner.ps1`:
 
 - `$script:CurrentScanEventLogs` : `PSCustomObject[]` events from the active scan result.
-- `$script:CurrentEventFilter` : selected machine/event-view filter state.
+- `$script:CurrentEventMetricsFilter` : selected machine/event-view filter state.
 
 Lifecycle:
 
@@ -166,8 +166,24 @@ Inside `PanelScanner`, add an `Event Metrics` area (below Artifact DataGrid or i
   - New metric function returns deterministic top-N grouping.
 - UI-behavior tests (where possible):
   - event metrics panel shows zero-state safely when include event logs is off.
-  - blocked/audit filter updates counts and rowset without scan restart.
-  - machine filter reduces result set correctly.
+ - blocked/audit filter updates counts and rowset without scan restart.
+ - machine filter reduces result set correctly.
+
+## Manual Acceptance Checklist
+
+- Start dashboard: `Import-Module .\GA-AppLocker\GA-AppLocker.psd1 -Force`
+- Open Scanner and run a local scan with **Include Event Logs** enabled.
+- Confirm `EVENT METRICS` section updates counters and grid after completion.
+- Toggle:
+  - `Mode` to `Blocked` and `Audit`
+  - `Machine` across discovered hosts
+  - `Path Search` for a known file prefix
+  - `Top N` lower than total rows
+- Confirm filtered rows shrink/expand as expected and do not require restarting scan.
+- Run one scan with **Include Event Logs** disabled and verify:
+  - counters show zero,
+  - `No event metrics available...` message is visible,
+  - metric grid is empty.
 
 ## Risks
 

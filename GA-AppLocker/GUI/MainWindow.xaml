@@ -1398,54 +1398,129 @@ Width="1450"
                                         </Border>
 
                                         <!-- Right: Artifact Results -->
-                        <Border Grid.Column="1" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="15">
-                            <DockPanel>
-                                <!-- Header with filters -->
-                                <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">
-                                    <DockPanel>
-                                        <TextBlock Text="COLLECTED ARTIFACTS" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" DockPanel.Dock="Left"/>
-                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
-                                            <TextBlock Text="Search:" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="0,0,8,0" FontSize="11"/>
-                                            <TextBox x:Name="ArtifactFilterBox" Width="150" Background="#1E1E1E" Foreground="{StaticResource ForegroundBrush}" BorderBrush="#3E3E42" Padding="6,4" FontSize="11"/>
-                                        </StackPanel>
-                                    </DockPanel>
+                                        <Border Grid.Column="1" Background="{StaticResource SidebarBrush}" CornerRadius="8" Padding="15">
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="*"/>
+                                                    <RowDefinition Height="2*"/>
+                                                </Grid.RowDefinitions>
 
-                                    <!-- Filter Buttons -->
-                                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                                        <Button x:Name="BtnFilterAllArtifacts" Content="All" Background="#3E3E42" Foreground="White" Padding="10,4" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0" FontSize="11"/>
-                                        <Button x:Name="BtnFilterExe" Content="EXE" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="10,4" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0" FontSize="11"/>
-                                        <Button x:Name="BtnFilterDll" Content="DLL" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="10,4" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0" FontSize="11"/>
-                                        <Button x:Name="BtnFilterMsi" Content="MSI" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="10,4" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0" FontSize="11"/>
-                                        <Button x:Name="BtnFilterScript" Content="Script" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="10,4" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0" FontSize="11"/>
-                                        <Button x:Name="BtnFilterAppx" Content="Appx" Background="Transparent" Foreground="{StaticResource PrimaryBrush}" Padding="10,4" BorderThickness="0" Cursor="Hand" Margin="0,0,8,0" FontSize="11"/>
-                                        <Rectangle Width="1" Fill="#3E3E42" Margin="0,2"/>
-                                        <Button x:Name="BtnFilterSigned" Content="Signed" Background="Transparent" Foreground="{StaticResource SuccessBrush}" Padding="10,4" BorderThickness="0" Cursor="Hand" Margin="8,0,4,0" FontSize="11"/>
-                                        <Button x:Name="BtnFilterUnsigned" Content="Unsigned" Background="Transparent" Foreground="{StaticResource WarningBrush}" Padding="10,4" BorderThickness="0" Cursor="Hand" FontSize="11"/>
-                                    </StackPanel>
-                                </StackPanel>
+                                                <!-- Collected Artifacts -->
+                                                <DockPanel Grid.Row="0">
+                                                    <!-- Header with filters -->
+                                                    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                                                        <DockPanel>
+                                                            <TextBlock Text="COLLECTED ARTIFACTS" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" DockPanel.Dock="Left"/>
+                                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                                                                <TextBlock Text="Search:" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="0,0,8,0" FontSize="11"/>
+                                                                <TextBox x:Name="ArtifactFilterBox" Width="150" Background="#1E1E1E" Foreground="{StaticResource ForegroundBrush}" BorderBrush="#3E3E42" Padding="6,4" FontSize="11"/>
+                                                            </StackPanel>
+                                                        </DockPanel>
 
-                                <!-- Artifact DataGrid -->
-                                <Border Background="#1E1E1E" CornerRadius="4" Padding="0" Margin="0,5,0,0">
-                                    <DataGrid x:Name="ArtifactDataGrid"
-                                              Style="{StaticResource DataGridStyle}"
-                                              AutoGenerateColumns="False"
-                                              SelectionMode="Extended"
-                                              IsReadOnly="True"
-                                              ScrollViewer.HorizontalScrollBarVisibility="Auto">
-                                        <DataGrid.Columns>
-                                            <DataGridTextColumn Header="S" Width="40" Binding="{Binding SignedIcon}"/>
-                                            <DataGridTextColumn Header="Type" Width="80" Binding="{Binding ArtifactType}"/>
-                                            <DataGridTextColumn Header="File Name" Width="180" Binding="{Binding FileName}"/>
-                                            <DataGridTextColumn Header="Publisher" Width="160" Binding="{Binding Publisher}"/>
-                                            <DataGridTextColumn Header="Product" Width="140" Binding="{Binding ProductName}"/>
-                                            <DataGridTextColumn Header="Version" Width="70" Binding="{Binding FileVersion}"/>
-                                            <DataGridTextColumn Header="Machine" Width="100" Binding="{Binding ComputerName}"/>
-                                            <DataGridTextColumn Header="Path" Width="*" Binding="{Binding FilePath}"/>
-                                        </DataGrid.Columns>
-                                    </DataGrid>
-                                </Border>
-                            </DockPanel>
-                        </Border>
+                                                        <!-- Filter Buttons -->
+                                                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                                            <Button x:Name="BtnFilterAllArtifacts" Content="All" Background="#3E3E42" Foreground="White" Padding="10,4" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0" FontSize="11"/>
+                                                            <Button x:Name="BtnFilterExe" Content="EXE" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="10,4" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0" FontSize="11"/>
+                                                            <Button x:Name="BtnFilterDll" Content="DLL" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="10,4" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0" FontSize="11"/>
+                                                            <Button x:Name="BtnFilterMsi" Content="MSI" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="10,4" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0" FontSize="11"/>
+                                                            <Button x:Name="BtnFilterScript" Content="Script" Background="Transparent" Foreground="{StaticResource MutedBrush}" Padding="10,4" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0" FontSize="11"/>
+                                                            <Button x:Name="BtnFilterAppx" Content="Appx" Background="Transparent" Foreground="{StaticResource PrimaryBrush}" Padding="10,4" BorderThickness="0" Cursor="Hand" Margin="0,0,8,0" FontSize="11"/>
+                                                            <Rectangle Width="1" Fill="#3E3E42" Margin="0,2"/>
+                                                            <Button x:Name="BtnFilterSigned" Content="Signed" Background="Transparent" Foreground="{StaticResource SuccessBrush}" Padding="10,4" BorderThickness="0" Cursor="Hand" Margin="8,0,4,0" FontSize="11"/>
+                                                            <Button x:Name="BtnFilterUnsigned" Content="Unsigned" Background="Transparent" Foreground="{StaticResource WarningBrush}" Padding="10,4" BorderThickness="0" Cursor="Hand" FontSize="11"/>
+                                                        </StackPanel>
+                                                    </StackPanel>
+
+                                                    <!-- Artifact DataGrid -->
+                                                    <Border Background="#1E1E1E" CornerRadius="4" Padding="0" Margin="0,5,0,0">
+                                                        <DataGrid x:Name="ArtifactDataGrid"
+                                                                  Style="{StaticResource DataGridStyle}"
+                                                                  AutoGenerateColumns="False"
+                                                                  SelectionMode="Extended"
+                                                                  IsReadOnly="True"
+                                                                  ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                                                            <DataGrid.Columns>
+                                                                <DataGridTextColumn Header="S" Width="40" Binding="{Binding SignedIcon}"/>
+                                                                <DataGridTextColumn Header="Type" Width="80" Binding="{Binding ArtifactType}"/>
+                                                                <DataGridTextColumn Header="File Name" Width="180" Binding="{Binding FileName}"/>
+                                                                <DataGridTextColumn Header="Publisher" Width="160" Binding="{Binding Publisher}"/>
+                                                                <DataGridTextColumn Header="Product" Width="140" Binding="{Binding ProductName}"/>
+                                                                <DataGridTextColumn Header="Version" Width="70" Binding="{Binding FileVersion}"/>
+                                                                <DataGridTextColumn Header="Machine" Width="100" Binding="{Binding ComputerName}"/>
+                                                                <DataGridTextColumn Header="Path" Width="*" Binding="{Binding FilePath}"/>
+                                                            </DataGrid.Columns>
+                                                        </DataGrid>
+                                                    </Border>
+                                                </DockPanel>
+
+                                                <!-- Event Metrics -->
+                                                <Grid Grid.Row="1" Margin="0,12,0,0">
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="*"/>
+                                                    </Grid.RowDefinitions>
+
+                                                    <StackPanel Orientation="Horizontal" Grid.Row="0" Margin="0,0,0,6">
+                                                        <TextBlock Text="EVENT METRICS" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Total:" Foreground="{StaticResource MutedBrush}" Margin="18,0,4,0"/>
+                                                        <TextBlock x:Name="TxtEventTotalCount" Text="0" Foreground="{StaticResource ForegroundBrush}" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="Blocked:" Foreground="{StaticResource MutedBrush}" Margin="18,0,4,0"/>
+                                                        <TextBlock x:Name="TxtEventBlockedCount" Text="0" Foreground="{StaticResource ForegroundBrush}" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="Audit:" Foreground="{StaticResource MutedBrush}" Margin="18,0,4,0"/>
+                                                        <TextBlock x:Name="TxtEventAuditCount" Text="0" Foreground="{StaticResource ForegroundBrush}" FontWeight="SemiBold"/>
+                                                    </StackPanel>
+
+                                                    <DockPanel Grid.Row="1" LastChildFill="True">
+                                                        <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0,0,0,6">
+                                                            <TextBlock Text="Mode:" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="0,0,6,0" FontSize="11"/>
+                                                            <ComboBox x:Name="CboEventMode" Width="110" Background="#1E1E1E" Foreground="{StaticResource ForegroundBrush}" BorderBrush="#3E3E42" Margin="0,0,12,0"/>
+
+                                                            <TextBlock Text="Machine:" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="0,0,6,0" FontSize="11"/>
+                                                            <ComboBox x:Name="CboEventMachine" Width="140" Background="#1E1E1E" Foreground="{StaticResource ForegroundBrush}" BorderBrush="#3E3E42" Margin="0,0,12,0"/>
+
+                                                            <TextBlock Text="Path Search:" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="0,0,6,0" FontSize="11"/>
+                                                            <TextBox x:Name="TxtEventPathFilter" Width="180" Background="#1E1E1E" Foreground="{StaticResource ForegroundBrush}" BorderBrush="#3E3E42" Padding="6,4" FontSize="11"/>
+
+                                                            <TextBlock Text="Top N:" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="0,0,6,0" FontSize="11"/>
+                                                            <TextBox x:Name="TxtEventTopN" Width="45" Background="#1E1E1E" Foreground="{StaticResource ForegroundBrush}" BorderBrush="#3E3E42" Padding="6,4" FontSize="11" Text="20"/>
+                                                        </StackPanel>
+                                                    </DockPanel>
+
+                                                    <Border Grid.Row="2" Background="#1E1E1E" CornerRadius="4" Padding="0" Margin="0,6,0,0">
+                                                        <Grid>
+                                                            <DataGrid x:Name="EventMetricsDataGrid"
+                                                                      Style="{StaticResource DataGridStyle}"
+                                                                      AutoGenerateColumns="False"
+                                                                      IsReadOnly="True"
+                                                                      ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                                                                <DataGrid.Columns>
+                                                                    <DataGridTextColumn Header="#" Width="45" Binding="{Binding Rank}"/>
+                                                                    <DataGridTextColumn Header="File Path" Width="*" Binding="{Binding FilePath}"/>
+                                                                    <DataGridTextColumn Header="Machine" Width="130" Binding="{Binding Machine}"/>
+                                                                    <DataGridTextColumn Header="Event Type" Width="170" Binding="{Binding EventType}"/>
+                                                                    <DataGridTextColumn Header="Count" Width="75" Binding="{Binding Count}"/>
+                                                                    <DataGridTextColumn Header="Blocked" Width="80" Binding="{Binding Blocked}"/>
+                                                                    <DataGridTextColumn Header="Audit" Width="75" Binding="{Binding Audit}"/>
+                                                                    <DataGridTextColumn Header="Last Seen" Width="150" Binding="{Binding LastSeen}"/>
+                                                                </DataGrid.Columns>
+                                                            </DataGrid>
+
+                                                            <TextBlock x:Name="TxtEventMetricsEmpty"
+                                                                       Text="No event metrics available. Enable Include Event Logs and run a scan"
+                                                                       Foreground="{StaticResource MutedBrush}"
+                                                                       FontSize="11"
+                                                                       HorizontalAlignment="Center"
+                                                                       VerticalAlignment="Center"
+                                                                       TextWrapping="Wrap"
+                                                                       TextAlignment="Center"
+                                                                       Visibility="Visible"
+                                                                       Margin="16"/>
+                                                        </Grid>
+                                                    </Border>
+                                                </Grid>
+                                            </Grid>
+                                        </Border>
                     </Grid>
 
                     <!-- Progress Bar -->
