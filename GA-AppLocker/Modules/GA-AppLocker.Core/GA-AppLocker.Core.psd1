@@ -45,6 +45,7 @@
         'Get-AppLockerConfig',
         'Set-AppLockerConfig',
         'Get-AppLockerDataPath',
+        'Normalize-ArtifactRecord',
         
         # Utilities
         'Test-Prerequisites',

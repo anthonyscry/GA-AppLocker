@@ -53,4 +53,56 @@ Describe 'Behavioral Rules: ConvertFrom-Artifact' -Tag @('Behavioral','Core') {
         $result.Data.Count | Should -Be 1
         $result.Data[0].RuleType | Should -Be 'Hash'
     }
+
+    It 'Normalizes legacy artifact fields into publisher-ready contract' {
+        $legacy = [PSCustomObject]@{
+            FileName = 'signed-app.exe'
+            FilePath = 'C:\Program Files\Contoso\signed-app.exe'
+            IsSigned = 'True'
+            FileSize = '2048'
+            SignerCertificate = 'CN=Contoso Ltd'
+            PublisherName = ''
+            ArtifactType = 'EXE'
+        }
+
+        $normalized = Normalize-ArtifactRecord -Artifact $legacy
+
+        $normalized.IsSigned | Should -BeTrue
+        $normalized.SizeBytes | Should -Be 2048
+        $normalized.SignerCertificate | Should -Be 'CN=Contoso Ltd'
+        $normalized.IsSigned.GetType().Name | Should -Be 'Boolean'
+    }
+
+    It 'Normalizes IDictionary artifact input preserving source fields' {
+        $artifact = [ordered]@{
+            FileName = 'dict-input.exe'
+            FilePath = 'C:\Temp\dict-input.exe'
+            IsSigned = '1'
+            ArtifactType = 'EXE'
+            FileSize = '512'
+        }
+
+        $normalized = Normalize-ArtifactRecord -Artifact $artifact
+
+        $normalized.FileName | Should -Be 'dict-input.exe'
+        $normalized.FilePath | Should -Be 'C:\Temp\dict-input.exe'
+        $normalized.ArtifactType | Should -Be 'EXE'
+        $normalized.IsSigned | Should -BeTrue
+        $normalized.IsSigned.GetType().Name | Should -Be 'Boolean'
+    }
+
+    It 'Falls back to FileSize when SizeBytes is invalid' {
+        $artifact = [PSCustomObject]@{
+            FileName = 'fallback-size.exe'
+            FilePath = 'C:\Temp\fallback-size.exe'
+            IsSigned = $false
+            SizeBytes = 'not-a-number'
+            FileSize = '4096'
+        }
+
+        $normalized = Normalize-ArtifactRecord -Artifact $artifact
+
+        $normalized.SizeBytes | Should -Be 4096
+        $normalized.SizeBytes.GetType().Name | Should -Be 'Int64'
+    }
 }

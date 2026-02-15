@@ -110,6 +110,11 @@ function Start-ArtifactScan {
         $allArtifacts = [System.Collections.Generic.List[PSCustomObject]]::new()
         $allEvents = [System.Collections.Generic.List[PSCustomObject]]::new()
         $machineResults = @{}
+        $normalizationState = @{
+            CanNormalize = ($null -ne (Get-Command -Name 'Normalize-ArtifactRecord' -ErrorAction SilentlyContinue))
+            Warned       = $false
+            ExceptionWarned = $false
+        }
 
         function Resolve-ScanTierNumber {
             param(
@@ -182,6 +187,59 @@ function Start-ArtifactScan {
             }
         }
 
+        function Add-NormalizedArtifacts {
+            param(
+                [Parameter(Mandatory = $true)]
+                [ValidateNotNull()]
+                [AllowEmptyCollection()]
+                [System.Collections.Generic.List[PSCustomObject]]$Target,
+
+                [Parameter()]
+                [array]$Artifacts = @()
+            )
+
+            if (-not $normalizationState.CanNormalize -and -not $normalizationState.Warned) {
+                Write-ScanLog -Level 'Warning' -Message 'Normalize-ArtifactRecord unavailable in scan scope; falling back to raw artifact records.'
+                $normalizationState.Warned = $true
+            }
+
+            foreach ($artifact in @($Artifacts)) {
+                if ($null -eq $artifact) { continue }
+
+                $artifactToAdd = $artifact
+                $artifactName = [string]$artifact.FileName
+                if ([string]::IsNullOrWhiteSpace($artifactName)) { $artifactName = '<unknown>' }
+                $artifactPath = [string]$artifact.FilePath
+                if ([string]::IsNullOrWhiteSpace($artifactPath)) { $artifactPath = '<unknown>' }
+                $artifactComputer = [string]$artifact.ComputerName
+                if ([string]::IsNullOrWhiteSpace($artifactComputer)) { $artifactComputer = '<unknown>' }
+                $artifactContext = "FileName='$artifactName', FilePath='$artifactPath', ComputerName='$artifactComputer'"
+
+                if ($normalizationState.CanNormalize) {
+                    try {
+                        $normalizedArtifact = Normalize-ArtifactRecord -Artifact $artifact
+                        if ($null -ne $normalizedArtifact) {
+                            $artifactToAdd = $normalizedArtifact
+                        }
+                        else {
+                            Write-ScanLog -Level 'DEBUG' -Message 'Normalize-ArtifactRecord returned null; using raw artifact record.'
+                        }
+                    }
+                    catch {
+                        if (-not $normalizationState.ExceptionWarned) {
+                            Write-ScanLog -Level 'Warning' -Message "Normalize-ArtifactRecord failed for artifact ($artifactContext); using raw artifact record. Subsequent normalization exceptions will be logged at DEBUG. Error: $($_.Exception.Message)"
+                            $normalizationState.ExceptionWarned = $true
+                        }
+                        else {
+                            Write-ScanLog -Level 'DEBUG' -Message "Normalize-ArtifactRecord failed; using raw artifact record. Artifact: $artifactContext. Error: $($_.Exception.Message)"
+                        }
+                    }
+                }
+
+                [void]$Target.Add($artifactToAdd)
+            }
+        }
+
         # Configure progress ranges based on what's being scanned
         # to prevent local and remote progress bars from overlapping
         $hasLocal = $ScanLocal.IsPresent
@@ -220,7 +278,7 @@ function Start-ArtifactScan {
 
             $localResult = Get-LocalArtifacts @localParams
             if ($localResult.Success) {
-                foreach ($art in @($localResult.Data)) { [void]$allArtifacts.Add($art) }
+                Add-NormalizedArtifacts -Target $allArtifacts -Artifacts $localResult.Data
                 $machineResults[$env:COMPUTERNAME] = @{
                     Success       = $true
                     ArtifactCount = $localResult.Data.Count
@@ -255,7 +313,7 @@ function Start-ArtifactScan {
 
                 $appxResult = Get-AppxArtifacts @appxParams
                 if ($appxResult.Success) {
-                    foreach ($art in @($appxResult.Data)) { [void]$allArtifacts.Add($art) }
+                    Add-NormalizedArtifacts -Target $allArtifacts -Artifacts $appxResult.Data
                     Write-ScanLog -Message "Found $($appxResult.Data.Count) Appx packages"
                 }
                 else {
@@ -381,7 +439,7 @@ function Start-ArtifactScan {
 
                 $remoteResult = Get-RemoteArtifacts @remoteParams
                 if ($remoteResult.Success) {
-                    foreach ($art in @($remoteResult.Data)) { [void]$allArtifacts.Add($art) }
+                    Add-NormalizedArtifacts -Target $allArtifacts -Artifacts $remoteResult.Data
 
                     foreach ($machine in $computerNames) {
                         $machineInfo = $remoteResult.PerMachine[$machine]
