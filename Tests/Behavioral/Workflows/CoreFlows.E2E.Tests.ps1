@@ -420,6 +420,58 @@ Describe 'Meaningful E2E: critical workflows with edge cases' -Tag @('Behavioral
         Assert-MockCalled Get-RemoteArtifacts -ModuleName GA-AppLocker.Scanning -Times 1 -Exactly -ParameterFilter { $Credential -eq $script:TierStringCredential }
     }
 
+    It 'Falls back to canonical machine-type defaults when config omits some tier keys' {
+        $machines = @(
+            [PSCustomObject]@{ Hostname = 'dc02'; MachineType = 'domain controller' },
+            [PSCustomObject]@{ Hostname = 'server03'; MachineType = 'server' }
+        )
+
+        $script:MixedTierCredential = [PSCredential]::new(
+            'CONTOSO\\TierMixed',
+            (ConvertTo-SecureString 'P@ssw0rd!' -AsPlainText -Force)
+        )
+
+        Mock Get-AppLockerConfig {
+            [PSCustomObject]@{
+                MachineTypeTiers = @{
+                    Server = 'T1'
+                }
+            }
+        } -ModuleName GA-AppLocker.Scanning
+        Mock Get-CredentialForTier {
+            [PSCustomObject]@{
+                Success = $true
+                Data    = $script:MixedTierCredential
+                Error   = $null
+            }
+        } -ModuleName GA-AppLocker.Scanning
+        Mock Get-RemoteArtifacts {
+            $perMachine = @{}
+            foreach ($name in @($ComputerName)) {
+                $perMachine[$name] = [PSCustomObject]@{
+                    Success       = $true
+                    ArtifactCount = 0
+                    Error         = $null
+                }
+            }
+
+            [PSCustomObject]@{
+                Success    = $true
+                Data       = @()
+                Error      = $null
+                PerMachine = $perMachine
+            }
+        } -ModuleName GA-AppLocker.Scanning
+        Mock Write-ScanLog { } -ModuleName GA-AppLocker.Scanning
+
+        $scan = Start-ArtifactScan -Machines $machines
+
+        $scan.Success | Should -BeTrue
+        Assert-MockCalled Get-CredentialForTier -ModuleName GA-AppLocker.Scanning -Times 1 -Exactly -ParameterFilter { $Tier -eq 0 }
+        Assert-MockCalled Get-CredentialForTier -ModuleName GA-AppLocker.Scanning -Times 1 -Exactly -ParameterFilter { $Tier -eq 1 }
+        Assert-MockCalled Get-CredentialForTier -ModuleName GA-AppLocker.Scanning -Times 0 -Exactly -ParameterFilter { $Tier -eq 2 }
+    }
+
     It 'Handles connectivity edge inputs without throwing and returns stable summary' {
         $machines = @(
             $null,

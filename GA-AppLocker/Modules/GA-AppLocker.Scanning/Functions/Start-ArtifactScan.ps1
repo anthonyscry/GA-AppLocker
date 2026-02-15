@@ -351,6 +351,11 @@ function Start-ArtifactScan {
                     }
 
                     if ($resolvedMap.Count -gt 0) {
+                        foreach ($defaultKey in @($machineTypeTiers.Keys)) {
+                            if (-not $resolvedMap.ContainsKey($defaultKey)) {
+                                $resolvedMap[$defaultKey] = $machineTypeTiers[$defaultKey]
+                            }
+                        }
                         $machineTypeTiers = $resolvedMap
                     }
                 }
