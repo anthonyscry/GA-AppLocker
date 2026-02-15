@@ -1,7 +1,7 @@
 # Scanner/Rules Publisher Fidelity Design
 
 Date: 2026-02-15
-Status: Approved for planning
+Status: Approved for planning (validated)
 Owner: GA-AppLocker
 
 ## Summary
@@ -9,6 +9,12 @@ Owner: GA-AppLocker
 - Goal: maximize publisher-rule fidelity in the Scanner to Rules flow by preventing metadata drift across scan, export, import, and generation.
 - Primary outcome: signed artifacts that include signer identity should continue producing publisher rules after any supported roundtrip.
 - Acceptance signal: behavioral regression proof in curated must-pass tests.
+
+## Validated Constraints
+
+- Priority: behavioral safety first; prefer deterministic compatibility-preserving changes over strict breakage.
+- Scope boundary: Scanner and Rules artifact paths only (normalization/projection/import/export and rule-generation inputs).
+- Verification bar: curated must-pass gate with targeted behavioral coverage for roundtrip publisher fidelity and tier normalization.
 
 ## Problem Statement
 
