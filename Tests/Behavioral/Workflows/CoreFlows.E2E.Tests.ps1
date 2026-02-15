@@ -209,6 +209,58 @@ Describe 'Meaningful E2E: critical workflows with edge cases' -Tag @('Behavioral
         $convert.Data[0].RuleType | Should -Be 'Publisher'
     }
 
+    It 'Warns once on normalization exceptions during scan and keeps raw artifact fallback' {
+        $artifacts = @(
+            [PSCustomObject]@{
+                FileName     = 'first-fail.exe'
+                FilePath     = 'C:\Temp\first-fail.exe'
+                Extension    = '.exe'
+                ArtifactType = 'EXE'
+                IsSigned     = $false
+                SHA256Hash   = ('E' * 64)
+                SizeBytes    = 111
+            },
+            [PSCustomObject]@{
+                FileName     = 'second-fail.exe'
+                FilePath     = 'C:\Temp\second-fail.exe'
+                Extension    = '.exe'
+                ArtifactType = 'EXE'
+                IsSigned     = $false
+                SHA256Hash   = ('F' * 64)
+                SizeBytes    = 222
+            }
+        )
+
+        Mock Get-LocalArtifacts {
+            return [PSCustomObject]@{
+                Success = $true
+                Data    = $artifacts
+                Error   = $null
+            }
+        } -ModuleName GA-AppLocker.Scanning
+        Mock Normalize-ArtifactRecord { throw 'normalization blew up' } -ModuleName GA-AppLocker.Scanning
+        Mock Write-ScanLog { } -ModuleName GA-AppLocker.Scanning
+
+        $scan = Start-ArtifactScan -ScanLocal
+
+        $scan.Success | Should -BeTrue
+        $scan.Data.Count | Should -Be 2
+
+        Assert-MockCalled Write-ScanLog -ModuleName GA-AppLocker.Scanning -Times 1 -Exactly -ParameterFilter {
+            $Level -eq 'Warning' -and
+            $Message -match 'Normalize-ArtifactRecord failed for artifact' -and
+            $Message -match 'first-fail.exe' -and
+            $Message -match 'C:\\Temp\\first-fail.exe'
+        }
+
+        Assert-MockCalled Write-ScanLog -ModuleName GA-AppLocker.Scanning -Times 1 -Exactly -ParameterFilter {
+            $Level -eq 'DEBUG' -and
+            $Message -match 'Normalize-ArtifactRecord failed; using raw artifact record' -and
+            $Message -match 'second-fail.exe' -and
+            $Message -match 'C:\\Temp\\second-fail.exe'
+        }
+    }
+
     It 'Uses MachineTypeTiers hashtable mapping when selecting credential tier for remote scan' {
         $machines = @(
             [PSCustomObject]@{ Hostname = 'server01'; MachineType = 'Server' }

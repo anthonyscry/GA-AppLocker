@@ -916,6 +916,7 @@ function global:Invoke-ImportArtifacts {
             $normalizationState = @{
                 CanNormalize = ($null -ne (Get-Command -Name 'Normalize-ArtifactRecord' -ErrorAction SilentlyContinue))
                 Warned       = $false
+                ExceptionWarned = $false
             }
 
             $normalizeImportedArtifact = {
@@ -928,6 +929,11 @@ function global:Invoke-ImportArtifacts {
 
                 $artifactRecord = $Artifact
                 $requiresFallbackCoercion = $true
+                $artifactName = [string]$Artifact.FileName
+                if ([string]::IsNullOrWhiteSpace($artifactName)) { $artifactName = '<unknown>' }
+                $artifactPath = [string]$Artifact.FilePath
+                if ([string]::IsNullOrWhiteSpace($artifactPath)) { $artifactPath = '<unknown>' }
+                $artifactContext = "FileName='$artifactName', FilePath='$artifactPath', Source='$SourceType'"
 
                 if ($normalizationState.CanNormalize) {
                     try {
@@ -941,7 +947,13 @@ function global:Invoke-ImportArtifacts {
                         }
                     }
                     catch {
-                        Write-Log -Level 'Debug' -Message "ImportArtifacts: Normalize-ArtifactRecord failed for '$($Artifact.FileName)' ($SourceType); applying fallback coercion. Error: $($_.Exception.Message)"
+                        if (-not $normalizationState.ExceptionWarned) {
+                            Write-Log -Level 'Warning' -Message "ImportArtifacts: Normalize-ArtifactRecord failed for artifact ($artifactContext); applying fallback coercion. Subsequent normalization exceptions will be logged at DEBUG. Error: $($_.Exception.Message)"
+                            $normalizationState.ExceptionWarned = $true
+                        }
+                        else {
+                            Write-Log -Level 'Debug' -Message "ImportArtifacts: Normalize-ArtifactRecord failed; applying fallback coercion. Artifact: $artifactContext. Error: $($_.Exception.Message)"
+                        }
                     }
                 }
 

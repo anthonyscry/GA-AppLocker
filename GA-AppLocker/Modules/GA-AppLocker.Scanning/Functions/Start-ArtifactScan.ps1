@@ -113,6 +113,7 @@ function Start-ArtifactScan {
         $normalizationState = @{
             CanNormalize = ($null -ne (Get-Command -Name 'Normalize-ArtifactRecord' -ErrorAction SilentlyContinue))
             Warned       = $false
+            ExceptionWarned = $false
         }
 
         function Resolve-ScanTierNumber {
@@ -206,6 +207,14 @@ function Start-ArtifactScan {
                 if ($null -eq $artifact) { continue }
 
                 $artifactToAdd = $artifact
+                $artifactName = [string]$artifact.FileName
+                if ([string]::IsNullOrWhiteSpace($artifactName)) { $artifactName = '<unknown>' }
+                $artifactPath = [string]$artifact.FilePath
+                if ([string]::IsNullOrWhiteSpace($artifactPath)) { $artifactPath = '<unknown>' }
+                $artifactComputer = [string]$artifact.ComputerName
+                if ([string]::IsNullOrWhiteSpace($artifactComputer)) { $artifactComputer = '<unknown>' }
+                $artifactContext = "FileName='$artifactName', FilePath='$artifactPath', ComputerName='$artifactComputer'"
+
                 if ($normalizationState.CanNormalize) {
                     try {
                         $normalizedArtifact = Normalize-ArtifactRecord -Artifact $artifact
@@ -217,7 +226,13 @@ function Start-ArtifactScan {
                         }
                     }
                     catch {
-                        Write-ScanLog -Level 'DEBUG' -Message "Normalize-ArtifactRecord failed; using raw artifact record. Error: $($_.Exception.Message)"
+                        if (-not $normalizationState.ExceptionWarned) {
+                            Write-ScanLog -Level 'Warning' -Message "Normalize-ArtifactRecord failed for artifact ($artifactContext); using raw artifact record. Subsequent normalization exceptions will be logged at DEBUG. Error: $($_.Exception.Message)"
+                            $normalizationState.ExceptionWarned = $true
+                        }
+                        else {
+                            Write-ScanLog -Level 'DEBUG' -Message "Normalize-ArtifactRecord failed; using raw artifact record. Artifact: $artifactContext. Error: $($_.Exception.Message)"
+                        }
                     }
                 }
 
