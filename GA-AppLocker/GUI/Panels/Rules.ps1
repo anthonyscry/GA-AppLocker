@@ -1160,8 +1160,21 @@ function global:Invoke-ExportRulesToXml {
     $dialog.Title = 'Export AppLocker Rules'
     $dialog.Filter = 'XML Files (*.xml)|*.xml'
     $dialog.FileName = "AppLockerRules_$(Get-Date -Format 'yyyyMMdd_HHmmss').xml"
+    $dialog.RestoreDirectory = $true
+    $dialog.CheckPathExists = $true
+    $dialog.OverwritePrompt = $true
+    try { $dialog.AutoUpgradeEnabled = $false } catch { }
 
-    if ($dialog.ShowDialog() -eq 'OK') {
+    $dialogResult = $null
+    try {
+        $dialogResult = $dialog.ShowDialog()
+    }
+    catch {
+        Show-Toast -Message "Export dialog failed: $($_.Exception.Message)" -Type 'Error'
+        return
+    }
+
+    if ($dialogResult -eq [System.Windows.Forms.DialogResult]::OK) {
         try {
             # IncludeAllStatuses is the inverse of "approved only"
             # If checkbox is checked (approved only), don't include all statuses
@@ -1220,8 +1233,21 @@ function global:Invoke-ExportRulesToCsv {
     $dialog.Title = 'Export Rules to CSV'
     $dialog.Filter = 'CSV Files (*.csv)|*.csv'
     $dialog.FileName = "AppLockerRules_$(Get-Date -Format 'yyyyMMdd_HHmmss').csv"
+    $dialog.RestoreDirectory = $true
+    $dialog.CheckPathExists = $true
+    $dialog.OverwritePrompt = $true
+    try { $dialog.AutoUpgradeEnabled = $false } catch { }
 
-    if ($dialog.ShowDialog() -eq 'OK') {
+    $dialogResult = $null
+    try {
+        $dialogResult = $dialog.ShowDialog()
+    }
+    catch {
+        Show-Toast -Message "Export dialog failed: $($_.Exception.Message)" -Type 'Error'
+        return
+    }
+
+    if ($dialogResult -eq [System.Windows.Forms.DialogResult]::OK) {
         try {
             $rules | Select-Object Id, Name, RuleType, CollectionType, Action, Status, CreatedDate, Description | 
             Export-Csv -Path $dialog.FileName -NoTypeInformation -Encoding UTF8
