@@ -917,6 +917,60 @@ function global:Invoke-ImportArtifacts {
                 CanNormalize = ($null -ne (Get-Command -Name 'Normalize-ArtifactRecord' -ErrorAction SilentlyContinue))
                 Warned       = $false
             }
+
+            $normalizeImportedArtifact = {
+                param(
+                    $Artifact,
+                    [string]$SourceType
+                )
+
+                if ($null -eq $Artifact) { return $null }
+
+                $artifactRecord = $Artifact
+                $requiresFallbackCoercion = $true
+
+                if ($normalizationState.CanNormalize) {
+                    try {
+                        $normalizedArtifact = Normalize-ArtifactRecord -Artifact $Artifact
+                        if ($null -ne $normalizedArtifact) {
+                            $artifactRecord = $normalizedArtifact
+                            $requiresFallbackCoercion = $false
+                        }
+                        else {
+                            Write-Log -Level 'Debug' -Message "ImportArtifacts: Normalize-ArtifactRecord returned null for '$($Artifact.FileName)' ($SourceType); applying fallback coercion."
+                        }
+                    }
+                    catch {
+                        Write-Log -Level 'Debug' -Message "ImportArtifacts: Normalize-ArtifactRecord failed for '$($Artifact.FileName)' ($SourceType); applying fallback coercion. Error: $($_.Exception.Message)"
+                    }
+                }
+
+                if (-not $normalizationState.CanNormalize -and -not $normalizationState.Warned) {
+                    Write-Log -Level 'Warning' -Message 'ImportArtifacts: Normalize-ArtifactRecord unavailable; applying fallback import coercion.'
+                    $normalizationState.Warned = $true
+                }
+
+                if ($requiresFallbackCoercion) {
+                    # Import sources can carry booleans as strings; coerce canonical fields.
+                    if ($null -ne $artifactRecord.IsSigned) {
+                        $isSignedRaw = [string]$artifactRecord.IsSigned
+                        $artifactRecord.IsSigned = [string]::Equals($isSignedRaw, 'True', [System.StringComparison]::OrdinalIgnoreCase) -or $isSignedRaw -eq '1'
+                    }
+
+                    $hasSizeBytes = $artifactRecord.PSObject.Properties['SizeBytes'] -and -not [string]::IsNullOrWhiteSpace([string]$artifactRecord.SizeBytes)
+                    $hasFileSize = $artifactRecord.PSObject.Properties['FileSize'] -and -not [string]::IsNullOrWhiteSpace([string]$artifactRecord.FileSize)
+                    if (-not $hasSizeBytes -and $hasFileSize) {
+                        try {
+                            $artifactRecord | Add-Member -NotePropertyName 'SizeBytes' -NotePropertyValue ([int64]$artifactRecord.FileSize) -Force
+                        }
+                        catch {
+                            Write-Log -Level 'Debug' -Message "ImportArtifacts: Failed to coerce FileSize '$($artifactRecord.FileSize)' to SizeBytes for '$($artifactRecord.FileName)' ($SourceType)"
+                        }
+                    }
+                }
+
+                return $artifactRecord
+            }
             
             foreach ($filePath in $dialog.FileNames) {
                 $extension = [System.IO.Path]::GetExtension($filePath).ToLower()
@@ -924,59 +978,29 @@ function global:Invoke-ImportArtifacts {
                 $artifacts = switch ($extension) {
                     '.csv' {
                         $csvData = @(Import-Csv -Path $filePath)
-                        $normalizedCsvData = [System.Collections.Generic.List[PSCustomObject]]::new()
+                        $normalizedArtifacts = [System.Collections.Generic.List[PSCustomObject]]::new()
 
                         foreach ($item in $csvData) {
-                            if ($null -eq $item) { continue }
-
-                            $artifactRecord = $item
-                            $requiresFallbackCoercion = $true
-
-                            if ($normalizationState.CanNormalize) {
-                                try {
-                                    $normalizedArtifact = Normalize-ArtifactRecord -Artifact $item
-                                    if ($null -ne $normalizedArtifact) {
-                                        $artifactRecord = $normalizedArtifact
-                                        $requiresFallbackCoercion = $false
-                                    }
-                                    else {
-                                        Write-Log -Level 'Debug' -Message "ImportArtifacts: Normalize-ArtifactRecord returned null for '$($item.FileName)'; applying fallback coercion."
-                                    }
-                                }
-                                catch {
-                                    Write-Log -Level 'Debug' -Message "ImportArtifacts: Normalize-ArtifactRecord failed for '$($item.FileName)'; applying fallback coercion. Error: $($_.Exception.Message)"
-                                }
+                            $normalizedArtifact = & $normalizeImportedArtifact -Artifact $item -SourceType 'CSV'
+                            if ($null -ne $normalizedArtifact) {
+                                [void]$normalizedArtifacts.Add($normalizedArtifact)
                             }
-
-                            if (-not $normalizationState.CanNormalize -and -not $normalizationState.Warned) {
-                                Write-Log -Level 'Warning' -Message 'ImportArtifacts: Normalize-ArtifactRecord unavailable; applying fallback CSV coercion.'
-                                $normalizationState.Warned = $true
-                            }
-
-                            if ($requiresFallbackCoercion) {
-                                # CSV import returns string values; coerce the core canonical fields.
-                                if ($null -ne $artifactRecord.IsSigned) {
-                                    $isSignedRaw = [string]$artifactRecord.IsSigned
-                                    $artifactRecord.IsSigned = [string]::Equals($isSignedRaw, 'True', [System.StringComparison]::OrdinalIgnoreCase) -or $isSignedRaw -eq '1'
-                                }
-
-                                $hasSizeBytes = $artifactRecord.PSObject.Properties['SizeBytes'] -and -not [string]::IsNullOrWhiteSpace([string]$artifactRecord.SizeBytes)
-                                $hasFileSize = $artifactRecord.PSObject.Properties['FileSize'] -and -not [string]::IsNullOrWhiteSpace([string]$artifactRecord.FileSize)
-                                if (-not $hasSizeBytes -and $hasFileSize) {
-                                    try {
-                                        $artifactRecord | Add-Member -NotePropertyName 'SizeBytes' -NotePropertyValue ([int64]$artifactRecord.FileSize) -Force
-                                    }
-                                    catch {
-                                        Write-Log -Level 'Debug' -Message "ImportArtifacts: Failed to coerce FileSize '$($artifactRecord.FileSize)' to SizeBytes for '$($artifactRecord.FileName)'"
-                                    }
-                                }
-                            }
-
-                            [void]$normalizedCsvData.Add($artifactRecord)
                         }
-                        $normalizedCsvData.ToArray()
+                        $normalizedArtifacts.ToArray()
                     }
-                    '.json' { @(Get-Content -Path $filePath -Raw | ConvertFrom-Json) }
+                    '.json' {
+                        $jsonData = @(Get-Content -Path $filePath -Raw | ConvertFrom-Json)
+                        $normalizedArtifacts = [System.Collections.Generic.List[PSCustomObject]]::new()
+
+                        foreach ($item in $jsonData) {
+                            $normalizedArtifact = & $normalizeImportedArtifact -Artifact $item -SourceType 'JSON'
+                            if ($null -ne $normalizedArtifact) {
+                                [void]$normalizedArtifacts.Add($normalizedArtifact)
+                            }
+                        }
+
+                        $normalizedArtifacts.ToArray()
+                    }
                     default { throw "Unsupported file format: $extension" }
                 }
                 
