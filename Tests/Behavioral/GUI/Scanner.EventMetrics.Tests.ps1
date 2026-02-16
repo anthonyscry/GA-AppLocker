@@ -194,6 +194,113 @@ Describe 'Update-EventMetricsUI filter behavior' {
     }
 }
 
+Describe 'Invoke-ScannerSharedSearchRefresh' {
+    AfterEach {
+        if ($script:CurrentEventMetricsFilter) { $script:CurrentEventMetricsFilter = $null }
+    }
+
+    It 'Refreshes artifacts and syncs event filter state when Collected Artifacts tab is active' {
+        $win = New-MockWpfWindow -Elements @{
+            ScannerResultsTabControl = [PSCustomObject]@{
+                SelectedItem = [PSCustomObject]@{ Header = 'Collected Artifacts' }
+            }
+            ArtifactFilterBox = New-MockTextBox -Text 'C:\apps\\shared.exe'
+            EventArtifactFilterBox = New-MockTextBox -Text 'C:\apps\\shared.exe'
+        }
+
+        $script:CurrentEventMetricsFilter = @{
+            Mode = 'All'
+            Machine = 'All'
+            PathFilter = 'C:\apps\\stale.exe'
+            TopN = 20
+        }
+
+        Mock Update-ArtifactDataGrid { }
+        Mock Set-EventMetricsFilterState { }
+        Mock Update-EventMetricsUI { }
+
+        Invoke-ScannerSharedSearchRefresh -Window $win
+
+        Should -Invoke Update-ArtifactDataGrid -Times 1 -Exactly -ParameterFilter { $Window -eq $win }
+        Should -Invoke Set-EventMetricsFilterState -Times 1 -Exactly -ParameterFilter {
+            [string]$PathFilter -eq 'C:\apps\\shared.exe'
+        }
+        Should -Invoke Update-EventMetricsUI -Times 0
+    }
+
+    It 'Refreshes only event metrics when Event Metrics tab is active' {
+        $win = New-MockWpfWindow -Elements @{
+            ScannerResultsTabControl = [PSCustomObject]@{
+                SelectedItem = [PSCustomObject]@{ Header = 'Event Metrics' }
+            }
+            ArtifactFilterBox = New-MockTextBox -Text 'C:\apps\\event.exe'
+            EventArtifactFilterBox = New-MockTextBox -Text 'C:\apps\\event.exe'
+        }
+
+        $script:CurrentEventMetricsFilter = $null
+
+        Mock Update-ArtifactDataGrid { }
+        Mock Set-EventMetricsFilterState { }
+        Mock Update-EventMetricsUI { }
+
+        Invoke-ScannerSharedSearchRefresh -Window $win
+
+        Should -Invoke Update-ArtifactDataGrid -Times 0
+        Should -Invoke Set-EventMetricsFilterState -Times 1 -Exactly -ParameterFilter {
+            [string]$PathFilter -eq 'C:\apps\\event.exe'
+        }
+        Should -Invoke Update-EventMetricsUI -Times 1 -Exactly -ParameterFilter { $Window -eq $win }
+    }
+
+    It 'Routes to event metrics tab via stable Tag identity even when header differs' {
+        $win = New-MockWpfWindow -Elements @{
+            ScannerResultsTabControl = [PSCustomObject]@{
+                SelectedItem = [PSCustomObject]@{ Tag = 'ScannerResults_EventMetrics'; Header = 'Scanner Event Logs' }
+            }
+            ArtifactFilterBox = New-MockTextBox -Text 'C:\apps\\tag-match.exe'
+            EventArtifactFilterBox = New-MockTextBox -Text 'C:\apps\\tag-match.exe'
+        }
+
+        $script:CurrentEventMetricsFilter = $null
+
+        Mock Update-ArtifactDataGrid { }
+        Mock Set-EventMetricsFilterState { }
+        Mock Update-EventMetricsUI { }
+
+        Invoke-ScannerSharedSearchRefresh -Window $win
+
+        Should -Invoke Update-ArtifactDataGrid -Times 0
+        Should -Invoke Set-EventMetricsFilterState -Times 1 -Exactly -ParameterFilter {
+            [string]$PathFilter -eq 'C:\apps\\tag-match.exe'
+        }
+        Should -Invoke Update-EventMetricsUI -Times 1 -Exactly -ParameterFilter { $Window -eq $win }
+    }
+
+    It 'Routes to event metrics tab via stable Name identity even when header differs' {
+        $win = New-MockWpfWindow -Elements @{
+            ScannerResultsTabControl = [PSCustomObject]@{
+                SelectedItem = [PSCustomObject]@{ Name = 'ScannerResultsEventMetricsTab'; Header = 'Metrics View' }
+            }
+            ArtifactFilterBox = New-MockTextBox -Text 'C:\apps\\name-match.exe'
+            EventArtifactFilterBox = New-MockTextBox -Text 'C:\apps\\name-match.exe'
+        }
+
+        $script:CurrentEventMetricsFilter = $null
+
+        Mock Update-ArtifactDataGrid { }
+        Mock Set-EventMetricsFilterState { }
+        Mock Update-EventMetricsUI { }
+
+        Invoke-ScannerSharedSearchRefresh -Window $win
+
+        Should -Invoke Update-ArtifactDataGrid -Times 0
+        Should -Invoke Set-EventMetricsFilterState -Times 1 -Exactly -ParameterFilter {
+            [string]$PathFilter -eq 'C:\apps\\name-match.exe'
+        }
+        Should -Invoke Update-EventMetricsUI -Times 1 -Exactly -ParameterFilter { $Window -eq $win }
+    }
+}
+
 Describe 'Invoke-GenerateRuleFromSelectedEvent' {
     BeforeEach {
         $script:CurrentScanArtifacts = @()
@@ -273,6 +380,214 @@ Describe 'Invoke-GenerateRuleFromSelectedEvent' {
     }
 }
 
+Describe 'Invoke-GenerateRuleFromEventTrigger' {
+    AfterEach {
+        $global:GA_RuleGen_Window = $null
+    }
+
+    It 'Invokes selected-event rule generation once when idle' {
+        $win = New-MockWpfWindow -Elements @{}
+        $global:GA_RuleGen_Window = $null
+
+        Mock Invoke-GenerateRuleFromSelectedEvent { }
+
+        Invoke-GenerateRuleFromEventTrigger -Window $win
+
+        Should -Invoke Invoke-GenerateRuleFromSelectedEvent -Times 1 -Exactly -ParameterFilter {
+            $Window -eq $win
+        }
+    }
+
+    It 'Ignores trigger when event rule generation is already in progress' {
+        $win = New-MockWpfWindow -Elements @{}
+        $global:GA_RuleGen_Window = [PSCustomObject]@{ Title = 'Busy' }
+
+        Mock Invoke-GenerateRuleFromSelectedEvent { }
+
+        Invoke-GenerateRuleFromEventTrigger -Window $win
+
+        Should -Invoke Invoke-GenerateRuleFromSelectedEvent -Times 0
+    }
+}
+
+Describe 'Initialize-ScannerPanel button wiring' {
+    It 'Wires BtnGenerateRuleFromEvent click to unified event-rule trigger helper' {
+        $btnGenerateRuleFromEvent = [PSCustomObject]@{
+            _clickHandlers = [System.Collections.ArrayList]::new()
+        }
+
+        $btnGenerateRuleFromEvent | Add-Member -MemberType ScriptMethod -Name Add_Click -Value {
+            param($handler)
+            [void]$this._clickHandlers.Add($handler)
+        }
+
+        $btnGenerateRuleFromEvent | Add-Member -MemberType ScriptMethod -Name InvokeClick -Value {
+            foreach ($handler in @($this._clickHandlers)) {
+                & $handler
+            }
+        }
+
+        $win = New-MockWpfWindow -Elements @{
+            BtnGenerateRuleFromEvent = $btnGenerateRuleFromEvent
+        }
+
+        $previousMainWindow = $global:GA_MainWindow
+        try {
+            $global:GA_MainWindow = $win
+
+            Mock Set-EventMetricsFilterDefaults { }
+            Mock Update-SavedScansList { }
+            Mock Initialize-ScheduledScansList { }
+            Mock Invoke-GenerateRuleFromEventTrigger { }
+
+            Initialize-ScannerPanel -Window $win
+            $btnGenerateRuleFromEvent.InvokeClick()
+
+            Should -Invoke Invoke-GenerateRuleFromEventTrigger -Times 1 -Exactly
+        }
+        finally {
+            $global:GA_MainWindow = $previousMainWindow
+        }
+    }
+
+    It 'Wires EventMetricsDataGrid double-click to unified event-rule trigger helper' {
+        $eventGrid = New-MockDataGrid
+        $eventGrid | Add-Member -MemberType NoteProperty -Name _doubleClickHandlers -Value ([System.Collections.ArrayList]::new()) -Force
+
+        $eventGrid | Add-Member -MemberType ScriptMethod -Name Add_MouseDoubleClick -Value {
+            param($handler)
+            [void]$this._doubleClickHandlers.Add($handler)
+        } -Force
+
+        $eventGrid | Add-Member -MemberType ScriptMethod -Name InvokeMouseDoubleClick -Value {
+            foreach ($handler in @($this._doubleClickHandlers)) {
+                & $handler $this $null
+            }
+        } -Force
+
+        $win = New-MockWpfWindow -Elements @{
+            EventMetricsDataGrid = $eventGrid
+        }
+
+        $previousMainWindow = $global:GA_MainWindow
+        try {
+            $global:GA_MainWindow = $win
+
+            Mock Set-EventMetricsFilterDefaults { }
+            Mock Update-SavedScansList { }
+            Mock Initialize-ScheduledScansList { }
+            Mock Invoke-GenerateRuleFromEventTrigger { }
+
+            Initialize-ScannerPanel -Window $win
+            $eventGrid.InvokeMouseDoubleClick()
+
+            Should -Invoke Invoke-GenerateRuleFromEventTrigger -Times 1 -Exactly
+        }
+        finally {
+            $global:GA_MainWindow = $previousMainWindow
+        }
+    }
+
+    It 'Routes EventMetricsDataGrid Enter key through unified event-rule trigger helper' {
+        $eventGrid = New-MockDataGrid
+        $eventGrid | Add-Member -MemberType NoteProperty -Name _keyDownHandlers -Value ([System.Collections.ArrayList]::new()) -Force
+
+        $eventGrid | Add-Member -MemberType ScriptMethod -Name Add_KeyDown -Value {
+            param($handler)
+            [void]$this._keyDownHandlers.Add($handler)
+        } -Force
+
+        $eventGrid | Add-Member -MemberType ScriptMethod -Name InvokeKeyDown -Value {
+            param([string]$Key)
+
+            $eventArgs = [PSCustomObject]@{
+                Key = $Key
+                Handled = $false
+            }
+
+            foreach ($handler in @($this._keyDownHandlers)) {
+                & $handler $this $eventArgs
+            }
+
+            return $eventArgs
+        } -Force
+
+        $win = New-MockWpfWindow -Elements @{
+            EventMetricsDataGrid = $eventGrid
+        }
+
+        $previousMainWindow = $global:GA_MainWindow
+        try {
+            $global:GA_MainWindow = $win
+
+            Mock Set-EventMetricsFilterDefaults { }
+            Mock Update-SavedScansList { }
+            Mock Initialize-ScheduledScansList { }
+            Mock Invoke-GenerateRuleFromEventTrigger { }
+
+            Initialize-ScannerPanel -Window $win
+            $eventArgs = $eventGrid.InvokeKeyDown('Enter')
+
+            Should -Invoke Invoke-GenerateRuleFromEventTrigger -Times 1 -Exactly -ParameterFilter {
+                $Window -eq $global:GA_MainWindow
+            }
+            $eventArgs.Handled | Should -BeTrue
+        }
+        finally {
+            $global:GA_MainWindow = $previousMainWindow
+        }
+    }
+
+    It 'Routes context-menu GenerateRuleFromEvent click through unified event-rule trigger helper' {
+        $menuItem = [PSCustomObject]@{
+            Tag = 'GenerateRuleFromEvent'
+            _clickHandlers = [System.Collections.ArrayList]::new()
+        }
+
+        $menuItem | Add-Member -MemberType ScriptMethod -Name Add_Click -Value {
+            param($handler)
+            [void]$this._clickHandlers.Add($handler)
+        } -Force
+
+        $menuItem | Add-Member -MemberType ScriptMethod -Name InvokeClick -Value {
+            foreach ($handler in @($this._clickHandlers)) {
+                & $handler $this $null
+            }
+        } -Force
+
+        $contextMenu = [PSCustomObject]@{
+            Items = [System.Collections.ArrayList]::new()
+        }
+        [void]$contextMenu.Items.Add($menuItem)
+
+        $eventGrid = New-MockDataGrid
+        $eventGrid.ContextMenu = $contextMenu
+
+        $win = New-MockWpfWindow -Elements @{
+            EventMetricsDataGrid = $eventGrid
+        }
+
+        $previousMainWindow = $global:GA_MainWindow
+        try {
+            $global:GA_MainWindow = $win
+
+            Mock Set-EventMetricsFilterDefaults { }
+            Mock Update-SavedScansList { }
+            Mock Initialize-ScheduledScansList { }
+            Mock Invoke-GenerateRuleFromEventTrigger { }
+
+            Initialize-ScannerPanel -Window $win
+            $menuItem._clickHandlers.Count | Should -Be 1
+            & $menuItem._clickHandlers[0]
+
+            Should -Invoke Invoke-GenerateRuleFromEventTrigger -Times 1 -Exactly
+        }
+        finally {
+            $global:GA_MainWindow = $previousMainWindow
+        }
+    }
+}
+
 Describe 'Select-EventMetricsRowFromSource' {
     It 'Selects the row item resolved from source chain' {
         $rowItem = [PSCustomObject]@{ FilePath = 'C:\apps\\hit.exe'; Machine = 'WKS1' }
@@ -323,6 +638,8 @@ Describe 'MainWindow event metrics XAML controls' {
         $mainWindowXaml | Should -Match 'x:Name="BtnEventModeBlocked"'
         $mainWindowXaml | Should -Match 'x:Name="BtnEventModeAudit"'
         $mainWindowXaml | Should -Match 'x:Name="BtnEventModeAllowed"'
+        $mainWindowXaml | Should -Match 'x:Name="BtnGenerateRuleFromEvent"'
+        $mainWindowXaml | Should -Match 'x:Name="BtnGenerateRuleFromEvent"[^>]*Content="Generate Rule"'
         $mainWindowXaml | Should -Match 'x:Name="EventMetricsDataGrid"'
         $mainWindowXaml | Should -Match 'Header="Generate Rule \(Publisher then Hash\)"'
         $mainWindowXaml | Should -Match 'x:Name="TxtEventMetricsEmpty"'
@@ -330,6 +647,10 @@ Describe 'MainWindow event metrics XAML controls' {
         # Subtab layout is expected for scanner results region
         $mainWindowXaml | Should -Match 'Header="Collected Artifacts"'
         $mainWindowXaml | Should -Match 'Header="Event Metrics"'
+        $mainWindowXaml | Should -Match 'x:Name="ScannerResultsArtifactsTab"'
+        $mainWindowXaml | Should -Match 'x:Name="ScannerResultsEventMetricsTab"'
+        $mainWindowXaml | Should -Match 'x:Name="ScannerResultsArtifactsTab"[^>]*Tag="ScannerResults_Artifacts"'
+        $mainWindowXaml | Should -Match 'x:Name="ScannerResultsEventMetricsTab"[^>]*Tag="ScannerResults_EventMetrics"'
 
         # Path filter now reuses artifact search box for both artifact and event filtering
         $mainWindowXaml | Should -Not -Match 'x:Name="TxtEventPathFilter"'

@@ -1426,7 +1426,7 @@ Width="1450"
                                                     </Style>
                                                 </TabControl.Resources>
 
-                                                <TabItem Header="Collected Artifacts">
+                                                <TabItem x:Name="ScannerResultsArtifactsTab" Tag="ScannerResults_Artifacts" Header="Collected Artifacts">
                                                     <Grid>
                                                         <Grid.RowDefinitions>
                                                             <RowDefinition Height="Auto"/>
@@ -1479,7 +1479,7 @@ Width="1450"
                                                     </Grid>
                                                 </TabItem>
 
-                                                <TabItem Header="Event Metrics">
+                                                <TabItem x:Name="ScannerResultsEventMetricsTab" Tag="ScannerResults_EventMetrics" Header="Event Metrics">
                                                     <Grid>
                                                         <Grid.RowDefinitions>
                                                             <RowDefinition Height="Auto"/>
@@ -1515,6 +1515,8 @@ Width="1450"
                                                                 <Button x:Name="BtnEventModeBlocked" Content="Blocked" Background="Transparent" Foreground="{StaticResource WarningBrush}" Padding="8,3" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0" FontSize="11"/>
                                                                 <Button x:Name="BtnEventModeAudit" Content="Audit" Background="Transparent" Foreground="{StaticResource PrimaryBrush}" Padding="8,3" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0" FontSize="11"/>
                                                                 <Button x:Name="BtnEventModeAllowed" Content="Allowed" Background="Transparent" Foreground="{StaticResource SuccessBrush}" Padding="8,3" BorderThickness="0" Cursor="Hand" FontSize="11"/>
+                                                                <Rectangle Width="1" Fill="#3E3E42" Margin="8,2"/>
+                                                                <Button x:Name="BtnGenerateRuleFromEvent" Content="Generate Rule" Tag="GenerateRuleFromEvent" Background="{StaticResource PrimaryBrush}" Foreground="White" Padding="10,3" BorderThickness="0" Cursor="Hand" Margin="0,0,0,0" FontSize="11"/>
                                                             </StackPanel>
                                                         </Grid>
 

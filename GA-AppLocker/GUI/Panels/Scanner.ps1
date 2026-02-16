@@ -246,25 +246,7 @@ function Initialize-ScannerPanel {
         $script:ArtifactFilterTimer.Add_Tick({
             $script:ArtifactFilterTimer.Stop()
             if ($global:GA_MainWindow) {
-                Update-ArtifactDataGrid -Window $global:GA_MainWindow
-
-                $artifactSearch = $global:GA_MainWindow.FindName('ArtifactFilterBox')
-                $eventSearch = $global:GA_MainWindow.FindName('EventArtifactFilterBox')
-                $pathFilter = if ($artifactSearch) {
-                    [string]$artifactSearch.Text
-                }
-                elseif ($eventSearch) {
-                    [string]$eventSearch.Text
-                }
-                else {
-                    ''
-                }
-
-                if (-not $script:CurrentEventMetricsFilter -or $pathFilter -ne $script:CurrentEventMetricsFilter.PathFilter) {
-                    Set-EventMetricsFilterState -PathFilter $pathFilter
-                }
-
-                Update-EventMetricsUI -Window $global:GA_MainWindow
+                Invoke-ScannerSharedSearchRefresh -Window $global:GA_MainWindow
             }
         })
 
@@ -379,6 +361,14 @@ function Initialize-ScannerPanel {
     }
 
     $eventGrid = $Window.FindName('EventMetricsDataGrid')
+    $btnGenerateRuleFromEvent = $Window.FindName('BtnGenerateRuleFromEvent')
+
+    if ($btnGenerateRuleFromEvent) {
+        $btnGenerateRuleFromEvent.Add_Click({
+            Invoke-GenerateRuleFromEventTrigger -Window $global:GA_MainWindow
+        })
+    }
+
     if ($eventGrid) {
         $eventGrid.Add_PreviewMouseRightButtonDown({
             param($sender, $e)
@@ -392,14 +382,42 @@ function Initialize-ScannerPanel {
                 Write-Log -Level Debug -Message "Failed to select event row on right-click: $($_.Exception.Message)"
             }
         })
+
+        $eventGrid.Add_MouseDoubleClick({
+            Invoke-GenerateRuleFromEventTrigger -Window $global:GA_MainWindow
+        })
+
+        $eventGrid.Add_KeyDown({
+            param($sender, $e)
+
+            $pressedKey = ''
+            if ($e -and $e.PSObject.Properties['Key'] -and $null -ne $e.Key) {
+                $pressedKey = [string]$e.Key
+            }
+
+            if ($pressedKey -ne 'Enter' -and $pressedKey -ne 'Return') {
+                return
+            }
+
+            if ($e -and $e.PSObject.Properties['Handled']) {
+                $e.Handled = $true
+            }
+
+            Invoke-GenerateRuleFromEventTrigger -Window $global:GA_MainWindow
+        })
     }
 
     if ($eventGrid -and $eventGrid.ContextMenu) {
         foreach ($item in $eventGrid.ContextMenu.Items) {
-            if ($item -is [System.Windows.Controls.MenuItem] -and $item.Tag -eq 'GenerateRuleFromEvent') {
-                $item.Add_Click({
-                    Invoke-GenerateRuleFromSelectedEvent -Window $global:GA_MainWindow
-                }.GetNewClosure())
+            if ($item -and $item.PSObject.Properties['Tag'] -and $item.Tag -eq 'GenerateRuleFromEvent') {
+                try {
+                    $item.Add_Click({
+                        Invoke-GenerateRuleFromEventTrigger -Window $global:GA_MainWindow
+                    })
+                }
+                catch {
+                    Write-Log -Level Debug -Message "Failed to wire event metrics context menu item: $($_.Exception.Message)"
+                }
             }
         }
     }
@@ -429,6 +447,105 @@ function Initialize-ScannerPanel {
     catch {
         Write-Log -Level Error -Message "Failed to load scheduled scans: $($_.Exception.Message)"
     }
+}
+
+function global:Get-ScannerResultsActiveTab {
+    param($TabControl)
+
+    if (-not $TabControl -or -not $TabControl.PSObject.Properties['SelectedItem']) {
+        return ''
+    }
+
+    $selectedItem = $TabControl.SelectedItem
+    $tagValue = ''
+    $nameValue = ''
+    $headerValue = ''
+
+    if ($selectedItem -is [string]) {
+        $headerValue = [string]$selectedItem
+    }
+    elseif ($selectedItem) {
+        if ($selectedItem.PSObject.Properties['Tag'] -and $null -ne $selectedItem.Tag) {
+            $tagValue = [string]$selectedItem.Tag
+        }
+
+        if ($selectedItem.PSObject.Properties['Name'] -and $null -ne $selectedItem.Name) {
+            $nameValue = [string]$selectedItem.Name
+        }
+
+        if ($selectedItem.PSObject.Properties['Header']) {
+            $header = $selectedItem.Header
+            if ($header -is [string]) {
+                $headerValue = [string]$header
+            }
+            elseif ($header -and $header.PSObject.Properties['Content']) {
+                $headerValue = [string]$header.Content
+            }
+        }
+    }
+
+    $normalizedTag = $tagValue.ToLowerInvariant()
+    $normalizedName = $nameValue.ToLowerInvariant()
+
+    if ($normalizedTag -eq 'scannerresults_artifacts' -or $normalizedName -eq 'scannerresultsartifactstab') {
+        return 'Collected Artifacts'
+    }
+
+    if ($normalizedTag -eq 'scannerresults_eventmetrics' -or $normalizedName -eq 'scannerresultseventmetricstab') {
+        return 'Event Metrics'
+    }
+
+    return $headerValue
+}
+
+function global:Invoke-ScannerSharedSearchRefresh {
+    param($Window)
+
+    $win = if ($Window) { $Window } else { $global:GA_MainWindow }
+    if (-not $win) { return }
+
+    $artifactSearch = $win.FindName('ArtifactFilterBox')
+    $eventSearch = $win.FindName('EventArtifactFilterBox')
+    $pathFilter = if ($artifactSearch) {
+        [string]$artifactSearch.Text
+    }
+    elseif ($eventSearch) {
+        [string]$eventSearch.Text
+    }
+    else {
+        ''
+    }
+
+    $activeTab = ''
+    $resultsTabControl = $win.FindName('ScannerResultsTabControl')
+    if ($resultsTabControl) {
+        $activeTab = Get-ScannerResultsActiveTab -TabControl $resultsTabControl
+    }
+
+    if ($activeTab -eq 'Collected Artifacts') {
+        if (-not $script:CurrentEventMetricsFilter -or $pathFilter -ne $script:CurrentEventMetricsFilter.PathFilter) {
+            Set-EventMetricsFilterState -PathFilter $pathFilter
+        }
+
+        Update-ArtifactDataGrid -Window $win
+        return
+    }
+
+    if ($activeTab -eq 'Event Metrics') {
+        if (-not $script:CurrentEventMetricsFilter -or $pathFilter -ne $script:CurrentEventMetricsFilter.PathFilter) {
+            Set-EventMetricsFilterState -PathFilter $pathFilter
+        }
+
+        Update-EventMetricsUI -Window $win
+        return
+    }
+
+    # Fallback: preserve prior behavior when active tab is unavailable.
+    Update-ArtifactDataGrid -Window $win
+    if (-not $script:CurrentEventMetricsFilter -or $pathFilter -ne $script:CurrentEventMetricsFilter.PathFilter) {
+        Set-EventMetricsFilterState -PathFilter $pathFilter
+    }
+    Update-EventMetricsUI -Window $win
 }
 
 function global:Update-ScanRemoteSectionVisibility {
@@ -2791,6 +2908,19 @@ function global:Invoke-GenerateRuleFromSelectedEvent {
     }
 
     Invoke-DirectRuleGenerationWithSettings -Window $win -Settings $settings -Artifacts @($matchingArtifacts)
+}
+
+function global:Invoke-GenerateRuleFromEventTrigger {
+    param($Window)
+
+    $win = if ($Window) { $Window } else { $global:GA_MainWindow }
+    if (-not $win) { return }
+
+    if ($global:GA_RuleGen_Window) {
+        return
+    }
+
+    Invoke-GenerateRuleFromSelectedEvent -Window $win
 }
 
 function global:Invoke-DirectRuleGeneration {
