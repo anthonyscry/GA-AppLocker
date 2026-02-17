@@ -12,20 +12,40 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-function Resolve-GitCommandPath {
+function Convert-ToWslPath {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    if ($Path -match '^/mnt/[a-z]/') {
+        return $Path
+    }
+
+    if ($Path -match '^([A-Za-z]):\\') {
+        $drive = $Matches[1].ToLowerInvariant()
+        $suffix = $Path.Substring(2).Replace('\', '/')
+        return "/mnt/$drive$suffix"
+    }
+
+    return $Path
+}
+
+function Resolve-GitCommandInfo {
     [CmdletBinding()]
     param()
 
     $gitCommand = Get-Command git -ErrorAction SilentlyContinue
     if ($null -ne $gitCommand) {
-        return $gitCommand.Source
+        return [pscustomobject]@{ Type = 'native'; Command = $gitCommand.Source }
     }
 
     $whereResult = & cmd.exe /d /c "where git 2>nul"
     if ($LASTEXITCODE -eq 0 -and $whereResult) {
         foreach ($candidate in @($whereResult)) {
             if (Test-Path -Path $candidate) {
-                return $candidate
+                return [pscustomobject]@{ Type = 'native'; Command = $candidate }
             }
         }
     }
@@ -38,7 +58,15 @@ function Resolve-GitCommandPath {
 
     foreach ($candidate in $candidatePaths) {
         if (Test-Path -Path $candidate) {
-            return $candidate
+            return [pscustomobject]@{ Type = 'native'; Command = $candidate }
+        }
+    }
+
+    $wslCommand = Get-Command wsl.exe -ErrorAction SilentlyContinue
+    if ($null -ne $wslCommand) {
+        & $wslCommand.Source git --version 2>$null
+        if ($LASTEXITCODE -eq 0) {
+            return [pscustomobject]@{ Type = 'wsl'; Command = $wslCommand.Source }
         }
     }
 
@@ -86,8 +114,8 @@ function New-ReleasePackage {
         }
     }
 
-    $gitPath = Resolve-GitCommandPath
-    if ([string]::IsNullOrWhiteSpace($gitPath)) {
+    $gitInfo = Resolve-GitCommandInfo
+    if ($null -eq $gitInfo -or [string]::IsNullOrWhiteSpace($gitInfo.Command)) {
         return [pscustomobject]@{
             Success            = $false
             DryRun             = $false
@@ -99,7 +127,7 @@ function New-ReleasePackage {
             IncludedPaths      = $includePaths
             IncludedSummary    = ($includePaths -join ', ')
             Warning            = $null
-            Error              = 'git command was not found in PATH or common install locations.'
+            Error              = 'git command was not found in PATH, common install locations, or WSL.'
         }
     }
 
@@ -111,9 +139,16 @@ function New-ReleasePackage {
         Remove-Item -Path $packagePath -Force
     }
 
-    Push-Location $repoRoot
     try {
-        & $gitPath -c "safe.directory=$repoRoot" archive --format=zip "--prefix=$rootFolder/" -o $packagePath HEAD -- @includePaths
+        if ($gitInfo.Type -eq 'wsl') {
+            $repoRootForGit = Convert-ToWslPath -Path $repoRoot
+            $packagePathForGit = Convert-ToWslPath -Path $packagePath
+            & $gitInfo.Command git -C $repoRootForGit -c "safe.directory=$repoRootForGit" archive --format=zip "--prefix=$rootFolder/" -o $packagePathForGit HEAD -- @includePaths
+        }
+        else {
+            & $gitInfo.Command -C $repoRoot -c "safe.directory=$repoRoot" archive --format=zip "--prefix=$rootFolder/" -o $packagePath HEAD -- @includePaths
+        }
+
         if ($LASTEXITCODE -ne 0 -or -not (Test-Path -Path $packagePath)) {
             throw 'git archive did not create the expected package.'
         }
@@ -147,9 +182,6 @@ function New-ReleasePackage {
             Warning            = $null
             Error              = $_.Exception.Message
         }
-    }
-    finally {
-        Pop-Location
     }
 }
 

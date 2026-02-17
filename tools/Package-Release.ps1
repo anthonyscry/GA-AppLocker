@@ -1,57 +1,67 @@
-# Package GA-AppLocker Release
-# Creates a minimal zip containing only what's needed to run the application.
+#Requires -Version 5.1
+[CmdletBinding()]
+param(
+    [string]$OutputPath,
+    [string]$Version,
+    [switch]$DryRun
+)
+
 $ErrorActionPreference = 'Stop'
-
 $projectRoot = Split-Path $PSScriptRoot -Parent
-$manifest = Import-PowerShellDataFile (Join-Path $projectRoot 'GA-AppLocker\GA-AppLocker.psd1')
-$version = "v$($manifest.ModuleVersion)"
-$releaseDir = Join-Path $projectRoot "Release_$version"
-$zipPath = Join-Path $projectRoot "GA-AppLocker-$version.zip"
 
-# 1. Clean previous attempts
-if (Test-Path $releaseDir) { Remove-Item $releaseDir -Recurse -Force }
-if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
+if ([string]::IsNullOrWhiteSpace($OutputPath)) {
+    $OutputPath = Join-Path $projectRoot 'BuildOutput'
+}
 
-# 2. Create staging directory
-New-Item -Path $releaseDir -ItemType Directory | Out-Null
-Write-Host "Staging release $version ..." -ForegroundColor Cyan
+if ([string]::IsNullOrWhiteSpace($Version)) {
+    $manifestPath = Join-Path $projectRoot 'GA-AppLocker\GA-AppLocker.psd1'
+    $manifest = Import-PowerShellDataFile -Path $manifestPath
+    $Version = [string]$manifest.ModuleVersion
+}
 
-# 3. Copy runtime artifacts only
-$artifacts = @(
-    'GA-AppLocker'        # Main module (all sub-modules, GUI, manifests)
-    'Run-Dashboard.ps1'   # Launcher
-    'README.md'           # User documentation
-    'CHANGELOG.md'        # Version history
-)
+$releaseHelperPath = Join-Path $projectRoot 'tools\Release\New-ReleasePackage.ps1'
+$integrityHelperPath = Join-Path $projectRoot 'tools\Release\New-IntegrityArtifacts.ps1'
 
-foreach ($item in $artifacts) {
-    $src = Join-Path $projectRoot $item
-    $dst = Join-Path $releaseDir $item
-    if (Test-Path $src) {
-        Copy-Item -Path $src -Destination $dst -Recurse -Force
-        Write-Host "  + $item" -ForegroundColor Green
-    } else {
-        Write-Warning "  MISSING: $item"
+if (-not (Test-Path -Path $releaseHelperPath)) {
+    throw "Required helper not found: $releaseHelperPath"
+}
+if (-not (Test-Path -Path $integrityHelperPath)) {
+    throw "Required helper not found: $integrityHelperPath"
+}
+
+$packageResult = & $releaseHelperPath -Version $Version -OutputPath $OutputPath -DryRun:$DryRun
+if (-not $packageResult.Success) {
+    throw "Release packaging failed: $($packageResult.Error)"
+}
+
+if ($DryRun) {
+    Write-Host "[DRY-RUN] Package planned: $($packageResult.PackagePath)"
+    return [pscustomobject]@{
+        Success = $true
+        DryRun = $true
+        PackagePath = $packageResult.PackagePath
+        Sha256Path = $null
+        ManifestPath = $null
+        Warning = $packageResult.Warning
+        Error = $null
     }
 }
 
-# 4. Strip dev-only files from the staging copy
-$devCruft = @(
-    (Join-Path $releaseDir 'GA-AppLocker\.context')
-)
-foreach ($path in $devCruft) {
-    if (Test-Path $path) {
-        Remove-Item $path -Recurse -Force
-        Write-Host "  - Removed dev artifact: $path" -ForegroundColor DarkGray
-    }
+$integrityResult = & $integrityHelperPath -PackagePath $packageResult.PackagePath
+if (-not $integrityResult.Success) {
+    throw "Integrity artifact generation failed: $($integrityResult.Error)"
 }
 
-# 5. Create zip
-Write-Host "`nCreating $zipPath ..." -ForegroundColor Cyan
-Compress-Archive -Path "$releaseDir\*" -DestinationPath $zipPath -Force
-$sizeMB = [math]::Round((Get-Item $zipPath).Length / 1MB, 2)
-Write-Host "Release packaged: GA-AppLocker-$version.zip ($sizeMB MB)" -ForegroundColor Green
+Write-Host "Package:  $($packageResult.PackagePath)"
+Write-Host "SHA256:   $($integrityResult.Sha256Path)"
+Write-Host "Manifest: $($integrityResult.ManifestPath)"
 
-# 6. Cleanup staging directory
-Remove-Item $releaseDir -Recurse -Force
-Write-Host 'Staging directory cleaned up.' -ForegroundColor DarkGray
+[pscustomobject]@{
+    Success = $true
+    DryRun = $false
+    PackagePath = $packageResult.PackagePath
+    Sha256Path = $integrityResult.Sha256Path
+    ManifestPath = $integrityResult.ManifestPath
+    Warning = $integrityResult.Warning
+    Error = $null
+}
