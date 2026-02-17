@@ -1,9 +1,9 @@
 ## Current Position
 
-Phase: Milestone v1.2.86 (Release Automation)
-Plan: Completed and archived
-Status: Ready for next milestone planning
-Last activity: 2026-02-17 - Archived v1.2.86 milestone artifacts and prepared release tag
+Phase: Not started (defining requirements)
+Plan: -
+Status: Defining milestone v1.2.87 requirements
+Last activity: 2026-02-17 - Started milestone v1.2.87 Performance
 
 Progress: ██████████ 100%
 
@@ -12,7 +12,7 @@ Progress: ██████████ 100%
 See: `.planning/PROJECT.md` (updated 2026-02-17)
 
 **Core value:** Reliable, operator-friendly AppLocker policy management in air-gapped enterprise environments
-**Current focus:** Planning next milestone scope and requirements
+**Current focus:** Rules index reliability and panel performance for v1.2.87
 
 ## Decisions
 
@@ -40,7 +40,7 @@ See: `.planning/PROJECT.md` (updated 2026-02-17)
 ## Session Continuity
 
 Last session: 2026-02-17 06:46 UTC
-Stopped at: Milestone v1.2.86 archived and documented
+Stopped at: Milestone v1.2.87 initialization and requirements definition
 Resume file: None
 
 ## Completed Phases
@@ -54,5 +54,5 @@ Resume file: None
 
 ## Next Phase Options
 
-- Run `/gsd-new-milestone` to create the next milestone requirements and roadmap.
-- Optional: run `/gsd-audit-milestone` for retroactive v1.2.86 audit evidence.
+- Define scoped milestone requirements in `.planning/REQUIREMENTS.md`.
+- Create milestone roadmap and traceability mapping in `.planning/ROADMAP.md`.
