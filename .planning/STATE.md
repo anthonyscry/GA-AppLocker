@@ -1,11 +1,18 @@
 ## Current Position
 
-Phase: 6 of 6 (Build and Release Automation)
-Plan: 4 of 4 in current phase
-Status: Complete
-Last activity: 2026-02-17 - Completed 06-build-and-release-automation-long-term-04-PLAN.md
+Phase: Milestone v1.2.85 (Release Automation)
+Plan: Completed and archived
+Status: Ready for next milestone planning
+Last activity: 2026-02-17 - Archived v1.2.85 milestone artifacts and prepared release tag
 
 Progress: ██████████ 100%
+
+## Project Reference
+
+See: `.planning/PROJECT.md` (updated 2026-02-17)
+
+**Core value:** Reliable, operator-friendly AppLocker policy management in air-gapped enterprise environments
+**Current focus:** Planning next milestone scope and requirements
 
 ## Decisions
 
@@ -24,15 +31,16 @@ Progress: ██████████ 100%
 | 06-03 | Keep `Release-Version.ps1` flags as compatibility-only while enforcing non-interactive release execution | Preserves legacy command invocation without reintroducing prompts |
 | 06-04 | Keep requirement IDs limited to REL-01 through REL-04 and map each explicitly to phase 06 scope | Preserves released Phase 06 boundaries while making requirements auditable |
 | 06-04 | Resolve verification blocker by linking requirements coverage directly to `.planning/REQUIREMENTS.md` evidence | Closes requirements traceability gap without changing implementation scope |
+| M1 | Proceeded with milestone completion without a dedicated milestone audit file | Accepted gap with explicit documentation for follow-up audit |
 
 ## Blockers/Concerns Carried Forward
 
-- None
+- Milestone-specific audit file for `v1.2.85` was deferred; run `/gsd-audit-milestone` if formal post-ship coverage evidence is required.
 
 ## Session Continuity
 
 Last session: 2026-02-17 06:46 UTC
-Stopped at: Completed 06-build-and-release-automation-long-term-04-PLAN.md
+Stopped at: Milestone v1.2.85 archived and documented
 Resume file: None
 
 ## Completed Phases
@@ -42,7 +50,9 @@ Resume file: None
 - **Phase 3:** UX and Workflow Friction (completed 2026-02-04)
 - **Phase 4:** Reliability and Diagnostics (completed previously)
 - **Phase 5:** Test and QA Coverage (completed previously)
+- **Phase 6:** Build and Release Automation (completed 2026-02-17)
 
 ## Next Phase Options
 
-- None - current phase plans complete.
+- Run `/gsd-new-milestone` to create the next milestone requirements and roadmap.
+- Optional: run `/gsd-audit-milestone` for retroactive v1.2.85 audit evidence.
