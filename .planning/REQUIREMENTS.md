@@ -55,19 +55,19 @@ Deferred features captured during milestone scoping and research:
 
 | Requirement | Phase | Status |
 | --- | --- | --- |
-| IDX-01 | Tbd | Pending |
-| IDX-02 | Tbd | Pending |
-| IDX-03 | Tbd | Pending |
-| PERF-01 | Tbd | Pending |
-| PERF-02 | Tbd | Pending |
-| FLOW-01 | Tbd | Pending |
-| OBS-01 | Tbd | Pending |
+| IDX-01 | Phase 7 | Pending |
+| IDX-02 | Phase 8 | Pending |
+| IDX-03 | Phase 8 | Pending |
+| PERF-01 | Phase 9 | Pending |
+| PERF-02 | Phase 9 | Pending |
+| FLOW-01 | Phase 10 | Pending |
+| OBS-01 | Phase 9 | Pending |
 
 **Coverage:**
 - v1 requirements: 7 total
-- Mapped to phases: 0
-- Unmapped: 7
+- Mapped to phases: 7
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-17*
-*Last updated: 2026-02-17 after initial milestone v1.2.87 definition*
+*Last updated: 2026-02-17 after roadmap phase mapping for milestone v1.2.87*
