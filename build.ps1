@@ -365,32 +365,30 @@ function Invoke-PackageTask {
     Write-Host "  PACKAGE: Create Release" -ForegroundColor Cyan
     Write-Host "==============================================================" -ForegroundColor Cyan
 
-    try {
-        $manifest = Import-PowerShellDataFile (Join-Path $script:ModulePath 'GA-AppLocker.psd1')
-        $version = $manifest.ModuleVersion
+    $releaseScript = Join-Path $script:ProjectRoot 'tools\Invoke-Release.ps1'
+    if (-not (Test-Path -Path $releaseScript)) {
+        Write-Host "  [FAIL] Release orchestrator not found: $releaseScript" -ForegroundColor Red
+        $script:ExitCode = 1
+        Write-Host ""
+        return
     }
-    catch {
-        $version = '0.0.0'
-    }
-
-    $packageName = "GA-AppLocker_v$version.zip"
-    $packagePath = Join-Path $OutputPath $packageName
-
-    # Include module + launchers + docs + troubleshooting scripts
-    $filesToPackage = @(
-        (Join-Path $script:ProjectRoot 'GA-AppLocker'),
-        (Join-Path $script:ProjectRoot 'Run-Dashboard.ps1'),
-        (Join-Path $script:ProjectRoot 'Run-Dashboard-ForceFresh.ps1'),
-        (Join-Path $script:ProjectRoot 'Troubleshooting'),
-        (Join-Path $script:ProjectRoot 'README.md'),
-        (Join-Path $script:ProjectRoot 'CHANGELOG.md')
-    ) | Where-Object { Test-Path $_ }
 
     try {
-        Compress-Archive -Path $filesToPackage -DestinationPath $packagePath -Force
-        $size = [math]::Round((Get-Item $packagePath).Length / 1MB, 2)
-        Write-Host "  [PASS] Package created: $packageName ($size MB)" -ForegroundColor Green
-        Write-Host "  Path: $packagePath" -ForegroundColor Gray
+        $releaseResult = & $releaseScript -OutputPath $OutputPath
+        if ($releaseResult -is [array]) {
+            $releaseResult = $releaseResult[-1]
+        }
+
+        if ($null -eq $releaseResult -or -not $releaseResult.Success) {
+            Write-Host "  [FAIL] Release orchestrator reported one or more failed steps" -ForegroundColor Red
+            $script:ExitCode = 1
+        }
+        else {
+            Write-Host "  [PASS] Release orchestrator completed successfully" -ForegroundColor Green
+            if ($releaseResult.Artifacts -and $releaseResult.Artifacts.PackagePath) {
+                Write-Host "  Package: $($releaseResult.Artifacts.PackagePath)" -ForegroundColor Gray
+            }
+        }
     }
     catch {
         Write-Host "  [FAIL] Packaging failed: $($_.Exception.Message)" -ForegroundColor Red
