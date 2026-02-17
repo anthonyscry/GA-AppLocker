@@ -1,6 +1,6 @@
 # Project Milestones: GA-AppLocker
 
-## v1.2.85 Release Automation (Shipped: 2026-02-17)
+## v1.2.86 Release Automation (Shipped: 2026-02-17)
 
 **Delivered:** Deterministic, non-interactive release automation with standardized notes, reproducible packaging, integrity sidecars, and requirements traceability closure for Phase 06.
 
@@ -24,7 +24,7 @@
 
 ### Known Gaps
 
-- No pre-completion audit file at `.planning/v1.2.85-MILESTONE-AUDIT.md` (deferred follow-up).
+- No pre-completion audit file at `.planning/v1.2.86-MILESTONE-AUDIT.md` (deferred follow-up).
 - Source requirements catalog had no checkbox traceability table; completion status was archived manually per REL requirement.
 
 **What's next:** Run `/gsd-new-milestone` to start the next milestone with fresh requirements and roadmap scope.
