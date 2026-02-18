@@ -101,6 +101,7 @@ Features:
         'Get-RemoteArtifacts',
         'Get-AppxArtifacts',
         'Get-AppLockerEventLogs',
+        'Invoke-AppLockerEventQuery',
         'Start-ArtifactScan',
         'Get-ScanResults',
         'Get-DefaultScanPaths',
