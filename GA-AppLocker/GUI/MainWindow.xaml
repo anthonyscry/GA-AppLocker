@@ -3395,7 +3395,7 @@ Width="1450"
 
                             <TextBlock Grid.Row="0" Text="Host Status" Foreground="{StaticResource MutedBrush}" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,8"/>
 
-                            <DataGrid x:Name="EventViewerHostStatusGrid" Grid.Row="1"
+                            <DataGrid x:Name="EventViewerHostStatusDataGrid" Grid.Row="1"
                                       Style="{StaticResource DataGridStyle}"
                                       AutoGenerateColumns="False"
                                       IsReadOnly="True"
@@ -3403,9 +3403,11 @@ Width="1450"
                                       CanUserDeleteRows="False"
                                       Height="160">
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Header="Host" Binding="{Binding HostName}" Width="*"/>
-                                    <DataGridTextColumn Header="Transport" Binding="{Binding Transport}" Width="120"/>
+                                    <DataGridTextColumn Header="Host" Binding="{Binding Host}" Width="*"/>
                                     <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="120"/>
+                                    <DataGridTextColumn Header="Events" Binding="{Binding Events}" Width="90"/>
+                                    <DataGridTextColumn Header="Duration (ms)" Binding="{Binding DurationMs}" Width="120"/>
+                                    <DataGridTextColumn Header="Category" Binding="{Binding ErrorCategory}" Width="120"/>
                                     <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="2*"/>
                                 </DataGrid.Columns>
                             </DataGrid>
@@ -3428,12 +3430,12 @@ Width="1450"
                             </DockPanel>
 
                             <Grid Grid.Row="1">
-                                <DataGrid x:Name="EventViewerResultsGrid"
-                                          Style="{StaticResource DataGridStyle}"
-                                          AutoGenerateColumns="False"
-                                          IsReadOnly="True"
-                                          CanUserAddRows="False"
-                                          CanUserDeleteRows="False">
+                                <DataGrid x:Name="EventViewerEventsDataGrid"
+                                           Style="{StaticResource DataGridStyle}"
+                                           AutoGenerateColumns="False"
+                                           IsReadOnly="True"
+                                           CanUserAddRows="False"
+                                           CanUserDeleteRows="False">
                                     <DataGrid.Columns>
                                         <DataGridTextColumn Header="Time" Binding="{Binding TimeCreated}" Width="170"/>
                                         <DataGridTextColumn Header="Host" Binding="{Binding ComputerName}" Width="140"/>

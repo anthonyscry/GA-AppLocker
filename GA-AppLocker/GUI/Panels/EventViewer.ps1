@@ -215,6 +215,231 @@ function script:Test-EventViewerQueryInputs {
     return $result
 }
 
+function script:Get-EventViewerHostStatusGrid {
+    param($Window)
+
+    if (-not $Window) { return $null }
+
+    $grid = $Window.FindName('EventViewerHostStatusDataGrid')
+    if ($grid) { return $grid }
+
+    return $Window.FindName('EventViewerHostStatusGrid')
+}
+
+function script:Get-EventViewerEventsGrid {
+    param($Window)
+
+    if (-not $Window) { return $null }
+
+    $grid = $Window.FindName('EventViewerEventsDataGrid')
+    if ($grid) { return $grid }
+
+    return $Window.FindName('EventViewerResultsGrid')
+}
+
+function script:ConvertTo-EventViewerHostStatusRows {
+    param(
+        [Parameter()]
+        [PSCustomObject[]]$Envelopes
+    )
+
+    $rows = [System.Collections.Generic.List[PSCustomObject]]::new()
+
+    foreach ($envelope in @($Envelopes)) {
+        if (-not $envelope) { continue }
+
+        $isSuccess = [bool]$envelope.Success
+        $status = if ($isSuccess) { 'Success' } else { 'Failed' }
+        $count = if ($null -ne $envelope.Count) { [int]$envelope.Count } else { 0 }
+        $duration = if ($null -ne $envelope.DurationMs) { [int]$envelope.DurationMs } else { 0 }
+        $message = if ($isSuccess) {
+            "$count event(s) retrieved"
+        }
+        elseif (-not [string]::IsNullOrWhiteSpace([string]$envelope.Error)) {
+            [string]$envelope.Error
+        }
+        else {
+            'Event query failed.'
+        }
+
+        [void]$rows.Add([PSCustomObject]@{
+                Host          = [string]$envelope.Host
+                Status        = $status
+                Events        = $count
+                DurationMs    = $duration
+                ErrorCategory = if ($isSuccess) { '' } else { [string]$envelope.ErrorCategory }
+                Message       = $message
+            })
+    }
+
+    return @($rows)
+}
+
+function script:ConvertTo-EventViewerRows {
+    param(
+        [Parameter()]
+        [PSCustomObject[]]$Envelopes
+    )
+
+    $rows = [System.Collections.Generic.List[PSCustomObject]]::new()
+
+    foreach ($envelope in @($Envelopes)) {
+        if (-not $envelope -or -not $envelope.Success) { continue }
+
+        foreach ($event in @($envelope.Data)) {
+            if (-not $event) { continue }
+
+            $timeCreated = $null
+            if ($event.PSObject.Properties.Name -contains 'TimeCreated') {
+                $timeCreated = $event.TimeCreated
+            }
+            elseif ($event.PSObject.Properties.Name -contains 'Timestamp') {
+                $timeCreated = $event.Timestamp
+            }
+
+            $eventId = $null
+            if ($event.PSObject.Properties.Name -contains 'EventId') {
+                $eventId = $event.EventId
+            }
+            elseif ($event.PSObject.Properties.Name -contains 'Id') {
+                $eventId = $event.Id
+            }
+
+            [void]$rows.Add([PSCustomObject]@{
+                    TimeCreated    = $timeCreated
+                    ComputerName   = if ($event.PSObject.Properties.Name -contains 'ComputerName' -and -not [string]::IsNullOrWhiteSpace([string]$event.ComputerName)) { [string]$event.ComputerName } else { [string]$envelope.Host }
+                    EventId        = $eventId
+                    CollectionType = if ($event.PSObject.Properties.Name -contains 'CollectionType') { [string]$event.CollectionType } else { '' }
+                    FilePath       = if ($event.PSObject.Properties.Name -contains 'FilePath') { [string]$event.FilePath } else { '' }
+                    Action         = if ($event.PSObject.Properties.Name -contains 'Action') { [string]$event.Action } else { '' }
+                })
+        }
+    }
+
+    $sortedRows = @($rows | Sort-Object -Property TimeCreated -Descending)
+    return $sortedRows
+}
+
+function script:Set-EventViewerLoadingState {
+    param(
+        $Window,
+        [bool]$IsLoading
+    )
+
+    if (-not $Window) { return }
+
+    $runButton = $Window.FindName('BtnEventViewerRunQuery')
+    if ($runButton) {
+        $runButton.IsEnabled = -not $IsLoading
+    }
+}
+
+function global:Invoke-LoadEventViewerData {
+    param($Window)
+
+    if (-not $Window) {
+        $Window = $global:GA_MainWindow
+    }
+
+    if (-not $Window) {
+        return
+    }
+
+    $validation = Test-EventViewerQueryInputs -Window $Window
+    if (-not $validation.Success) {
+        return
+    }
+
+    $queryContract = $validation.Data
+    $summary = $Window.FindName('TxtEventViewerQuerySummary')
+    $resultCount = $Window.FindName('TxtEventViewerResultCount')
+    $emptyLabel = $Window.FindName('TxtEventViewerEmpty')
+    $hostGrid = Get-EventViewerHostStatusGrid -Window $Window
+    $eventsGrid = Get-EventViewerEventsGrid -Window $Window
+
+    $script:EventViewerResults = @()
+    $script:EventViewerHostStatus = @()
+
+    if ($hostGrid) { $hostGrid.ItemsSource = @() }
+    if ($eventsGrid) { $eventsGrid.ItemsSource = @() }
+    if ($resultCount) { $resultCount.Text = '0 events' }
+    if ($emptyLabel) { $emptyLabel.Visibility = 'Visible' }
+    if ($summary) { $summary.Text = 'Running bounded event query...' }
+
+    Set-EventViewerLoadingState -Window $Window -IsLoading $true
+
+    Invoke-AsyncOperation -ScriptBlock {
+        param($Query)
+
+        $envelopes = Invoke-AppLockerEventQuery -ComputerName @($Query.Targets) -StartTime $Query.StartTime -EndTime $Query.EndTime -MaxEvents $Query.MaxEvents -EventIds @($Query.EventIds)
+
+        return [PSCustomObject]@{
+            Query     = $Query
+            Envelopes = @($envelopes)
+        }
+    } -Arguments @{ Query = $queryContract } -LoadingMessage 'Loading AppLocker events...' -OnComplete {
+        param($Result)
+
+        $activeWindow = if ($Window) { $Window } else { $global:GA_MainWindow }
+        if (-not $activeWindow) { return }
+
+        $hostGridControl = Get-EventViewerHostStatusGrid -Window $activeWindow
+        $eventsGridControl = Get-EventViewerEventsGrid -Window $activeWindow
+        $summaryControl = $activeWindow.FindName('TxtEventViewerQuerySummary')
+        $countControl = $activeWindow.FindName('TxtEventViewerResultCount')
+        $emptyControl = $activeWindow.FindName('TxtEventViewerEmpty')
+
+        $query = if ($Result) { $Result.Query } else { $queryContract }
+        $envelopes = if ($Result) { @($Result.Envelopes) } else { @() }
+
+        $hostRows = ConvertTo-EventViewerHostStatusRows -Envelopes $envelopes
+        $eventRows = ConvertTo-EventViewerRows -Envelopes $envelopes
+
+        $script:EventViewerHostStatus = @($hostRows)
+        $script:EventViewerResults = @($eventRows)
+
+        if ($hostGridControl) {
+            $hostGridControl.ItemsSource = @($hostRows)
+        }
+        if ($eventsGridControl) {
+            $eventsGridControl.ItemsSource = @($eventRows)
+        }
+
+        if ($countControl) {
+            $countControl.Text = "{0} events" -f @($eventRows).Count
+        }
+
+        if ($emptyControl) {
+            $emptyControl.Visibility = if (@($eventRows).Count -gt 0) { 'Collapsed' } else { 'Visible' }
+        }
+
+        $requestedHosts = @($envelopes).Count
+        $successHosts = @($envelopes | Where-Object { $_.Success }).Count
+        $failedHosts = $requestedHosts - $successHosts
+
+        if ($summaryControl) {
+            $summaryControl.Text = 'Hosts requested: {0} (success: {1}, failed: {2}) | Events: {3} | Bounds: {4} to {5} | Max {6}' -f $requestedHosts, $successHosts, $failedHosts, @($eventRows).Count, $query.StartTime.ToString('yyyy-MM-dd HH:mm'), $query.EndTime.ToString('yyyy-MM-dd HH:mm'), $query.MaxEvents
+        }
+
+        Set-EventViewerLoadingState -Window $activeWindow -IsLoading $false
+
+        Show-EventViewerToast -Message ('Loaded {0} event(s) across {1} requested host(s).' -f @($eventRows).Count, $requestedHosts) -Type 'Success'
+    }.GetNewClosure() -OnError {
+        param($ErrorMessage)
+
+        $activeWindow = if ($Window) { $Window } else { $global:GA_MainWindow }
+        if ($activeWindow) {
+            $summaryControl = $activeWindow.FindName('TxtEventViewerQuerySummary')
+            if ($summaryControl) {
+                $summaryControl.Text = 'Query failed. Update bounds/targets and retry.'
+            }
+            Set-EventViewerLoadingState -Window $activeWindow -IsLoading $false
+        }
+
+        Show-EventViewerToast -Message "Failed to load AppLocker events: $ErrorMessage" -Type 'Error'
+    }.GetNewClosure()
+}
+
 function Initialize-EventViewerPanel {
     param($Window)
 
@@ -227,8 +452,8 @@ function Initialize-EventViewerPanel {
     $remoteHosts = $Window.FindName('TxtEventViewerRemoteHosts')
     $summary = $Window.FindName('TxtEventViewerQuerySummary')
     $resultCount = $Window.FindName('TxtEventViewerResultCount')
-    $hostGrid = $Window.FindName('EventViewerHostStatusGrid')
-    $resultsGrid = $Window.FindName('EventViewerResultsGrid')
+    $hostGrid = Get-EventViewerHostStatusGrid -Window $Window
+    $resultsGrid = Get-EventViewerEventsGrid -Window $Window
     $emptyLabel = $Window.FindName('TxtEventViewerEmpty')
     $btnRunQuery = $Window.FindName('BtnEventViewerRunQuery')
     $btnClear = $Window.FindName('BtnEventViewerClearResults')
@@ -271,6 +496,9 @@ function Initialize-EventViewerPanel {
     if ($btnRunQuery) {
         $btnRunQuery.IsEnabled = $true
         $btnRunQuery.ToolTip = 'Run bounded AppLocker event retrieval for local or selected remote hosts.'
+        $btnRunQuery.Add_Click({
+                Invoke-LoadEventViewerData -Window $global:GA_MainWindow
+            })
     }
 
     if ($btnClear) {
@@ -278,8 +506,8 @@ function Initialize-EventViewerPanel {
                 $win = $global:GA_MainWindow
                 if (-not $win) { return }
 
-                $hostGridLocal = $win.FindName('EventViewerHostStatusGrid')
-                $resultsGridLocal = $win.FindName('EventViewerResultsGrid')
+                $hostGridLocal = Get-EventViewerHostStatusGrid -Window $win
+                $resultsGridLocal = Get-EventViewerEventsGrid -Window $win
                 $emptyLocal = $win.FindName('TxtEventViewerEmpty')
                 $countLocal = $win.FindName('TxtEventViewerResultCount')
                 $summaryLocal = $win.FindName('TxtEventViewerQuerySummary')
