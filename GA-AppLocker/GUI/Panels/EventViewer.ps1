@@ -989,12 +989,19 @@ function global:ConvertTo-EventViewerRows {
             }
 
             [void]$rows.Add([PSCustomObject]@{
-                    TimeCreated    = $timeCreated
-                    ComputerName   = if ($event.PSObject.Properties.Name -contains 'ComputerName' -and -not [string]::IsNullOrWhiteSpace([string]$event.ComputerName)) { [string]$event.ComputerName } else { [string]$envelope.Host }
-                    EventId        = $eventId
-                    CollectionType = if ($event.PSObject.Properties.Name -contains 'CollectionType') { [string]$event.CollectionType } else { '' }
-                    FilePath       = if ($event.PSObject.Properties.Name -contains 'FilePath') { [string]$event.FilePath } else { '' }
-                    Action         = if ($event.PSObject.Properties.Name -contains 'Action') { [string]$event.Action } else { '' }
+                    TimeCreated     = $timeCreated
+                    ComputerName    = if ($event.PSObject.Properties.Name -contains 'ComputerName' -and -not [string]::IsNullOrWhiteSpace([string]$event.ComputerName)) { [string]$event.ComputerName } else { [string]$envelope.Host }
+                    EventId         = $eventId
+                    CollectionType  = if ($event.PSObject.Properties.Name -contains 'CollectionType') { [string]$event.CollectionType } else { '' }
+                    FilePath        = if ($event.PSObject.Properties.Name -contains 'FilePath') { [string]$event.FilePath } else { '' }
+                    Action          = if ($event.PSObject.Properties.Name -contains 'Action') { [string]$event.Action } else { '' }
+                    UserSid         = if ($event.PSObject.Properties.Name -contains 'UserSid') { [string]$event.UserSid } else { '' }
+                    EventType       = if ($event.PSObject.Properties.Name -contains 'EventType') { [string]$event.EventType } else { '' }
+                    EnforcementMode = if ($event.PSObject.Properties.Name -contains 'EnforcementMode') { [string]$event.EnforcementMode } else { '' }
+                    IsBlocked       = if ($event.PSObject.Properties.Name -contains 'IsBlocked') { [bool]$event.IsBlocked } else { $false }
+                    IsAudit         = if ($event.PSObject.Properties.Name -contains 'IsAudit') { [bool]$event.IsAudit } else { $false }
+                    Message         = if ($event.PSObject.Properties.Name -contains 'Message') { [string]$event.Message } else { '' }
+                    RawXml          = if ($event.PSObject.Properties.Name -contains 'RawXml') { [string]$event.RawXml } else { '' }
                 })
         }
     }
@@ -1133,10 +1140,59 @@ function Initialize-EventViewerPanel {
     $btnCreateRulesSelected = $Window.FindName('BtnEventViewerCreateRulesSelected')
 
     if ($startPicker -and -not $startPicker.SelectedDate) {
-        $startPicker.SelectedDate = [DateTime]::Now.AddHours(-24)
+        $startPicker.SelectedDate = [DateTime]::Now.AddDays(-7)
     }
     if ($endPicker -and -not $endPicker.SelectedDate) {
         $endPicker.SelectedDate = [DateTime]::Now
+    }
+
+    # Force calendar popup readable on dark theme.
+    # WPF Calendar template parts use hardcoded colors that ignore style overrides.
+    # We walk the visual tree on CalendarOpened to fix Background/Foreground on the
+    # Calendar itself plus all TextBlock children (month/year header, day-of-week labels).
+    $calendarFixScript = {
+        param($sender, $e)
+        try {
+            $dp = $sender
+            $whiteBrush = [System.Windows.Media.Brushes]::White
+            $darkBg = [System.Windows.Media.SolidColorBrush]::new([System.Windows.Media.Color]::FromRgb(0x2D, 0x2D, 0x30))
+
+            # Try reflection first (most reliable for the Calendar control itself)
+            $cal = $null
+            $calProp = $dp.GetType().GetProperty('Calendar', [System.Reflection.BindingFlags]'Instance,NonPublic,Public')
+            if ($calProp) { $cal = $calProp.GetValue($dp) }
+
+            if ($cal) {
+                $cal.Background = $darkBg
+                $cal.Foreground = $whiteBrush
+
+                # Walk visual tree to fix template TextBlocks (header, day labels)
+                $cal.UpdateLayout()
+                $stack = [System.Collections.Generic.Stack[System.Windows.DependencyObject]]::new()
+                $stack.Push($cal)
+                while ($stack.Count -gt 0) {
+                    $parent = $stack.Pop()
+                    $childCount = [System.Windows.Media.VisualTreeHelper]::GetChildrenCount($parent)
+                    for ($i = 0; $i -lt $childCount; $i++) {
+                        $child = [System.Windows.Media.VisualTreeHelper]::GetChild($parent, $i)
+                        if ($child -is [System.Windows.Controls.TextBlock]) {
+                            $child.Foreground = $whiteBrush
+                        }
+                        elseif ($child -is [System.Windows.Controls.Control]) {
+                            $child.Foreground = $whiteBrush
+                            $child.Background = $darkBg
+                        }
+                        $stack.Push($child)
+                    }
+                }
+            }
+        } catch { }
+    }
+    if ($startPicker -and $startPicker.PSObject.Methods['Add_CalendarOpened']) {
+        $startPicker.Add_CalendarOpened($calendarFixScript)
+    }
+    if ($endPicker -and $endPicker.PSObject.Methods['Add_CalendarOpened']) {
+        $endPicker.Add_CalendarOpened($calendarFixScript)
     }
     if ($maxEvents -and [string]::IsNullOrWhiteSpace([string]$maxEvents.Text)) {
         $maxEvents.Text = '500'

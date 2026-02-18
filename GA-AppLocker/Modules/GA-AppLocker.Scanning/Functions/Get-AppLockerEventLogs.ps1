@@ -67,6 +67,12 @@ function Get-AppLockerEventLogs {
         return $result
     }
 
+    # Ensure Get-WinEvent is available — bare runspaces may not auto-load
+    # Microsoft.PowerShell.Diagnostics where it lives
+    if (-not (Get-Command Get-WinEvent -ErrorAction SilentlyContinue)) {
+        Import-Module Microsoft.PowerShell.Diagnostics -ErrorAction SilentlyContinue
+    }
+
     $appLockerLogs = @(
         'Microsoft-Windows-AppLocker/EXE and DLL',
         'Microsoft-Windows-AppLocker/MSI and Script',
@@ -93,7 +99,20 @@ function Get-AppLockerEventLogs {
             if ($Credential) {
                 $scriptBlock = {
                     param($BoundFilterHash, $BoundMaxEvents)
-                    Get-WinEvent -FilterHashtable $BoundFilterHash -MaxEvents $BoundMaxEvents -ErrorAction Stop
+                    $rawEvents = Get-WinEvent -FilterHashtable $BoundFilterHash -MaxEvents $BoundMaxEvents -ErrorAction Stop
+                    foreach ($ev in @($rawEvents)) {
+                        $xmlStr = ''
+                        try { $xmlStr = $ev.ToXml() } catch { }
+                        [PSCustomObject]@{
+                            Id               = $ev.Id
+                            LogName          = $ev.LogName
+                            TimeCreated      = $ev.TimeCreated
+                            Message          = $ev.Message
+                            UserId           = $ev.UserId
+                            LevelDisplayName = $ev.LevelDisplayName
+                            RawXml           = $xmlStr
+                        }
+                    }
                 }
 
                 $events = Invoke-Command -ComputerName $ComputerName -Credential $Credential -ScriptBlock $scriptBlock -ArgumentList @($filterHash, $MaxEvents) -ErrorAction Stop
@@ -168,6 +187,17 @@ function script:ConvertTo-AppLockerEventRecord {
 
     $classification = Get-AppLockerEventClassification -EventId $Event.Id
 
+    $rawXml = ''
+    try {
+        if ($Event -is [System.Diagnostics.Eventing.Reader.EventLogRecord]) {
+            $rawXml = $Event.ToXml()
+        }
+        elseif ($Event.PSObject.Properties.Name -contains 'RawXml') {
+            $rawXml = [string]$Event.RawXml
+        }
+    }
+    catch { }
+
     return [PSCustomObject]@{
         ComputerName    = $ComputerName
         LogName         = $Event.LogName
@@ -182,6 +212,7 @@ function script:ConvertTo-AppLockerEventRecord {
         EnforcementMode = $classification.EnforcementMode
         IsBlocked       = $classification.IsBlocked
         IsAudit         = $classification.IsAudit
+        RawXml          = $rawXml
     }
 }
 
