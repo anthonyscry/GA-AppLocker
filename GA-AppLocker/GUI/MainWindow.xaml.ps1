@@ -47,6 +47,7 @@ if (Test-Path "$scriptPath\Wizards\RuleGenerationWizard.ps1") {
 . "$scriptPath\Panels\Policy.ps1"
 . "$scriptPath\Panels\Deploy.ps1"
 . "$scriptPath\Panels\Software.ps1"
+. "$scriptPath\Panels\EventViewer.ps1"
 . "$scriptPath\Panels\Setup.ps1"
 #endregion
 
@@ -98,6 +99,7 @@ function global:Invoke-ButtonAction {
         'NavRules' { Set-ActivePanel -PanelName 'PanelRules' }
         'NavPolicy' { Set-ActivePanel -PanelName 'PanelPolicy' }
         'NavDeploy' { Set-ActivePanel -PanelName 'PanelDeploy' }
+        'NavEventViewer' { Set-ActivePanel -PanelName 'PanelEventViewer' }
         'NavSoftware' { Set-ActivePanel -PanelName 'PanelSoftware' }
         'NavSettings' { Set-ActivePanel -PanelName 'PanelSettings' }
         'NavSetup' { Set-ActivePanel -PanelName 'PanelSetup' }
@@ -257,6 +259,7 @@ function global:Set-ActivePanel {
         'PanelRules',
         'PanelPolicy',
         'PanelDeploy',
+        'PanelEventViewer',
         'PanelSoftware',
         'PanelSettings',
         'PanelSetup',
@@ -271,6 +274,7 @@ function global:Set-ActivePanel {
         'NavRules'     = 'PanelRules'
         'NavPolicy'    = 'PanelPolicy'
         'NavDeploy'    = 'PanelDeploy'
+        'NavEventViewer' = 'PanelEventViewer'
         'NavSoftware'  = 'PanelSoftware'
         'NavSettings'  = 'PanelSettings'
         'NavSetup'     = 'PanelSetup'
@@ -654,6 +658,9 @@ function Initialize-Navigation {
     $btn = $Window.FindName('NavDeploy')
     if ($btn) { $btn.Add_Click({ Invoke-ButtonAction -Action 'NavDeploy' }) }
 
+    $btn = $Window.FindName('NavEventViewer')
+    if ($btn) { $btn.Add_Click({ Invoke-ButtonAction -Action 'NavEventViewer' }) }
+
     $btn = $Window.FindName('NavSoftware')
     if ($btn) { $btn.Add_Click({ Invoke-ButtonAction -Action 'NavSoftware' }) }
 
@@ -692,6 +699,7 @@ function Initialize-Navigation {
                     $win.FindName('NavRulesText').Visibility = 'Collapsed'
                     $win.FindName('NavPolicyText').Visibility = 'Collapsed'
                     $win.FindName('NavDeployText').Visibility = 'Collapsed'
+                    $win.FindName('NavEventViewerText').Visibility = 'Collapsed'
                     $win.FindName('NavSoftwareText').Visibility = 'Collapsed'
                     $win.FindName('NavSettingsText').Visibility = 'Collapsed'
                     $win.FindName('NavSetupText').Visibility = 'Collapsed'
@@ -724,6 +732,7 @@ function Initialize-Navigation {
                     $win.FindName('NavRulesText').Visibility = 'Visible'
                     $win.FindName('NavPolicyText').Visibility = 'Visible'
                     $win.FindName('NavDeployText').Visibility = 'Visible'
+                    $win.FindName('NavEventViewerText').Visibility = 'Visible'
                     $win.FindName('NavSoftwareText').Visibility = 'Visible'
                     $win.FindName('NavSettingsText').Visibility = 'Visible'
                     $win.FindName('NavSetupText').Visibility = 'Visible'
@@ -873,6 +882,15 @@ public static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int va
     }
     catch {
         Write-Log -Level Error -Message "Software panel init failed: $($_.Exception.Message)"
+    }
+
+    # Initialize Event Viewer panel
+    try {
+        Initialize-EventViewerPanel -Window $Window
+        Write-Log -Message 'Event Viewer panel initialized'
+    }
+    catch {
+        Write-Log -Level Error -Message "Event Viewer panel init failed: $($_.Exception.Message)"
     }
 
     # Initialize Setup panel (Settings > Setup tab)
