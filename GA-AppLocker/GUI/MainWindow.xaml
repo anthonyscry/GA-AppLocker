@@ -512,6 +512,14 @@ Width="1450"
                             <TextBlock x:Name="NavDeployText" Text="Deployment" Margin="8,0,0,0"/>
                         </StackPanel>
                     </Button>
+                    <Button x:Name="NavEventViewer"
+                            Style="{StaticResource NavButtonStyle}"
+                            AutomationProperties.Name="Event Viewer">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#x1F4DC;" FontSize="16" Width="24"/>
+                            <TextBlock x:Name="NavEventViewerText" Text="Event Viewer" Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </Button>
 
                     <Separator x:Name="NavSeparator" Margin="15,20" Background="#3E3E42"/>
 
@@ -3314,6 +3322,135 @@ Width="1450"
                                            Foreground="{StaticResource ForegroundBrush}" FontWeight="SemiBold" VerticalAlignment="Center"/>
                                 <TextBlock Text=" machine(s)" Foreground="{StaticResource MutedBrush}" FontSize="11" VerticalAlignment="Center"/>
                             </StackPanel>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <!-- Event Viewer Panel -->
+                <Grid x:Name="PanelEventViewer" Visibility="Collapsed">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="2*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0"
+                               Text="Event Viewer"
+                               Style="{StaticResource HeaderStyle}"/>
+
+                    <Border Grid.Row="1"
+                            Background="{StaticResource SidebarBrush}"
+                            CornerRadius="8"
+                            Padding="15"
+                            Margin="0,0,0,10">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*"/>
+                                <ColumnDefinition Width="2*"/>
+                                <ColumnDefinition Width="1*"/>
+                                <ColumnDefinition Width="2*"/>
+                                <ColumnDefinition Width="2*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Start Time" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,0,0,5"/>
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="End Time" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,0,0,5"/>
+                            <TextBlock Grid.Row="0" Grid.Column="2" Text="Max Events" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,0,0,5"/>
+                            <TextBlock Grid.Row="0" Grid.Column="3" Text="Target Scope" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,0,0,5"/>
+                            <TextBlock Grid.Row="0" Grid.Column="4" Text="Remote Hosts" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,0,0,5"/>
+
+                            <DatePicker x:Name="DpEventViewerStartTime" Grid.Row="1" Grid.Column="0" Margin="0,0,10,8"/>
+                            <DatePicker x:Name="DpEventViewerEndTime" Grid.Row="1" Grid.Column="1" Margin="0,0,10,8"/>
+                            <TextBox x:Name="TxtEventViewerMaxEvents" Grid.Row="1" Grid.Column="2" Margin="0,0,10,8" Padding="6,4" Text="500" Background="#1E1E1E" Foreground="{StaticResource ForegroundBrush}" BorderBrush="#3E3E42"/>
+                            <ComboBox x:Name="CboEventViewerTargetScope" Grid.Row="1" Grid.Column="3" Margin="0,0,10,8" SelectedIndex="0" Background="#1E1E1E" Foreground="{StaticResource ForegroundBrush}" BorderBrush="#3E3E42">
+                                <ComboBoxItem Content="Local Machine" Tag="Local"/>
+                                <ComboBoxItem Content="Remote Machines" Tag="Remote"/>
+                            </ComboBox>
+                            <TextBox x:Name="TxtEventViewerRemoteHosts" Grid.Row="1" Grid.Column="4" Margin="0,0,0,8" Padding="6,4" Text="" Background="#1E1E1E" Foreground="{StaticResource ForegroundBrush}" BorderBrush="#3E3E42" ToolTip="Comma-separated host names for bounded remote retrieval"/>
+
+                            <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="5" Orientation="Horizontal" Margin="0,4,0,0">
+                                <TextBlock x:Name="TxtEventViewerQuerySummary" Text="Query window pending. Set start/end and run retrieval." Foreground="{StaticResource MutedBrush}" FontSize="11" VerticalAlignment="Center"/>
+                                <TextBlock Text="   " />
+                                <Button x:Name="BtnEventViewerRunQuery" Content="Run Query" Style="{StaticResource PrimaryButtonStyle}" Width="110" Margin="6,0,0,0"/>
+                                <Button x:Name="BtnEventViewerClearResults" Content="Clear" Style="{StaticResource ButtonStyle}" Width="80" Margin="8,0,0,0"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Row="2"
+                            Background="{StaticResource SidebarBrush}"
+                            CornerRadius="8"
+                            Padding="12"
+                            Margin="0,0,0,10">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Text="Host Status" Foreground="{StaticResource MutedBrush}" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,8"/>
+
+                            <DataGrid x:Name="EventViewerHostStatusGrid" Grid.Row="1"
+                                      Style="{StaticResource DataGridStyle}"
+                                      AutoGenerateColumns="False"
+                                      IsReadOnly="True"
+                                      CanUserAddRows="False"
+                                      CanUserDeleteRows="False"
+                                      Height="160">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Host" Binding="{Binding HostName}" Width="*"/>
+                                    <DataGridTextColumn Header="Transport" Binding="{Binding Transport}" Width="120"/>
+                                    <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="120"/>
+                                    <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="2*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Row="3"
+                            Background="{StaticResource SidebarBrush}"
+                            CornerRadius="8"
+                            Padding="12">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <DockPanel Grid.Row="0" Margin="0,0,0,8">
+                                <TextBlock DockPanel.Dock="Left" Text="Event Results" Foreground="{StaticResource MutedBrush}" FontSize="11" FontWeight="SemiBold"/>
+                                <TextBlock DockPanel.Dock="Right" x:Name="TxtEventViewerResultCount" Text="0 events" Foreground="{StaticResource ForegroundBrush}" FontSize="11" FontWeight="SemiBold"/>
+                            </DockPanel>
+
+                            <Grid Grid.Row="1">
+                                <DataGrid x:Name="EventViewerResultsGrid"
+                                          Style="{StaticResource DataGridStyle}"
+                                          AutoGenerateColumns="False"
+                                          IsReadOnly="True"
+                                          CanUserAddRows="False"
+                                          CanUserDeleteRows="False">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Time" Binding="{Binding TimeCreated}" Width="170"/>
+                                        <DataGridTextColumn Header="Host" Binding="{Binding ComputerName}" Width="140"/>
+                                        <DataGridTextColumn Header="Event" Binding="{Binding EventId}" Width="90"/>
+                                        <DataGridTextColumn Header="Collection" Binding="{Binding CollectionType}" Width="90"/>
+                                        <DataGridTextColumn Header="Path" Binding="{Binding FilePath}" Width="*"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+
+                                <TextBlock x:Name="TxtEventViewerEmpty"
+                                           Text="No events loaded. Run a bounded query to populate results."
+                                           Foreground="{StaticResource MutedBrush}"
+                                           FontSize="12"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           IsHitTestVisible="False"/>
+                            </Grid>
                         </Grid>
                     </Border>
                 </Grid>
