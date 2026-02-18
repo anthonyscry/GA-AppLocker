@@ -19,8 +19,8 @@
 
 ### Event Inspection
 
-- [ ] **DET-01**: Operator can inspect normalized event details for a selected row (file identity, collection, user, machine, and action context).
-- [ ] **DET-02**: Operator can view raw event XML/message for forensic verification before taking action.
+- [x] **DET-01**: Operator can inspect normalized event details for a selected row (file identity, collection, user, machine, and action context).
+- [x] **DET-02**: Operator can view raw event XML/message for forensic verification before taking action.
 
 ### Rule Generation
 
@@ -72,8 +72,8 @@ Deferred capabilities captured during scoping and research:
 | FLT-01 | Phase 8 | Complete |
 | FLT-02 | Phase 8 | Complete |
 | FLT-03 | Phase 8 | Complete |
-| DET-01 | Phase 8 | Pending |
-| DET-02 | Phase 8 | Pending |
+| DET-01 | Phase 8 | Complete |
+| DET-02 | Phase 8 | Complete |
 | GEN-01 | Phase 9 | Pending |
 | GEN-02 | Phase 9 | Pending |
 | GEN-03 | Phase 9 | Pending |

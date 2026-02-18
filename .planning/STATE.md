@@ -5,35 +5,35 @@
 See: `.planning/PROJECT.md` (updated 2026-02-17)
 
 **Core value:** Reliable, operator-friendly policy management that stays responsive on large enterprise datasets
-**Current focus:** Milestone v1.2.88 Event Viewer Rule Workbench (Phase 8 filter data model complete)
+**Current focus:** Milestone v1.2.88 Event Viewer Rule Workbench (Phase 8 complete - filter/inspect UI shipped)
 
 ## Current Position
 
 Phase: 8 of 9 (Event Triage and Inspection Workbench)
-Plan: 01 of 02
-Status: In Progress
-Last activity: 2026-02-18 - Completed 08-01 event data pipeline enrichment and filter extension
+Plan: 02 of 02 (Phase Complete)
+Status: Phase Complete - Ready for Phase 9
+Last activity: 2026-02-18 - Completed 08-02 filter controls, detail pane, and SelectionChanged wiring
 
-Progress: ████████░░ 80%
+Progress: █████████░ 90%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3 (v1.2.88)
+- Total plans completed: 4 (v1.2.88)
 - Average duration: 5 min
-- Total execution time: 0.23 hours
+- Total execution time: 0.40 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 7. Event Ingestion and Bounded Retrieval | 3 | 14m | 5m |
-| 8. Event Triage and Inspection Workbench | 1 | 3m | 3m |
+| 8. Event Triage and Inspection Workbench | 2 | 8m | 4m |
 | 9. Rule Generation from Event Selections | 0 | 0m | - |
 
 **Recent Trend:**
-- Last 5 plans: Phase 08 P01 (3 min), Phase 07 P03 (6 min), Phase 07 P02 (2 min), Phase 07 P01 (6 min)
-- Trend: Phase 8 started, data pipeline enrichment complete in 3 min
+- Last 5 plans: Phase 08 P02 (5 min), Phase 08 P01 (3 min), Phase 07 P03 (6 min), Phase 07 P02 (2 min), Phase 07 P01 (6 min)
+- Trend: Phase 8 complete - filter/inspect workbench fully operational
 
 ## Accumulated Context
 
@@ -55,6 +55,9 @@ Recent decisions affecting current work:
 - [Phase 08-01]: Comma-operator return (,$working) used in Get-FilteredEventViewerRows to preserve single-element array integrity across PS 5.1 pipeline boundary
 - [Phase 08-01]: Remote Invoke-Command scriptblock updated to pre-serialize RawXml as a PSCustomObject field before deserialization strips EventLogRecord methods
 - [Phase 08-01]: All dimension filter parameters in Get-FilteredEventViewerRows default to no-op (EventIdFilter=@(), others='') so all existing callers work without modification
+- [Phase 08-02]: Comma-operator return (,\$emptyResult typed as int[]) required in Get-EventViewerActiveEventIdFilter to prevent PS 5.1 empty-array unwrap to null at function boundary
+- [Phase 08-02]: EventIdFilter null guard uses Where-Object { \$null -ne \$_ } before Count to treat null input as no-op (identical to @())
+- [Phase 08-02]: Variable \$host renamed to \$hostControl in Update-EventViewerDetailPane - \$host is a read-only PS automatic variable; using it as a local causes SessionStateUnauthorizedAccessException
 
 ### Pending Todos
 
@@ -68,5 +71,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-18
-Stopped at: Completed 08-01-PLAN.md
+Stopped at: Completed 08-02-PLAN.md (Phase 8 complete)
 Resume file: None
