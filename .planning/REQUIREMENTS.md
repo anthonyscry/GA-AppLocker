@@ -1,73 +1,89 @@
-# Requirements: GA-AppLocker v1.2.87 Performance
+# Requirements: GA-AppLocker v1.2.88 Event Viewer Rule Workbench
 
 **Defined:** 2026-02-17
 **Core Value:** Reliable, operator-friendly policy management that stays responsive on large enterprise datasets
 
 ## v1 Requirements
 
-### Index Reliability
+### Event Ingestion
 
-- [ ] **IDX-01**: Operator can rely on a single canonical index-write path that commits atomically with rollback-safe backup behavior.
-- [ ] **IDX-02**: Operator can start the app and receive deterministic index integrity validation with safe repair or rebuild actions when corruption or drift is detected.
-- [ ] **IDX-03**: Operator can use the app without index watcher rebuild loops causing stale or noisy index state changes.
+- [ ] **EVT-01**: Operator can open Event Viewer and load AppLocker events from the local machine.
+- [ ] **EVT-02**: Operator can load AppLocker events from selected remote machines and see per-host success/failure status.
+- [ ] **EVT-03**: Operator can run bounded event queries (time window and result cap) to avoid unbounded retrieval.
 
-### UI Performance
+### Filtering and Search
 
-- [ ] **PERF-01**: Operator can transition between core panels (Dashboard, Rules, Policy, Deploy) in under 500ms on warm navigation with large datasets.
-- [ ] **PERF-02**: Operator can view Rules/Policy data through projection-first reads that avoid full payload hydration on initial load.
+- [ ] **FLT-01**: Operator can filter events by AppLocker event code.
+- [ ] **FLT-02**: Operator can filter events by key metadata (host, user, action/outcome, and time range).
+- [ ] **FLT-03**: Operator can use a search bar to find events by path, signer, hash, message text, or host/user text.
 
-### Workflow Safety
+### Event Inspection
 
-- [ ] **FLOW-01**: Operator retains stable selection, filter, and action behavior after reliability/performance changes (no workflow regressions).
+- [ ] **DET-01**: Operator can inspect normalized event details for a selected row (file identity, collection, user, machine, and action context).
+- [ ] **DET-02**: Operator can view raw event XML/message for forensic verification before taking action.
 
-### Observability
+### Rule Generation
 
-- [ ] **OBS-01**: Operator and maintainer can record and review panel/filter latency instrumentation to verify performance targets.
+- [ ] **GEN-01**: Operator can generate a single AppLocker rule from one selected event.
+- [ ] **GEN-02**: Operator can generate rules from multiple selected events in one bulk action.
+- [ ] **GEN-03**: Operator can review deduplicated bulk candidates with frequency counts before creation.
+- [ ] **GEN-04**: Operator can create event-derived rules through the existing rules pipeline without bypassing standard review workflow.
 
 ## Future Requirements
 
-Deferred features captured during milestone scoping and research:
+Deferred capabilities captured during scoping and research:
 
-### UI Throughput Enhancements
+### Event-Driven Exceptions
 
-- **PERF-03**: Operator can use debounced filtering and virtualization-tuned large-grid rendering across all high-volume panels.
-- **PERF-04**: Operator can use fully async panel hydration paths that move all heavy preparation work off STA thread.
+- **EXC-01**: Operator can create scoped rule exceptions directly from selected event context.
 
-### Workflow and Trust UX
+### Event Enrichment
 
-- **FLOW-02**: Operator receives explicit status/toast feedback for all index repair/rebuild outcomes.
-- **FLOW-03**: Operator can enable a safe fallback switch to legacy read paths during staged rollout.
+- **ENR-01**: Operator can enrich selected events with targeted artifact scanning when signer/hash metadata is incomplete.
 
-### Diagnostics UX
+### Guided Authoring
 
-- **OBS-02**: Operator can use an Index Health Center for freshness, drift, and recovery actions.
-- **OBS-03**: Operator can view SLO status badges for latency compliance at panel level.
+- **REC-01**: Operator receives guided bulk strategy recommendations (for example publisher-first vs hash fallback) before committing generated rules.
+
+### Filter Workflow Enhancements
+
+- **FLT-04**: Operator can save and re-apply named filter presets for recurring triage workflows.
+
+### Advanced Safety Analytics
+
+- **RISK-01**: Operator can preview likely impact/blast radius of generated rules before policy promotion.
 
 ## Out of Scope
 
 | Feature | Reason |
 | --- | --- |
-| New release automation features | v1.2.86 already shipped release tooling baseline; this milestone is runtime UX/index reliability only |
-| New product modules unrelated to rules index/performance | Avoids scope dilution before core responsiveness target is met |
-| Runtime/storage platform re-architecture (for example SQLite migration) | Unnecessary risk and compatibility impact for PS 5.1 milestone goals |
+| Full SIEM replacement inside GA-AppLocker | Scope explosion beyond milestone intent; this milestone focuses on event-to-rule operations |
+| Auto-create and auto-approve rules from all events | Unsafe in secure environments and bypasses operator review controls |
+| Unbounded cross-forest remote event crawling | High reliability/auth complexity and not required for v1 milestone outcomes |
+| Real-time streaming event UI without bounded refresh windows | Increases UI churn and risk to responsiveness in PS 5.1 WPF workloads |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 | --- | --- | --- |
-| IDX-01 | Phase 7 | Pending |
-| IDX-02 | Phase 8 | Pending |
-| IDX-03 | Phase 8 | Pending |
-| PERF-01 | Phase 9 | Pending |
-| PERF-02 | Phase 9 | Pending |
-| FLOW-01 | Phase 10 | Pending |
-| OBS-01 | Phase 9 | Pending |
+| EVT-01 | TBD | Pending |
+| EVT-02 | TBD | Pending |
+| EVT-03 | TBD | Pending |
+| FLT-01 | TBD | Pending |
+| FLT-02 | TBD | Pending |
+| FLT-03 | TBD | Pending |
+| DET-01 | TBD | Pending |
+| DET-02 | TBD | Pending |
+| GEN-01 | TBD | Pending |
+| GEN-02 | TBD | Pending |
+| GEN-03 | TBD | Pending |
+| GEN-04 | TBD | Pending |
 
 **Coverage:**
-- v1 requirements: 7 total
-- Mapped to phases: 7
-- Unmapped: 0
+- v1 requirements: 12 total
+- Mapped to phases: 0
+- Unmapped: 12 ⚠️
 
 ---
 *Requirements defined: 2026-02-17*
-*Last updated: 2026-02-17 after roadmap phase mapping for milestone v1.2.87*
+*Last updated: 2026-02-17 after initial definition for milestone v1.2.88*
