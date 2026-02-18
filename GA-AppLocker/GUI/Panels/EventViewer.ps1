@@ -277,6 +277,166 @@ function global:Get-EventViewerSearchText {
     return [string]$searchControl.Text
 }
 
+function global:Get-EventViewerActiveEventIdFilter {
+    param($Window)
+
+    $emptyResult = [int[]]@()
+
+    if (-not $Window) { return ,$emptyResult }
+
+    $combo = $Window.FindName('CboEventViewerEventCodeFilter')
+    if (-not $combo) { return ,$emptyResult }
+
+    $selected = $combo.SelectedItem
+    if (-not $selected) { return ,$emptyResult }
+
+    $tag = $null
+    if ($selected.PSObject.Properties.Name -contains 'Tag') {
+        $tag = [string]$selected.Tag
+    }
+    elseif ($selected -is [string]) {
+        $tag = $selected
+    }
+
+    if ([string]::IsNullOrWhiteSpace($tag) -or $tag -eq 'All') {
+        return ,$emptyResult
+    }
+
+    $ids = [System.Collections.Generic.List[int]]::new()
+    foreach ($token in ($tag -split ',')) {
+        $trimmed = $token.Trim()
+        $parsed = 0
+        if ([int]::TryParse($trimmed, [ref]$parsed) -and $parsed -gt 0) {
+            [void]$ids.Add($parsed)
+        }
+    }
+
+    return ,([int[]]@($ids))
+}
+
+function global:Get-EventViewerActiveActionFilter {
+    param($Window)
+
+    if (-not $Window) { return '' }
+
+    $combo = $Window.FindName('CboEventViewerActionFilter')
+    if (-not $combo) { return '' }
+
+    $selected = $combo.SelectedItem
+    if (-not $selected) { return '' }
+
+    $tag = $null
+    if ($selected.PSObject.Properties.Name -contains 'Tag') {
+        $tag = [string]$selected.Tag
+    }
+    elseif ($selected -is [string]) {
+        $tag = $selected
+    }
+
+    if ([string]::IsNullOrWhiteSpace($tag)) {
+        return ''
+    }
+
+    return $tag.Trim()
+}
+
+function global:Get-EventViewerActiveHostFilter {
+    param($Window)
+
+    if (-not $Window) { return '' }
+
+    $control = $Window.FindName('TxtEventViewerHostFilter')
+    if (-not $control) { return '' }
+
+    $text = [string]$control.Text
+    return $text.Trim()
+}
+
+function global:Get-EventViewerActiveUserFilter {
+    param($Window)
+
+    if (-not $Window) { return '' }
+
+    $control = $Window.FindName('TxtEventViewerUserFilter')
+    if (-not $control) { return '' }
+
+    $text = [string]$control.Text
+    return $text.Trim()
+}
+
+function global:Update-EventViewerDetailPane {
+    param(
+        $Window,
+        $Row
+    )
+
+    if (-not $Window) { return }
+
+    $detailPane = $Window.FindName('PnlEventViewerDetail')
+
+    if (-not $Row) {
+        if ($detailPane) { $detailPane.Visibility = 'Collapsed' }
+        return
+    }
+
+    if ($detailPane) { $detailPane.Visibility = 'Visible' }
+
+    $filePathControl    = $Window.FindName('TxtDetailFilePath')
+    $eventTypeControl   = $Window.FindName('TxtDetailEventType')
+    $collectionControl  = $Window.FindName('TxtDetailCollection')
+    $userControl        = $Window.FindName('TxtDetailUser')
+    $hostControl        = $Window.FindName('TxtDetailHost')
+    $actionControl      = $Window.FindName('TxtDetailAction')
+    $enforcementControl = $Window.FindName('TxtDetailEnforcement')
+    $timeControl        = $Window.FindName('TxtDetailTime')
+    $messageControl     = $Window.FindName('TxtDetailMessage')
+    $rawXmlControl      = $Window.FindName('TxtDetailRawXml')
+
+    if ($filePathControl) {
+        $filePathControl.Text = if ($Row.PSObject.Properties.Name -contains 'FilePath') { [string]$Row.FilePath } else { '' }
+    }
+
+    if ($eventTypeControl) {
+        $eventTypeControl.Text = if ($Row.PSObject.Properties.Name -contains 'EventType') { [string]$Row.EventType } else { '' }
+    }
+
+    if ($collectionControl) {
+        $collectionControl.Text = if ($Row.PSObject.Properties.Name -contains 'CollectionType') { [string]$Row.CollectionType } else { '' }
+    }
+
+    if ($userControl) {
+        $userControl.Text = if ($Row.PSObject.Properties.Name -contains 'UserSid') { [string]$Row.UserSid } else { '' }
+    }
+
+    if ($hostControl) {
+        $hostControl.Text = if ($Row.PSObject.Properties.Name -contains 'ComputerName') { [string]$Row.ComputerName } else { '' }
+    }
+
+    if ($actionControl) {
+        $actionControl.Text = if ($Row.PSObject.Properties.Name -contains 'Action') { [string]$Row.Action } else { '' }
+    }
+
+    if ($enforcementControl) {
+        $enforcementControl.Text = if ($Row.PSObject.Properties.Name -contains 'EnforcementMode') { [string]$Row.EnforcementMode } else { '' }
+    }
+
+    if ($timeControl) {
+        $timeValue = if ($Row.PSObject.Properties.Name -contains 'TimeCreated' -and $Row.TimeCreated) { $Row.TimeCreated } else { $null }
+        $timeControl.Text = if ($timeValue) {
+            try { ([datetime]$timeValue).ToString('yyyy-MM-dd HH:mm:ss') } catch { [string]$timeValue }
+        } else { '' }
+    }
+
+    if ($messageControl) {
+        $messageControl.Text = if ($Row.PSObject.Properties.Name -contains 'Message') { [string]$Row.Message } else { '' }
+    }
+
+    if ($rawXmlControl) {
+        $rawXmlValue = if ($Row.PSObject.Properties.Name -contains 'RawXml') { [string]$Row.RawXml } else { '' }
+        $rawXmlControl.Text = if ([string]::IsNullOrWhiteSpace($rawXmlValue)) { '(not available for remote events)' } else { $rawXmlValue }
+    }
+}
+
 function global:Get-EventViewerCollectionTypeFromRow {
     param($Row)
 
@@ -369,7 +529,7 @@ function global:Get-FilteredEventViewerRows {
     $working = @($Rows)
 
     # FLT-01: event-code filter -- keep only rows whose EventId is in the set
-    if (@($EventIdFilter).Count -gt 0) {
+    if ($null -ne $EventIdFilter -and @($EventIdFilter | Where-Object { $null -ne $_ }).Count -gt 0) {
         $filterSet = [System.Collections.Generic.HashSet[int]]::new()
         foreach ($id in @($EventIdFilter)) { [void]$filterSet.Add($id) }
         $pass = [System.Collections.Generic.List[PSCustomObject]]::new()
@@ -555,8 +715,12 @@ function global:Update-EventViewerResultBindings {
     $topFileControl = $Window.FindName('TxtEventViewerTopFile')
     $topCountControl = $Window.FindName('TxtEventViewerTopFileCount')
 
-    $searchText = Get-EventViewerSearchText -Window $Window
-    $filteredRows = Get-FilteredEventViewerRows -Rows @($EventRows) -SearchText $searchText
+    $searchText  = Get-EventViewerSearchText -Window $Window
+    $eventIdFilter = Get-EventViewerActiveEventIdFilter -Window $Window
+    $actionFilter  = Get-EventViewerActiveActionFilter -Window $Window
+    $hostFilter    = Get-EventViewerActiveHostFilter -Window $Window
+    $userFilter    = Get-EventViewerActiveUserFilter -Window $Window
+    $filteredRows = Get-FilteredEventViewerRows -Rows @($EventRows) -SearchText $searchText -EventIdFilter $eventIdFilter -ActionFilter $actionFilter -HostFilter $hostFilter -UserFilter $userFilter
 
     if ($eventsGrid) {
         $eventsGrid.ItemsSource = @($filteredRows)
@@ -1353,6 +1517,53 @@ function Initialize-EventViewerPanel {
                 $win = if ($global:GA_MainWindow) { $global:GA_MainWindow } else { $Window }
                 if (-not $win) { return }
                 Update-EventViewerResultBindings -Window $win -EventRows @($script:EventViewerResults)
+            })
+    }
+
+    $eventCodeFilter = $Window.FindName('CboEventViewerEventCodeFilter')
+    $actionFilter    = $Window.FindName('CboEventViewerActionFilter')
+    $hostFilter      = $Window.FindName('TxtEventViewerHostFilter')
+    $userFilter      = $Window.FindName('TxtEventViewerUserFilter')
+
+    if ($eventCodeFilter) {
+        $eventCodeFilter.Add_SelectionChanged({
+                $win = if ($global:GA_MainWindow) { $global:GA_MainWindow } else { $Window }
+                if (-not $win) { return }
+                Update-EventViewerResultBindings -Window $win -EventRows @($script:EventViewerResults)
+            })
+    }
+
+    if ($actionFilter) {
+        $actionFilter.Add_SelectionChanged({
+                $win = if ($global:GA_MainWindow) { $global:GA_MainWindow } else { $Window }
+                if (-not $win) { return }
+                Update-EventViewerResultBindings -Window $win -EventRows @($script:EventViewerResults)
+            })
+    }
+
+    if ($hostFilter) {
+        $hostFilter.Add_TextChanged({
+                $win = if ($global:GA_MainWindow) { $global:GA_MainWindow } else { $Window }
+                if (-not $win) { return }
+                Update-EventViewerResultBindings -Window $win -EventRows @($script:EventViewerResults)
+            })
+    }
+
+    if ($userFilter) {
+        $userFilter.Add_TextChanged({
+                $win = if ($global:GA_MainWindow) { $global:GA_MainWindow } else { $Window }
+                if (-not $win) { return }
+                Update-EventViewerResultBindings -Window $win -EventRows @($script:EventViewerResults)
+            })
+    }
+
+    if ($resultsGrid) {
+        $resultsGrid.Add_SelectionChanged({
+                $win = if ($global:GA_MainWindow) { $global:GA_MainWindow } else { $Window }
+                if (-not $win) { return }
+                $grid = Get-EventViewerEventsGrid -Window $win
+                $selectedRow = if ($grid) { $grid.SelectedItem } else { $null }
+                Update-EventViewerDetailPane -Window $win -Row $selectedRow
             })
     }
 
