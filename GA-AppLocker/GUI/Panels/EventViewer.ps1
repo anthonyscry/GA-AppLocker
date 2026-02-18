@@ -13,7 +13,7 @@ $script:EventViewerQueryState = @{
 $script:EventViewerResults = @()
 $script:EventViewerHostStatus = @()
 
-function script:Show-EventViewerToast {
+function global:Show-EventViewerToast {
     param(
         [string]$Message,
         [string]$Type = 'Info'
@@ -215,7 +215,7 @@ function script:Test-EventViewerQueryInputs {
     return $result
 }
 
-function script:Get-EventViewerHostStatusGrid {
+function global:Get-EventViewerHostStatusGrid {
     param($Window)
 
     if (-not $Window) { return $null }
@@ -226,7 +226,7 @@ function script:Get-EventViewerHostStatusGrid {
     return $Window.FindName('EventViewerHostStatusGrid')
 }
 
-function script:Get-EventViewerEventsGrid {
+function global:Get-EventViewerEventsGrid {
     param($Window)
 
     if (-not $Window) { return $null }
@@ -237,7 +237,7 @@ function script:Get-EventViewerEventsGrid {
     return $Window.FindName('EventViewerResultsGrid')
 }
 
-function script:ConvertTo-EventViewerHostStatusRows {
+function global:ConvertTo-EventViewerHostStatusRows {
     param(
         [Parameter()]
         [PSCustomObject[]]$Envelopes
@@ -275,7 +275,7 @@ function script:ConvertTo-EventViewerHostStatusRows {
     return @($rows)
 }
 
-function script:ConvertTo-EventViewerRows {
+function global:ConvertTo-EventViewerRows {
     param(
         [Parameter()]
         [PSCustomObject[]]$Envelopes
@@ -320,7 +320,7 @@ function script:ConvertTo-EventViewerRows {
     return $sortedRows
 }
 
-function script:Set-EventViewerLoadingState {
+function global:Set-EventViewerLoadingState {
     param(
         $Window,
         [bool]$IsLoading

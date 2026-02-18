@@ -23,8 +23,8 @@ Describe 'Event Viewer panel shell in MainWindow XAML' {
         $xaml | Should -Match 'x:Name="TxtEventViewerMaxEvents"'
         $xaml | Should -Match 'x:Name="CboEventViewerTargetScope"'
         $xaml | Should -Match 'x:Name="TxtEventViewerRemoteHosts"'
-        $xaml | Should -Match 'x:Name="EventViewerHostStatusGrid"'
-        $xaml | Should -Match 'x:Name="EventViewerResultsGrid"'
+        $xaml | Should -Match 'x:Name="EventViewerHostStatusDataGrid"'
+        $xaml | Should -Match 'x:Name="EventViewerEventsDataGrid"'
         $xaml | Should -Match 'x:Name="TxtEventViewerEmpty"'
     }
 }
@@ -88,7 +88,7 @@ Describe 'Initialize-EventViewerPanel shell behavior' {
         @($resultsGrid.ItemsSource).Count | Should -Be 0
         $resultCount.Text | Should -Be '0 events'
         $empty.Visibility | Should -Be 'Visible'
-        $btnRun.IsEnabled | Should -BeFalse
-        $btnRun.ToolTip | Should -Match 'EVT-02'
+        $btnRun.IsEnabled | Should -BeTrue
+        $btnRun.ToolTip | Should -Match 'Run bounded AppLocker event retrieval'
     }
 }
