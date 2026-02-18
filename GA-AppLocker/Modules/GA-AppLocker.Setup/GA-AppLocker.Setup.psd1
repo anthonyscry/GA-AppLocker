@@ -12,7 +12,7 @@
 RootModule = 'GA-AppLocker.Setup.psm1'
 
 # Version number of this module.
-ModuleVersion = '1.2.84'
+ModuleVersion = '1.2.88'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
