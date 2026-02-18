@@ -821,36 +821,89 @@ function script:Get-EventViewerRuleDefaults {
     $targetSid = 'S-1-5-11'
 
     if ($Window) {
-        $rbAllow = $Window.FindName('RbRuleAllow')
-        if ($rbAllow -and $rbAllow.IsChecked -eq $false) {
+        $rbDeny = $Window.FindName('RbEvtRuleDeny')
+        if ($rbDeny -and $rbDeny.PSObject.Properties.Name -contains 'IsChecked' -and $rbDeny.IsChecked -eq $true) {
             $action = 'Deny'
         }
 
-        $targetCombo = $Window.FindName('CboRuleTargetGroup')
-        if ($targetCombo -and $targetCombo.SelectedItem -and $targetCombo.SelectedItem.Tag) {
-            $selectedSid = [string]$targetCombo.SelectedItem.Tag
-            if (-not [string]::IsNullOrWhiteSpace($selectedSid)) {
-                $targetSid = $selectedSid
+        $targetCombo = $Window.FindName('CboEvtRuleTargetGroup')
+        if ($targetCombo -and $targetCombo.SelectedItem) {
+            $selectedItem = $targetCombo.SelectedItem
+            $selectedTag = $null
+            if ($selectedItem.PSObject.Properties.Name -contains 'Tag') {
+                $selectedTag = [string]$selectedItem.Tag
+            }
+            if (-not [string]::IsNullOrWhiteSpace($selectedTag)) {
+                $targetSid = $selectedTag
             }
         }
     }
 
     return [PSCustomObject]@{
-        Action = $action
+        Action    = $action
         TargetSid = $targetSid
-        Status = 'Pending'
+        Status    = 'Pending'
     }
 }
 
 function script:Confirm-EventViewerRuleGeneration {
     param(
         [string]$Mode,
-        [int]$Count,
+        [PSCustomObject[]]$Candidates,
         [string]$Action,
         [string]$TargetSid
     )
 
-    $message = "Create $Count AppLocker rule candidate(s) from Event Viewer selection?`n`nMode: $Mode`nAction: $Action`nTarget: $TargetSid`nStatus: Pending`n`nContinue?"
+    $count = @($Candidates).Count
+
+    # Build frequency-annotated candidate summary from $script:EventViewerFileMetrics
+    $metricsLookup = @{}
+    foreach ($metric in @($script:EventViewerFileMetrics)) {
+        if (-not $metric) { continue }
+        $fp = if ($metric.PSObject.Properties.Name -contains 'FilePath') { [string]$metric.FilePath } else { '' }
+        if (-not [string]::IsNullOrWhiteSpace($fp)) {
+            $metricsLookup[$fp.ToLowerInvariant()] = $metric
+        }
+    }
+
+    $candidateLines = [System.Collections.Generic.List[string]]::new()
+    $displayLimit = 10
+    $displayedCount = 0
+
+    foreach ($candidate in @($Candidates)) {
+        if (-not $candidate) { continue }
+        if ($displayedCount -ge $displayLimit) { break }
+
+        $filePath = if ($candidate.PSObject.Properties.Name -contains 'FilePath') { [string]$candidate.FilePath } else { '' }
+        $collectionType = if ($candidate.PSObject.Properties.Name -contains 'CollectionType') { [string]$candidate.CollectionType } else { '' }
+
+        $lineKey = if (-not [string]::IsNullOrWhiteSpace($filePath)) { $filePath.ToLowerInvariant() } else { '' }
+        $metric = if (-not [string]::IsNullOrWhiteSpace($lineKey) -and $metricsLookup.ContainsKey($lineKey)) { $metricsLookup[$lineKey] } else { $null }
+
+        $displayPath = if ([string]::IsNullOrWhiteSpace($filePath)) { '<unknown path>' } else { $filePath }
+        $typeTag = if (-not [string]::IsNullOrWhiteSpace($collectionType)) { " [$collectionType]" } else { '' }
+
+        $freqTag = ''
+        if ($metric) {
+            $total   = if ($metric.PSObject.Properties.Name -contains 'Count')   { [int]$metric.Count }   else { 0 }
+            $blocked = if ($metric.PSObject.Properties.Name -contains 'Blocked') { [int]$metric.Blocked } else { 0 }
+            $audit   = if ($metric.PSObject.Properties.Name -contains 'Audit')   { [int]$metric.Audit }   else { 0 }
+            $freqTag = " | Events: $total (B:$blocked A:$audit)"
+        }
+
+        [void]$candidateLines.Add("  $displayPath$typeTag$freqTag")
+        $displayedCount++
+    }
+
+    $remaining = $count - $displayedCount
+    if ($remaining -gt 0) {
+        [void]$candidateLines.Add("  ... and $remaining more")
+    }
+
+    $candidateBlock = ($candidateLines | ForEach-Object { $_ }) -join "`n"
+
+    $targetDisplay = $TargetSid
+    $message = "Create $count AppLocker rule candidate(s) from Event Viewer selection?`n`n$candidateBlock`n`nMode: $Mode`nAction: $Action`nTarget: $targetDisplay`nStatus: Pending`n`nContinue?"
 
     if (Get-Command -Name 'Show-AppLockerMessageBox' -ErrorAction SilentlyContinue) {
         return (Show-AppLockerMessageBox $message 'Confirm Event Viewer Rule Creation' 'YesNo' 'Question')
@@ -1143,7 +1196,7 @@ function global:Invoke-EventViewerRuleActionByTag {
     }
 
     $defaults = Get-EventViewerRuleDefaults -Window $win
-    $confirmation = Confirm-EventViewerRuleGeneration -Mode $mode -Count @($rows).Count -Action $defaults.Action -TargetSid $defaults.TargetSid
+    $confirmation = Confirm-EventViewerRuleGeneration -Mode $mode -Candidates @($rows) -Action $defaults.Action -TargetSid $defaults.TargetSid
     if ([string]$confirmation -ne 'Yes') {
         Show-EventViewerToast -Message 'Rule creation canceled.' -Type 'Info'
         return
