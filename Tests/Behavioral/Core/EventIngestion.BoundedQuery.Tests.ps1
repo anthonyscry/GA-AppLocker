@@ -1,8 +1,10 @@
 #Requires -Modules Pester
 
 BeforeAll {
-    $scriptPath = Join-Path $PSScriptRoot '..\..\..\GA-AppLocker\Modules\GA-AppLocker.Scanning\Functions\Get-AppLockerEventLogs.ps1'
-    . $scriptPath
+    $getEventsPath = Join-Path $PSScriptRoot '..\..\..\GA-AppLocker\Modules\GA-AppLocker.Scanning\Functions\Get-AppLockerEventLogs.ps1'
+    $invokeQueryPath = Join-Path $PSScriptRoot '..\..\..\GA-AppLocker\Modules\GA-AppLocker.Scanning\Functions\Invoke-AppLockerEventQuery.ps1'
+    . $getEventsPath
+    . $invokeQueryPath
 
     if (-not (Get-Command -Name 'Write-ScanLog' -ErrorAction SilentlyContinue)) {
         function global:Write-ScanLog {
@@ -89,5 +91,79 @@ Describe 'Behavioral Event Ingestion: bounded query contract' -Tag @('Behavioral
         $audit.IsBlocked | Should -BeFalse
         $audit.IsAudit | Should -BeTrue
         $audit.EventType | Should -Be 'EXE/DLL Would Block (Audit)'
+    }
+}
+
+Describe 'Behavioral Event Ingestion: remote host envelopes' -Tag @('Behavioral', 'Core') {
+    It 'Returns one envelope per host and preserves explicit failures' {
+        $start = (Get-Date).AddHours(-1)
+        $end = Get-Date
+
+        Mock Get-AppLockerEventLogs {
+            [PSCustomObject]@{
+                Success = $true
+                Data    = @(
+                    [PSCustomObject]@{ EventId = 8001 },
+                    [PSCustomObject]@{ EventId = 8002 }
+                )
+                Error   = $null
+                Summary = [PSCustomObject]@{ TotalEvents = 2 }
+            }
+        } -ParameterFilter { $ComputerName -eq 'host-a' }
+
+        Mock Get-AppLockerEventLogs {
+            [PSCustomObject]@{
+                Success = $false
+                Data    = @()
+                Error   = 'Access is denied'
+                Summary = $null
+            }
+        } -ParameterFilter { $ComputerName -eq 'host-b' }
+
+        $result = Invoke-AppLockerEventQuery -ComputerName @('host-a', 'host-b') -StartTime $start -EndTime $end -MaxEvents 250 -EventIds @(8001, 8002)
+
+        $result.Count | Should -Be 2
+
+        $hostA = @($result | Where-Object { $_.Host -eq 'host-a' })[0]
+        $hostB = @($result | Where-Object { $_.Host -eq 'host-b' })[0]
+
+        $hostA.Success | Should -BeTrue
+        $hostA.Count | Should -Be 2
+        $hostA.ErrorCategory | Should -BeNullOrEmpty
+        $hostA.Data.Count | Should -Be 2
+
+        $hostB.Success | Should -BeFalse
+        $hostB.Count | Should -Be 0
+        $hostB.ErrorCategory | Should -Be 'auth'
+        $hostB.Error | Should -Be 'Access is denied'
+    }
+
+    It 'Classifies timeout and channel failures with explicit taxonomy' {
+        $start = (Get-Date).AddHours(-1)
+        $end = Get-Date
+
+        Mock Get-AppLockerEventLogs {
+            if ($ComputerName -eq 'timeout-host') {
+                throw 'The operation timed out while querying events'
+            }
+
+            [PSCustomObject]@{
+                Success = $false
+                Data    = @()
+                Error   = 'The specified channel could not be found'
+                Summary = $null
+            }
+        }
+
+        $result = Invoke-AppLockerEventQuery -ComputerName @('timeout-host', 'channel-host') -StartTime $start -EndTime $end -MaxEvents 10 -EventIds @(8001)
+
+        $timeout = @($result | Where-Object { $_.Host -eq 'timeout-host' })[0]
+        $channel = @($result | Where-Object { $_.Host -eq 'channel-host' })[0]
+
+        $timeout.Success | Should -BeFalse
+        $timeout.ErrorCategory | Should -Be 'timeout'
+
+        $channel.Success | Should -BeFalse
+        $channel.ErrorCategory | Should -Be 'channel'
     }
 }
