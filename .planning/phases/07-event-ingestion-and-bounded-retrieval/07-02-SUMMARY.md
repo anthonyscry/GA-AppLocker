@@ -62,7 +62,7 @@ Each task was committed atomically:
 2. **Task 2: Wire panel routing and initialization in main code-behind** - `9701d03` (feat)
 3. **Task 3: Add behavioral GUI coverage for navigation and shell controls** - `559e4db` (test)
 
-**Plan metadata:** pending
+**Plan metadata:** `fd23d1e` (docs)
 
 ## Files Created/Modified
 - `GA-AppLocker/GUI/MainWindow.xaml` - Added Event Viewer nav button and bounded-query panel shell UI.
