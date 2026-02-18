@@ -17,31 +17,32 @@ Reliable, operator-friendly policy management that stays responsive on large ent
 
 ### Active
 
-- [ ] Rules index remains consistent and recoverable without manual intervention
-- [ ] Rules/Policy/Deploy navigation and filtering remain responsive under large datasets
-- [ ] Critical panel transitions stay under 500ms in normal operator workflows
-- [ ] No remaining STA-thread blocking in routine navigation and data refresh paths
+- [ ] Operators can access a dedicated Event Viewer workflow from the main app navigation
+- [ ] Operators can scan local and remote assets directly from the Event Viewer workflow
+- [ ] Operators can filter and search AppLocker events by event code and key event metadata
+- [ ] Operators can generate AppLocker rules and exceptions from single or bulk event selections
 
 ### Out of Scope
 
-- New release automation capabilities beyond the shipped v1.2.86 baseline - milestone focus is runtime operator UX and index reliability
-- New product modules unrelated to rule index and panel performance - defer until performance baseline is restored
+- Replacing existing Scanner or Rules workflows entirely - Event Viewer workflow augments existing panels
+- External SIEM/cloud integrations for event ingestion - milestone remains local/domain and air-gap compatible
 
-## Current Milestone: v1.2.87 Performance
+## Current Milestone: v1.2.88 Event Viewer Rule Workbench
 
-**Goal:** Restore consistently snappy operator workflows by hardening rules index reliability and optimizing UI hot paths.
+**Goal:** Let operators investigate AppLocker events and create actionable rules/exceptions directly from a dedicated event-driven workflow.
 
 **Target features:**
-- Rules-index validation/rebuild safety path for stale or missing index states
-- Fast index-backed rule and policy data access in panel workflows
-- Measured UI performance improvements on navigation/filter hot paths
-- Guardrails to prevent STA-thread blocking in routine operator actions
+- New Event Viewer menu option and panel in the WPF workflow
+- AppLocker event log browser for local and remote targets
+- Filter bar with event-code filtering plus text search over core fields
+- Single and bulk rule/exception generation directly from selected events
+- Integrated asset scan actions from Event Viewer context
 
 ## Context
 
-- Latest milestone `v1.2.86` shipped release automation foundations and closed requirements traceability for Phase 06.
-- Previous optimization phases (2-5) introduced indexing, UX, diagnostics, and test infrastructure improvements that can be extended.
-- A formal milestone audit file for `v1.2.86` is deferred and may be produced retroactively.
+- Latest shipped milestone `v1.2.86` delivered deterministic release automation and integrity artifacts.
+- Existing planning artifacts include a drafted `v1.2.87` performance scope, but the immediate milestone focus is now event-driven operations workflow expansion.
+- GA-AppLocker already has discovery, scanning, and rules modules that can be reused for event-to-rule orchestration.
 
 ## Constraints
 
@@ -53,14 +54,14 @@ Reliable, operator-friendly policy management that stays responsive on large ent
 
 | Decision | Rationale | Outcome |
 | --- | --- | --- |
-| Prioritize snappy operator UX as the milestone objective | Most visible product risk is slow panel interactions during daily operations | - Pending |
-| Target `<500ms` panel transitions as primary performance metric | Creates a clear acceptance threshold for optimization work | - Pending |
-| Keep release automation scope fixed to v1.2.86 baseline | Avoids scope drift while stabilizing runtime performance | - Pending |
+| Build Event Viewer capability as an integrated panel, not a separate tool | Preserves existing operator workflow and reduces training overhead | - Pending |
+| Support both single-item and bulk event-to-rule generation in one window | Operators need fast triage and mass remediation from the same surface | - Pending |
+| Reuse existing remote-access and scanning foundations for Event Viewer actions | Reduces implementation risk and keeps behavior consistent with current modules | - Pending |
 
 ## Archived Context
 
 <details>
-<summary>Pre-v1.2.87 project context</summary>
+<summary>Pre-v1.2.88 project context</summary>
 
 Shipped version `v1.2.86` focused on release automation and milestone archival setup.
 See `.planning/milestones/v1.2.86-ROADMAP.md` and `.planning/MILESTONES.md` for complete milestone history.
@@ -68,4 +69,4 @@ See `.planning/milestones/v1.2.86-ROADMAP.md` and `.planning/MILESTONES.md` for 
 </details>
 
 ---
-*Last updated: 2026-02-17 after starting v1.2.87 milestone*
+*Last updated: 2026-02-17 after starting v1.2.88 milestone*
