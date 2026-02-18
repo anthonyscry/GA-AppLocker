@@ -38,7 +38,11 @@ Plans:
   3. Operator can use one search bar to find events by path, signer, hash, message text, and host/user text.
   4. Operator can select an event row and inspect normalized details (file identity, collection, user, machine, action context).
   5. Operator can open raw event XML/message for the selected event to verify forensic fidelity.
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 08-01-PLAN.md - Enrich event data pipeline with inspection fields and extend filter function with dimension parameters.
+- [ ] 08-02-PLAN.md - Add filter controls, detail pane XAML, panel wiring, and behavioral tests.
 
 ### Phase 9: Rule Generation from Event Selections
 **Goal**: Operators can safely create rules from validated event selections using existing governance and review controls.
@@ -56,5 +60,5 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 7. Event Ingestion and Bounded Retrieval | 3/3 | Complete | 2026-02-18 |
-| 8. Event Triage and Inspection Workbench | 0/TBD | Not started | - |
+| 8. Event Triage and Inspection Workbench | 0/2 | Not started | - |
 | 9. Rule Generation from Event Selections | 0/TBD | Not started | - |
