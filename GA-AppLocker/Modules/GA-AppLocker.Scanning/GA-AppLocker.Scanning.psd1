@@ -12,7 +12,7 @@
 RootModule = 'GA-AppLocker.Scanning.psm1'
 
 # Version number of this module.
-ModuleVersion = '1.2.83'
+ModuleVersion = '1.2.84'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
