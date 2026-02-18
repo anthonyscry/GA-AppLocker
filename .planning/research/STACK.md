@@ -1,6 +1,6 @@
 # Stack Research
 
-**Domain:** PowerShell 5.1 WPF enterprise policy-management app (air-gapped)
+**Domain:** Event Viewer rule workbench inside existing PowerShell 5.1 WPF AppLocker tool
 **Researched:** 2026-02-17
 **Confidence:** HIGH
 
@@ -10,104 +10,121 @@
 
 | Technology | Version | Purpose | Why Recommended |
 |------------|---------|---------|-----------------|
-| Windows PowerShell | 5.1 (pinned) | Runtime and module host | Keep runtime fixed for compatibility with existing code, tests, and deployment footprint in classified/air-gapped Windows estates. |
-| .NET Framework BCL | 4.7.2+ | Reliability and performance primitives (`System.IO`, `System.Diagnostics`, `System.Threading`) | All required primitives for index hardening and low-latency UI exist in-box; no external runtime dependency needed. |
-| WPF (PresentationFramework/WindowsBase) | .NET Framework 4.7.2+ | UI thread model and virtualization | Existing app already uses WPF; target should be stricter dispatcher discipline and virtualization tuning, not UI stack replacement. |
-| GA-AppLocker Storage index layer | Current module (`GA-AppLocker.Storage`) | Single source of truth for rule metadata access | Already has `Get-AllRules`, `Get-RuleCounts`, `Get-RulesFromDatabase`, `IndexWatcher`; milestone should harden this path instead of adding parallel data systems. |
+| `Get-WinEvent` (`Microsoft.PowerShell.Diagnostics`) | PowerShell 5.1 | Primary event retrieval for local and remote AppLocker logs | It is the native API for modern Windows Event Log channels, supports `-FilterHashtable`, `-FilterXPath`, and `-FilterXml`, and is explicitly documented for remote use with `-ComputerName`. |
+| `System.Diagnostics.Eventing.Reader` (`EventLogQuery`, `EventLogReader`, `EventLogSession`, `EventBookmark`) | .NET Framework 4.7.2+ (already in-box) | Advanced query control, remote session targeting, and resumable reads | Use this only where `Get-WinEvent` becomes limiting (bookmark resume, long-running paging, strict query control). It keeps everything in-box and PS 5.1 compatible. |
+| AppLocker cmdlets (`Get-AppLockerFileInformation`, `New-AppLockerPolicy`) | Windows AppLocker module (server/client SKUs where available) | Canonical file-info extraction from AppLocker events and policy/rule scaffolding | Microsoft explicitly supports event-log-driven policy creation through these cmdlets; use for batch conversion paths and consistency with native AppLocker semantics. |
+| WPF collection view stack (`CollectionViewSource` + `ICollectionView`) | PresentationFramework/WindowsBase in .NET Framework 4.7.2+ | Fast in-memory filtering/search UX over already-fetched events | This is the right in-place UX stack for existing WPF: shared view, predicate filtering, deferred refresh batching, and no new UI framework cost. |
 
 ### Supporting Libraries
 
 | Library | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
-| `System.IO.File.Replace` | .NET Framework 4.7.2+ | Atomic swap of rebuilt `rules-index.json` with backup | Use for every index write/rebuild commit path to prevent partial/truncated index files on crash/power loss. |
-| `System.Threading.ReaderWriterLockSlim` | .NET Framework 4.7.2+ | Guard in-memory index maps (`JsonIndex`, `RuleById`, `HashIndex`) | Use around all read/write access to script-scoped index structures from UI + runspace paths. |
-| `System.IO.FileSystemWatcher` | .NET Framework 4.7.2+ | Detect out-of-band rule file changes | Keep existing watcher but move from "blind rebuild" to "mark-dirty + validate + conditional rebuild" state machine. |
-| `System.Diagnostics.Stopwatch` | .NET Framework 4.7.2+ | High-resolution timing for panel transition SLOs | Instrument panel init and grid bind hot paths; log p50/p95 and enforce sub-500ms budget in test harness scripts. |
-| `System.Windows.Threading.Dispatcher.BeginInvoke` | .NET Framework 4.7.2+ | Non-blocking UI marshaling | Use for all UI updates from background work; avoid synchronous dispatcher calls in hot paths. |
-| `System.Windows.Data.BindingOperations.EnableCollectionSynchronization` | .NET Framework 4.7.2+ | Safe multi-thread collection access for bound controls | Use only where background updates touch bound collections; register once on UI thread before cross-thread mutation. |
-| `System.Collections.Concurrent.ConcurrentQueue<T>` | .NET Framework 4.7.2+ | Buffer/batch UI update notifications | Use for coalescing frequent background updates before one dispatcher flush (prevents UI event-queue saturation). |
+| `Get-WinEvent -FilterHashtable` | PS 5.1 | Server-side prefilter by `LogName`, `ID`, `StartTime`, `EndTime`, `Level`, `ProviderName` | Default filter mode for Event Viewer panel and remote queries; avoids pulling huge unfiltered logs into memory. |
+| `Get-WinEvent -FilterXml` | PS 5.1 + Win32 query schema | Complex include/exclude logic across channels and predicates | Use only when UI filter combinations outgrow hashtable capabilities; generate XML from known templates, not free-form user text. |
+| `EventRecord.ToXml()` | .NET Framework 4.7.2+ | Stable access to structured event payload fields | Use to map event metadata (`EventData`) to rule inputs; avoid brittle message-string regex extraction as primary parser. |
+| `ICollectionView.Filter` + `ICollectionView.DeferRefresh()` | WPF | Responsive search and multi-filter UI updates | Use for text search + event-code filters so every checkbox/keystroke does not trigger full rebind churn. |
+| `DataGrid.EnableRowVirtualization` + `VirtualizingPanel.VirtualizationMode=Recycling` | WPF | Keep event grid responsive with large result sets | Keep virtualization enabled for event lists and selection-heavy bulk workflows. |
+| Existing GA runspace helpers (`GUI/Helpers/AsyncHelpers.ps1`) | Current repo | Non-blocking retrieval/filter application | Use existing async pattern for fetch + normalize + bind stages; do not execute event retrieval on STA thread. |
 
 ### Development Tools
 
 | Tool | Purpose | Notes |
 |------|---------|-------|
-| `Measure-Command` (PS 5.1) | Quick timing checks for candidate hot paths | Use for script-level experiments; remember it executes in current scope. |
-| Pester (existing project usage) | Regression and performance guardrails | Add targeted performance assertions around panel transitions and index fallback behavior; do not run UI tests in non-interactive contexts. |
-| Existing GA logging (`Write-AppLockerLog`) | Operational telemetry | Add structured timing/rebuild-cause fields so reliability/perf regressions are diagnosable post-deploy. |
+| Pester (existing test stack) | Validate event mapping and rule-generation correctness | Add fixtures for AppLocker event IDs and mapping to Allowed/Audited/Denied semantics. |
+| `.evtx` sample files + `Get-WinEvent -Path` | Deterministic test data in air-gapped/offline environments | Use archived logs for regression tests without requiring live domain connectivity. |
+| Existing `Write-AppLockerLog` | Operational diagnostics | Log query shape (`LogName`, IDs, time range, source host, duration, count) for supportability. |
 
 ## Installation
 
 ```bash
-# Core runtime additions
-# None. Use in-box PowerShell 5.1 + .NET Framework 4.7.2+ APIs only.
+# Runtime packages
+# None. Use in-box Windows PowerShell 5.1 + .NET Framework eventing APIs.
 
-# Supporting packages
-# None. Avoid new NuGet/PowerShell Gallery runtime dependencies for air-gapped environments.
+# PowerShell Gallery/NuGet additions
+# None. Do not add internet-sourced runtime dependencies for this milestone.
 
-# Dev dependencies
-# None required for milestone start; continue using existing Pester/tooling already in repo.
+# Existing module dependencies
+# Ensure AppLocker module availability where event-to-policy cmdlets are used.
 ```
 
 ## Alternatives Considered
 
 | Recommended | Alternative | When to Use Alternative |
 |-------------|-------------|-------------------------|
-| Harden existing JSON index with atomic write + lock discipline | Introduce SQLite/LiteDB | Only if future scale requires ad-hoc query semantics beyond indexed lookups and the org accepts new binary/runtime supply-chain burden. |
-| Index-first reads + selective payload hydration | Always load full rule JSON files | Only acceptable for tiny datasets; does not meet sub-500ms transitions at enterprise rule counts. |
-| Runspace/dispatcher model already in app | `Start-Job` for UI-adjacent work | Use `Start-Job` only for isolated background ops with no UI coupling; not for panel hot paths due to overhead and scope complexity. |
+| `Get-WinEvent` first, `Eventing.Reader` only for advanced needs | Build everything directly on `EventLogReader` from day one | Use full `EventLogReader` pipeline only if bookmark/resume and incremental tailing become hard requirements in phase 1, not just nice-to-have. |
+| Remote collection through existing WinRM flow (`Invoke-Command` + `Get-WinEvent`) for managed hosts | Direct `Get-WinEvent -ComputerName` RPC path | Use direct `-ComputerName` for environments where WinRM is intentionally disabled but Event Log remote access ports are opened and governed. |
+| Structured field extraction from `EventRecord.ToXml()` | Parse `Message` text only | Use message parsing only as fallback when specific payload fields are missing; messages are localized and more brittle. |
+| WPF `ICollectionView` filtering | External search/index engine (Lucene/Elastic/SQLite FTS) | Use external index/search only if dataset size exceeds in-memory UI filtering limits and org accepts added deployment/runtime burden. |
 
 ## What NOT to Use
 
 | Avoid | Why | Use Instead |
 |-------|-----|-------------|
-| Adding SQLite/LiteDB in this milestone | Violates "minimal moving parts" for air-gap, adds migration and operational complexity without necessity for current goals | Keep JSON index; add integrity metadata, atomic commit, and deterministic rebuild path |
-| Synchronous heavy calls in panel initialization (`Get-AllRules -Take 100000` style in hot path) | Blocks STA thread and directly harms transition latency | Load index summaries first, then async/deferred hydration for details |
-| Rebuild-on-every-file-event behavior | Causes avoidable churn and inconsistent UX under burst writes | Debounced dirty-flag + validation checkpoint + conditional rebuild |
-| Large `ConvertTo-Json` pipelines for full index writes | Known PS 5.1 performance cost on big payloads; higher timeout risk | Keep StringBuilder serializer path, then atomic `File.Replace` commit |
+| `Get-EventLog` for AppLocker channels | Legacy cmdlet; does not cover modern Windows Event Log channels needed here | `Get-WinEvent` |
+| Fetch-all then `Where-Object` filtering on large logs | Pulls too much data and hurts responsiveness, especially remote | `-FilterHashtable` first, `-FilterXml` for complex cases |
+| Event ID assumptions copied from old/internal comments without validation | AppLocker event ID semantics have specific meanings and evolved IDs (8000+ range) | Use Microsoft AppLocker event tables as source of truth |
+| New third-party UI/data stacks in this milestone | Violates air-gap simplicity and increases maintenance surface | Stay with existing WPF + runspace + GA modules |
+| Primary dependency on `Get-AppLockerFileInformation -EventLog` for remote hosts | Cmdlet does not expose `-ComputerName`; remote workflow becomes awkward | Collect remotely with `Get-WinEvent` and map to internal event DTO; use `Get-AppLockerFileInformation` in local/imported-log batch flows |
 
 ## Stack Patterns by Variant
 
-**If the workflow only needs counts/lists for navigation (panel transition path):**
-- Use `Get-RuleCounts` / lightweight index entries only
-- Because sub-500ms transitions require minimal allocation and no per-rule file reads
+**If local operator triage (single host):**
+- Query AppLocker channels with `Get-WinEvent -FilterHashtable`.
+- Bind to `ICollectionView` and apply `Filter` + `DeferRefresh` for live UX.
 
-**If the workflow needs full rule details for selected rows/actions:**
-- Use two-stage fetch: index-backed list first, hydrate details on demand (selection, expand, action)
-- Because it preserves responsive navigation while still supporting deep operations
+**If remote fleet sampling (selected machines):**
+- Reuse existing credential + remote execution pipeline (`Discovery` + `Credentials` + async runspaces).
+- Execute per-host `Get-WinEvent` server-side, return normalized lightweight objects, and aggregate centrally.
 
-**If rule files may be modified externally or during bulk operations:**
-- Use watcher to mark index dirty, validate manifest/hash snapshot, then rebuild once
-- Because reliability comes from deterministic recovery, not from constant speculative rebuilds
+**If operator generates rules/exceptions from selected events:**
+- Normalize event fields to existing rule input contracts (`Rules` module object shape).
+- Use AppLocker cmdlets for policy-oriented batch pipelines when available; keep existing GA rule creation path as primary integration target.
 
 ## Version Compatibility
 
 | Package A | Compatible With | Notes |
 |-----------|-----------------|-------|
-| `System.IO.File.Replace` (.NET Framework 4.7.2+) | PowerShell 5.1 (`mscorlib`) | Requires source/destination on same volume; supports backup file creation for rollback safety. |
-| `ReaderWriterLockSlim` (.NET Framework 4.7.2+) | PowerShell 5.1 runspaces | Thread-safe for concurrent readers/exclusive writers; suitable for shared index dictionaries. |
-| `Dispatcher.BeginInvoke` + WPF controls | Existing GA-AppLocker WPF shell | Keep all control mutation on UI thread; use async dispatch to avoid blocking. |
-| `BindingOperations.EnableCollectionSynchronization` (4.5+) | WPF DataGrid/List controls | Must be called on UI thread before cross-thread collection use; helps avoid collection thread-affinity exceptions. |
-| `VirtualizingPanel.IsVirtualizing/VirtualizationMode=Recycling` | Existing `MainWindow.xaml` DataGrid style | Already present; keep and verify every high-volume grid follows this style. |
+| `Get-WinEvent` (PS 5.1 docs, updated 2026-01-18) | Windows PowerShell 5.1 | `-ComputerName` supports one target at a time; docs call out firewall requirements and non-dependence on PowerShell remoting. |
+| `Get-WinEvent -FilterHashtable` | PS 5.1 | Valid keys documented (`LogName`, `ProviderName`, `ID`, `Level`, `StartTime`, `EndTime`, etc.). `<named-data>` filtering is a PS 6+ enhancement and should not be assumed in PS 5.1. |
+| `System.Diagnostics.Eventing.Reader` classes | .NET Framework 4.7.2+ / PS 5.1 | `EventLogSession` supports remote constructor with credentials; `EventBookmark` supports resume scenarios. |
+| WPF `ICollectionView` / `CollectionViewSource` | Existing WPF shell | Supports shared view filtering and deferred refresh; suitable for event-grid UX without stack changes. |
+| AppLocker cmdlets (`Get-AppLockerFileInformation`, `New-AppLockerPolicy`) | Systems with AppLocker module | Official examples show event-log-driven policy generation; validate module presence at runtime and degrade gracefully if absent. |
 
-## Integration Implications (Concrete)
+## Integration Points (Existing GA-AppLocker Codebase)
 
-- `GA-AppLocker/Modules/GA-AppLocker.Storage/Functions/RuleStorage.ps1`: wrap `Initialize-JsonIndex`, read/query methods, and `Save-JsonIndex`/rebuild mutation paths in explicit RW lock boundaries; add atomic temp-write + `File.Replace` commit strategy.
-- `GA-AppLocker/Modules/GA-AppLocker.Storage/Functions/IndexWatcher.ps1`: evolve from immediate debounced rebuild to dirty-state coordinator (`dirty`, `rebuildInProgress`, `lastValidIndex`) with validation-before-rebuild and single-flight rebuild.
-- `GA-AppLocker/GUI/Panels/Rules.ps1`: replace synchronous full-load hot path in `Refresh-RulesGrid` with index-first async load and deferred full payload fetch for selected/visible slices.
-- `GA-AppLocker/GUI/Helpers/AsyncHelpers.ps1`: centralize transition timing (`Stopwatch`) and enforce "no blocking work on STA" guardrail via helper wrappers and warning logs.
-- `GA-AppLocker/GUI/MainWindow.xaml.ps1`: instrument panel navigation checkpoints and emit per-panel latency metrics (cold/warm) so sub-500ms target is measurable, not anecdotal.
+- `GA-AppLocker/Modules/GA-AppLocker.Scanning/Functions/Get-AppLockerEventLogs.ps1`: keep retrieval primitive but correct event-ID mapping against official AppLocker event documentation and switch primary parsing from `Message` regex to structured XML field extraction.
+- `GA-AppLocker/Modules/GA-AppLocker.Scanning/Functions/Start-ArtifactScan.ps1`: expose a shared event-query parameter model so Event Viewer workflow and Scanner workflow reuse the same retrieval engine.
+- `GA-AppLocker/Modules/GA-AppLocker.Rules/*`: add an event-to-rule adapter layer that converts normalized event DTOs into existing rule-generation inputs instead of creating a parallel rule engine.
+- `GA-AppLocker/GUI/Panels/*` (new Event Viewer panel): implement filtering via `ICollectionView` and preserve established async + dispatcher helpers to avoid STA blocking.
+- `GA-AppLocker/Modules/GA-AppLocker.Credentials` + `GA-AppLocker.Discovery`: reuse existing tiered credentials and host-selection plumbing for remote event collection, rather than adding separate auth/targeting logic.
 
 ## Sources
 
-- Microsoft Learn: `System.IO.File.Replace` (netframework monikers include 4.7.2/4.8.1) - atomic replacement semantics, backup behavior, same-volume constraint. (HIGH)
-- Microsoft Learn: `System.Threading.ReaderWriterLockSlim` - thread-safe reader/writer lock model. (HIGH)
-- Microsoft Learn: `System.Diagnostics.Stopwatch` - high-resolution timing and frequency semantics. (HIGH)
-- Microsoft Learn: `System.Windows.Threading.Dispatcher.BeginInvoke` - async UI-thread dispatch behavior and thread-affinity guidance. (HIGH)
-- Microsoft Learn: `System.Windows.Data.BindingOperations.EnableCollectionSynchronization` - cross-thread collection synchronization contract and UI-thread registration requirements. (HIGH)
-- Microsoft Learn: `System.Windows.Controls.VirtualizingPanel.IsVirtualizing` and `VirtualizationMode` - virtualization and recycling behavior for item controls. (HIGH)
-- Microsoft Learn: `System.IO.FileSystemWatcher` - event model and overflow/error considerations. (HIGH)
-- Microsoft Learn: `Measure-Command` (`powershell-5.1`) - timing cmdlet behavior and scope note. (HIGH)
+- `Get-WinEvent` cmdlet reference (PowerShell 5.1, updated 2026-01-18) - remote usage model, filter parameter capabilities, hashtable keys, performance guidance. (HIGH)  
+  https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.diagnostics/get-winevent?view=powershell-5.1
+- Creating `Get-WinEvent` queries with `FilterHashtable` (PowerShell docs, updated 2025-03-24) - key/value behavior and PS version notes (`<named-data>` in PS 6+). (HIGH)  
+  https://learn.microsoft.com/en-us/powershell/scripting/samples/creating-get-winevent-queries-with-filterhashtable?view=powershell-5.1
+- AppLocker Event Viewer usage and event ID table (updated 2025-02-24) - authoritative event semantics for IDs 8000+ and channel expectations. (HIGH)  
+  https://learn.microsoft.com/en-us/windows/security/application-security/application-control/app-control-for-business/applocker/using-event-viewer-with-applocker
+- Monitor app usage with AppLocker (updated 2025-02-24) - confirms AppLocker logs/channels and cmdlet-based review workflow. (HIGH)  
+  https://learn.microsoft.com/en-us/windows/security/application-security/application-control/app-control-for-business/applocker/monitor-application-usage-with-applocker
+- `Get-AppLockerFileInformation` cmdlet reference (updated 2025-05-14) - `-EventLog` behavior, `-EventType`, statistics mode, default log path behavior. (HIGH)  
+  https://learn.microsoft.com/en-us/powershell/module/applocker/get-applockerfileinformation?view=windowsserver2025-ps
+- `New-AppLockerPolicy` cmdlet reference (updated 2025-05-14) - event-log-to-policy pipeline and fallback behavior for missing file info. (HIGH)  
+  https://learn.microsoft.com/en-us/powershell/module/applocker/new-applockerpolicy?view=windowsserver2025-ps
+- `.NET Eventing.Reader` API docs (`EventLogQuery`, `EventLogReader`, `EventLogSession`, `EventBookmark`, `EventRecord.ToXml`) - query/session/bookmark and structured event extraction primitives. (HIGH)  
+  https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.eventing.reader.eventlogquery?view=netframework-4.8.1  
+  https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.eventing.reader.eventlogreader?view=netframework-4.8.1  
+  https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.eventing.reader.eventlogsession?view=netframework-4.8.1  
+  https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.eventing.reader.eventbookmark?view=netframework-4.8.1  
+  https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.eventing.reader.eventrecord.toxml?view=netframework-4.8.1
+- WPF view/filter/virtualization docs (`CollectionViewSource`, `ICollectionView.Filter`, `ICollectionView.DeferRefresh`, `DataGrid.EnableRowVirtualization`, `VirtualizingPanel.VirtualizationMode`) - responsive grid filtering guidance. (HIGH)  
+  https://learn.microsoft.com/en-us/dotnet/api/system.windows.data.collectionviewsource.getdefaultview?view=windowsdesktop-9.0  
+  https://learn.microsoft.com/en-us/dotnet/api/system.componentmodel.icollectionview.filter?view=windowsdesktop-9.0  
+  https://learn.microsoft.com/en-us/dotnet/api/system.componentmodel.icollectionview.deferrefresh?view=windowsdesktop-9.0  
+  https://learn.microsoft.com/en-us/dotnet/api/system.windows.controls.datagrid.enablerowvirtualization?view=windowsdesktop-9.0  
+  https://learn.microsoft.com/en-us/dotnet/api/system.windows.controls.virtualizingpanel.virtualizationmode?view=windowsdesktop-9.0
 
 ---
-*Stack research for: GA-AppLocker v1.2.87 performance/reliability milestone*
+*Stack research for: Event Viewer Rule Workbench milestone*
 *Researched: 2026-02-17*

@@ -1,6 +1,6 @@
 # Feature Research
 
-**Domain:** Enterprise AppLocker admin tooling (rules-index reliability and high-performance policy/rule UIs)
+**Domain:** Enterprise AppLocker admin tooling (event-viewer-driven rule authoring)
 **Researched:** 2026-02-17
 **Confidence:** MEDIUM
 
@@ -12,12 +12,13 @@ Features users assume exist. Missing these = product feels incomplete.
 
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| Crash-safe index writes with rollback backup | Enterprise operators expect no data loss after power loss, process kill, or host reboot | MEDIUM | Write `rules-index.json.tmp`, atomically replace main file, keep `.bak` using .NET `File.Replace`; depends on existing `GA-AppLocker.Storage` save path |
-| Startup index integrity check + guided self-heal | Operators expect corrupt state to be detected immediately, not after silent bad reads | MEDIUM | Validate JSON parse + schema/hash counts + last-write marker on startup; offer one-click rebuild from rule files; depends on existing repository and index rebuild logic |
-| Sub-500ms warm panel transitions | Admin UIs are expected to feel immediate for repeated navigation | MEDIUM | Keep cached panel view-models and counts in memory; invalidate by event when rule/policy state changes; depends on existing session/cache/event helpers |
-| Virtualized large-grid rendering by default | Large rule/policy datasets must remain usable without freezing | LOW | Keep row/column virtualization on, avoid template-heavy rows, avoid toggles that disable virtualization (for example `CanContentScroll=false`); depends on existing WPF DataGrid panels |
-| Debounced filter/search with progressive results | Users expect typing in filters to not stutter, even with 10k+ rows | LOW | 200-300ms debounce, cancel prior query, render first page fast then complete; depends on current text filter patterns and async helpers |
-| Non-blocking bulk operations with clear progress | Operators expect large status/group/action changes to run in background with feedback | MEDIUM | Run bulk mutations in background runspace, show progress + cancel, keep UI responsive via dispatcher marshaling; depends on existing `Invoke-AsyncOperation` and toast/overlay helpers |
+| In-window AppLocker event ingestion (local + remote) | Enterprise operators expect one workflow to inspect what was blocked/audited and act immediately | MEDIUM | Pull from AppLocker channels and support host selection; dependency: existing AD Discovery + Credentials + remote connectivity patterns in Scanning/Discovery |
+| Event-code-first filtering and saved filter presets | AppLocker workflows are event-ID driven (8002/8003/8004, 8005/8006/8007, 802x/803x) | LOW | Must filter by Event ID, level, time range, host, user SID/name, path/publisher; dependency: existing filter bar/search patterns in GUI panels |
+| Rich event detail pane with normalized metadata + raw event XML | Operators need both human-readable fields and forensic truth source before generating rules | MEDIUM | Show normalized fields (file, signer, hash when present, rule collection, policy mode, user, machine) and raw message/XML for validation |
+| Single-select "Generate Rule" from event | Native AppLocker tooling supports event-log-to-rule flows via `Get-AppLockerFileInformation` + `New-AppLockerPolicy`; users expect parity | MEDIUM | Reuse existing rule generation engine; default rule type fallback should mirror best practice (`Publisher -> Hash`, optional Path only when explicitly chosen) |
+| Bulk selection with dedupe and frequency rollup | Event logs are verbose; enterprise operators need to handle many duplicate events at once | MEDIUM | Group by key fields (path/signer/hash + principal + action) before generation; dependency: existing Rules dedupe/index workflow |
+| Exception authoring path from event context | AppLocker operations require allow rules with explicit exceptions in real deployments | MEDIUM | From event row, enable "Create exception" targeting existing allow rules; dependency: existing rule edit/exception model in Rules module |
+| Safety guardrails for Audit vs Enforce interpretation | Audit events can look like failures to inexperienced operators | LOW | Persistent badge and filter chips that distinguish Audited vs Denied vs Allowed; tie to policy mode language from AppLocker docs |
 
 ### Differentiators (Competitive Advantage)
 
@@ -25,10 +26,10 @@ Features that set the product apart. Not required, but valuable.
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| Index Health Center (freshness, drift, last good snapshot) | Turns reliability from hidden behavior into operator-trust signal | MEDIUM | Add health card with freshness age, file count vs index count drift, last successful write/rebuild, and one-click repair |
-| Latency budget telemetry in UI (panel load SLO badges) | Makes performance regressions visible before users complain | MEDIUM | Capture `panel_enter -> first_rows_rendered` and `filter_apply -> paint` timings; show P50/P95 badges in diagnostics view |
-| Predictive prefetch of likely next panels | Makes workflow feel instant for common operator sequences | HIGH | Prefetch read-only datasets for next probable step (Rules -> Policy, Discovery -> Scanner) during idle; must honor low-memory safeguards |
-| Deterministic "safe mode" fallback for oversized datasets | Preserves operability under extreme dataset size instead of hanging | MEDIUM | Auto-switch to reduced visuals, capped preview rows, and stricter server/index-backed queries with explicit operator banner |
+| Event-to-artifact enrichment step | Converts weak event data into high-confidence rule material without leaving Event Viewer | MEDIUM | "Enrich selected events" triggers targeted local/remote artifact scan for missing signer/hash metadata; dependency: existing Scanner pipeline and connectivity checks |
+| Rule impact preview before commit | Reduces accidental over-broad allow rules and rollback churn | HIGH | Show estimated blast radius: unique hosts/users hit, event count coverage, and rule type strength score (Publisher strongest, Hash next, Path highest risk) |
+| Guided bulk strategy recommendations | Speeds expert workflow and helps junior operators choose safer rule types | MEDIUM | Recommend per-batch strategy (e.g., "use Publisher for signed set; Hash fallback for unsigned outliers") based on selected events |
+| Event-backed exception suggestions | Makes exceptions operational instead of manual hunting | MEDIUM | Detect when event conflicts with broad allow rule and suggest scoped exception template instead of deny rule sprawl |
 
 ### Anti-Features (Commonly Requested, Often Problematic)
 
@@ -36,77 +37,83 @@ Features that seem good but create problems.
 
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|-----------------|-------------|
-| Auto-refresh every panel every few seconds | Feels "real-time" and reassuring | Thrashes disk/CPU, invalidates caches, causes jittery UI and contention on large datasets | Event-driven invalidation + manual refresh + optional scoped refresh only for active panel |
-| Rendering full datasets in one DataGrid pass | Seems simpler than paging/windowing | Causes long UI thread blocks, GC pressure, and delayed input handling | Virtualized rendering plus incremental materialization and fast first paint |
-| Silent auto-repair of index on any mismatch | Sounds resilient | Can hide true corruption causes and break forensic/audit expectations in secure environments | Guided repair with explicit audit log entry and before/after metrics |
-| Adding heavy client-side analytics to Rules/Policy panels in this milestone | Looks like added value | Competes with primary milestone goal (<500ms transitions and reliability), expands scope | Keep milestone focused on reliability/perf foundations; defer advanced analytics |
+| Full SIEM replacement inside GA-AppLocker | Teams want one pane for all event analytics | Explodes scope into retention, correlation, alerting, and data-lake concerns outside milestone | Keep Event Viewer focused on authoring inputs; integrate by importing/exporting filtered event slices |
+| Auto-create and auto-approve rules from all audited events | Feels "hands-free" and fast | Produces rule bloat, over-permissive policies, and weak change control in secure environments | Require operator review with batch preview + explicit approval step |
+| Cross-forest/unbounded remote log crawling in first release | Sounds powerful for large estates | High auth/network complexity and reliability risk, especially air-gapped or segmented networks | Scope to selected known hosts (from Discovery or manual list) with clear connectivity status |
+| Real-time streaming UI with zero batching | Seems modern and responsive | High UI churn and noisy operator experience; hard to reason about policy actions | Use refresh windows + bounded pulls + optional timed refresh |
+| Generic "one-click fix all blocks" button | Appeals to helpdesk speed | Hides security tradeoffs and bypasses least-privilege rule design | Offer guided wizard with risk labels and explicit per-rule acceptance |
 
 ## Feature Dependencies
 
 ```text
-[Crash-safe index writes]
-    -> requires -> [Atomic file replace + backup strategy]
-    -> enables  -> [Startup integrity check + rollback]
+[Remote event ingestion]
+    -> requires -> [AD Discovery host list] + [Credential profiles] + [Connectivity checks]
+    -> enables  -> [Multi-host event triage]
 
-[Startup integrity check + guided self-heal]
-    -> requires -> [Rule repository scan + rebuild command]
-    -> enables  -> [Index Health Center]
+[Event filtering and selection]
+    -> requires -> [Normalized event model]
+    -> enables  -> [Single/bulk rule generation]
 
-[Virtualized rendering + debounced filters]
-    -> requires -> [Panel data pipeline that supports incremental materialization]
-    -> enables  -> [Sub-500ms warm transitions]
+[Single/bulk rule generation from events]
+    -> requires -> [Existing Rules generation engine]
+    -> requires -> [Deduplication/index update pipeline]
+    -> enables  -> [Policy build/deploy workflow]
 
-[Latency budget telemetry]
-    -> requires -> [Consistent timing hooks in panel navigation and filter actions]
-    -> enhances -> [Performance regression detection and tuning]
+[Exception authoring from event]
+    -> requires -> [Existing rule edit + exception model]
+    -> enhances -> [Safe policy refinement without deny sprawl]
 
-[Predictive prefetch]
-    -> conflicts -> [Aggressive background scans on low-resource hosts]
+[Event enrichment (differentiator)]
+    -> requires -> [Scanner local/remote artifact collection]
+    -> conflicts -> [Disconnected hosts without scan fallback]
 ```
 
 ### Dependency Notes
 
-- **Crash-safe writes require atomic replace semantics:** Without atomic swap+backup, partial writes can leave index unreadable after interruption.
-- **Health center requires integrity signals first:** Freshness/drift cards are only trustworthy if startup checks and rebuild pathways exist.
-- **<500ms navigation depends on both data and render paths:** Fast query alone is insufficient if DataGrid rendering is not virtualized.
-- **Predictive prefetch conflicts with constrained hosts:** In air-gapped admin workstations with limited IO, prefetch must be bounded and cancelable.
+- **Event-driven authoring is a front door, not a new backend:** it should call existing Scanning/Rules/Policy capabilities, not duplicate them.
+- **Normalized event model is foundational:** filtering, dedupe, bulk actions, and preview all depend on stable extracted fields.
+- **Remote ingestion quality depends on existing connectivity controls:** host status and credential selection must be first-class in the Event Viewer flow.
+- **Exception workflow depends on rule-edit maturity:** weak exception UX leads teams to create blunt deny/allow rules instead.
 
 ## MVP Definition
 
-### Launch With (this milestone)
+### Launch With (v1)
 
-Minimum viable milestone for reliable, fast operator UX.
+Minimum viable milestone for event-centric rule authoring.
 
-- [ ] Crash-safe index write path with backup and rollback-on-failure
-- [ ] Startup integrity check with explicit repair/rebuild action
-- [ ] Virtualized, debounced Rules/Policy list rendering path with non-blocking panel transitions
-- [ ] Bulk operation responsiveness safeguards (background execution + progress/cancel)
+- [ ] Local + selected-remote AppLocker event retrieval in Event Viewer panel
+- [ ] Event ID + metadata filtering (host, user, path/signer text, time, outcome)
+- [ ] Single and bulk rule generation from selected events using existing rule engine
+- [ ] Bulk dedupe/frequency rollup before generation
+- [ ] Event detail view (normalized fields + raw XML/message)
+- [ ] Basic exception creation path from selected event context
 
-### Add After Validation (next milestone)
+### Add After Validation (v1.x)
 
-Features to add once core reliability/performance is stable in field usage.
+Features to add once core event workflow proves stable.
 
-- [ ] Index Health Center dashboard - add after reliability events and operator support tickets are low
-- [ ] Latency budget telemetry badges - add after baseline instrumentation is in place and thresholds are calibrated
+- [ ] Event-to-artifact enrichment for missing signer/hash data - add after baseline performance is acceptable
+- [ ] Guided bulk strategy recommendations - add after real operator usage patterns are observed
 
-### Future Consideration (vNext)
+### Future Consideration (v2+)
 
-Features to defer until reliability/performance foundation proves stable.
+Features to defer until core workflow is trusted in production-like environments.
 
-- [ ] Predictive prefetch of likely next panels - defer until memory and IO budget telemetry confirms headroom
-- [ ] Safe mode auto-profile tuning - defer until workload archetypes are measured in production-like environments
+- [ ] Rule impact preview with blast-radius scoring - defer until sufficient telemetry/model confidence exists
+- [ ] Advanced exception suggestions and conflict analysis - defer until rule graph dependencies are available
 
 ## Feature Prioritization Matrix
 
 | Feature | User Value | Implementation Cost | Priority |
 |---------|------------|---------------------|----------|
-| Crash-safe index writes + backup | HIGH | MEDIUM | P1 |
-| Startup integrity check + guided repair | HIGH | MEDIUM | P1 |
-| Virtualized/debounced Rules+Policy UI pipeline | HIGH | MEDIUM | P1 |
-| Bulk operation responsiveness controls | HIGH | MEDIUM | P1 |
-| Index Health Center | MEDIUM | MEDIUM | P2 |
-| Latency budget telemetry badges | MEDIUM | MEDIUM | P2 |
-| Predictive prefetch | MEDIUM | HIGH | P3 |
+| Local + remote event ingestion | HIGH | MEDIUM | P1 |
+| Event code/metadata filtering | HIGH | LOW | P1 |
+| Single event -> rule action | HIGH | MEDIUM | P1 |
+| Bulk selection + dedupe + generate | HIGH | MEDIUM | P1 |
+| Event detail pane (normalized + raw) | HIGH | MEDIUM | P1 |
+| Exception authoring from event | MEDIUM | MEDIUM | P2 |
+| Event-to-artifact enrichment | HIGH | MEDIUM | P2 |
+| Rule impact preview | MEDIUM | HIGH | P3 |
 
 **Priority key:**
 - P1: Must have for milestone success
@@ -115,22 +122,23 @@ Features to defer until reliability/performance foundation proves stable.
 
 ## Competitor Feature Analysis
 
-| Feature | Typical Enterprise Admin Tools | Common OSS/Admin Grid Pattern | Our Approach |
-|---------|-------------------------------|--------------------------------|-------------|
-| Large dataset navigation | Virtualized list/grid with lazy loading and filter-first workflows | DOM/window virtualization and row-model strategies | Keep WPF virtualization on, add staged data materialization, and optimize first paint for Rules/Policy |
-| Reliability under interrupted writes | Transactional/atomic writes plus recovery markers | Journal/WAL or atomic-replace patterns | Implement atomic replace + backup for index file and startup validation/repair flow |
-| Operator trust in data state | Visible health indicators and explicit refresh controls | Basic status banners/logs | Add explicit index freshness/drift indicators after core reliability improvements land |
+| Feature | Native AppLocker MMC/PowerShell | WEF/WEC-Centric Enterprise Ops | Our Approach |
+|---------|----------------------------------|----------------------------------|-------------|
+| Event-driven authoring | Supported mainly through cmdlet flow (`Get-AppLockerFileInformation` -> `New-AppLockerPolicy`) with manual scripting | Usually focused on collection/monitoring, not direct rule authoring | Bring authoring UX in-window with one-click/bulk generation from selected events |
+| Event filtering model | Event Viewer + cmdlet filters; flexible but operator-heavy | Subscription XML and upstream filtering to manage volume | Operator-first filter chips and presets mapped to AppLocker event IDs and metadata |
+| Handling verbosity/noise | Manual statistics and review; can be noisy | Baseline/targeted subscriptions to manage volume and latency | Built-in dedupe + frequency rollups before rule generation |
 
 ## Sources
 
-- Microsoft Learn - Optimize control performance (WPF): https://learn.microsoft.com/en-us/dotnet/desktop/wpf/advanced/optimizing-performance-controls (updated 2025-08-27) [HIGH]
-- Microsoft Learn - `DataGrid.EnableRowVirtualization`: https://learn.microsoft.com/en-us/dotnet/api/system.windows.controls.datagrid.enablerowvirtualization (updated 2026-02-11) [HIGH]
-- Microsoft Learn - `System.IO.File.Replace`: https://learn.microsoft.com/en-us/dotnet/api/system.io.file.replace (updated 2026-02-11) [HIGH]
-- SQLite Documentation - Write-Ahead Logging: https://www.sqlite.org/wal.html (updated 2025-05-31) [MEDIUM, used as reliability pattern reference]
-- SQLite Documentation - Atomic Commit: https://www.sqlite.org/atomiccommit.html [MEDIUM, durability pattern reference]
-- AG Grid Docs - Row Models: https://www.ag-grid.com/javascript-data-grid/row-models/ [LOW-MEDIUM, ecosystem pattern signal]
-- AG Grid Docs - DOM Virtualisation: https://www.ag-grid.com/javascript-data-grid/dom-virtualisation/ [LOW-MEDIUM, ecosystem pattern signal]
+- Microsoft Learn - Using Event Viewer with AppLocker (event IDs, channel behavior, verbosity): https://learn.microsoft.com/en-us/windows/security/application-security/application-control/app-control-for-business/applocker/using-event-viewer-with-applocker (2024-09-11, updated 2025-02-24) [HIGH]
+- Microsoft Learn - Monitor app usage with AppLocker (audit-first workflow and event review model): https://learn.microsoft.com/en-us/windows/security/application-security/application-control/app-control-for-business/applocker/monitor-application-usage-with-applocker (2024-09-11, updated 2025-02-24) [HIGH]
+- Microsoft Learn - Get-AppLockerFileInformation (event log ingestion, event type filtering, statistics): https://learn.microsoft.com/en-us/powershell/module/applocker/get-applockerfileinformation?view=windowsserver2025-ps (updated 2025-05-14) [HIGH]
+- Microsoft Learn - New-AppLockerPolicy (create policy/rules from event-derived file information): https://learn.microsoft.com/en-us/powershell/module/applocker/new-applockerpolicy?view=windowsserver2025-ps (updated 2025-05-14) [HIGH]
+- Microsoft Learn - Get-WinEvent (remote retrieval, filter hashtable/XML, performance-oriented filtering): https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.diagnostics/get-winevent?view=powershell-5.1 (updated 2026-01-19) [HIGH]
+- Microsoft Learn - Add exceptions for an AppLocker rule: https://learn.microsoft.com/en-us/windows/security/application-security/application-control/app-control-for-business/applocker/configure-exceptions-for-an-applocker-rule (2024-09-11, updated 2025-02-24) [HIGH]
+- Microsoft Learn - Understanding AppLocker rule exceptions: https://learn.microsoft.com/en-us/windows/security/application-security/application-control/app-control-for-business/applocker/understanding-applocker-rule-exceptions (2024-09-11, updated 2025-02-24) [HIGH]
+- Microsoft Learn - Use Windows Event Forwarding to help with intrusion detection (volume/scaling and subscription patterns informing anti-features): https://learn.microsoft.com/en-us/windows/security/operating-system-security/device-management/use-windows-event-forwarding-to-assist-in-intrusion-detection (2025-08-18) [MEDIUM, architecture pattern source]
 
 ---
-*Feature research for: GA-AppLocker rules-index reliability and high-performance policy/rule UIs milestone*
+*Feature research for: GA-AppLocker Event Viewer Rule Workbench milestone*
 *Researched: 2026-02-17*
