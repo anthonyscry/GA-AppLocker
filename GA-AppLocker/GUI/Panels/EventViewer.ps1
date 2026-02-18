@@ -351,34 +351,102 @@ function global:Get-FilteredEventViewerRows {
         [PSCustomObject[]]$Rows,
 
         [Parameter()]
-        [string]$SearchText
+        [string]$SearchText,
+
+        [Parameter()]
+        [int[]]$EventIdFilter = @(),
+
+        [Parameter()]
+        [string]$ActionFilter = '',
+
+        [Parameter()]
+        [string]$HostFilter = '',
+
+        [Parameter()]
+        [string]$UserFilter = ''
     )
 
-    $allRows = @($Rows)
-    if ([string]::IsNullOrWhiteSpace($SearchText)) {
-        return $allRows
-    }
+    $working = @($Rows)
 
-    $needle = $SearchText.Trim().ToLowerInvariant()
-    $filtered = [System.Collections.Generic.List[PSCustomObject]]::new()
-
-    foreach ($row in $allRows) {
-        if (-not $row) { continue }
-
-        $haystack = @(
-            if ($row.PSObject.Properties.Name -contains 'FilePath') { [string]$row.FilePath } else { '' }
-            if ($row.PSObject.Properties.Name -contains 'ComputerName') { [string]$row.ComputerName } else { '' }
-            if ($row.PSObject.Properties.Name -contains 'EventId') { [string]$row.EventId } else { '' }
-            if ($row.PSObject.Properties.Name -contains 'CollectionType') { [string]$row.CollectionType } else { '' }
-            if ($row.PSObject.Properties.Name -contains 'Action') { [string]$row.Action } else { '' }
-        ) -join ' '
-
-        if ($haystack.ToLowerInvariant().Contains($needle)) {
-            [void]$filtered.Add($row)
+    # FLT-01: event-code filter -- keep only rows whose EventId is in the set
+    if (@($EventIdFilter).Count -gt 0) {
+        $filterSet = [System.Collections.Generic.HashSet[int]]::new()
+        foreach ($id in @($EventIdFilter)) { [void]$filterSet.Add($id) }
+        $pass = [System.Collections.Generic.List[PSCustomObject]]::new()
+        foreach ($row in $working) {
+            if (-not $row) { continue }
+            $evId = 0
+            [int]::TryParse([string]$row.EventId, [ref]$evId) | Out-Null
+            if ($filterSet.Contains($evId)) { [void]$pass.Add($row) }
         }
+        $working = @($pass)
     }
 
-    return @($filtered)
+    # FLT-02: action filter -- keep only rows matching the action bucket
+    if (-not [string]::IsNullOrWhiteSpace($ActionFilter)) {
+        $needle = $ActionFilter.Trim().ToLowerInvariant()
+        $pass = [System.Collections.Generic.List[PSCustomObject]]::new()
+        foreach ($row in $working) {
+            if (-not $row) { continue }
+            $evId = 0
+            [int]::TryParse([string]$row.EventId, [ref]$evId) | Out-Null
+            $bucket = Get-EventViewerActionBucket -EventId $evId -Action ([string]$row.Action)
+            if ($bucket.ToLowerInvariant() -eq $needle) { [void]$pass.Add($row) }
+        }
+        $working = @($pass)
+    }
+
+    # FLT-02: host filter -- substring match on ComputerName (case-insensitive)
+    if (-not [string]::IsNullOrWhiteSpace($HostFilter)) {
+        $needle = $HostFilter.Trim().ToLowerInvariant()
+        $pass = [System.Collections.Generic.List[PSCustomObject]]::new()
+        foreach ($row in $working) {
+            if (-not $row) { continue }
+            $hostVal = if ($row.PSObject.Properties.Name -contains 'ComputerName') { ([string]$row.ComputerName).ToLowerInvariant() } else { '' }
+            if ($hostVal.Contains($needle)) { [void]$pass.Add($row) }
+        }
+        $working = @($pass)
+    }
+
+    # FLT-02: user filter -- substring match on UserSid (case-insensitive)
+    if (-not [string]::IsNullOrWhiteSpace($UserFilter)) {
+        $needle = $UserFilter.Trim().ToLowerInvariant()
+        $pass = [System.Collections.Generic.List[PSCustomObject]]::new()
+        foreach ($row in $working) {
+            if (-not $row) { continue }
+            $userVal = if ($row.PSObject.Properties.Name -contains 'UserSid') { ([string]$row.UserSid).ToLowerInvariant() } else { '' }
+            if ($userVal.Contains($needle)) { [void]$pass.Add($row) }
+        }
+        $working = @($pass)
+    }
+
+    # FLT-03: search text -- extended haystack covers Message and UserSid in addition to existing 5 fields
+    if (-not [string]::IsNullOrWhiteSpace($SearchText)) {
+        $needle = $SearchText.Trim().ToLowerInvariant()
+        $filtered = [System.Collections.Generic.List[PSCustomObject]]::new()
+
+        foreach ($row in $working) {
+            if (-not $row) { continue }
+
+            $haystack = @(
+                if ($row.PSObject.Properties.Name -contains 'FilePath') { [string]$row.FilePath } else { '' }
+                if ($row.PSObject.Properties.Name -contains 'ComputerName') { [string]$row.ComputerName } else { '' }
+                if ($row.PSObject.Properties.Name -contains 'EventId') { [string]$row.EventId } else { '' }
+                if ($row.PSObject.Properties.Name -contains 'CollectionType') { [string]$row.CollectionType } else { '' }
+                if ($row.PSObject.Properties.Name -contains 'Action') { [string]$row.Action } else { '' }
+                if ($row.PSObject.Properties.Name -contains 'Message') { [string]$row.Message } else { '' }
+                if ($row.PSObject.Properties.Name -contains 'UserSid') { [string]$row.UserSid } else { '' }
+            ) -join ' '
+
+            if ($haystack.ToLowerInvariant().Contains($needle)) {
+                [void]$filtered.Add($row)
+            }
+        }
+
+        $working = @($filtered)
+    }
+
+    return ,$working
 }
 
 function global:ConvertTo-EventViewerFileMetricsRows {
