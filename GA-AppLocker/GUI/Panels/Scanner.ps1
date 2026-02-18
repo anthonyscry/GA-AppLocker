@@ -721,6 +721,9 @@ function global:Invoke-StartArtifactScan {
                         Import-Module $modPath -Force -ErrorAction Stop
                     }
                 }
+                # Get-WinEvent lives in Microsoft.PowerShell.Diagnostics which isn't
+                # auto-loaded in a bare runspace — needed for Event Log scanning
+                Import-Module Microsoft.PowerShell.Diagnostics -ErrorAction SilentlyContinue
             
                 $machineCount = if ($SyncHash.Params.Machines) { $SyncHash.Params.Machines.Count } else { 0 }
                 $localText = if ($SyncHash.Params.ScanLocal) { 'local + ' } else { '' }
