@@ -3506,6 +3506,17 @@ Width="1450"
                                         <ComboBoxItem Content="Hash" Tag="Hash"/>
                                         <ComboBoxItem Content="Path" Tag="Path"/>
                                     </ComboBox>
+                                    <TextBlock Text="Action:" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="16,0,6,0" FontSize="11"/>
+                                    <RadioButton x:Name="RbEvtRuleAllow" Content="Allow" IsChecked="True" Foreground="{StaticResource ForegroundBrush}" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <RadioButton x:Name="RbEvtRuleDeny" Content="Deny" IsChecked="False" Foreground="{StaticResource ForegroundBrush}" FontSize="11" VerticalAlignment="Center" Margin="0,0,16,0"/>
+                                    <TextBlock Text="Target:" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="0,0,6,0" FontSize="11"/>
+                                    <ComboBox x:Name="CboEvtRuleTargetGroup" Width="170" Style="{StaticResource ComboBoxStyle}" SelectedIndex="0">
+                                        <ComboBoxItem Content="Authenticated Users" Tag="S-1-5-11"/>
+                                        <ComboBoxItem Content="Everyone" Tag="S-1-1-0"/>
+                                        <ComboBoxItem Content="BUILTIN\Administrators" Tag="S-1-5-32-544"/>
+                                        <ComboBoxItem Content="AppLocker-Users (RESOLVE)" Tag="RESOLVE:AppLocker-Users"/>
+                                        <ComboBoxItem Content="AppLocker-Admins (RESOLVE)" Tag="RESOLVE:AppLocker-Admins"/>
+                                    </ComboBox>
                                 </StackPanel>
 
                                 <!-- Filter bar: event-code group, action, host, user -->
