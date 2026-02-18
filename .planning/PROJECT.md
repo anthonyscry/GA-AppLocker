@@ -14,12 +14,12 @@ Reliable, operator-friendly policy management that stays responsive on large ent
 ### Validated
 
 - ✓ Deterministic non-interactive release orchestration with standardized release notes and packaging integrity artifacts - v1.2.86
+- ✓ Operators can access a dedicated Event Viewer workflow from the main app navigation - Phase 7
+- ✓ Operators can scan local and remote assets directly from the Event Viewer workflow - Phase 7
+- ✓ Operators can filter and search AppLocker events by event code and key event metadata - Phase 8
 
 ### Active
 
-- [ ] Operators can access a dedicated Event Viewer workflow from the main app navigation
-- [ ] Operators can scan local and remote assets directly from the Event Viewer workflow
-- [ ] Operators can filter and search AppLocker events by event code and key event metadata
 - [ ] Operators can generate AppLocker rules and exceptions from single or bulk event selections
 
 ### Out of Scope
@@ -54,9 +54,11 @@ Reliable, operator-friendly policy management that stays responsive on large ent
 
 | Decision | Rationale | Outcome |
 | --- | --- | --- |
-| Build Event Viewer capability as an integrated panel, not a separate tool | Preserves existing operator workflow and reduces training overhead | - Pending |
-| Support both single-item and bulk event-to-rule generation in one window | Operators need fast triage and mass remediation from the same surface | - Pending |
-| Reuse existing remote-access and scanning foundations for Event Viewer actions | Reduces implementation risk and keeps behavior consistent with current modules | - Pending |
+| Build Event Viewer capability as an integrated panel, not a separate tool | Preserves existing operator workflow and reduces training overhead | Shipped Phase 7-8 |
+| Support both single-item and bulk event-to-rule generation in one window | Operators need fast triage and mass remediation from the same surface | Pending Phase 9 |
+| Reuse existing remote-access and scanning foundations for Event Viewer actions | Reduces implementation risk and keeps behavior consistent with current modules | Shipped Phase 7 |
+| Pre-serialize RawXml in remote Invoke-Command before deserialization strips ToXml() | .NET EventLogRecord methods unavailable after PS remoting boundary | Shipped Phase 8 |
+| Dimension filters default to no-op for backward compatibility | All existing callers work without modification after filter extension | Shipped Phase 8 |
 
 ## Archived Context
 
@@ -69,4 +71,4 @@ See `.planning/milestones/v1.2.86-ROADMAP.md` and `.planning/MILESTONES.md` for 
 </details>
 
 ---
-*Last updated: 2026-02-17 after starting v1.2.88 milestone*
+*Last updated: 2026-02-18 after Phase 8 (Event Triage and Inspection Workbench)*
