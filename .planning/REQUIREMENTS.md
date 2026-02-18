@@ -7,7 +7,7 @@
 
 ### Event Ingestion
 
-- [ ] **EVT-01**: Operator can open Event Viewer and load AppLocker events from the local machine.
+- [x] **EVT-01**: Operator can open Event Viewer and load AppLocker events from the local machine.
 - [ ] **EVT-02**: Operator can load AppLocker events from selected remote machines and see per-host success/failure status.
 - [ ] **EVT-03**: Operator can run bounded event queries (time window and result cap) to avoid unbounded retrieval.
 
@@ -66,7 +66,7 @@ Deferred capabilities captured during scoping and research:
 
 | Requirement | Phase | Status |
 | --- | --- | --- |
-| EVT-01 | Phase 7 | Pending |
+| EVT-01 | Phase 7 | Complete |
 | EVT-02 | Phase 7 | Pending |
 | EVT-03 | Phase 7 | Pending |
 | FLT-01 | Phase 8 | Pending |

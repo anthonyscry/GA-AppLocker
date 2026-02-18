@@ -1,25 +1,10 @@
 <#
 .SYNOPSIS
-    Collects AppLocker event logs from local or remote machines.
+    Collects bounded AppLocker event logs from local or remote machines.
 
 .DESCRIPTION
-    Retrieves AppLocker-related events (Event IDs 8001-8025) from the
-    Microsoft-Windows-AppLocker operational logs.
-
-    Event ID Reference:
-    - 8001: EXE/DLL allowed
-    - 8002: EXE/DLL would be blocked (audit mode)
-    - 8003: EXE/DLL blocked
-    - 8004: EXE/DLL blocked (no rule)
-    - 8005: Script allowed
-    - 8006: Script would be blocked (audit mode)
-    - 8007: Script blocked
-    - 8020: Packaged app allowed
-    - 8021: Packaged app would be blocked
-    - 8022: Packaged app blocked
-    - 8023: MSI/MSP allowed
-    - 8024: MSI/MSP would be blocked
-    - 8025: MSI/MSP blocked
+    Retrieves AppLocker events for an explicit time window, event-id list,
+    and bounded max-results cap. Unbounded requests are rejected.
 
 .PARAMETER ComputerName
     Target computer. Defaults to local machine.
@@ -28,23 +13,19 @@
     PSCredential for remote access.
 
 .PARAMETER StartTime
-    Only collect events after this time.
+    Required lower bound for event time.
+
+.PARAMETER EndTime
+    Required upper bound for event time.
 
 .PARAMETER MaxEvents
-    Maximum number of events to collect per log.
+    Required maximum number of total events to return.
 
-.EXAMPLE
-    Get-AppLockerEventLogs
-
-.EXAMPLE
-    Get-AppLockerEventLogs -ComputerName 'Server01' -StartTime (Get-Date).AddDays(-7)
+.PARAMETER EventIds
+    Explicit AppLocker event IDs to include.
 
 .OUTPUTS
-    [PSCustomObject] Result with Success, Data (events array), and Summary.
-
-.NOTES
-    Author: GA-AppLocker Team
-    Version: 1.0.0
+    [PSCustomObject] Result with Success, Data (events array), Error, and Summary.
 #>
 function Get-AppLockerEventLogs {
     [CmdletBinding()]
@@ -57,130 +38,84 @@ function Get-AppLockerEventLogs {
         [System.Management.Automation.PSCredential]$Credential,
 
         [Parameter()]
-        [datetime]$StartTime,
+        [Nullable[datetime]]$StartTime,
 
         [Parameter()]
-        [int]$MaxEvents = 1000
+        [Nullable[datetime]]$EndTime,
+
+        [Parameter()]
+        [int]$MaxEvents,
+
+        [Parameter()]
+        [int[]]$EventIds = $script:AppLockerEventIds
     )
 
     $result = [PSCustomObject]@{
-        Success  = $false
-        Data     = @()
-        Error    = $null
-        Summary  = $null
+        Success = $false
+        Data    = @()
+        Error   = $null
+        Summary = $null
     }
 
+    if ([string]::IsNullOrWhiteSpace($ComputerName)) {
+        $ComputerName = 'localhost'
+    }
+
+    $validationError = Test-AppLockerEventQueryBounds -StartTime $StartTime -EndTime $EndTime -MaxEvents $MaxEvents -EventIds $EventIds
+    if ($validationError) {
+        $result.Error = $validationError
+        return $result
+    }
+
+    $appLockerLogs = @(
+        'Microsoft-Windows-AppLocker/EXE and DLL',
+        'Microsoft-Windows-AppLocker/MSI and Script',
+        'Microsoft-Windows-AppLocker/Packaged app-Deployment',
+        'Microsoft-Windows-AppLocker/Packaged app-Execution'
+    )
+
+    $filterHash = @{
+        LogName   = $appLockerLogs
+        StartTime = $StartTime
+        EndTime   = $EndTime
+        Id        = $EventIds
+    }
+
+    $allEvents = [System.Collections.Generic.List[PSCustomObject]]::new()
+
     try {
-        Write-ScanLog -Message "Collecting AppLocker events from $ComputerName"
+        Write-ScanLog -Message "Collecting bounded AppLocker events from $ComputerName"
 
-        #region --- Define log names ---
-        $logNames = @(
-            'Microsoft-Windows-AppLocker/EXE and DLL',
-            'Microsoft-Windows-AppLocker/MSI and Script',
-            'Microsoft-Windows-AppLocker/Packaged app-Deployment',
-            'Microsoft-Windows-AppLocker/Packaged app-Execution'
-        )
-        #endregion
+        $events = $null
+        $isRemote = ($ComputerName -and ($ComputerName -ne $env:COMPUTERNAME) -and ($ComputerName -ne '.') -and ($ComputerName -ne 'localhost'))
 
-        $allEvents = [System.Collections.Generic.List[PSCustomObject]]::new()
-        $isRemote = ($ComputerName -ne $env:COMPUTERNAME)
-
-        foreach ($logName in $logNames) {
-            try {
-                #region --- Build query parameters ---
-                $getEventParams = @{
-                    LogName      = $logName
-                    ErrorAction  = 'SilentlyContinue'
+        if ($isRemote) {
+            if ($Credential) {
+                $scriptBlock = {
+                    param($BoundFilterHash, $BoundMaxEvents)
+                    Get-WinEvent -FilterHashtable $BoundFilterHash -MaxEvents $BoundMaxEvents -ErrorAction Stop
                 }
 
-                if ($MaxEvents -gt 0) {
-                    $getEventParams.MaxEvents = $MaxEvents
-                }
-
-                if ($StartTime) {
-                    $filterHash = @{
-                        LogName   = $logName
-                        StartTime = $StartTime
-                        Id        = $script:AppLockerEventIds
-                    }
-                    $getEventParams = @{
-                        FilterHashtable = $filterHash
-                        ErrorAction     = 'SilentlyContinue'
-                    }
-                    if ($MaxEvents -gt 0) {
-                        $getEventParams.MaxEvents = $MaxEvents
-                    }
-                }
-                #endregion
-
-                #region --- Collect events ---
-                $events = $null
-
-                if ($isRemote) {
-                    $scriptBlock = {
-                        param($Params)
-                        Get-WinEvent @Params
-                    }
-
-                    $invokeParams = @{
-                        ComputerName = $ComputerName
-                        ScriptBlock  = $scriptBlock
-                        ArgumentList = @($getEventParams)
-                        ErrorAction  = 'SilentlyContinue'
-                    }
-
-                    if ($Credential) {
-                        $invokeParams.Credential = $Credential
-                    }
-
-                    $events = Invoke-Command @invokeParams
-                }
-                else {
-                    $events = Get-WinEvent @getEventParams
-                }
-                #endregion
-
-                #region --- Process events ---
-                if ($events) {
-                    foreach ($event in $events) {
-                        $eventData = [PSCustomObject]@{
-                            ComputerName = $ComputerName
-                            LogName      = $logName
-                            EventId      = $event.Id
-                            EventType    = Get-EventTypeName -EventId $event.Id
-                            TimeCreated  = $event.TimeCreated
-                            Message      = $event.Message
-                            FilePath     = Get-EventFilePath -Message $event.Message
-                            UserSid      = $event.UserId
-                            Level        = $event.LevelDisplayName
-                            IsBlocked    = ($event.Id -in @(8003, 8004, 8007, 8022, 8025))
-                            IsAudit      = ($event.Id -in @(8002, 8006, 8021, 8024))
-                        }
-                        [void]$allEvents.Add($eventData)
-                    }
-                }
-                #endregion
+                $events = Invoke-Command -ComputerName $ComputerName -Credential $Credential -ScriptBlock $scriptBlock -ArgumentList @($filterHash, $MaxEvents) -ErrorAction Stop
             }
-            catch {
-                Write-ScanLog -Level Warning -Message "Failed to query log '$logName': $($_.Exception.Message)"
+            else {
+                $events = Get-WinEvent -ComputerName $ComputerName -FilterHashtable $filterHash -MaxEvents $MaxEvents -ErrorAction Stop
             }
         }
+        else {
+            $events = Get-WinEvent -FilterHashtable $filterHash -MaxEvents $MaxEvents -ErrorAction Stop
+        }
 
-        #region --- Build summary ---
+        foreach ($event in @($events)) {
+            $eventData = ConvertTo-AppLockerEventRecord -Event $event -ComputerName $ComputerName
+            [void]$allEvents.Add($eventData)
+        }
+
         $result.Success = $true
-        $result.Data = $allEvents.ToArray()
-        $result.Summary = [PSCustomObject]@{
-            ComputerName    = $ComputerName
-            CollectionDate  = Get-Date
-            TotalEvents     = $allEvents.Count
-            BlockedEvents   = @($allEvents | Where-Object { $_.IsBlocked }).Count
-            AuditEvents     = @($allEvents | Where-Object { $_.IsAudit }).Count
-            AllowedEvents   = @($allEvents | Where-Object { -not $_.IsBlocked -and -not $_.IsAudit }).Count
-            EventsByType    = @($allEvents | Group-Object EventType | Select-Object Name, Count)
-        }
-        #endregion
+        $result.Data = @($allEvents)
+        $result.Summary = New-AppLockerEventSummary -ComputerName $ComputerName -StartTime $StartTime -EndTime $EndTime -MaxEvents $MaxEvents -EventList $allEvents -EventIds $EventIds -LogNames $appLockerLogs
 
-        Write-ScanLog -Message "Collected $($allEvents.Count) AppLocker events from $ComputerName"
+        Write-ScanLog -Message "Collected $($allEvents.Count) bounded AppLocker event(s) from $ComputerName"
     }
     catch {
         $result.Error = "Event log collection failed: $($_.Exception.Message)"
@@ -191,35 +126,120 @@ function Get-AppLockerEventLogs {
 }
 
 #region ===== HELPER FUNCTIONS =====
-function script:Get-EventTypeName {
+function script:Test-AppLockerEventQueryBounds {
+    param(
+        [Nullable[datetime]]$StartTime,
+        [Nullable[datetime]]$EndTime,
+        [int]$MaxEvents,
+        [int[]]$EventIds
+    )
+
+    if ($null -eq $StartTime) {
+        return 'Bounded query requires StartTime.'
+    }
+
+    if ($null -eq $EndTime) {
+        return 'Bounded query requires EndTime.'
+    }
+
+    if ($EndTime -le $StartTime) {
+        return 'EndTime must be greater than StartTime.'
+    }
+
+    if ($MaxEvents -le 0) {
+        return 'Bounded query requires MaxEvents greater than zero.'
+    }
+
+    if ($EventIds.Count -eq 0) {
+        return 'Bounded query requires explicit EventIds.'
+    }
+
+    return $null
+}
+
+function script:ConvertTo-AppLockerEventRecord {
+    param(
+        [Parameter(Mandatory)]
+        $Event,
+
+        [Parameter(Mandatory)]
+        [string]$ComputerName
+    )
+
+    $classification = Get-AppLockerEventClassification -EventId $Event.Id
+
+    return [PSCustomObject]@{
+        ComputerName    = $ComputerName
+        LogName         = $Event.LogName
+        EventId         = $Event.Id
+        EventType       = $classification.EventType
+        TimeCreated     = $Event.TimeCreated
+        Message         = $Event.Message
+        FilePath        = Get-EventFilePath -Message $Event.Message
+        UserSid         = $Event.UserId
+        Level           = $Event.LevelDisplayName
+        Action          = $classification.Action
+        EnforcementMode = $classification.EnforcementMode
+        IsBlocked       = $classification.IsBlocked
+        IsAudit         = $classification.IsAudit
+    }
+}
+
+function script:New-AppLockerEventSummary {
+    param(
+        [string]$ComputerName,
+        [datetime]$StartTime,
+        [datetime]$EndTime,
+        [int]$MaxEvents,
+        [System.Collections.Generic.List[PSCustomObject]]$EventList,
+        [int[]]$EventIds,
+        [string[]]$LogNames
+    )
+
+    return [PSCustomObject]@{
+        ComputerName   = $ComputerName
+        CollectionDate = Get-Date
+        LogScope       = @($LogNames)
+        EventIds       = @($EventIds)
+        StartTime      = $StartTime
+        EndTime        = $EndTime
+        MaxEvents      = $MaxEvents
+        TotalEvents    = $EventList.Count
+        BlockedEvents  = @($EventList | Where-Object { $_.IsBlocked }).Count
+        AuditEvents    = @($EventList | Where-Object { $_.IsAudit }).Count
+        AllowedEvents  = @($EventList | Where-Object { $_.Action -eq 'Allow' }).Count
+        EventsByType   = @($EventList | Group-Object EventType | Select-Object Name, Count)
+    }
+}
+
+function script:Get-AppLockerEventClassification {
     param([int]$EventId)
 
     switch ($EventId) {
-        8001 { 'EXE/DLL Allowed' }
-        8002 { 'EXE/DLL Would Block (Audit)' }
-        8003 { 'EXE/DLL Blocked' }
-        8004 { 'EXE/DLL Blocked (No Rule)' }
-        8005 { 'Script Allowed' }
-        8006 { 'Script Would Block (Audit)' }
-        8007 { 'Script Blocked' }
-        8020 { 'Packaged App Allowed' }
-        8021 { 'Packaged App Would Block (Audit)' }
-        8022 { 'Packaged App Blocked' }
-        8023 { 'MSI/MSP Allowed' }
-        8024 { 'MSI/MSP Would Block (Audit)' }
-        8025 { 'MSI/MSP Blocked' }
-        default { "Unknown ($EventId)" }
+        8001 { return [PSCustomObject]@{ EventType = 'EXE/DLL Allowed'; Action = 'Allow'; EnforcementMode = 'Enforce'; IsBlocked = $false; IsAudit = $false } }
+        8002 { return [PSCustomObject]@{ EventType = 'EXE/DLL Blocked'; Action = 'Deny'; EnforcementMode = 'Enforce'; IsBlocked = $true; IsAudit = $false } }
+        8003 { return [PSCustomObject]@{ EventType = 'EXE/DLL Would Block (Audit)'; Action = 'Deny'; EnforcementMode = 'Audit'; IsBlocked = $false; IsAudit = $true } }
+        8004 { return [PSCustomObject]@{ EventType = 'EXE/DLL Blocked (No Rule)'; Action = 'Deny'; EnforcementMode = 'Enforce'; IsBlocked = $true; IsAudit = $false } }
+        8005 { return [PSCustomObject]@{ EventType = 'Script Allowed'; Action = 'Allow'; EnforcementMode = 'Enforce'; IsBlocked = $false; IsAudit = $false } }
+        8006 { return [PSCustomObject]@{ EventType = 'Script Blocked'; Action = 'Deny'; EnforcementMode = 'Enforce'; IsBlocked = $true; IsAudit = $false } }
+        8007 { return [PSCustomObject]@{ EventType = 'Script Would Block (Audit)'; Action = 'Deny'; EnforcementMode = 'Audit'; IsBlocked = $false; IsAudit = $true } }
+        8020 { return [PSCustomObject]@{ EventType = 'Packaged App Allowed'; Action = 'Allow'; EnforcementMode = 'Enforce'; IsBlocked = $false; IsAudit = $false } }
+        8021 { return [PSCustomObject]@{ EventType = 'Packaged App Blocked'; Action = 'Deny'; EnforcementMode = 'Enforce'; IsBlocked = $true; IsAudit = $false } }
+        8022 { return [PSCustomObject]@{ EventType = 'Packaged App Would Block (Audit)'; Action = 'Deny'; EnforcementMode = 'Audit'; IsBlocked = $false; IsAudit = $true } }
+        8023 { return [PSCustomObject]@{ EventType = 'MSI/MSP Allowed'; Action = 'Allow'; EnforcementMode = 'Enforce'; IsBlocked = $false; IsAudit = $false } }
+        8024 { return [PSCustomObject]@{ EventType = 'MSI/MSP Blocked'; Action = 'Deny'; EnforcementMode = 'Enforce'; IsBlocked = $true; IsAudit = $false } }
+        8025 { return [PSCustomObject]@{ EventType = 'MSI/MSP Would Block (Audit)'; Action = 'Deny'; EnforcementMode = 'Audit'; IsBlocked = $false; IsAudit = $true } }
+        default { return [PSCustomObject]@{ EventType = "Unknown ($EventId)"; Action = 'Unknown'; EnforcementMode = 'Unknown'; IsBlocked = $false; IsAudit = $false } }
     }
 }
 
 function script:Get-EventFilePath {
     param([string]$Message)
 
-    # AppLocker event messages typically contain the file path
-    # Format varies but usually includes the full path
-    if ($Message -match '([A-Z]:\\[^\r\n"]+\.(exe|dll|msi|msp|ps1|bat|cmd|vbs|js))') {
+    if ($Message -match '([A-Z]:\\[^\r\n"]+\.(exe|dll|msi|msp|ps1|bat|cmd|vbs|js|wsf|appx|msix))') {
         return $Matches[1]
     }
+
     return $null
 }
 #endregion

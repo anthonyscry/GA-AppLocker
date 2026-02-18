@@ -25,7 +25,7 @@ This milestone delivers an end-to-end event-driven operator workflow: ingest bou
 
 Plans:
 - [ ] 07-01-PLAN.md - Build bounded event retrieval contract and per-host remote envelopes.
-- [ ] 07-02-PLAN.md - Add Event Viewer navigation and panel shell wiring.
+- [x] 07-02-PLAN.md - Add Event Viewer navigation and panel shell wiring.
 - [ ] 07-03-PLAN.md - Implement bounded loading flow and host status rendering in Event Viewer.
 
 ### Phase 8: Event Triage and Inspection Workbench
@@ -55,6 +55,6 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 7. Event Ingestion and Bounded Retrieval | 0/3 | Not started | - |
+| 7. Event Ingestion and Bounded Retrieval | 1/3 | In Progress | - |
 | 8. Event Triage and Inspection Workbench | 0/TBD | Not started | - |
 | 9. Rule Generation from Event Selections | 0/TBD | Not started | - |
