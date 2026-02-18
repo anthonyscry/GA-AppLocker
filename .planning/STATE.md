@@ -5,35 +5,35 @@
 See: `.planning/PROJECT.md` (updated 2026-02-17)
 
 **Core value:** Reliable, operator-friendly policy management that stays responsive on large enterprise datasets
-**Current focus:** Milestone v1.2.88 Event Viewer Rule Workbench (Phase 7 plan execution in progress)
+**Current focus:** Milestone v1.2.88 Event Viewer Rule Workbench (Phase 7 backend ingestion implemented)
 
 ## Current Position
 
 Phase: 7 of 9 (Event Ingestion and Bounded Retrieval)
 Plan: 03 of 03
 Status: In progress
-Last activity: 2026-02-18 - Completed 07-02 Event Viewer shell integration
+Last activity: 2026-02-18 - Completed 07-01 bounded ingestion and remote envelopes
 
-Progress: ███░░░░░░░ 33%
+Progress: ███████░░░ 67%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1 (v1.2.88)
-- Average duration: 2 min
-- Total execution time: 0.03 hours
+- Total plans completed: 2 (v1.2.88)
+- Average duration: 4 min
+- Total execution time: 0.13 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 7. Event Ingestion and Bounded Retrieval | 1 | 2m | 2m |
+| 7. Event Ingestion and Bounded Retrieval | 2 | 8m | 4m |
 | 8. Event Triage and Inspection Workbench | 0 | 0m | - |
 | 9. Rule Generation from Event Selections | 0 | 0m | - |
 
 **Recent Trend:**
-- Last 5 plans: Phase 07 P02 (2 min)
-- Trend: Baseline established (first executed plan)
+- Last 5 plans: Phase 07 P02 (2 min), Phase 07 P01 (6 min)
+- Trend: Stable baseline (2 plans completed)
 
 ## Accumulated Context
 
@@ -48,6 +48,8 @@ Recent decisions affecting current work:
 - [Phase 07]: Expose Event Viewer as a first-class sidebar destination.
 - [Phase 07]: Keep Run Query disabled in EVT-01 until retrieval wiring lands in EVT-02.
 - [Phase 07]: Protect Event Viewer shell wiring with behavioral tests over XAML and code-behind contracts.
+- [Phase 07]: Bounded event retrieval now requires StartTime, EndTime, MaxEvents, and explicit EventIds before query execution.
+- [Phase 07]: Remote AppLocker retrieval now returns one explicit envelope per requested host with failure taxonomy categories.
 
 ### Pending Todos
 
@@ -61,5 +63,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-18
-Stopped at: Completed 07-02-PLAN.md
+Stopped at: Completed 07-01-PLAN.md
 Resume file: None
