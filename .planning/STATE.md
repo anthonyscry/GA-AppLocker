@@ -5,16 +5,16 @@
 See: `.planning/PROJECT.md` (updated 2026-02-17)
 
 **Core value:** Reliable, operator-friendly policy management that stays responsive on large enterprise datasets
-**Current focus:** Milestone v1.2.88 Event Viewer Rule Workbench (Phase 7 backend ingestion implemented)
+**Current focus:** Milestone v1.2.88 Event Viewer Rule Workbench (Phase 8 filter data model complete)
 
 ## Current Position
 
-Phase: 7 of 9 (Event Ingestion and Bounded Retrieval)
-Plan: 03 of 03
-Status: Complete
-Last activity: 2026-02-18 - Completed 07-03 bounded loading flow and host status rendering
+Phase: 8 of 9 (Event Triage and Inspection Workbench)
+Plan: 01 of 02
+Status: In Progress
+Last activity: 2026-02-18 - Completed 08-01 event data pipeline enrichment and filter extension
 
-Progress: ██████████ 100%
+Progress: ████████░░ 80%
 
 ## Performance Metrics
 
@@ -28,12 +28,12 @@ Progress: ██████████ 100%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 7. Event Ingestion and Bounded Retrieval | 3 | 14m | 5m |
-| 8. Event Triage and Inspection Workbench | 0 | 0m | - |
+| 8. Event Triage and Inspection Workbench | 1 | 3m | 3m |
 | 9. Rule Generation from Event Selections | 0 | 0m | - |
 
 **Recent Trend:**
-- Last 5 plans: Phase 07 P03 (6 min), Phase 07 P02 (2 min), Phase 07 P01 (6 min)
-- Trend: Phase 7 complete and stable across 3 plans
+- Last 5 plans: Phase 08 P01 (3 min), Phase 07 P03 (6 min), Phase 07 P02 (2 min), Phase 07 P01 (6 min)
+- Trend: Phase 8 started, data pipeline enrichment complete in 3 min
 
 ## Accumulated Context
 
@@ -52,6 +52,9 @@ Recent decisions affecting current work:
 - [Phase 07]: Remote AppLocker retrieval now returns one explicit envelope per requested host with failure taxonomy categories.
 - [Phase 07]: Use dedicated EventViewerHostStatusDataGrid and EventViewerEventsDataGrid bindings while preserving fallback lookups for legacy names in panel code.
 - [Phase 07]: Execute event retrieval through Invoke-AsyncOperation and normalize host/event rows in panel helpers so reruns always replace stale UI state.
+- [Phase 08-01]: Comma-operator return (,$working) used in Get-FilteredEventViewerRows to preserve single-element array integrity across PS 5.1 pipeline boundary
+- [Phase 08-01]: Remote Invoke-Command scriptblock updated to pre-serialize RawXml as a PSCustomObject field before deserialization strips EventLogRecord methods
+- [Phase 08-01]: All dimension filter parameters in Get-FilteredEventViewerRows default to no-op (EventIdFilter=@(), others='') so all existing callers work without modification
 
 ### Pending Todos
 
@@ -65,5 +68,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-18
-Stopped at: Completed 07-03-PLAN.md
+Stopped at: Completed 08-01-PLAN.md
 Resume file: None

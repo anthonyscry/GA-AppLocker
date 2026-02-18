@@ -60,5 +60,5 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 7. Event Ingestion and Bounded Retrieval | 3/3 | Complete | 2026-02-18 |
-| 8. Event Triage and Inspection Workbench | 0/2 | Not started | - |
+| 8. Event Triage and Inspection Workbench | 1/2 | In Progress|  |
 | 9. Rule Generation from Event Selections | 0/TBD | Not started | - |

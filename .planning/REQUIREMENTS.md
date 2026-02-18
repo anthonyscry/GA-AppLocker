@@ -13,9 +13,9 @@
 
 ### Filtering and Search
 
-- [ ] **FLT-01**: Operator can filter events by AppLocker event code.
-- [ ] **FLT-02**: Operator can filter events by key metadata (host, user, action/outcome, and time range).
-- [ ] **FLT-03**: Operator can use a search bar to find events by path, signer, hash, message text, or host/user text.
+- [x] **FLT-01**: Operator can filter events by AppLocker event code.
+- [x] **FLT-02**: Operator can filter events by key metadata (host, user, action/outcome, and time range).
+- [x] **FLT-03**: Operator can use a search bar to find events by path, signer, hash, message text, or host/user text.
 
 ### Event Inspection
 
@@ -69,9 +69,9 @@ Deferred capabilities captured during scoping and research:
 | EVT-01 | Phase 7 | Complete |
 | EVT-02 | Phase 7 | Complete |
 | EVT-03 | Phase 7 | Complete |
-| FLT-01 | Phase 8 | Pending |
-| FLT-02 | Phase 8 | Pending |
-| FLT-03 | Phase 8 | Pending |
+| FLT-01 | Phase 8 | Complete |
+| FLT-02 | Phase 8 | Complete |
+| FLT-03 | Phase 8 | Complete |
 | DET-01 | Phase 8 | Pending |
 | DET-02 | Phase 8 | Pending |
 | GEN-01 | Phase 9 | Pending |
