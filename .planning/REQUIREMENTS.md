@@ -24,10 +24,10 @@
 
 ### Rule Generation
 
-- [ ] **GEN-01**: Operator can generate a single AppLocker rule from one selected event.
-- [ ] **GEN-02**: Operator can generate rules from multiple selected events in one bulk action.
-- [ ] **GEN-03**: Operator can review deduplicated bulk candidates with frequency counts before creation.
-- [ ] **GEN-04**: Operator can create event-derived rules through the existing rules pipeline without bypassing standard review workflow.
+- [x] **GEN-01**: Operator can generate a single AppLocker rule from one selected event.
+- [x] **GEN-02**: Operator can generate rules from multiple selected events in one bulk action.
+- [x] **GEN-03**: Operator can review deduplicated bulk candidates with frequency counts before creation.
+- [x] **GEN-04**: Operator can create event-derived rules through the existing rules pipeline without bypassing standard review workflow.
 
 ## Future Requirements
 
@@ -74,10 +74,10 @@ Deferred capabilities captured during scoping and research:
 | FLT-03 | Phase 8 | Complete |
 | DET-01 | Phase 8 | Complete |
 | DET-02 | Phase 8 | Complete |
-| GEN-01 | Phase 9 | Pending |
-| GEN-02 | Phase 9 | Pending |
-| GEN-03 | Phase 9 | Pending |
-| GEN-04 | Phase 9 | Pending |
+| GEN-01 | Phase 9 | Complete |
+| GEN-02 | Phase 9 | Complete |
+| GEN-03 | Phase 9 | Complete |
+| GEN-04 | Phase 9 | Complete |
 
 **Coverage:**
 - v1 requirements: 12 total

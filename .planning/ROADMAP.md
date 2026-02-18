@@ -65,4 +65,4 @@ Plans:
 |-------|----------------|--------|-----------|
 | 7. Event Ingestion and Bounded Retrieval | 3/3 | Complete | 2026-02-18 |
 | 8. Event Triage and Inspection Workbench | 2/2 | Complete   | 2026-02-18 |
-| 9. Rule Generation from Event Selections | 0/2 | Not started | - |
+| 9. Rule Generation from Event Selections | 1/2 | In Progress|  |

@@ -10,18 +10,18 @@ See: `.planning/PROJECT.md` (updated 2026-02-18)
 ## Current Position
 
 Phase: 9 of 9 (Rule Generation from Event Selections)
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-02-18 - Completed Phase 8 transition
+Plan: 1 of 2 complete
+Status: In progress
+Last activity: 2026-02-18 - Completed Phase 9 Plan 01
 
-Progress: █████████░ 90%
+Progress: █████████░ 95%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5 (v1.2.88)
+- Total plans completed: 6 (v1.2.88)
 - Average duration: 5 min
-- Total execution time: 0.47 hours
+- Total execution time: 0.55 hours
 
 **By Phase:**
 
@@ -29,11 +29,11 @@ Progress: █████████░ 90%
 |-------|-------|-------|----------|
 | 7. Event Ingestion and Bounded Retrieval | 3 | 14m | 5m |
 | 8. Event Triage and Inspection Workbench | 2 | 8m | 4m |
-| 9. Rule Generation from Event Selections | 0 | 0m | - |
+| 9. Rule Generation from Event Selections | 1 | 5m | 5m |
 
 **Recent Trend:**
-- Last 5 plans: Phase 08 P02 (5 min), Phase 08 P01 (3 min), Phase 07 P03 (6 min), Phase 07 P02 (2 min), Phase 07 P01 (6 min)
-- Trend: Phase 8 complete - filter/inspect workbench fully operational
+- Last 5 plans: Phase 09 P01 (5 min), Phase 08 P02 (5 min), Phase 08 P01 (3 min), Phase 07 P03 (6 min), Phase 07 P02 (2 min)
+- Trend: Phase 9 in progress - Allow/Deny controls and frequency confirmation dialog complete
 
 ## Accumulated Context
 
@@ -58,6 +58,9 @@ Recent decisions affecting current work:
 - [Phase 08-02]: Comma-operator return (,\$emptyResult typed as int[]) required in Get-EventViewerActiveEventIdFilter to prevent PS 5.1 empty-array unwrap to null at function boundary
 - [Phase 08-02]: EventIdFilter null guard uses Where-Object { \$null -ne \$_ } before Count to treat null input as no-op (identical to @())
 - [Phase 08-02]: Variable \$host renamed to \$hostControl in Update-EventViewerDetailPane - \$host is a read-only PS automatic variable; using it as a local causes SessionStateUnauthorizedAccessException
+- [Phase 09-01]: RbEvt*/CboEvt* naming prefix for Event Viewer rule controls prevents x:Name collisions with Rules panel controls
+- [Phase 09-01]: Confirm-EventViewerRuleGeneration accepts [PSCustomObject[]]$Candidates (not [int]$Count) so it can show per-file frequency data from $script:EventViewerFileMetrics
+- [Phase 09-01]: Default-to-Allow logic only checks RbEvtRuleDeny.IsChecked == true; Allow is the programmatic default (no need to check Allow radio)
 
 ### Pending Todos
 
@@ -71,5 +74,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-18
-Stopped at: Phase 8 complete, ready to plan Phase 9
+Stopped at: Completed 09-01-PLAN.md (Phase 9 Plan 1 of 2)
 Resume file: None
