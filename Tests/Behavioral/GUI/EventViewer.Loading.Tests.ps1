@@ -23,12 +23,21 @@ BeforeAll {
             TxtEventViewerMaxEvents       = New-MockTextBox -Text $MaxEvents
             CboEventViewerTargetScope     = New-MockComboBox -Items @('Local Machine', 'Remote Machines') -SelectedIndex $TargetScopeIndex
             TxtEventViewerRemoteHosts     = New-MockTextBox -Text $RemoteHosts
+            TxtEventViewerSearch          = New-MockTextBox -Text ''
+            CboEventViewerRuleMode        = New-MockComboBox -Items @('Recommended', 'Publisher', 'Hash', 'Path') -SelectedIndex 0
             TxtEventViewerQuerySummary    = New-MockTextBlock
             TxtEventViewerResultCount     = New-MockTextBlock
+            TxtEventViewerUniqueFiles     = New-MockTextBlock
+            TxtEventViewerTopFile         = New-MockTextBlock
+            TxtEventViewerTopFileCount    = New-MockTextBlock
             TxtEventViewerEmpty           = New-MockTextBlock -Visibility 'Visible'
+            TxtEventViewerFileMetricsEmpty = New-MockTextBlock -Visibility 'Visible'
             BtnEventViewerRunQuery        = New-MockButton -Content 'Run Query'
+            BtnEventViewerCreateRule      = New-MockButton -Content 'Create Rule'
+            BtnEventViewerCreateRulesSelected = New-MockButton -Content 'Create Rules from Selected'
             EventViewerHostStatusDataGrid = New-MockDataGrid
             EventViewerEventsDataGrid     = New-MockDataGrid
+            EventViewerFileMetricsDataGrid = New-MockDataGrid
         }
 
         return $window
@@ -41,6 +50,7 @@ Describe 'Event Viewer loading and bounded query behavior' {
         $script:CapturedQuery = $null
         $script:QueryCallCount = 0
         $script:MockEnvelopes = @()
+        $script:RuleCreateCalls = [System.Collections.Generic.List[PSCustomObject]]::new()
 
         function global:Show-Toast {
             param(
@@ -98,6 +108,55 @@ Describe 'Event Viewer loading and bounded query behavior' {
             }
 
             return @($script:MockEnvelopes)
+        }
+
+        function global:New-PathRule {
+            param(
+                [string]$Path,
+                [string]$Action,
+                [string]$CollectionType,
+                [string]$Description,
+                [string]$UserOrGroupSid,
+                [string]$Status,
+                [switch]$Save
+            )
+
+            [void]$script:RuleCreateCalls.Add([PSCustomObject]@{ Type = 'Path'; Path = $Path; CollectionType = $CollectionType })
+            return [PSCustomObject]@{ Success = $true; Data = [PSCustomObject]@{ Id = 'path-rule' }; Error = $null }
+        }
+
+        function global:New-HashRule {
+            param(
+                [string]$Hash,
+                [string]$SourceFileName,
+                [int64]$SourceFileLength,
+                [string]$Action,
+                [string]$CollectionType,
+                [string]$Description,
+                [string]$UserOrGroupSid,
+                [string]$Status,
+                [switch]$Save
+            )
+
+            [void]$script:RuleCreateCalls.Add([PSCustomObject]@{ Type = 'Hash'; Hash = $Hash; CollectionType = $CollectionType })
+            return [PSCustomObject]@{ Success = $true; Data = [PSCustomObject]@{ Id = 'hash-rule' }; Error = $null }
+        }
+
+        function global:New-PublisherRule {
+            param(
+                [string]$PublisherName,
+                [string]$ProductName,
+                [string]$BinaryName,
+                [string]$Action,
+                [string]$CollectionType,
+                [string]$Description,
+                [string]$UserOrGroupSid,
+                [string]$Status,
+                [switch]$Save
+            )
+
+            [void]$script:RuleCreateCalls.Add([PSCustomObject]@{ Type = 'Publisher'; Publisher = $PublisherName; CollectionType = $CollectionType })
+            return [PSCustomObject]@{ Success = $true; Data = [PSCustomObject]@{ Id = 'publisher-rule' }; Error = $null }
         }
 
         $script:EventViewerQueryState.EventIds = @(8002, 8003)
@@ -231,6 +290,101 @@ Describe 'Event Viewer loading and bounded query behavior' {
         @($window.FindName('EventViewerEventsDataGrid').ItemsSource).Count | Should -Be 2
         @($window.FindName('EventViewerHostStatusDataGrid').ItemsSource).Count | Should -Be 1
         $window.FindName('TxtEventViewerResultCount').Text | Should -Be '2 events'
+    }
+
+    It 'Aggregates top flagged file metrics with action buckets' {
+        $window = New-EventViewerTestWindow
+        $global:GA_MainWindow = $window
+
+        $script:MockEnvelopes = @(
+            [PSCustomObject]@{
+                Host          = 'LOCALHOST'
+                Success       = $true
+                Count         = 3
+                DurationMs    = 11
+                ErrorCategory = $null
+                Error         = $null
+                Data          = @(
+                    [PSCustomObject]@{ TimeCreated = [datetime]'2026-02-15T10:00:00Z'; ComputerName = 'LOCALHOST'; EventId = 8003; CollectionType = 'Exe'; FilePath = 'C:\Temp\app.exe'; Action = 'Deny' },
+                    [PSCustomObject]@{ TimeCreated = [datetime]'2026-02-15T11:00:00Z'; ComputerName = 'LOCALHOST'; EventId = 8004; CollectionType = 'Exe'; FilePath = 'C:\Temp\app.exe'; Action = 'Deny' },
+                    [PSCustomObject]@{ TimeCreated = [datetime]'2026-02-15T12:00:00Z'; ComputerName = 'LOCALHOST'; EventId = 8005; CollectionType = 'Exe'; FilePath = 'C:\Temp\other.exe'; Action = 'Allowed' }
+                )
+            }
+        )
+
+        Invoke-LoadEventViewerData -Window $window
+
+        $metricRows = @($window.FindName('EventViewerFileMetricsDataGrid').ItemsSource)
+        $metricRows.Count | Should -Be 2
+        $appRow = @($metricRows | Where-Object { $_.FilePath -eq 'C:\Temp\app.exe' })[0]
+        $otherRow = @($metricRows | Where-Object { $_.FilePath -eq 'C:\Temp\other.exe' })[0]
+
+        $appRow.Count | Should -Be 2
+        $appRow.Audit | Should -Be 1
+        $appRow.Blocked | Should -Be 1
+        $otherRow.Allowed | Should -Be 1
+        $window.FindName('TxtEventViewerUniqueFiles').Text | Should -Be '2'
+        $window.FindName('TxtEventViewerTopFileCount').Text | Should -Be '2'
+    }
+
+    It 'Creates one recommended rule from selected event row' {
+        $window = New-EventViewerTestWindow
+        $global:GA_MainWindow = $window
+
+        $row = [PSCustomObject]@{
+            FilePath       = 'C:\Temp\sample.exe'
+            ComputerName   = 'LOCALHOST'
+            EventId        = 8004
+            CollectionType = 'Exe'
+            Action         = 'Deny'
+            TimeCreated    = [datetime]'2026-02-15T11:00:00Z'
+        }
+
+        $grid = $window.FindName('EventViewerEventsDataGrid')
+        $grid.SelectedItem = $row
+        $grid.SelectedItems.Clear()
+        [void]$grid.SelectedItems.Add($row)
+
+        Invoke-EventViewerRuleActionByTag -Window $window -Tag 'EventViewerCreateRuleRecommended'
+
+        $script:RuleCreateCalls.Count | Should -Be 1
+        $script:RuleCreateCalls[0].Type | Should -Be 'Path'
+    }
+
+    It 'Creates deduplicated path rules from selected rows' {
+        $window = New-EventViewerTestWindow
+        $global:GA_MainWindow = $window
+
+        $rowA = [PSCustomObject]@{ FilePath = 'C:\Temp\same.exe'; ComputerName = 'LOCALHOST'; EventId = 8004; CollectionType = 'Exe'; Action = 'Deny'; TimeCreated = [datetime]'2026-02-15T11:00:00Z' }
+        $rowB = [PSCustomObject]@{ FilePath = 'C:\Temp\same.exe'; ComputerName = 'LOCALHOST'; EventId = 8003; CollectionType = 'Exe'; Action = 'Deny'; TimeCreated = [datetime]'2026-02-15T12:00:00Z' }
+
+        $grid = $window.FindName('EventViewerEventsDataGrid')
+        $grid.SelectedItem = $rowA
+        $grid.SelectedItems.Clear()
+        [void]$grid.SelectedItems.Add($rowA)
+        [void]$grid.SelectedItems.Add($rowB)
+
+        Invoke-EventViewerRuleActionByTag -Window $window -Tag 'EventViewerCreateRulesSelectedPath'
+
+        $script:RuleCreateCalls.Count | Should -Be 1
+        $script:RuleCreateCalls[0].Type | Should -Be 'Path'
+    }
+
+    It 'Skips hash action when selected rows do not include hash metadata' {
+        $window = New-EventViewerTestWindow
+        $global:GA_MainWindow = $window
+
+        $row = [PSCustomObject]@{ FilePath = 'C:\Temp\sample.exe'; ComputerName = 'REMOTE01'; EventId = 8004; CollectionType = 'Exe'; Action = 'Deny'; TimeCreated = [datetime]'2026-02-15T11:00:00Z' }
+        $grid = $window.FindName('EventViewerEventsDataGrid')
+        $grid.SelectedItem = $row
+        $grid.SelectedItems.Clear()
+        [void]$grid.SelectedItems.Add($row)
+
+        Invoke-EventViewerRuleActionByTag -Window $window -Tag 'EventViewerCreateRuleHash'
+
+        $script:RuleCreateCalls.Count | Should -Be 0
+        $script:ToastMessages.Count | Should -BeGreaterThan 0
+        $script:ToastMessages[$script:ToastMessages.Count - 1].Message | Should -Match 'Skipped'
     }
 
     It 'Blocks invalid bounds before invoking backend query' {

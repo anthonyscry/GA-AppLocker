@@ -173,6 +173,38 @@ Width="1450"
             <Setter Property="CaretBrush" Value="{StaticResource ForegroundBrush}"/>
         </Style>
 
+        <!-- DatePicker Style -->
+        <Style x:Key="CalendarStyle" TargetType="Calendar">
+            <Setter Property="Background" Value="#1E1E1E"/>
+            <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}"/>
+            <Setter Property="BorderBrush" Value="#3E3E42"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Style.Resources>
+                <Style TargetType="CalendarDayButton">
+                    <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}"/>
+                    <Setter Property="Background" Value="#1E1E1E"/>
+                    <Setter Property="BorderBrush" Value="#3E3E42"/>
+                </Style>
+            </Style.Resources>
+        </Style>
+
+        <Style x:Key="DatePickerStyle" TargetType="DatePicker">
+            <Setter Property="Background" Value="#1E1E1E"/>
+            <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}"/>
+            <Setter Property="BorderBrush" Value="#3E3E42"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="6,4"/>
+            <Setter Property="CalendarStyle" Value="{StaticResource CalendarStyle}"/>
+            <Style.Resources>
+                <Style TargetType="DatePickerTextBox">
+                    <Setter Property="Background" Value="#1E1E1E"/>
+                    <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}"/>
+                    <Setter Property="BorderThickness" Value="0"/>
+                    <Setter Property="CaretBrush" Value="{StaticResource ForegroundBrush}"/>
+                </Style>
+            </Style.Resources>
+        </Style>
+
         <!-- ComboBox Toggle Button Template -->
         <ControlTemplate x:Key="ComboBoxToggleButton" TargetType="ToggleButton">
             <Grid>
@@ -3333,6 +3365,7 @@ Width="1450"
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="2*"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
                     <TextBlock Grid.Row="0"
@@ -3364,14 +3397,14 @@ Width="1450"
                             <TextBlock Grid.Row="0" Grid.Column="3" Text="Target Scope" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,0,0,5"/>
                             <TextBlock Grid.Row="0" Grid.Column="4" Text="Remote Hosts" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,0,0,5"/>
 
-                            <DatePicker x:Name="DpEventViewerStartTime" Grid.Row="1" Grid.Column="0" Margin="0,0,10,8"/>
-                            <DatePicker x:Name="DpEventViewerEndTime" Grid.Row="1" Grid.Column="1" Margin="0,0,10,8"/>
-                            <TextBox x:Name="TxtEventViewerMaxEvents" Grid.Row="1" Grid.Column="2" Margin="0,0,10,8" Padding="6,4" Text="500" Background="#1E1E1E" Foreground="{StaticResource ForegroundBrush}" BorderBrush="#3E3E42"/>
-                            <ComboBox x:Name="CboEventViewerTargetScope" Grid.Row="1" Grid.Column="3" Margin="0,0,10,8" SelectedIndex="0" Background="#1E1E1E" Foreground="{StaticResource ForegroundBrush}" BorderBrush="#3E3E42">
+                            <DatePicker x:Name="DpEventViewerStartTime" Grid.Row="1" Grid.Column="0" Margin="0,0,10,8" Style="{StaticResource DatePickerStyle}"/>
+                            <DatePicker x:Name="DpEventViewerEndTime" Grid.Row="1" Grid.Column="1" Margin="0,0,10,8" Style="{StaticResource DatePickerStyle}"/>
+                            <TextBox x:Name="TxtEventViewerMaxEvents" Grid.Row="1" Grid.Column="2" Margin="0,0,10,8" Padding="6,4" Text="500" Style="{StaticResource TextBoxStyle}"/>
+                            <ComboBox x:Name="CboEventViewerTargetScope" Grid.Row="1" Grid.Column="3" Margin="0,0,10,8" SelectedIndex="0" Style="{StaticResource ComboBoxStyle}">
                                 <ComboBoxItem Content="Local Machine" Tag="Local"/>
                                 <ComboBoxItem Content="Remote Machines" Tag="Remote"/>
                             </ComboBox>
-                            <TextBox x:Name="TxtEventViewerRemoteHosts" Grid.Row="1" Grid.Column="4" Margin="0,0,0,8" Padding="6,4" Text="" Background="#1E1E1E" Foreground="{StaticResource ForegroundBrush}" BorderBrush="#3E3E42" ToolTip="Comma-separated host names for bounded remote retrieval"/>
+                            <TextBox x:Name="TxtEventViewerRemoteHosts" Grid.Row="1" Grid.Column="4" Margin="0,0,0,8" Padding="6,4" Text="" Style="{StaticResource TextBoxStyle}" ToolTip="Comma-separated host names for bounded remote retrieval"/>
 
                             <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="5" Orientation="Horizontal" Margin="0,4,0,0">
                                 <TextBlock x:Name="TxtEventViewerQuerySummary" Text="Query window pending. Set start/end and run retrieval." Foreground="{StaticResource MutedBrush}" FontSize="11" VerticalAlignment="Center"/>
@@ -3417,30 +3450,76 @@ Width="1450"
                     <Border Grid.Row="3"
                             Background="{StaticResource SidebarBrush}"
                             CornerRadius="8"
-                            Padding="12">
+                            Padding="12"
+                            Margin="0,0,0,10">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
 
-                            <DockPanel Grid.Row="0" Margin="0,0,0,8">
-                                <TextBlock DockPanel.Dock="Left" Text="Event Results" Foreground="{StaticResource MutedBrush}" FontSize="11" FontWeight="SemiBold"/>
-                                <TextBlock DockPanel.Dock="Right" x:Name="TxtEventViewerResultCount" Text="0 events" Foreground="{StaticResource ForegroundBrush}" FontSize="11" FontWeight="SemiBold"/>
-                            </DockPanel>
+                            <Grid Grid.Row="0" Margin="0,0,0,8">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Event Results" Foreground="{StaticResource MutedBrush}" FontSize="11" FontWeight="SemiBold"/>
+                                <TextBlock Grid.Row="0" Grid.Column="1" x:Name="TxtEventViewerResultCount" Text="0 events" Foreground="{StaticResource ForegroundBrush}" FontSize="11" FontWeight="SemiBold"/>
+
+                                <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" Margin="0,8,0,0" VerticalAlignment="Center">
+                                    <TextBlock Text="Search:" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="0,0,8,0" FontSize="11"/>
+                                    <TextBox x:Name="TxtEventViewerSearch" Width="260" Style="{StaticResource TextBoxStyle}" Padding="6,4" FontSize="11" Margin="0,0,10,0"/>
+                                    <Button x:Name="BtnEventViewerCreateRule" Content="Create Rule (Recommended)" Style="{StaticResource PrimaryButtonStyle}" Padding="10,5" Margin="0,0,8,0"/>
+                                    <Button x:Name="BtnEventViewerCreateRulesSelected" Content="Create Rules from Selected" Style="{StaticResource ButtonStyle}" Padding="10,5"/>
+                                </StackPanel>
+
+                                <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="10,8,0,0" VerticalAlignment="Center">
+                                    <TextBlock Text="Mode:" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="0,0,6,0" FontSize="11"/>
+                                    <ComboBox x:Name="CboEventViewerRuleMode" Width="130" Style="{StaticResource ComboBoxStyle}" SelectedIndex="0">
+                                        <ComboBoxItem Content="Recommended" Tag="Recommended"/>
+                                        <ComboBoxItem Content="Publisher" Tag="Publisher"/>
+                                        <ComboBoxItem Content="Hash" Tag="Hash"/>
+                                        <ComboBoxItem Content="Path" Tag="Path"/>
+                                    </ComboBox>
+                                </StackPanel>
+                            </Grid>
 
                             <Grid Grid.Row="1">
                                 <DataGrid x:Name="EventViewerEventsDataGrid"
                                            Style="{StaticResource DataGridStyle}"
                                            AutoGenerateColumns="False"
                                            IsReadOnly="True"
+                                           SelectionMode="Extended"
                                            CanUserAddRows="False"
                                            CanUserDeleteRows="False">
+                                    <DataGrid.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="Create Rule (Recommended)" Tag="EventViewerCreateRuleRecommended"/>
+                                            <MenuItem Header="Create Rules from Selected" Tag="EventViewerCreateRulesSelectedRecommended"/>
+                                            <Separator/>
+                                            <MenuItem Header="Create Rule As">
+                                                <MenuItem Header="Publisher" Tag="EventViewerCreateRulePublisher"/>
+                                                <MenuItem Header="Hash" Tag="EventViewerCreateRuleHash"/>
+                                                <MenuItem Header="Path" Tag="EventViewerCreateRulePath"/>
+                                            </MenuItem>
+                                            <MenuItem Header="Create Rules from Selected As">
+                                                <MenuItem Header="Publisher" Tag="EventViewerCreateRulesSelectedPublisher"/>
+                                                <MenuItem Header="Hash" Tag="EventViewerCreateRulesSelectedHash"/>
+                                                <MenuItem Header="Path" Tag="EventViewerCreateRulesSelectedPath"/>
+                                            </MenuItem>
+                                        </ContextMenu>
+                                    </DataGrid.ContextMenu>
                                     <DataGrid.Columns>
                                         <DataGridTextColumn Header="Time" Binding="{Binding TimeCreated}" Width="170"/>
                                         <DataGridTextColumn Header="Host" Binding="{Binding ComputerName}" Width="140"/>
                                         <DataGridTextColumn Header="Event" Binding="{Binding EventId}" Width="90"/>
                                         <DataGridTextColumn Header="Collection" Binding="{Binding CollectionType}" Width="90"/>
+                                        <DataGridTextColumn Header="Action" Binding="{Binding Action}" Width="90"/>
                                         <DataGridTextColumn Header="Path" Binding="{Binding FilePath}" Width="*"/>
                                     </DataGrid.Columns>
                                 </DataGrid>
@@ -3452,6 +3531,66 @@ Width="1450"
                                            HorizontalAlignment="Center"
                                            VerticalAlignment="Center"
                                            IsHitTestVisible="False"/>
+                            </Grid>
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Row="4"
+                            Background="{StaticResource SidebarBrush}"
+                            CornerRadius="8"
+                            Padding="12">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <Grid Grid.Row="0" Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="Top Flagged Files" Foreground="{StaticResource MutedBrush}" FontSize="11" FontWeight="SemiBold"/>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="16,0,0,0">
+                                    <TextBlock Text="Unique Files:" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,0,4,0"/>
+                                    <TextBlock x:Name="TxtEventViewerUniqueFiles" Text="0" Foreground="{StaticResource ForegroundBrush}" FontWeight="SemiBold" FontSize="11"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="16,0,0,0">
+                                    <TextBlock Text="Top Count:" Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,0,4,0"/>
+                                    <TextBlock x:Name="TxtEventViewerTopFileCount" Text="0" Foreground="{StaticResource ForegroundBrush}" FontWeight="SemiBold" FontSize="11"/>
+                                </StackPanel>
+                                <TextBlock Grid.Column="3" x:Name="TxtEventViewerTopFile" Text="-" Foreground="{StaticResource ForegroundBrush}" FontSize="11" Margin="16,0,0,0"/>
+                            </Grid>
+
+                            <Grid Grid.Row="1">
+                                <DataGrid x:Name="EventViewerFileMetricsDataGrid"
+                                          Style="{StaticResource DataGridStyle}"
+                                          AutoGenerateColumns="False"
+                                          IsReadOnly="True"
+                                          CanUserAddRows="False"
+                                          CanUserDeleteRows="False"
+                                          Height="180">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="File Path" Binding="{Binding FilePath}" Width="*"/>
+                                        <DataGridTextColumn Header="Count" Binding="{Binding Count}" Width="80"/>
+                                        <DataGridTextColumn Header="Blocked" Binding="{Binding Blocked}" Width="80"/>
+                                        <DataGridTextColumn Header="Audit" Binding="{Binding Audit}" Width="80"/>
+                                        <DataGridTextColumn Header="Allowed" Binding="{Binding Allowed}" Width="80"/>
+                                        <DataGridTextColumn Header="Top Event" Binding="{Binding TopEvent}" Width="90"/>
+                                        <DataGridTextColumn Header="Last Seen" Binding="{Binding LastSeen}" Width="160"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+
+                                <TextBlock x:Name="TxtEventViewerFileMetricsEmpty"
+                                           Text="No file metrics yet. Run a query to calculate file frequency counts."
+                                           Foreground="{StaticResource MutedBrush}"
+                                           FontSize="11"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           IsHitTestVisible="False"
+                                           Visibility="Visible"/>
                             </Grid>
                         </Grid>
                     </Border>
