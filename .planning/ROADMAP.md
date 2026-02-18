@@ -53,7 +53,11 @@ Plans:
   2. Operator can generate rules from multiple selected events in one bulk action.
   3. Operator can review deduplicated bulk candidates with frequency counts before confirming creation.
   4. Operator sees event-derived rules flow through existing rules pipeline/review status rather than bypassing standard controls.
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 09-01-PLAN.md — Add rule action/target XAML controls and enhance confirmation dialog with candidate frequency review.
+- [ ] 09-02-PLAN.md — Behavioral tests covering GEN-01 through GEN-04.
 
 ## Progress
 
@@ -61,4 +65,4 @@ Plans:
 |-------|----------------|--------|-----------|
 | 7. Event Ingestion and Bounded Retrieval | 3/3 | Complete | 2026-02-18 |
 | 8. Event Triage and Inspection Workbench | 2/2 | Complete   | 2026-02-18 |
-| 9. Rule Generation from Event Selections | 0/TBD | Not started | - |
+| 9. Rule Generation from Event Selections | 0/2 | Not started | - |
