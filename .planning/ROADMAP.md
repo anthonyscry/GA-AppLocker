@@ -21,7 +21,12 @@ This milestone delivers an end-to-end event-driven operator workflow: ingest bou
   2. Operator can load events from selected remote machines and see per-host success/failure status for each requested host.
   3. Operator can set time window and result-cap bounds, and returned results respect those limits.
   4. Operator can rerun bounded queries during a session without the workflow becoming unresponsive.
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 07-01-PLAN.md - Build bounded event retrieval contract and per-host remote envelopes.
+- [ ] 07-02-PLAN.md - Add Event Viewer navigation and panel shell wiring.
+- [ ] 07-03-PLAN.md - Implement bounded loading flow and host status rendering in Event Viewer.
 
 ### Phase 8: Event Triage and Inspection Workbench
 **Goal**: Operators can quickly isolate relevant AppLocker events and validate evidence before generating actions.
@@ -50,6 +55,6 @@ This milestone delivers an end-to-end event-driven operator workflow: ingest bou
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 7. Event Ingestion and Bounded Retrieval | 0/TBD | Not started | - |
+| 7. Event Ingestion and Bounded Retrieval | 0/3 | Not started | - |
 | 8. Event Triage and Inspection Workbench | 0/TBD | Not started | - |
 | 9. Rule Generation from Event Selections | 0/TBD | Not started | - |
