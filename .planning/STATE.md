@@ -5,14 +5,14 @@
 See: `.planning/PROJECT.md` (updated 2026-02-17)
 
 **Core value:** Reliable, operator-friendly policy management that stays responsive on large enterprise datasets
-**Current focus:** Milestone v1.2.88 requirements and roadmap definition
+**Current focus:** Milestone v1.2.88 Event Viewer Rule Workbench (Phase 7 ready for planning)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 7 of 9 (Event Ingestion and Bounded Retrieval)
 Plan: -
-Status: Defining requirements
-Last activity: 2026-02-17 - Milestone v1.2.88 started
+Status: Ready to plan
+Last activity: 2026-02-17 - Roadmap created for milestone v1.2.88
 
 Progress: ░░░░░░░░░░ 0%
 
@@ -27,7 +27,9 @@ Progress: ░░░░░░░░░░ 0%
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| TBD | 0 | 0m | - |
+| 7. Event Ingestion and Bounded Retrieval | 0 | 0m | - |
+| 8. Event Triage and Inspection Workbench | 0 | 0m | - |
+| 9. Rule Generation from Event Selections | 0 | 0m | - |
 
 **Recent Trend:**
 - Last 5 plans: -
@@ -40,12 +42,14 @@ Progress: ░░░░░░░░░░ 0%
 Decisions are logged in `.planning/PROJECT.md`.
 Recent decisions affecting current work:
 
-- [v1.2.87] Sequence reliability before throughput optimization to reduce rollback risk.
-- [v1.2.87] Keep scope inside PS 5.1 + air-gapped constraints; no locked-module boundary changes.
+- [v1.2.88] Build Event Viewer as an integrated panel to preserve existing operator workflow.
+- [v1.2.88] Sequence work as ingestion -> triage/inspection -> generation to protect data trust and review safety.
+- [v1.2.88] Route all event-derived rule creation through existing rules pipeline and review controls.
 
 ### Pending Todos
 
-None yet.
+- Remote transport fallback details (WinRM versus event log RPC) need confirmation during phase planning.
+- Event query snapshot retention/pruning policy should be decided before implementation hardening.
 
 ### Blockers/Concerns
 
@@ -54,5 +58,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-17
-Stopped at: Milestone v1.2.88 initialization (requirements definition)
+Stopped at: Milestone roadmap established; ready to run `/gsd-plan-phase 7`
 Resume file: None

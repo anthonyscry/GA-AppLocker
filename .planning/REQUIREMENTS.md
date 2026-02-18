@@ -66,24 +66,24 @@ Deferred capabilities captured during scoping and research:
 
 | Requirement | Phase | Status |
 | --- | --- | --- |
-| EVT-01 | TBD | Pending |
-| EVT-02 | TBD | Pending |
-| EVT-03 | TBD | Pending |
-| FLT-01 | TBD | Pending |
-| FLT-02 | TBD | Pending |
-| FLT-03 | TBD | Pending |
-| DET-01 | TBD | Pending |
-| DET-02 | TBD | Pending |
-| GEN-01 | TBD | Pending |
-| GEN-02 | TBD | Pending |
-| GEN-03 | TBD | Pending |
-| GEN-04 | TBD | Pending |
+| EVT-01 | Phase 7 | Pending |
+| EVT-02 | Phase 7 | Pending |
+| EVT-03 | Phase 7 | Pending |
+| FLT-01 | Phase 8 | Pending |
+| FLT-02 | Phase 8 | Pending |
+| FLT-03 | Phase 8 | Pending |
+| DET-01 | Phase 8 | Pending |
+| DET-02 | Phase 8 | Pending |
+| GEN-01 | Phase 9 | Pending |
+| GEN-02 | Phase 9 | Pending |
+| GEN-03 | Phase 9 | Pending |
+| GEN-04 | Phase 9 | Pending |
 
 **Coverage:**
 - v1 requirements: 12 total
-- Mapped to phases: 0
-- Unmapped: 12 ⚠️
+- Mapped to phases: 12
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-02-17*
-*Last updated: 2026-02-17 after initial definition for milestone v1.2.88*
+*Last updated: 2026-02-17 after roadmap mapping for milestone v1.2.88*
