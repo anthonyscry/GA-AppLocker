@@ -130,7 +130,7 @@ Restore-RuleVersion -RuleId $ruleId -Version 1
 3. Configure:
    - **Name**: e.g., "Workstation-Baseline-2026"
    - **Enforcement Mode**: Start with "Audit Only"
-   - **Phase**: Select deployment phase (1-4)
+   - **Phase**: Select deployment phase (1-5)
 4. Click **Add Rules** and select approved rules
 5. Click **Export to XML** to generate AppLocker policy
 
@@ -156,10 +156,11 @@ GA-AppLocker uses a phased approach to minimize disruption:
 
 | Phase | Mode | Description |
 |-------|------|-------------|
-| 1 | Audit Only | Log violations, no blocking |
-| 2 | Audit Only | Extended monitoring period |
-| 3 | Audit Only | Final validation before enforcement |
-| 4 | Enforce | Block unauthorized applications |
+| 1 | Audit Only | EXE collection only |
+| 2 | Audit Only | EXE + Script collections |
+| 3 | Audit Only | EXE + Script + MSI collections |
+| 4 | Audit Only | Adds APPX collection |
+| 5 | Enforce | Full enforcement including DLL |
 
 **Recommendation**: Spend at least 2 weeks in each audit phase before progressing.
 

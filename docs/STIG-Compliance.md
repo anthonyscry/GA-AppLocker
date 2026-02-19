@@ -21,7 +21,7 @@ This document maps GA-AppLocker features to the **Windows 10 STIG** (Security Te
 | **V-63333** | CAT II | Configure AppLocker to control Windows Installer packages | MSI artifact scanning; MSI collection type in policies | Scanning, Rules, Policy | Stage 1 (Schema: Msi collection present) |
 | **V-63335** | CAT III | Configure AppLocker to control DLL files | DLL artifact scanning (configurable via Skip DLL toggle); DLL collection type in policies | Scanning, Rules, Policy | Stage 1 (Schema: Dll collection present) |
 | **V-63337** | CAT II | Configure AppLocker rules to allow only authorized applications | Approval workflow: all rules default to `Pending` status; only `Approved` rules included in policy export | Rules, Policy | Stage 4 (User-writable path warnings) |
-| **V-63341** | CAT II | Configure AppLocker to enforce rules (not AuditOnly) | Phase-based enforcement: Phase 1-3 = AuditOnly, Phase 4 = Enabled; `Export-PolicyToXml -PhaseOverride 4` | Policy | Stage 1 (EnforcementMode validation), Stage 5 (Live import test) |
+| **V-63341** | CAT II | Configure AppLocker to enforce rules (not AuditOnly) | Phase-based enforcement: Phase 1-4 = AuditOnly, Phase 5 = Enabled; `Export-PolicyToXml -PhaseOverride 5` | Policy | Stage 1 (EnforcementMode validation), Stage 5 (Live import test) |
 
 ---
 
@@ -91,8 +91,8 @@ $result.SchemaResult.Details.RuleCollections -contains 'Msi'
 **How GA-AppLocker Addresses This:**
 - The **Scanning module** supports DLL artifact collection (disabled by default via "Skip DLL Scanning" for performance)
 - The **Rules module** generates rules with `CollectionType = 'Dll'`
-- The **Policy module** includes a `<RuleCollection Type="Dll">` element in Phase 4 exports
-- Phase 4 policies include DLL rules (full enforcement)
+- The **Policy module** includes a `<RuleCollection Type="Dll">` element in Phase 5 exports
+- Phase 5 policies include DLL rules (full enforcement)
 
 **Note:** This is a CAT III finding (lower severity). DLL rule enforcement has significant performance impact. Enable DLL scanning only after EXE/Script/MSI rules are stable.
 
@@ -102,9 +102,9 @@ $result.SchemaResult.Details.RuleCollections -contains 'Msi'
 Start-ArtifactScan -ScanLocal -SkipDllScanning:$false
 
 # Verify DLL collection in policy
-$result = Invoke-AppLockerPolicyValidation -XmlPath 'C:\Policies\phase4.xml'
+$result = Invoke-AppLockerPolicyValidation -XmlPath 'C:\Policies\phase5.xml'
 $result.SchemaResult.Details.RuleCollections -contains 'Dll'
-# Expected: $true (Phase 4 only)
+# Expected: $true (Phase 5 only)
 ```
 
 ---
