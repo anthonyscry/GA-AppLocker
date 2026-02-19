@@ -266,7 +266,7 @@ function Build-PolicyRuleCollectionXml {
         return ''
     }
 
-    $xml = ''
+    $xml = [System.Text.StringBuilder]::new()
     foreach ($rule in $Rules) {
         # Default to 'Allow' if Action is missing, empty, or whitespace (required by AppLocker schema)
         $action = 'Allow'
@@ -302,7 +302,7 @@ function Build-PolicyRuleCollectionXml {
                 $minVersion = if (-not [string]::IsNullOrWhiteSpace($rule.MinVersion)) { $rule.MinVersion } else { '*' }
                 $maxVersion = if (-not [string]::IsNullOrWhiteSpace($rule.MaxVersion)) { $rule.MaxVersion } else { '*' }
 
-                $xml += @"
+                $ruleXml = @"
     <FilePublisherRule Id="$id" Name="$name" Description="$description" UserOrGroupSid="$userSid" Action="$action">
       <Conditions>
         <FilePublisherCondition PublisherName="$publisher" ProductName="$product" BinaryName="$binaryName">
@@ -312,6 +312,7 @@ function Build-PolicyRuleCollectionXml {
     </FilePublisherRule>
 
 "@
+                [void]$xml.Append($ruleXml)
             }
             'Hash' {
                 $hash = if ($rule.Hash) { "0x$($rule.Hash.ToUpper())" } else { '0x' + ('0' * 64) }
@@ -327,7 +328,7 @@ function Build-PolicyRuleCollectionXml {
                 $fileName = [System.Security.SecurityElement]::Escape($fileName)
                 $fileLength = if ($rule.SourceFileLength -and $rule.SourceFileLength -gt 0) { $rule.SourceFileLength } else { 0 }
 
-                $xml += @"
+                $ruleXml = @"
     <FileHashRule Id="$id" Name="$name" Description="$description" UserOrGroupSid="$userSid" Action="$action">
       <Conditions>
         <FileHashCondition>
@@ -337,11 +338,12 @@ function Build-PolicyRuleCollectionXml {
     </FileHashRule>
 
 "@
+                [void]$xml.Append($ruleXml)
             }
             'Path' {
                 $path = if (-not [string]::IsNullOrWhiteSpace($rule.Path)) { [System.Security.SecurityElement]::Escape($rule.Path) } else { '*' }
 
-                $xml += @"
+                $ruleXml = @"
     <FilePathRule Id="$id" Name="$name" Description="$description" UserOrGroupSid="$userSid" Action="$action">
       <Conditions>
         <FilePathCondition Path="$path" />
@@ -349,11 +351,12 @@ function Build-PolicyRuleCollectionXml {
     </FilePathRule>
 
 "@
+                [void]$xml.Append($ruleXml)
             }
         }
     }
 
-    return $xml.TrimEnd()
+    return $xml.ToString().TrimEnd()
 }
 
 function Test-PolicyCompliance {
