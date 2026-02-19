@@ -114,7 +114,11 @@ function Start-Deployment {
                 $job.Progress = 40
                 $job.Message = "Manual deployment required: $($gpoExists.Error)"
                 $job.ErrorDetails = $gpoExists.Error
-                $job.XmlExportPath = $tempPath
+                if ($job.PSObject.Properties['XmlExportPath']) {
+                    $job.XmlExportPath = $tempPath
+                } else {
+                    $job | Add-Member -MemberType NoteProperty -Name 'XmlExportPath' -Value $tempPath -Force
+                }
                 Write-DeploymentJobFile -Path $jobFile -Job $job
                 return @{
                     Success        = $false
@@ -181,7 +185,11 @@ function Start-Deployment {
                 $job.Progress = 70
                 $job.Message = "Policy exported. Manual import required via GPMC."
                 $job.ErrorDetails = $importResult.Error
-                $job.XmlExportPath = $tempPath
+                if ($job.PSObject.Properties['XmlExportPath']) {
+                    $job.XmlExportPath = $tempPath
+                } else {
+                    $job | Add-Member -MemberType NoteProperty -Name 'XmlExportPath' -Value $tempPath -Force
+                }
                 Write-DeploymentJobFile -Path $jobFile -Job $job
                 
                 # Don't delete temp file since user needs it
@@ -332,7 +340,11 @@ function Stop-Deployment {
         }
 
         $job.Status = 'Cancelled'
-        $job.Message = 'Deployment cancelled by user'
+        if ($job.PSObject.Properties['Message']) {
+            $job.Message = 'Deployment cancelled by user'
+        } else {
+            $job | Add-Member -MemberType NoteProperty -Name 'Message' -Value 'Deployment cancelled by user' -Force
+        }
         $job.CompletedAt = (Get-Date).ToString('o')
         Write-DeploymentJobFile -Path $jobFile -Job $job
 

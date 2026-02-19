@@ -96,8 +96,16 @@ function Update-DeploymentJob {
         }
 
         # Save updated job back to disk
-        # Version checking before write
+        # Version checking before write: capture current version, then increment before write
         $existingVersion = $job.Version
+        if ($null -ne $existingVersion) {
+            # Increment version in the job object so the post-write verification can confirm no race
+            if ($job.PSObject.Properties['Version']) {
+                $job.Version = $existingVersion + 1
+            } else {
+                $job | Add-Member -MemberType NoteProperty -Name 'Version' -Value ($existingVersion + 1) -Force
+            }
+        }
         Write-DeploymentJobFile -Path $jobFile -Job $job
 
         # Verify version didn't change during write (race condition detection)
