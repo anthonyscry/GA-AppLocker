@@ -2,79 +2,39 @@
 
 ## Project Reference
 
-See: `.planning/PROJECT.md` (updated 2026-02-18)
+See: `.planning/PROJECT.md` (updated 2026-02-19)
 
 **Core value:** Reliable, operator-friendly policy management that stays responsive on large enterprise datasets
-**Current focus:** Milestone v1.2.88 Event Viewer Rule Workbench (Phase 9 - Rule Generation from Event Selections)
+**Current focus:** Planning next milestone
 
 ## Current Position
 
-Phase: 9 of 9 (Rule Generation from Event Selections)
-Plan: 2 of 2 complete
-Status: Complete
-Last activity: 2026-02-18 - Completed Phase 9 Plan 02
+Phase: N/A — between milestones
+Plan: N/A
+Status: Milestone v1.2.88 shipped
+Last activity: 2026-02-19 - Completed v1.2.88 milestone archival
 
-Progress: ██████████ 100%
-
-## Performance Metrics
-
-**Velocity:**
-- Total plans completed: 7 (v1.2.88)
-- Average duration: 4 min
-- Total execution time: 0.55 hours
-
-**By Phase:**
-
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 7. Event Ingestion and Bounded Retrieval | 3 | 14m | 5m |
-| 8. Event Triage and Inspection Workbench | 2 | 8m | 4m |
-| 9. Rule Generation from Event Selections | 2 | 8m | 4m |
-
-**Recent Trend:**
-- Last 5 plans: Phase 09 P02 (3 min), Phase 09 P01 (5 min), Phase 08 P02 (5 min), Phase 08 P01 (3 min), Phase 07 P03 (6 min)
-- Trend: Phase 9 complete - all GEN requirements covered with 21 behavioral tests
+Progress: N/A (next milestone not started)
 
 ## Accumulated Context
 
 ### Decisions
 
 Decisions are logged in `.planning/PROJECT.md`.
-Recent decisions affecting current work:
-
-- [v1.2.88] Build Event Viewer as an integrated panel to preserve existing operator workflow.
-- [v1.2.88] Sequence work as ingestion -> triage/inspection -> generation to protect data trust and review safety.
-- [v1.2.88] Route all event-derived rule creation through existing rules pipeline and review controls.
-- [Phase 07]: Expose Event Viewer as a first-class sidebar destination.
-- [Phase 07]: Keep Run Query disabled in EVT-01 until retrieval wiring lands in EVT-02.
-- [Phase 07]: Protect Event Viewer shell wiring with behavioral tests over XAML and code-behind contracts.
-- [Phase 07]: Bounded event retrieval now requires StartTime, EndTime, MaxEvents, and explicit EventIds before query execution.
-- [Phase 07]: Remote AppLocker retrieval now returns one explicit envelope per requested host with failure taxonomy categories.
-- [Phase 07]: Use dedicated EventViewerHostStatusDataGrid and EventViewerEventsDataGrid bindings while preserving fallback lookups for legacy names in panel code.
-- [Phase 07]: Execute event retrieval through Invoke-AsyncOperation and normalize host/event rows in panel helpers so reruns always replace stale UI state.
-- [Phase 08-01]: Comma-operator return (,$working) used in Get-FilteredEventViewerRows to preserve single-element array integrity across PS 5.1 pipeline boundary
-- [Phase 08-01]: Remote Invoke-Command scriptblock updated to pre-serialize RawXml as a PSCustomObject field before deserialization strips EventLogRecord methods
-- [Phase 08-01]: All dimension filter parameters in Get-FilteredEventViewerRows default to no-op (EventIdFilter=@(), others='') so all existing callers work without modification
-- [Phase 08-02]: Comma-operator return (,\$emptyResult typed as int[]) required in Get-EventViewerActiveEventIdFilter to prevent PS 5.1 empty-array unwrap to null at function boundary
-- [Phase 08-02]: EventIdFilter null guard uses Where-Object { \$null -ne \$_ } before Count to treat null input as no-op (identical to @())
-- [Phase 08-02]: Variable \$host renamed to \$hostControl in Update-EventViewerDetailPane - \$host is a read-only PS automatic variable; using it as a local causes SessionStateUnauthorizedAccessException
-- [Phase 09-01]: RbEvt*/CboEvt* naming prefix for Event Viewer rule controls prevents x:Name collisions with Rules panel controls
-- [Phase 09-01]: Confirm-EventViewerRuleGeneration accepts [PSCustomObject[]]$Candidates (not [int]$Count) so it can show per-file frequency data from $script:EventViewerFileMetrics
-- [Phase 09-01]: Default-to-Allow logic only checks RbEvtRuleDeny.IsChecked == true; Allow is the programmatic default (no need to check Allow radio)
-- [Phase 09-02]: Install-RuleGenMocks helper function pattern (BeforeAll scope, called from Describe BeforeEach) avoids Pester 5 root-level BeforeEach restriction while keeping mock setup DRY
-- [Phase 09-02]: Rule creation mocks capture all parameters including Status into RuleCreateCalls list enabling precise per-call Status=Pending assertions across all GEN-04 tests
+Key decisions from v1.2.88 archived to milestone history.
 
 ### Pending Todos
 
-- Remote transport fallback details (WinRM versus event log RPC) need confirmation during phase planning.
-- Event query snapshot retention/pruning policy should be decided before implementation hardening.
+- Remote transport fallback details (WinRM versus event log RPC) — carry forward to next milestone if relevant
+- Event query snapshot retention/pruning policy — carry forward to next milestone if relevant
+- CollectionType field gap in event retrieval backend — cosmetic fix candidate for next milestone
 
 ### Blockers/Concerns
 
-- `v1.2.86` milestone audit file remains deferred; optional follow-up if formal audit evidence is requested.
+None active.
 
 ## Session Continuity
 
-Last session: 2026-02-18
-Stopped at: Completed 09-02-PLAN.md (Phase 9 Plan 2 of 2 - all plans complete)
+Last session: 2026-02-19
+Stopped at: Completed v1.2.88 milestone archival
 Resume file: None
