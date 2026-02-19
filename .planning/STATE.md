@@ -10,11 +10,11 @@ See: `.planning/PROJECT.md` (updated 2026-02-19)
 ## Current Position
 
 Phase: 12 of 13 (Module Test Coverage)
-Plan: 1 of 3 complete in current phase
-Status: In progress — 12-01 complete, 12-02 and 12-03 pending
-Last activity: 2026-02-19 — Completed 12-01: Credentials module unit tests (27 tests)
+Plan: 3 of 3 complete in current phase (COMPLETE)
+Status: Phase 12 complete — all 3 plans executed
+Last activity: 2026-02-19 — Completed 12-03: Setup module unit tests (62 tests)
 
-Progress: [██████░░░░] 60% (7 plans complete across v1.2.90)
+Progress: [███████░░░] 70% (9 plans complete across v1.2.90)
 
 ## Performance Metrics
 
@@ -40,6 +40,7 @@ Progress: [██████░░░░] 60% (7 plans complete across v1.2.90)
 | Phase 11 P01 | 2 | 2 tasks | 2 files |
 | Phase 11 P02 | 2 | 2 tasks | 11 files |
 | Phase 12 P01 | 2 | 1 task | 1 file |
+| Phase 12 P03 | 9 | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -67,6 +68,8 @@ Recent decisions affecting v1.2.90:
 - [12-01]: Mock Get-AppLockerDataPath with -ModuleName 'GA-AppLocker.Credentials' to intercept module-internal calls; without -ModuleName the mock is invisible inside the module
 - [12-01]: Tests/Unit/ established for module-level unit tests separate from Tests/Behavioral/ integration tests
 - [12-01]: Test-CredentialProfile covered with existence check only — function requires live WinRM which is unavailable in unit test context
+- [Phase 12]: Setup tests use global RSAT stub functions + Pester Mock -ModuleName for RSAT-free CI testing
+- [Phase 12]: [12-03] Rule 1 bug: Enable/Disable-WinRMGPO calls in Initialize-AppLockerEnvironment needed Out-Null suppression
 
 ### Pending Todos
 
@@ -82,5 +85,5 @@ None active.
 ## Session Continuity
 
 Last session: 2026-02-19
-Stopped at: Completed 12-01-PLAN.md (Credentials unit tests — 27 tests passing)
+Stopped at: Completed 12-03-PLAN.md (Setup module unit tests — 62 tests passing)
 Resume file: None

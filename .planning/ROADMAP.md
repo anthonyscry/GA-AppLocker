@@ -82,7 +82,7 @@ Plans:
   1. Running `Invoke-Pester Tests\Unit\` includes Credentials tests covering credential creation, retrieval, and tier-based fallback — test file exists and passes
   2. Running `Invoke-Pester Tests\Unit\` includes Deployment tests covering job creation, status tracking, and GPO import paths — test file exists and passes
   3. Running `Invoke-Pester Tests\Unit\` includes Setup tests covering environment initialization and WinRM GPO configuration — test file exists and passes
-**Plans:** 1/3 plans executed
+**Plans:** 2/3 plans executed
 Plans:
 - [ ] 12-01-PLAN.md -- Credentials module unit tests: creation, retrieval, tier-based fallback, removal (TEST-01)
 - [ ] 12-02-PLAN.md -- Deployment module unit tests: job CRUD, status tracking, GPO import paths (TEST-02)
@@ -112,7 +112,7 @@ Plans:
 | 9. Rule Generation from Event Selections | v1.2.88 | 2/2 | Complete | 2026-02-19 |
 | 10. Error Handling Hardening | 4/4 | Complete    | 2026-02-19 | - |
 | 11. Performance Fixes | 2/2 | Complete    | 2026-02-19 | - |
-| 12. Module Test Coverage | 1/3 | In Progress|  | - |
+| 12. Module Test Coverage | 2/3 | In Progress|  | - |
 | 13. GUI and E2E Test Coverage | v1.2.90 | 0/TBD | Not started | - |
 
 ---
