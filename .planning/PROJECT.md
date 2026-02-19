@@ -45,12 +45,12 @@ Shipped v1.2.88 with Event Viewer Rule Workbench. Codebase is ~195 exported func
 Tech stack: PowerShell 5.1, WPF/XAML, .NET Framework 4.7.2+, DPAPI credential storage.
 70 Event Viewer behavioral tests + 1,282 unit tests passing.
 
-Known tech debt entering v1.2.90 (status after Phase 11):
+Known tech debt entering v1.2.90 (status after Phase 12):
 - ~~105 empty catch blocks in GUI/Panels, ~30 in GUI/Helpers~~ — resolved Phase 10
 - ~~14 files with ConvertTo-Json -Depth 10~~ — resolved Phase 11 (all reduced to -Depth 3)
 - ~~Export-PolicyToXml.ps1 uses string += in rule loop (O(n²))~~ — resolved Phase 11 (StringBuilder)
 - ~~Export-AppLockerHealthReport uses Get-CimInstance/Measure-Object~~ — resolved Phase 11 (.NET APIs)
-- No test coverage for Credentials, Deployment, Setup modules
+- ~~No test coverage for Credentials, Deployment, Setup modules~~ — resolved Phase 12 (127 new tests: 27+38+62)
 - 7/10 GUI panels have zero behavioral tests
 - CollectionType field not emitted by event retrieval backend (functional fallback exists)
 - Two script:-scoped functions called from global: context (works but misaligned)
@@ -92,4 +92,4 @@ See `.planning/milestones/v1.2.88-ROADMAP.md` and `.planning/milestones/v1.2.88-
 </details>
 
 ---
-*Last updated: 2026-02-19 after Phase 11 (Performance Fixes)*
+*Last updated: 2026-02-19 after Phase 12 (Module Test Coverage)*
