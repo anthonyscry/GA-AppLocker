@@ -41,6 +41,7 @@ Progress: [███████░░░] 70% (9 plans complete across v1.2.90)
 | Phase 11 P02 | 2 | 2 tasks | 11 files |
 | Phase 12 P01 | 2 | 1 task | 1 file |
 | Phase 12 P03 | 9 | 1 tasks | 2 files |
+| Phase 12 P02 | 10 | 1 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -70,6 +71,9 @@ Recent decisions affecting v1.2.90:
 - [12-01]: Test-CredentialProfile covered with existence check only — function requires live WinRM which is unavailable in unit test context
 - [Phase 12]: Setup tests use global RSAT stub functions + Pester Mock -ModuleName for RSAT-free CI testing
 - [Phase 12]: [12-03] Rule 1 bug: Enable/Disable-WinRMGPO calls in Initialize-AppLockerEnvironment needed Out-Null suppression
+- [Phase 12]: Global helper functions for Pester 5 tests must be defined as global: at script level (not inside BeforeAll) for cross-block visibility
+- [Phase 12]: Use $global: variables for values accessed inside Mock -MockWith scriptblocks in Pester 5 ($script: and $using: don't resolve correctly)
+- [Phase 12]: Test job fixtures must include all properties that functions write to -- PS 5.1 throws on absent PSCustomObject property assignment
 
 ### Pending Todos
 
