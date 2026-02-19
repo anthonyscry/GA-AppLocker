@@ -883,7 +883,7 @@ function global:Set-SelectedRuleStatus {
                     $rule = Get-Content -Path $ruleFile -Raw | ConvertFrom-Json
                     $rule.Status = $Status
                     $rule.ModifiedDate = $now
-                    $rule | ConvertTo-Json -Depth 10 | Set-Content -Path $ruleFile -Encoding UTF8
+                    $rule | ConvertTo-Json -Depth 3 | Set-Content -Path $ruleFile -Encoding UTF8
                     [void]$updatedIds.Add($item.Id)
                     $updated++
                 }
@@ -2018,7 +2018,7 @@ function global:Invoke-ChangeSelectedRulesAction {
                     $rule = Get-Content -Path $ruleFile -Raw | ConvertFrom-Json
                     $rule.Action = $newAction
                     $rule.ModifiedDate = $now
-                    $json = $rule | ConvertTo-Json -Depth 10
+                    $json = $rule | ConvertTo-Json -Depth 3
                     Set-Content -Path $ruleFile -Value $json -Encoding UTF8
                     [void]$updatedIds.Add($item.Id)
                     $updated++
@@ -2259,7 +2259,7 @@ function global:Invoke-ChangeSelectedRulesGroup {
                     $rule = Get-Content -Path $ruleFile -Raw | ConvertFrom-Json
                     $rule.UserOrGroupSid = $targetSid
                     $rule.ModifiedDate = $now
-                    $json = $rule | ConvertTo-Json -Depth 10
+                    $json = $rule | ConvertTo-Json -Depth 3
                     Set-Content -Path $ruleFile -Value $json -Encoding UTF8
                     [void]$updatedIds.Add($item.Id)
                     $updated++

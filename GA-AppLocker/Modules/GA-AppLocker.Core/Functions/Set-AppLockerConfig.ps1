@@ -87,7 +87,7 @@ function Set-AppLockerConfig {
             New-Item -Path $settingsPath -ItemType Directory -Force | Out-Null
         }
 
-        $config | ConvertTo-Json -Depth 10 | Set-Content -Path $configFile -Encoding UTF8
+        $config | ConvertTo-Json -Depth 3 | Set-Content -Path $configFile -Encoding UTF8
         #endregion
 
         $result.Success = $true

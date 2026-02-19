@@ -320,7 +320,7 @@ function Set-RuleStatus {
         $rule.Status = $Status
         $rule.ModifiedDate = Get-Date -Format 'o'
 
-        $rule | ConvertTo-Json -Depth 10 | Set-Content -Path $ruleFile -Encoding UTF8
+        $rule | ConvertTo-Json -Depth 3 | Set-Content -Path $ruleFile -Encoding UTF8
 
         # Update the index with new status
         if (Get-Command -Name 'Update-RuleStatusInIndex' -ErrorAction SilentlyContinue) {

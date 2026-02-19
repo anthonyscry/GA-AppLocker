@@ -48,7 +48,7 @@ function Save-SessionState {
         $State['version'] = '1.0'
 
         # Convert to JSON
-        $json = $State | ConvertTo-Json -Depth 10 -Compress:$false
+        $json = $State | ConvertTo-Json -Depth 3 -Compress:$false
 
         # Encrypt session data using DPAPI (user-only scope)
         $encryptedBytes = [System.Text.Encoding]::UTF8.GetBytes($json)

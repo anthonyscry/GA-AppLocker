@@ -528,7 +528,7 @@ function Start-ArtifactScan {
                 EventLogs = $allEvents
             }
 
-            $saveData | ConvertTo-Json -Depth 10 -Compress | Set-Content -Path $scanFile -Encoding UTF8
+            $saveData | ConvertTo-Json -Depth 3 -Compress | Set-Content -Path $scanFile -Encoding UTF8
             Write-ScanLog -Message "Scan results saved: $scanFile"
         }
         #endregion
