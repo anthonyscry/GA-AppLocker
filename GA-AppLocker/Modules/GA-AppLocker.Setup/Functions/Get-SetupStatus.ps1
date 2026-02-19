@@ -262,8 +262,8 @@ function Initialize-AppLockerEnvironment {
 
         # Fix link states: Enable GPO active, Disable GPO inactive (ready but not applied)
         try {
-            Enable-WinRMGPO -GPOName 'AppLocker-EnableWinRM' -ErrorAction SilentlyContinue
-            Disable-WinRMGPO -GPOName 'AppLocker-DisableWinRM' -ErrorAction SilentlyContinue
+            Enable-WinRMGPO -GPOName 'AppLocker-EnableWinRM' -ErrorAction SilentlyContinue | Out-Null
+            Disable-WinRMGPO -GPOName 'AppLocker-DisableWinRM' -ErrorAction SilentlyContinue | Out-Null
         }
         catch {
             Write-SetupLog -Message "WinRM GPO link state update failed: $($_.Exception.Message)" -Level Warning
