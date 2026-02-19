@@ -53,7 +53,12 @@ See `.planning/milestones/v1.2.88-ROADMAP.md` for full details.
   3. Backend module functions that catch exceptions log the error context before continuing — no blank catches remain in any module
   4. Functions that return results use the `@{ Success; Data; Error }` shape consistently — callers can check `.Success` without defensive null guards
   5. Operator-visible errors (scan failure, rule save failure, policy export failure) appear as toast notifications in the GUI, not only in the log file
-**Plans**: TBD
+**Plans:** 4 plans
+Plans:
+- [ ] 10-01-PLAN.md -- Replace 105 empty catch blocks in 10 GUI Panel files with contextual logging (ERR-01)
+- [ ] 10-02-PLAN.md -- Replace 49 empty catch blocks in GUI Helpers, MainWindow, and Wizard files (ERR-02)
+- [ ] 10-03-PLAN.md -- Replace 25 empty catch blocks in 9 backend Module files with contextual logging (ERR-03)
+- [ ] 10-04-PLAN.md -- Standardize return patterns for 3 key functions and add toast notifications for operator errors (ERR-04, ERR-05)
 
 ### Phase 11: Performance Fixes
 **Goal**: The codebase eliminates known O(n²) patterns and uses efficient APIs for bulk operations
@@ -98,7 +103,7 @@ See `.planning/milestones/v1.2.88-ROADMAP.md` for full details.
 | 7. Event Ingestion and Bounded Retrieval | v1.2.88 | 3/3 | Complete | 2026-02-18 |
 | 8. Event Triage and Inspection Workbench | v1.2.88 | 2/2 | Complete | 2026-02-18 |
 | 9. Rule Generation from Event Selections | v1.2.88 | 2/2 | Complete | 2026-02-19 |
-| 10. Error Handling Hardening | v1.2.90 | 0/TBD | Not started | - |
+| 10. Error Handling Hardening | v1.2.90 | 0/4 | Planned | - |
 | 11. Performance Fixes | v1.2.90 | 0/TBD | Not started | - |
 | 12. Module Test Coverage | v1.2.90 | 0/TBD | Not started | - |
 | 13. GUI and E2E Test Coverage | v1.2.90 | 0/TBD | Not started | - |
