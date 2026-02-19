@@ -35,6 +35,7 @@ Progress: [███░░░░░░░] 30% (3 plans complete across v1.2.90)
 
 *Updated after each plan completion*
 | Phase 10-error-handling-hardening P02 | 6 | 2 tasks | 5 files |
+| Phase 10 P01 | 10 | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -51,6 +52,8 @@ Recent decisions affecting v1.2.90:
 - [10-03] Fallback-chain catches use DEBUG level (expected by design in air-gapped SID resolution)
 - [Phase 10-error-handling-hardening]: Intentional empty catches preserved in logging fallback chains (Write-Log/Show-Toast guards inside error handlers cannot have recursive logging added)
 - [Phase 10-error-handling-hardening]: All GUI infrastructure empty catches now have contextual DEBUG logging with component prefixes ([UIHelpers], [AsyncHelpers], [GlobalSearch], [MainWindow], [RuleWizard])
+- [Phase 10]: GUI panel catch blocks use DEBUG level for UI cosmetic operations and WARN/ERROR for data operations
+- [Phase 10]: Remote scriptblock error handling uses Write-Warning instead of Write-AppLockerLog since module is unavailable on remote machines
 
 ### Pending Todos
 
@@ -66,5 +69,5 @@ None active.
 ## Session Continuity
 
 Last session: 2026-02-19
-Stopped at: Completed 10-03-PLAN.md — ready for 10-04 (GUI panels empty catch replacement)
+Stopped at: Completed 10-01-PLAN.md (GUI panel empty catch replacement, 9 files, 64 catches addressed)
 Resume file: None

@@ -53,7 +53,7 @@ See `.planning/milestones/v1.2.88-ROADMAP.md` for full details.
   3. Backend module functions that catch exceptions log the error context before continuing — no blank catches remain in any module
   4. Functions that return results use the `@{ Success; Data; Error }` shape consistently — callers can check `.Success` without defensive null guards
   5. Operator-visible errors (scan failure, rule save failure, policy export failure) appear as toast notifications in the GUI, not only in the log file
-**Plans:** 2/4 plans executed
+**Plans:** 3/4 plans executed
 Plans:
 - [x] 10-01-PLAN.md -- Replace 105 empty catch blocks in 10 GUI Panel files with contextual logging (ERR-01)
 - [x] 10-02-PLAN.md -- Replace 49 empty catch blocks in GUI Helpers, MainWindow, and Wizard files (ERR-02)
@@ -103,7 +103,7 @@ Plans:
 | 7. Event Ingestion and Bounded Retrieval | v1.2.88 | 3/3 | Complete | 2026-02-18 |
 | 8. Event Triage and Inspection Workbench | v1.2.88 | 2/2 | Complete | 2026-02-18 |
 | 9. Rule Generation from Event Selections | v1.2.88 | 2/2 | Complete | 2026-02-19 |
-| 10. Error Handling Hardening | 2/4 | In Progress|  | - |
+| 10. Error Handling Hardening | 3/4 | In Progress|  | - |
 | 11. Performance Fixes | v1.2.90 | 0/TBD | Not started | - |
 | 12. Module Test Coverage | v1.2.90 | 0/TBD | Not started | - |
 | 13. GUI and E2E Test Coverage | v1.2.90 | 0/TBD | Not started | - |
