@@ -61,6 +61,8 @@ Recent decisions affecting v1.2.90:
 - [Phase 10]: Deploy and Credentials panels needed Show-Toast Error on operator-triggered failures alongside existing MessageBox calls; Scanner/Rules/Policy panels already had comprehensive toast coverage
 - [Phase 11]: Use local ruleXml variable then [void]xml.Append(ruleXml) for PS 5.1 compatible StringBuilder XML assembly
 - [Phase 11]: Replace Get-CimInstance OS info try/catch with direct [System.Environment]::OSVersion reads — never throws, eliminates WMI timeout risk on air-gapped networks
+- [11-02]: ConvertTo-Json -Depth 3 sufficient for all serialized objects (max 2-3 nesting levels); Validation module depth change authorized as safe mechanical replacement
+- [11-02]: DragDropHelpers $script:CurrentScanArtifacts += lines left as-is (single appends outside loops, variable type not owned by that file)
 
 ### Pending Todos
 
@@ -76,5 +78,5 @@ None active.
 ## Session Continuity
 
 Last session: 2026-02-19
-Stopped at: Completed 11-01-PLAN.md (StringBuilder XML assembly + CIM removal, 2 files, Phase 11 plan 01 complete)
+Stopped at: Completed 11-02-PLAN.md (ConvertTo-Json depth reduction + DragDropHelpers List<T>, 11 files, Phase 11 complete)
 Resume file: None
