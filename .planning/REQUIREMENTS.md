@@ -25,10 +25,10 @@ Requirements for v1.2.90 Production Hardening. Each maps to roadmap phases.
 
 ### Performance
 
-- [ ] **PERF-01**: Export-PolicyToXml uses StringBuilder instead of string concatenation for rule XML assembly
+- [x] **PERF-01**: Export-PolicyToXml uses StringBuilder instead of string concatenation for rule XML assembly
 - [ ] **PERF-02**: All ConvertTo-Json -Depth 10 calls reduced to -Depth 3 across the codebase
 - [ ] **PERF-03**: DragDropHelpers array concatenation patterns replaced with List<T>
-- [ ] **PERF-04**: Export-AppLockerHealthReport uses .NET APIs instead of Get-CimInstance and direct .Count instead of Measure-Object
+- [x] **PERF-04**: Export-AppLockerHealthReport uses .NET APIs instead of Get-CimInstance and direct .Count instead of Measure-Object
 
 ## Future Requirements
 
@@ -67,10 +67,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TEST-03 | Phase 12 | Pending |
 | TEST-04 | Phase 13 | Pending |
 | TEST-05 | Phase 13 | Pending |
-| PERF-01 | Phase 11 | Pending |
+| PERF-01 | Phase 11 | Complete |
 | PERF-02 | Phase 11 | Pending |
 | PERF-03 | Phase 11 | Pending |
-| PERF-04 | Phase 11 | Pending |
+| PERF-04 | Phase 11 | Complete |
 
 **Coverage:**
 - v1 requirements: 14 total

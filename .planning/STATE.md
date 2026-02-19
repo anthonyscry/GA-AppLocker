@@ -5,16 +5,16 @@
 See: `.planning/PROJECT.md` (updated 2026-02-19)
 
 **Core value:** Reliable, operator-friendly policy management that stays responsive on large enterprise datasets
-**Current focus:** v1.2.90 Production Hardening — Phase 10: Error Handling Hardening (Complete)
+**Current focus:** v1.2.90 Production Hardening — Phase 11: Performance Fixes (In Progress)
 
 ## Current Position
 
-Phase: 10 of 13 (Error Handling Hardening)
-Plan: 4 of 4 in current phase (COMPLETE)
-Status: Phase 10 complete — all 4 plans executed
-Last activity: 2026-02-19 — Completed 10-04: Return Pattern Standardization and Toast Notifications
+Phase: 11 of 13 (Performance Fixes)
+Plan: 2 of 2 complete in current phase (COMPLETE)
+Status: Phase 11 complete — all 2 plans executed
+Last activity: 2026-02-19 — Completed 11-02: ConvertTo-Json depth reduction + DragDropHelpers List<T>
 
-Progress: [████░░░░░░] 40% (4 plans complete across v1.2.90)
+Progress: [█████░░░░░] 55% (6 plans complete across v1.2.90)
 
 ## Performance Metrics
 
@@ -37,6 +37,8 @@ Progress: [████░░░░░░] 40% (4 plans complete across v1.2.90)
 | Phase 10-error-handling-hardening P02 | 6 | 2 tasks | 5 files |
 | Phase 10 P01 | 10 | 2 tasks | 9 files |
 | Phase 10 P04 | 3 | 2 tasks | 2 files |
+| Phase 11 P01 | 2 | 2 tasks | 2 files |
+| Phase 11 P02 | 2 | 2 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -57,6 +59,8 @@ Recent decisions affecting v1.2.90:
 - [Phase 10]: Remote scriptblock error handling uses Write-Warning instead of Write-AppLockerLog since module is unavailable on remote machines
 - [Phase 10]: Backend functions (Invoke-BatchRuleGeneration, Get-AppLockerEventLogs, Remove-DuplicateRules) were already ERR-04 compliant with structured returns; return-null only in private script: helpers with skip/filter semantics
 - [Phase 10]: Deploy and Credentials panels needed Show-Toast Error on operator-triggered failures alongside existing MessageBox calls; Scanner/Rules/Policy panels already had comprehensive toast coverage
+- [Phase 11]: Use local ruleXml variable then [void]xml.Append(ruleXml) for PS 5.1 compatible StringBuilder XML assembly
+- [Phase 11]: Replace Get-CimInstance OS info try/catch with direct [System.Environment]::OSVersion reads — never throws, eliminates WMI timeout risk on air-gapped networks
 
 ### Pending Todos
 
@@ -72,5 +76,5 @@ None active.
 ## Session Continuity
 
 Last session: 2026-02-19
-Stopped at: Completed 10-04-PLAN.md (return pattern standardization + toast notifications, 2 files, Phase 10 complete)
+Stopped at: Completed 11-01-PLAN.md (StringBuilder XML assembly + CIM removal, 2 files, Phase 11 plan 01 complete)
 Resume file: None
