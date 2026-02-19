@@ -10,17 +10,17 @@ See: `.planning/PROJECT.md` (updated 2026-02-18)
 ## Current Position
 
 Phase: 9 of 9 (Rule Generation from Event Selections)
-Plan: 1 of 2 complete
-Status: In progress
-Last activity: 2026-02-18 - Completed Phase 9 Plan 01
+Plan: 2 of 2 complete
+Status: Complete
+Last activity: 2026-02-18 - Completed Phase 9 Plan 02
 
-Progress: █████████░ 95%
+Progress: ██████████ 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6 (v1.2.88)
-- Average duration: 5 min
+- Total plans completed: 7 (v1.2.88)
+- Average duration: 4 min
 - Total execution time: 0.55 hours
 
 **By Phase:**
@@ -29,11 +29,11 @@ Progress: █████████░ 95%
 |-------|-------|-------|----------|
 | 7. Event Ingestion and Bounded Retrieval | 3 | 14m | 5m |
 | 8. Event Triage and Inspection Workbench | 2 | 8m | 4m |
-| 9. Rule Generation from Event Selections | 1 | 5m | 5m |
+| 9. Rule Generation from Event Selections | 2 | 8m | 4m |
 
 **Recent Trend:**
-- Last 5 plans: Phase 09 P01 (5 min), Phase 08 P02 (5 min), Phase 08 P01 (3 min), Phase 07 P03 (6 min), Phase 07 P02 (2 min)
-- Trend: Phase 9 in progress - Allow/Deny controls and frequency confirmation dialog complete
+- Last 5 plans: Phase 09 P02 (3 min), Phase 09 P01 (5 min), Phase 08 P02 (5 min), Phase 08 P01 (3 min), Phase 07 P03 (6 min)
+- Trend: Phase 9 complete - all GEN requirements covered with 21 behavioral tests
 
 ## Accumulated Context
 
@@ -61,6 +61,8 @@ Recent decisions affecting current work:
 - [Phase 09-01]: RbEvt*/CboEvt* naming prefix for Event Viewer rule controls prevents x:Name collisions with Rules panel controls
 - [Phase 09-01]: Confirm-EventViewerRuleGeneration accepts [PSCustomObject[]]$Candidates (not [int]$Count) so it can show per-file frequency data from $script:EventViewerFileMetrics
 - [Phase 09-01]: Default-to-Allow logic only checks RbEvtRuleDeny.IsChecked == true; Allow is the programmatic default (no need to check Allow radio)
+- [Phase 09-02]: Install-RuleGenMocks helper function pattern (BeforeAll scope, called from Describe BeforeEach) avoids Pester 5 root-level BeforeEach restriction while keeping mock setup DRY
+- [Phase 09-02]: Rule creation mocks capture all parameters including Status into RuleCreateCalls list enabling precise per-call Status=Pending assertions across all GEN-04 tests
 
 ### Pending Todos
 
@@ -74,5 +76,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-18
-Stopped at: Completed 09-01-PLAN.md (Phase 9 Plan 1 of 2)
+Stopped at: Completed 09-02-PLAN.md (Phase 9 Plan 2 of 2 - all plans complete)
 Resume file: None

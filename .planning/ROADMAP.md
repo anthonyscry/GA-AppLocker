@@ -8,7 +8,7 @@ This milestone delivers an end-to-end event-driven operator workflow: ingest bou
 
 - [ ] **Phase 7: Event Ingestion and Bounded Retrieval** - Establish reliable local and selected-remote event loading with bounded query controls.
 - [x] **Phase 8: Event Triage and Inspection Workbench** - Deliver operator filtering/search and event-detail inspection for confident investigation. (completed 2026-02-18)
-- [ ] **Phase 9: Rule Generation from Event Selections** - Convert single or bulk event selections into deduplicated candidates through existing review workflow.
+- [x] **Phase 9: Rule Generation from Event Selections** - Convert single or bulk event selections into deduplicated candidates through existing review workflow. (completed 2026-02-19)
 
 ## Phase Details
 
@@ -65,4 +65,4 @@ Plans:
 |-------|----------------|--------|-----------|
 | 7. Event Ingestion and Bounded Retrieval | 3/3 | Complete | 2026-02-18 |
 | 8. Event Triage and Inspection Workbench | 2/2 | Complete   | 2026-02-18 |
-| 9. Rule Generation from Event Selections | 1/2 | In Progress|  |
+| 9. Rule Generation from Event Selections | 2/2 | Complete   | 2026-02-19 |
