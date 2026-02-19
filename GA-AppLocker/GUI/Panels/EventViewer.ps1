@@ -1004,6 +1004,7 @@ function global:Invoke-EventViewerRuleCreationAsync {
                 }
             }
             catch {
+                Write-AppLockerLog -Message "[EventViewer] Failed to read file metadata for '$filePath': $_" -Level DEBUG
             }
 
             if ($Mode -in @('Recommended', 'Hash')) {
@@ -1014,6 +1015,7 @@ function global:Invoke-EventViewerRuleCreationAsync {
                     }
                 }
                 catch {
+                    Write-AppLockerLog -Message "[EventViewer] Failed to compute SHA256 hash for '$filePath': $_" -Level DEBUG
                 }
             }
 
@@ -1025,6 +1027,7 @@ function global:Invoke-EventViewerRuleCreationAsync {
                     }
                 }
                 catch {
+                    Write-AppLockerLog -Message "[EventViewer] Failed to read Authenticode signature for '$filePath': $_" -Level DEBUG
                 }
             }
 
@@ -1033,7 +1036,7 @@ function global:Invoke-EventViewerRuleCreationAsync {
 
         $resolvedTargetSid = if ($RequestedTargetSid) { [string]$RequestedTargetSid } else { 'S-1-5-11' }
         if ($resolvedTargetSid.StartsWith('RESOLVE:')) {
-            try { $resolvedTargetSid = Resolve-GroupSid -GroupName $resolvedTargetSid } catch { }
+            try { $resolvedTargetSid = Resolve-GroupSid -GroupName $resolvedTargetSid } catch { Write-AppLockerLog -Message "[EventViewer] Failed to resolve group SID '$resolvedTargetSid': $_" -Level DEBUG }
         }
 
         $created = 0

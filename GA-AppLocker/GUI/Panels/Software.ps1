@@ -124,7 +124,7 @@ function global:Invoke-ScanLocalSoftware {
 
     $script:SoftwareLocalScanInProgress = $true
     Show-LoadingOverlay -Message 'Scanning installed software...' -SubMessage $env:COMPUTERNAME
-    try { Request-UiRender -Window $Window } catch { }
+    try { Request-UiRender -Window $Window } catch { Write-AppLockerLog -Message "[Software] Failed to request UI render before local software scan: $_" -Level DEBUG }
 
     $script:SoftwareLocalSyncHash = [hashtable]::Synchronized(@{
             Window     = $Window
@@ -188,7 +188,7 @@ function global:Invoke-ScanLocalSoftware {
                     }
                 }
             }
-            catch { }
+            catch { Write-AppLockerLog -Message "[Software] Failed to enumerate installed Windows roles/features: $_" -Level DEBUG }
 
             $sorted = @($results | Sort-Object DisplayName)
             $SyncHash.Result = $sorted
@@ -347,7 +347,7 @@ function global:Invoke-ScanRemoteSoftware {
                 if (-not [System.IO.Directory]::Exists($scansFolder)) {
                     [System.IO.Directory]::CreateDirectory($scansFolder) | Out-Null
                 }
-            } catch { }
+            } catch { Write-AppLockerLog -Message "[Software] Failed to create scans folder for remote software CSV export: $_" -Level WARN }
 
             $dateSuffix = (Get-Date).ToString('ddMMMyy').ToUpper()
             $hostIndex = 0
@@ -393,7 +393,7 @@ function global:Invoke-ScanRemoteSoftware {
                                         })
                                     }
                                 }
-                            } catch { }
+                            } catch { Write-Warning "[Software] Failed to enumerate remote Windows roles/features: $_" }
 
                             $items
                         }
@@ -426,7 +426,7 @@ function global:Invoke-ScanRemoteSoftware {
                             $hostResults |
                                 Select-Object Machine, DisplayName, DisplayVersion, Publisher, InstallDate, InstallLocation, Architecture, Source |
                                 Export-Csv -Path $csvPath -NoTypeInformation -Encoding UTF8
-                        } catch { }
+                        } catch { Write-AppLockerLog -Message "[Software] Failed to export software CSV for host '$hostname': $_" -Level WARN }
                     }
                 }
                 catch {
@@ -561,7 +561,7 @@ function script:Get-InstalledSoftware {
                 })
             }
         }
-    } catch { }
+    } catch { Write-AppLockerLog -Message "[Software] Failed to enumerate local Windows roles/features: $_" -Level DEBUG }
 
     return @($results | Sort-Object DisplayName)
 }

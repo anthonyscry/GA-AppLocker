@@ -79,7 +79,7 @@ function Unregister-CredentialsPanelEvents {
         if ($script:Credentials_Handlers[$btn.Key]) {
             $control = $Window.FindName($btn.Name)
             if ($control) {
-                try { $control.Remove_Click($script:Credentials_Handlers[$btn.Key]) } catch { }
+                try { $control.Remove_Click($script:Credentials_Handlers[$btn.Key]) } catch { Write-AppLockerLog -Message "[Credentials] Failed to remove click handler for '$($btn.Name)': $_" -Level DEBUG }
             }
         }
     }

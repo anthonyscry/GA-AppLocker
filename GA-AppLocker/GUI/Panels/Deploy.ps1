@@ -59,10 +59,10 @@ function Initialize-DeploymentPanel {
     $policyCombo = $Window.FindName('CboDeployPolicy')
     if ($policyCombo) {
         $policyCombo.Add_SelectionChanged({
-            try { global:Update-DeployTargetGpoHint -Window $global:GA_MainWindow } catch { }
+            try { global:Update-DeployTargetGpoHint -Window $global:GA_MainWindow } catch { Write-AppLockerLog -Message "[Deploy] Failed to update target GPO hint on policy selection change: $_" -Level DEBUG }
         })
     }
-    try { global:Update-DeployTargetGpoHint -Window $Window } catch { }
+    try { global:Update-DeployTargetGpoHint -Window $Window } catch { Write-AppLockerLog -Message "[Deploy] Failed to initialize deploy target GPO hint: $_" -Level DEBUG }
 
 
     # Check module status
@@ -146,7 +146,7 @@ function global:Refresh-DeployPolicyCombo {
         }
 
         Write-Log -Message "Refresh-DeployPolicyCombo: Loaded $($deployable.Count) policies into dropdown"
-        try { global:Update-DeployTargetGpoHint -Window $Window } catch { }
+        try { global:Update-DeployTargetGpoHint -Window $Window } catch { Write-AppLockerLog -Message "[Deploy] Failed to update target GPO hint after policy combo refresh: $_" -Level DEBUG }
     }
     catch {
         Write-Log -Message "Refresh-DeployPolicyCombo: Exception - $($_.Exception.Message)" -Level 'Error'
@@ -207,7 +207,7 @@ function global:Update-DeploymentJobsDataGrid {
                     elseif ($dateValue -is [string]) {
                         $createdDisplay = ([datetime]$dateValue).ToString('MM/dd HH:mm')
                     }
-                } catch { }
+                } catch { Write-AppLockerLog -Message "[Deploy] Failed to parse deployment job CreatedAt date for display: $_" -Level DEBUG }
             }
             $props['CreatedDisplay'] = $createdDisplay
             [PSCustomObject]$props
@@ -676,7 +676,7 @@ function global:Show-DeploymentLog {
             try {
                 if ($job.CreatedAt -is [datetime]) { $created = $job.CreatedAt.ToString('yyyy-MM-dd HH:mm') }
                 elseif ($job.CreatedAt) { $created = ([datetime]$job.CreatedAt).ToString('yyyy-MM-dd HH:mm') }
-            } catch { }
+            } catch { Write-AppLockerLog -Message "[Deploy] Failed to parse job CreatedAt date for log export: $_" -Level DEBUG }
             $logText += "Policy:   $($job.PolicyName)`n"
             $logText += "GPO:      $($job.GPOName)`n"
             $logText += "Status:   $($job.Status)`n"
