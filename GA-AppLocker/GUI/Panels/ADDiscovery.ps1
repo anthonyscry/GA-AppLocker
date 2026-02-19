@@ -239,38 +239,38 @@ function Unregister-DiscoveryPanelEvents {
     if ($script:ADDiscovery_Handlers['btnRefresh']) {
         $btnRefresh = $Window.FindName('BtnRefreshDomain')
         if ($btnRefresh) {
-            try { $btnRefresh.Remove_Click($script:ADDiscovery_Handlers['btnRefresh']) } catch { }
+            try { $btnRefresh.Remove_Click($script:ADDiscovery_Handlers['btnRefresh']) } catch { Write-AppLockerLog -Message "[ADDiscovery] Failed to remove BtnRefreshDomain click handler: $_" -Level DEBUG }
         }
     }
-    
+
     # Remove Test button handler
     if ($script:ADDiscovery_Handlers['btnTest']) {
         $btnTest = $Window.FindName('BtnTestConnectivity')
         if ($btnTest) {
-            try { $btnTest.Remove_Click($script:ADDiscovery_Handlers['btnTest']) } catch { }
+            try { $btnTest.Remove_Click($script:ADDiscovery_Handlers['btnTest']) } catch { Write-AppLockerLog -Message "[ADDiscovery] Failed to remove BtnTestConnectivity click handler: $_" -Level DEBUG }
         }
     }
-    
+
     # Remove filter box handler
     if ($script:ADDiscovery_Handlers['filterBox']) {
         $filterBox = $Window.FindName('MachineFilterBox')
         if ($filterBox) {
-            try { $filterBox.Remove_TextChanged($script:ADDiscovery_Handlers['filterBox']) } catch { }
+            try { $filterBox.Remove_TextChanged($script:ADDiscovery_Handlers['filterBox']) } catch { Write-AppLockerLog -Message "[ADDiscovery] Failed to remove MachineFilterBox text changed handler: $_" -Level DEBUG }
         }
     }
 
     # Remove filter debounce timer handler
     if ($script:ADDiscovery_Handlers['filterTimerTick'] -and $script:ADDiscovery_FilterTimer) {
-        try { $script:ADDiscovery_FilterTimer.Remove_Tick($script:ADDiscovery_Handlers['filterTimerTick']) } catch { }
-        try { $script:ADDiscovery_FilterTimer.Stop() } catch { }
+        try { $script:ADDiscovery_FilterTimer.Remove_Tick($script:ADDiscovery_Handlers['filterTimerTick']) } catch { Write-AppLockerLog -Message "[ADDiscovery] Failed to remove filter timer tick handler: $_" -Level DEBUG }
+        try { $script:ADDiscovery_FilterTimer.Stop() } catch { Write-AppLockerLog -Message "[ADDiscovery] Failed to stop filter debounce timer: $_" -Level DEBUG }
     }
-    
+
     # Remove filter button handlers
     foreach ($btnName in @('BtnFilterAll','BtnFilterWorkstations','BtnFilterServers','BtnFilterDCs','BtnFilterOnline')) {
         if ($script:ADDiscovery_Handlers[$btnName]) {
             $btn = $Window.FindName($btnName)
             if ($btn) {
-                try { $btn.Remove_Click($script:ADDiscovery_Handlers[$btnName]) } catch { }
+                try { $btn.Remove_Click($script:ADDiscovery_Handlers[$btnName]) } catch { Write-AppLockerLog -Message "[ADDiscovery] Failed to remove $btnName click handler: $_" -Level DEBUG }
             }
         }
     }
@@ -279,7 +279,7 @@ function Unregister-DiscoveryPanelEvents {
     if ($script:ADDiscovery_Handlers['treeViewSelected']) {
         $treeView = $Window.FindName('OUTreeView')
         if ($treeView) {
-            try { $treeView.Remove_SelectedItemChanged($script:ADDiscovery_Handlers['treeViewSelected']) } catch { }
+            try { $treeView.Remove_SelectedItemChanged($script:ADDiscovery_Handlers['treeViewSelected']) } catch { Write-AppLockerLog -Message "[ADDiscovery] Failed to remove OUTreeView selection handler: $_" -Level DEBUG }
         }
     }
     
@@ -873,7 +873,7 @@ function global:Invoke-ConnectivityTest {
         Update-MachineDataGrid -Window $win -Machines $machinesForGrid
         $dataGrid = $win.FindName('MachineDataGrid')
         if ($dataGrid) { $dataGrid.Items.Refresh() }
-        try { Update-WorkflowBreadcrumb -Window $win } catch { }
+        try { Update-WorkflowBreadcrumb -Window $win } catch { Write-AppLockerLog -Message "[ADDiscovery] Failed to update workflow breadcrumb after connectivity test: $_" -Level DEBUG }
 
         $onlineN = if ($bg) { $bg.OnlineCount } else { 0 }
         $winrmN  = if ($bg) { $bg.WinrmCount } else { 0 }
@@ -881,7 +881,7 @@ function global:Invoke-ConnectivityTest {
         $mc = $win.FindName('DiscoveryMachineCount')
         if ($mc) { $mc.Text = "$onlineN/$totalN online, $winrmN WinRM" }
         Show-Toast -Message "Connectivity complete. WinRM available: $winrmN." -Type 'Info'
-        try { global:Update-WinRMAvailableCount -Window $win } catch { }
+        try { global:Update-WinRMAvailableCount -Window $win } catch { Write-AppLockerLog -Message "[ADDiscovery] Failed to update WinRM available count after connectivity test: $_" -Level DEBUG }
 
         # Cleanup globals
         $global:GA_ConnTest_Machines    = $null
