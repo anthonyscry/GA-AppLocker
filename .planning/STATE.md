@@ -5,16 +5,16 @@
 See: `.planning/PROJECT.md` (updated 2026-02-19)
 
 **Core value:** Reliable, operator-friendly policy management that stays responsive on large enterprise datasets
-**Current focus:** Planning next milestone
+**Current focus:** v1.2.90 Production Hardening
 
 ## Current Position
 
-Phase: N/A — between milestones
-Plan: N/A
-Status: Milestone v1.2.88 shipped
-Last activity: 2026-02-19 - Completed v1.2.88 milestone archival
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-02-19 — Milestone v1.2.90 started
 
-Progress: N/A (next milestone not started)
+Progress: N/A (requirements phase)
 
 ## Accumulated Context
 
@@ -25,9 +25,9 @@ Key decisions from v1.2.88 archived to milestone history.
 
 ### Pending Todos
 
-- Remote transport fallback details (WinRM versus event log RPC) — carry forward to next milestone if relevant
-- Event query snapshot retention/pruning policy — carry forward to next milestone if relevant
-- CollectionType field gap in event retrieval backend — cosmetic fix candidate for next milestone
+- Remote transport fallback details (WinRM versus event log RPC) — carry forward if relevant
+- Event query snapshot retention/pruning policy — carry forward if relevant
+- CollectionType field gap in event retrieval backend — cosmetic fix candidate
 
 ### Blockers/Concerns
 
@@ -36,5 +36,5 @@ None active.
 ## Session Continuity
 
 Last session: 2026-02-19
-Stopped at: Completed v1.2.88 milestone archival
+Stopped at: Defining v1.2.90 requirements
 Resume file: None

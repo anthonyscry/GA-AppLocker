@@ -22,7 +22,14 @@ Reliable, operator-friendly policy management that stays responsive on large ent
 
 ### Active
 
-(None — next milestone requirements to be defined via `/gsd:new-milestone`)
+**Current Milestone: v1.2.90 Production Hardening**
+
+**Goal:** Eliminate silent failures, close test coverage gaps, and fix performance bottlenecks to reach production confidence.
+
+**Target features:**
+- Error handling hardening — replace empty catches with logging, standardize return patterns
+- Test coverage expansion — add tests for untested modules (Credentials, Deployment, Setup) and GUI panels
+- Performance fixes — StringBuilder for XML export, reduce ConvertTo-Json depth, fix O(n²) patterns
 
 ### Out of Scope
 
@@ -38,15 +45,19 @@ Shipped v1.2.88 with Event Viewer Rule Workbench. Codebase is ~195 exported func
 Tech stack: PowerShell 5.1, WPF/XAML, .NET Framework 4.7.2+, DPAPI credential storage.
 70 Event Viewer behavioral tests + 1,282 unit tests passing.
 
-Known tech debt from v1.2.88:
-- CollectionType field not emitted by event retrieval backend (functional extension-based fallback in rule creation)
-- Two script:-scoped functions called from global: context (works via scope chain but should be promoted for pattern alignment)
-- 5 interactive WPF smoke tests recommended for full verification
+Known tech debt entering v1.2.90:
+- ~105 empty catch blocks in GUI/Panels, ~30 in GUI/Helpers
+- 14 files with ConvertTo-Json -Depth 10 (max nesting is 2-3)
+- Export-PolicyToXml.ps1 uses string += in rule loop (O(n²))
+- No test coverage for Credentials, Deployment, Setup modules
+- 7/10 GUI panels have zero behavioral tests
+- CollectionType field not emitted by event retrieval backend (functional fallback exists)
+- Two script:-scoped functions called from global: context (works but misaligned)
 
 ## Constraints
 
 - **Compatibility**: PowerShell 5.1 and ASCII-safe source compatibility — required for current enterprise runtime environment
-- **Safety**: No changes to locked areas (`Export-PolicyToXml`, Validation module, rule import core path) — these are known-stable and out of scope
+- **Safety**: No changes to Validation module or rule import core path — these are known-stable. Export-PolicyToXml performance fix is scoped for v1.2.90
 - **UX**: Operator-facing workflows must remain non-blocking — air-gapped DC environments amplify timeout and latency impacts
 
 ## Key Decisions
@@ -80,4 +91,4 @@ See `.planning/milestones/v1.2.88-ROADMAP.md` and `.planning/milestones/v1.2.88-
 </details>
 
 ---
-*Last updated: 2026-02-19 after v1.2.88 milestone*
+*Last updated: 2026-02-19 after starting v1.2.90 milestone*
