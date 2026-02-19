@@ -17,7 +17,7 @@ Requirements for v1.2.90 Production Hardening. Each maps to roadmap phases.
 
 ### Test Coverage
 
-- [ ] **TEST-01**: Credentials module has unit tests covering credential creation, retrieval, and tier-based fallback
+- [x] **TEST-01**: Credentials module has unit tests covering credential creation, retrieval, and tier-based fallback
 - [ ] **TEST-02**: Deployment module has unit tests covering job creation, status tracking, and GPO import paths
 - [ ] **TEST-03**: Setup module has unit tests covering environment initialization and WinRM GPO configuration
 - [ ] **TEST-04**: Major GUI panels (Scanner, Rules, Policy, Deploy) have behavioral tests for core workflows
@@ -62,7 +62,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ERR-03 | Phase 10 | Complete |
 | ERR-04 | Phase 10 | Complete |
 | ERR-05 | Phase 10 | Complete |
-| TEST-01 | Phase 12 | Pending |
+| TEST-01 | Phase 12 | Complete |
 | TEST-02 | Phase 12 | Pending |
 | TEST-03 | Phase 12 | Pending |
 | TEST-04 | Phase 13 | Pending |

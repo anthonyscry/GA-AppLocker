@@ -9,12 +9,12 @@ See: `.planning/PROJECT.md` (updated 2026-02-19)
 
 ## Current Position
 
-Phase: 11 of 13 (Performance Fixes)
-Plan: 2 of 2 complete in current phase (COMPLETE)
-Status: Phase 11 complete — all 2 plans executed
-Last activity: 2026-02-19 — Completed 11-02: ConvertTo-Json depth reduction + DragDropHelpers List<T>
+Phase: 12 of 13 (Module Test Coverage)
+Plan: 1 of 3 complete in current phase
+Status: In progress — 12-01 complete, 12-02 and 12-03 pending
+Last activity: 2026-02-19 — Completed 12-01: Credentials module unit tests (27 tests)
 
-Progress: [█████░░░░░] 55% (6 plans complete across v1.2.90)
+Progress: [██████░░░░] 60% (7 plans complete across v1.2.90)
 
 ## Performance Metrics
 
@@ -39,6 +39,7 @@ Progress: [█████░░░░░] 55% (6 plans complete across v1.2.90)
 | Phase 10 P04 | 3 | 2 tasks | 2 files |
 | Phase 11 P01 | 2 | 2 tasks | 2 files |
 | Phase 11 P02 | 2 | 2 tasks | 11 files |
+| Phase 12 P01 | 2 | 1 task | 1 file |
 
 ## Accumulated Context
 
@@ -63,6 +64,9 @@ Recent decisions affecting v1.2.90:
 - [Phase 11]: Replace Get-CimInstance OS info try/catch with direct [System.Environment]::OSVersion reads — never throws, eliminates WMI timeout risk on air-gapped networks
 - [11-02]: ConvertTo-Json -Depth 3 sufficient for all serialized objects (max 2-3 nesting levels); Validation module depth change authorized as safe mechanical replacement
 - [11-02]: DragDropHelpers $script:CurrentScanArtifacts += lines left as-is (single appends outside loops, variable type not owned by that file)
+- [12-01]: Mock Get-AppLockerDataPath with -ModuleName 'GA-AppLocker.Credentials' to intercept module-internal calls; without -ModuleName the mock is invisible inside the module
+- [12-01]: Tests/Unit/ established for module-level unit tests separate from Tests/Behavioral/ integration tests
+- [12-01]: Test-CredentialProfile covered with existence check only — function requires live WinRM which is unavailable in unit test context
 
 ### Pending Todos
 
@@ -78,5 +82,5 @@ None active.
 ## Session Continuity
 
 Last session: 2026-02-19
-Stopped at: Phase 11 complete, ready to plan Phase 12
+Stopped at: Completed 12-01-PLAN.md (Credentials unit tests — 27 tests passing)
 Resume file: None
