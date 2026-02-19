@@ -149,6 +149,8 @@ function global:Invoke-SaveCredential {
         Update-CredentialsDataGrid -Window $Window
     }
     else {
+        Write-AppLockerLog -Message "[Credentials] Failed to save credential profile: $($result.Error)" -Level ERROR
+        Show-Toast -Message "Credential save failed: $($result.Error)" -Type Error
         Show-AppLockerMessageBox "Failed to save credential: $($result.Error)" 'Error' 'OK' 'Error'
     }
 }
@@ -222,6 +224,8 @@ function global:Invoke-TestSelectedCredential {
             "Error: $($testResult.Data.ErrorMessage)"
         }
         $resultText.Foreground = [System.Windows.Media.Brushes]::OrangeRed
+        Write-AppLockerLog -Message "[Credentials] Credential test failed for '$($selectedProfile.Name)': $($testResult.Error)" -Level ERROR
+        Show-Toast -Message "Credential test failed: $($testResult.Error)" -Type Error
     }
 
     # Refresh grid to show updated test result

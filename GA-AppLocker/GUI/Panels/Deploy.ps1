@@ -400,6 +400,8 @@ function global:Invoke-CreateDeploymentJob {
         }
     }
     catch {
+        Write-AppLockerLog -Message "[Deploy] Failed to create deployment job: $_" -Level ERROR
+        Show-Toast -Message "Deployment job creation failed: $_" -Type Error
         Show-AppLockerMessageBox "Error: $($_.Exception.Message)" 'Error' 'OK' 'Error'
     }
 }
@@ -810,11 +812,14 @@ function global:Invoke-ExportDeployPolicyXml {
             Show-Toast -Message "Policy exported to XML" -Type 'Success'
             Show-AppLockerMessageBox "Policy '$($selectedPolicy.Name)' exported to:`n$($saveDialog.FileName)" 'Export Complete' 'OK' 'Information'
         } else {
+            Show-Toast -Message "Policy export failed: $($exportResult.Error)" -Type Error
             Show-AppLockerMessageBox "Export failed: $($exportResult.Error)" 'Error' 'OK' 'Error'
         }
     }
     catch {
         Hide-LoadingOverlay
+        Write-AppLockerLog -Message "[Deploy] Failed to export policy XML: $_" -Level ERROR
+        Show-Toast -Message "Policy export failed: $_" -Type Error
         Show-AppLockerMessageBox "Export failed: $($_.Exception.Message)" 'Error' 'OK' 'Error'
     }
 }
@@ -843,11 +848,14 @@ function global:Invoke-ImportDeployPolicyXml {
             Show-Toast -Message "Imported $count rules from XML" -Type 'Success'
             Show-AppLockerMessageBox "Imported $count rule(s) from:`n$($openDialog.FileName)" 'Import Complete' 'OK' 'Information'
         } else {
+            Show-Toast -Message "XML import failed: $($importResult.Error)" -Type Error
             Show-AppLockerMessageBox "Import failed: $($importResult.Error)" 'Error' 'OK' 'Error'
         }
     }
     catch {
         Hide-LoadingOverlay
+        Write-AppLockerLog -Message "[Deploy] Failed to import policy XML: $_" -Level ERROR
+        Show-Toast -Message "XML import failed: $_" -Type Error
         Show-AppLockerMessageBox "Import failed: $($_.Exception.Message)" 'Error' 'OK' 'Error'
     }
 }
@@ -881,6 +889,8 @@ function global:Invoke-ClearCompletedJobs {
         Update-DeploymentJobsDataGrid -Window $Window
     }
     catch {
+        Write-AppLockerLog -Message "[Deploy] Failed to clear completed jobs: $_" -Level ERROR
+        Show-Toast -Message "Failed to clear jobs: $_" -Type Error
         Show-AppLockerMessageBox "Error clearing jobs: $($_.Exception.Message)" 'Error' 'OK' 'Error'
     }
 }
