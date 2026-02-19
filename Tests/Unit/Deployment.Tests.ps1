@@ -565,6 +565,23 @@ Describe 'Deployment - Start-Deployment GPO import paths' -Tag @('Unit', 'Deploy
         $result = Start-Deployment -JobId 'nonexistent-start-job'
         $result.Success | Should -BeFalse
     }
+
+    It 'returns standardized failure object when deployment prerequisites fail' {
+        $createResult = New-DeploymentJob -PolicyId 'test-policy-id' -GPOName 'AppLocker-PrereqFail'
+        $jobId = $createResult.Data.JobId
+
+        Mock -CommandName Export-PolicyToXml -MockWith {
+            return @{ Success = $true; Data = @{ Path = $global:GA_TestDeployXmlPath } }
+        } -ModuleName 'GA-AppLocker.Deployment'
+
+        Mock -CommandName Test-GPOExists -MockWith {
+            return @{ Success = $false; Error = 'GroupPolicy prerequisite check failed' }
+        } -ModuleName 'GA-AppLocker.Deployment'
+
+        $result = Start-Deployment -JobId $jobId
+        $result.Success | Should -BeFalse
+        $result.Error | Should -Not -BeNullOrEmpty
+    }
 }
 
 Describe 'Deployment - Get-DeploymentHistory' -Tag @('Unit', 'Deployment') {

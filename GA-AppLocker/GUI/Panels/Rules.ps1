@@ -1386,7 +1386,7 @@ function global:Invoke-RulesContextAction {
             Set-SelectedRuleStatus -Window $Window -Status 'Review'
         }
         'AddRuleToPolicy' {
-            Invoke-AddRulesToPolicy -Window $Window
+            Invoke-AddSelectedRulesToPolicy -Window $Window
         }
         'ViewRuleDetails' {
             Show-RuleDetails -Window $Window
