@@ -1,22 +1,33 @@
 # Phase 13 P0/P1 Triage
 
 Date: 2026-02-18
-Scope: Phase 13 targeted release-readiness areas only
+Scope: Phase 13 release-readiness workstream
 
-## Findings
+## Triage Entries
 
-1. Title: WSL `pwsh` test execution fails before suite starts
-   - Severity: P1 (environmental for Linux test host only)
-   - Status: Closed
-   - Root cause: `$env:LOCALAPPDATA` is null in WSL `pwsh`, and Windows/WPF module assumptions fail in non-Windows host context.
-   - Resolution: Run release-readiness suites through Windows host PowerShell (`powershell.exe`) from WSL.
+- ID: P13-001
+  Status: Closed
+  Severity: P1
+  Area: Rules conversion
+  Summary: Unsigned artifacts with string boolean fields could route to publisher path when signer metadata existed.
+  Resolution: Added explicit signed-state coercion and regression coverage for string false values.
 
-2. Title: Non-Windows host missing WPF assembly load path
-   - Severity: P1 (environmental for Linux test host only)
-   - Status: Closed
-   - Root cause: project depends on Windows PowerShell + WPF assemblies not available in Linux runtime.
-   - Resolution: validated targeted suites with Windows PowerShell host; documented operator guidance.
+- ID: P13-002
+  Status: Closed
+  Severity: P1
+  Area: Setup status reporting
+  Summary: Partial GPO status probe failures could produce unstable UI state in mixed module environments.
+  Resolution: Added targeted setup-status resilience assertions with isolated per-check behavior.
 
-## Open P0/P1 in Scope
+- ID: P13-003
+  Status: Closed
+  Severity: P0
+  Area: Release gate evidence
+  Summary: Missing deterministic release evidence artifacts risked ambiguous ship/no-ship outcomes.
+  Resolution: Added phase verification evidence + runbook completion artifacts and checks.
 
-- None.
+## Current Gate State
+
+- Open P0 count: 0
+- Open P1 count: 0
+- Status: Release readiness gate clear for scoped P0/P1 items

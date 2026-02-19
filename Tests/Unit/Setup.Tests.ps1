@@ -217,6 +217,35 @@ Describe 'Get-SetupStatus' -Tag @('Unit', 'Setup') {
             $types | Should -Contain 'Workstations'
         }
     }
+
+    Context 'Partial status-source failures' {
+        BeforeEach {
+            Mock -CommandName 'Get-Module' -ParameterFilter { $ListAvailable -and $Name -eq 'GroupPolicy' } -MockWith { [PSCustomObject]@{ Name = 'GroupPolicy' } } -ModuleName 'GA-AppLocker.Setup'
+            Mock -CommandName 'Get-Module' -ParameterFilter { $ListAvailable -and $Name -eq 'ActiveDirectory' } -MockWith { $null } -ModuleName 'GA-AppLocker.Setup'
+            Mock -CommandName 'Import-Module' -MockWith {} -ModuleName 'GA-AppLocker.Setup'
+            Mock -CommandName 'Write-AppLockerLog' -MockWith {} -ModuleName 'GA-AppLocker.Setup'
+
+            Mock -CommandName 'Get-GPO' -MockWith {
+                [PSCustomObject]@{
+                    DisplayName = $Name
+                    Id = [guid]::NewGuid().ToString()
+                    GpoStatus = 'AllSettingsEnabled'
+                }
+            } -ModuleName 'GA-AppLocker.Setup'
+
+            Mock -CommandName 'Get-GPInheritance' -MockWith { throw 'inheritance read failed' } -ModuleName 'GA-AppLocker.Setup'
+            Mock -CommandName 'Get-GPOReport' -MockWith { $null } -ModuleName 'GA-AppLocker.Setup'
+            Mock -CommandName 'Get-ADDomain' -MockWith { [PSCustomObject]@{ DistinguishedName = 'DC=test,DC=local' } } -ModuleName 'GA-AppLocker.Setup'
+        }
+
+        It 'reports consistent GPO toggle states when status source partially fails' {
+            $status = Get-SetupStatus
+            $status | Should -Not -BeNullOrEmpty
+            $status.Success | Should -BeTrue
+            $status.Data.WinRM | Should -Not -BeNullOrEmpty
+            $status.Data.DisableWinRM | Should -Not -BeNullOrEmpty
+        }
+    }
 }
 
 # ===========================================================================

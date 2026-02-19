@@ -341,5 +341,186 @@ function New-MockTestEnvironment {
 }
 #endregion
 
+#region Phase 13 Workflow Fixtures
+function New-MockScannerRuleWorkflowFixtures {
+    param(
+        [int]$ComputerCount = 3,
+        [int]$ArtifactsPerComputer = 12
+    )
+
+    $computers = @((New-MockComputers -Count $ComputerCount).Data)
+    $artifacts = [System.Collections.Generic.List[PSCustomObject]]::new()
+    $rules = [System.Collections.Generic.List[PSCustomObject]]::new()
+
+    $counter = 1
+    foreach ($computer in $computers) {
+        for ($i = 0; $i -lt $ArtifactsPerComputer; $i++) {
+            $typeCycle = @('EXE', 'DLL', 'MSI', 'PS1', 'APPX')
+            $artifactType = $typeCycle[$i % $typeCycle.Count]
+            $isSigned = (($counter % 2) -eq 0)
+
+            $fileName = "artifact-$counter"
+            switch ($artifactType) {
+                'EXE' { $fileName = "artifact-$counter.exe" }
+                'DLL' { $fileName = "artifact-$counter.dll" }
+                'MSI' { $fileName = "artifact-$counter.msi" }
+                'PS1' { $fileName = "artifact-$counter.ps1" }
+                'APPX' { $fileName = "artifact-$counter.appx" }
+            }
+
+            $publisher = if ($isSigned) { 'Contoso Software Ltd' } else { '' }
+            $productName = if ($isSigned) { 'Contoso Suite' } else { 'Unsigned Utility' }
+
+            $artifact = [PSCustomObject]@{
+                Id = [guid]::NewGuid().ToString()
+                FileName = $fileName
+                FilePath = "C:\Program Files\Phase13\$fileName"
+                ArtifactType = $artifactType
+                CollectionType = switch ($artifactType) {
+                    'EXE' { 'Exe' }
+                    'DLL' { 'Dll' }
+                    'MSI' { 'Msi' }
+                    'APPX' { 'Appx' }
+                    default { 'Script' }
+                }
+                ComputerName = $computer.Name
+                Tier = $computer.Tier
+                Publisher = $publisher
+                PublisherName = if ($publisher) { "CN=$publisher" } else { '' }
+                SignerCertificate = if ($publisher) { "CN=$publisher" } else { '' }
+                ProductName = $productName
+                ProductVersion = "1.0.$counter"
+                IsSigned = $isSigned
+                Signed = $isSigned
+                SHA256Hash = ([guid]::NewGuid().ToString('N') + [guid]::NewGuid().ToString('N')).ToUpperInvariant()
+                FileSize = 10000 + ($counter * 10)
+                Status = 'Collected'
+            }
+            [void]$artifacts.Add($artifact)
+
+            $ruleStatusCycle = @('Pending', 'Approved', 'Rejected', 'Review')
+            $ruleStatus = $ruleStatusCycle[$counter % $ruleStatusCycle.Count]
+            $ruleType = if ($isSigned) { 'Publisher' } else { 'Hash' }
+
+            [void]$rules.Add([PSCustomObject]@{
+                Id = [guid]::NewGuid().ToString()
+                Name = "Rule for $fileName"
+                Description = "Generated from $($computer.Name)"
+                RuleType = $ruleType
+                CollectionType = $artifact.CollectionType
+                Status = $ruleStatus
+                Action = 'Allow'
+                UserOrGroupSid = 'S-1-5-11'
+                GroupName = 'Authenticated Users'
+                GroupVendor = 'BuiltIn'
+                PublisherName = $artifact.PublisherName
+                Publisher = $artifact.Publisher
+                SHA256Hash = $artifact.SHA256Hash
+                HashValue = $artifact.SHA256Hash
+                Path = $artifact.FilePath
+                CreatedDate = (Get-Date).AddMinutes(-$counter).ToString('o')
+                ModifiedDate = (Get-Date).ToString('o')
+            })
+
+            $counter++
+        }
+    }
+
+    return [PSCustomObject]@{
+        Computers = @($computers)
+        Artifacts = @($artifacts)
+        Rules = @($rules)
+    }
+}
+
+function New-MockWorkflowStageFixtures {
+    param(
+        [ValidateSet('HappyPath', 'PartialScanFailure', 'DeployPrecheckFailure')]
+        [string]$Scenario = 'HappyPath'
+    )
+
+    $base = New-MockScannerRuleWorkflowFixtures -ComputerCount 8 -ArtifactsPerComputer 10
+    $selectedMachines = @($base.Computers | Select-Object -First 3)
+    $artifactList = [System.Collections.Generic.List[PSCustomObject]]::new()
+    $artifactsByMachine = @($base.Artifacts | Group-Object ComputerName)
+    foreach ($machineGroup in $artifactsByMachine) {
+        foreach ($artifact in @($machineGroup.Group | Select-Object -First 3)) {
+            [void]$artifactList.Add($artifact)
+        }
+    }
+    $artifacts = @($artifactList | Select-Object -First 18)
+    $rules = @($base.Rules | Where-Object { $_.Status -in @('Approved', 'Pending') } | Select-Object -First 14)
+
+    $events = @(
+        [PSCustomObject]@{ FilePath = $artifacts[0].FilePath; ComputerName = $selectedMachines[0].Name; EventType = 'EXE/DLL Blocked'; IsBlocked = $true; IsAudit = $false; TimeCreated = (Get-Date).AddMinutes(-3) },
+        [PSCustomObject]@{ FilePath = $artifacts[1].FilePath; ComputerName = $selectedMachines[1].Name; EventType = 'EXE/DLL Would Block (Audit)'; IsBlocked = $false; IsAudit = $true; TimeCreated = (Get-Date).AddMinutes(-2) },
+        [PSCustomObject]@{ FilePath = $artifacts[2].FilePath; ComputerName = $selectedMachines[2].Name; EventType = 'Script Allowed'; IsBlocked = $false; IsAudit = $false; TimeCreated = (Get-Date).AddMinutes(-1) }
+    )
+
+    $result = [ordered]@{
+        Scenario = $Scenario
+        Discovery = [PSCustomObject]@{
+            Success = $true
+            Machines = $selectedMachines
+            SelectedCount = $selectedMachines.Count
+        }
+        Scan = [PSCustomObject]@{
+            Success = $true
+            Artifacts = $artifacts
+            Events = $events
+            FailedMachines = @()
+            ArtifactCount = $artifacts.Count
+        }
+        Rules = [PSCustomObject]@{
+            Success = $true
+            Data = $rules
+            ApprovedCount = @($rules | Where-Object { $_.Status -eq 'Approved' }).Count
+            PendingCount = @($rules | Where-Object { $_.Status -eq 'Pending' }).Count
+        }
+        Policy = [PSCustomObject]@{
+            Success = $true
+            Data = [PSCustomObject]@{
+                PolicyId = 'phase13-policy-001'
+                Name = 'Phase13 Policy'
+                Status = 'Draft'
+                Phase = 3
+                TargetGPO = 'AppLocker-Servers'
+                RuleIds = @($rules | Select-Object -First 10 | ForEach-Object { $_.Id })
+            }
+        }
+        Deploy = [PSCustomObject]@{
+            Success = $true
+            PrecheckPassed = $true
+            Data = [PSCustomObject]@{
+                JobId = 'phase13-job-001'
+                Status = 'Completed'
+                Message = 'Deployment completed successfully.'
+                Checkpoints = @('Discovered', 'Scanned', 'RulesGenerated', 'PolicyBuilt', 'Deployed')
+            }
+            Error = $null
+        }
+    }
+
+    if ($Scenario -eq 'PartialScanFailure') {
+        $result.Scan.FailedMachines = @($selectedMachines[2].Name)
+        $result.Scan.Success = $true
+        $result.Scan.Artifacts = @($artifacts | Where-Object { $_.ComputerName -ne $selectedMachines[2].Name })
+        $result.Scan.ArtifactCount = $result.Scan.Artifacts.Count
+        $result.Deploy.Data.Message = 'Deployment completed after partial scan results.'
+    }
+
+    if ($Scenario -eq 'DeployPrecheckFailure') {
+        $result.Deploy.Success = $false
+        $result.Deploy.PrecheckPassed = $false
+        $result.Deploy.Error = 'Target GPO is not linked or enabled.'
+        $result.Deploy.Data.Status = 'Blocked'
+        $result.Deploy.Data.Message = 'Deployment blocked at precheck stage.'
+        $result.Deploy.Data.Checkpoints = @('Discovered', 'Scanned', 'RulesGenerated', 'PolicyBuilt', 'DeployBlocked')
+    }
+
+    return [PSCustomObject]$result
+}
+#endregion
+
 # Export all functions
 Export-ModuleMember -Function *

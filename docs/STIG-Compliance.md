@@ -10,6 +10,12 @@ This document maps GA-AppLocker features to the **Windows 10 STIG** (Security Te
 
 **Last Updated:** 2026-01-28
 
+## Phase 13 Operational Validation Addendum
+
+- Phase 13 release-readiness runbook checks are recorded in `docs/plans/2026-02-18-phase-13-operator-runbook-checks.md`.
+- Final verification evidence used for release sign-off is recorded in `docs/plans/2026-02-18-phase-13-verification-evidence.md`.
+- Scoped P0/P1 release-blocker triage traceability is maintained in `docs/plans/2026-02-18-phase-13-p0-p1-triage.md`.
+
 ---
 
 ## Control-to-Feature Matrix

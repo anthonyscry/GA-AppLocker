@@ -661,3 +661,10 @@ Describe 'MainWindow event metrics XAML controls' {
         $mainWindowXaml | Should -Not -Match 'Text="COLLECTED ARTIFACTS"'
     }
 }
+
+Describe 'Cross-panel Event Viewer integration guardrail' {
+    It 'keeps Event Viewer action routing helper callable for scanner-driven workflows' {
+        $handler = Get-Command -Name Invoke-EventViewerRuleActionByTag -ErrorAction SilentlyContinue
+        $handler | Should -Not -BeNullOrEmpty
+    }
+}

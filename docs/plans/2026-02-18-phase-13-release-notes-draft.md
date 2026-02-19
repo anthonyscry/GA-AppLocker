@@ -1,24 +1,21 @@
-# Phase 13 Release Notes Draft
+# Phase 13 Release Notes (Draft)
 
-## Focus
-
-Phase 13 prioritizes release readiness through balanced verification, targeted risk checks, and operator documentation updates.
+Date: 2026-02-18
+Target Version: 1.2.83
+Status: Draft
 
 ## Highlights
 
-- Validated targeted high-risk suites in Windows PowerShell host environment.
-- Confirmed no open scoped P0/P1 blockers after triage.
-- Updated operator docs for current 5-phase deployment model.
-- Added explicit Phase 13 planning and verification artifacts under `docs/plans/`.
+- Added targeted release-readiness regression coverage across deployment/setup/rules/event-viewer/workflow lanes.
+- Hardened unsigned artifact conversion handling for explicit string-false signed states.
+- Added operator-facing release evidence artifacts for runbook completion, scoped P0/P1 triage, and final verification traceability.
 
-## Verification Snapshot
+## Validation Summary
 
-- Deployment unit tests: pass
-- Setup unit tests: pass
-- Rules behavioral tests: pass
-- Recent GUI regressions: pass
-- Workflow e2e tests: pass
+- Targeted suites updated for phase gate assertions.
+- No scoped open P0/P1 blockers in Phase 13 triage doc.
+- Changelog, runbook checks, and verification evidence synchronized for release sign-off.
 
-## Known Constraints
+## Known Limits
 
-- WSL `pwsh` execution is not representative for full project validation because this app requires Windows PowerShell + WPF stack for module/test bootstrap.
+- Interactive WPF end-to-end UI execution still requires an interactive PowerShell session; non-interactive environments rely on behavioral/UI wiring tests.

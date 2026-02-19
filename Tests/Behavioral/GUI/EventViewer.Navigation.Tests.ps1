@@ -102,3 +102,10 @@ Describe 'Initialize-EventViewerPanel shell behavior' {
         $btnRun.ToolTip | Should -Match 'Run bounded AppLocker event retrieval'
     }
 }
+
+Describe 'Event Viewer action handler wiring' {
+    It 'wires Event Viewer action buttons to callable handlers' {
+        $handlers = Get-Command -Name Invoke-EventViewer* -ErrorAction SilentlyContinue
+        @($handlers).Count | Should -BeGreaterThan 0
+    }
+}

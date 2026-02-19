@@ -1,25 +1,22 @@
 # Phase 13 Targeted Test Matrix
 
 Date: 2026-02-18
-Objective: release-readiness confidence for scoped high-risk paths
+Phase: 13
+Status: Complete
 
 ## Scope Matrix
 
-| Area | Risk | Test Path | Status |
+| Area | Risk | Why now | Primary test files |
 |---|---|---|---|
-| Deployment create/update flow | High | `Tests/Unit/Deployment.Tests.ps1` | Passed |
-| Setup status and WinRM/GPO state | High | `Tests/Unit/Setup.Tests.ps1` | Passed |
-| Rule conversion behavior | Medium | `Tests/Behavioral/Core/Rules.Behavior.Tests.ps1` | Passed |
-| Recent GUI regressions | High | `Tests/Behavioral/GUI/RecentRegressions.Tests.ps1` | Passed |
-| End-to-end workflow contract | High | `Tests/Behavioral/Workflows/CoreFlows.E2E.Tests.ps1` | Passed |
+| Deployment prereq/error handling | High | Deploy path is release-critical and has recent churn in job execution + status shaping | `Tests/Unit/Deployment.Tests.ps1`, `Tests/Behavioral/GUI/RecentRegressions.Tests.ps1` |
+| Setup status transitions and module-partial failure | High | Setup panel depends on resilient GPO status probes in mixed RSAT availability environments | `Tests/Unit/Setup.Tests.ps1` |
+| Scanner -> Rules unsigned/signed coercion edges | High | Past regressions around string boolean values caused incorrect hash/publisher routing | `Tests/Behavioral/Core/Rules.Behavior.Tests.ps1` |
+| Event Viewer action wiring | Medium | New Event Viewer shell introduces handler/tag routing that can fail silently if mismatched | `Tests/Behavioral/GUI/EventViewer.Navigation.Tests.ps1`, `Tests/Behavioral/GUI/Scanner.EventMetrics.Tests.ps1` |
+| Workflow smoke contract | Medium | Need deterministic go/no-go signal for discovery->deploy mock path | `Tests/Behavioral/Workflows/CoreFlows.E2E.Tests.ps1`, `Tests/Behavioral/Workflows/Workflow.Mock.Tests.ps1` |
+| Release docs and sign-off artifacts | High | Phase exit gate requires reproducible evidence + operator-facing updates | `Tests/Behavioral/GUI/RecentRegressions.Tests.ps1`, `Tests/Run-MustPass.ps1` |
 
-## Out-of-Scope for Phase 13
+## Out of Scope (Phase 13)
 
-- Broad full-suite expansion across all modules
-- New feature implementation not tied to release-readiness gates
-- Interactive WPF UI automation from non-interactive environments
-
-## Notes
-
-- Baseline test runs in WSL `pwsh` are not release-representative for this project because Windows-only dependencies (`LOCALAPPDATA`, WPF assemblies) are required.
-- Release-readiness verification is executed via Windows PowerShell host from WSL.
+- Large refactors unrelated to release-readiness defects
+- Broad full-suite test expansion not tied to risk/recency
+- UI redesign work unrelated to reliability or operator flow clarity

@@ -4,6 +4,12 @@ Get AppLocker policies deployed to your enterprise in 7 steps.
 
 **Version:** January 2026 | **Module Commands:** 182
 
+## Phase 13 Release Readiness Notes
+
+- Use `docs/plans/2026-02-18-phase-13-operator-runbook-checks.md` as the operator checklist source of truth.
+- For release gate evidence, capture targeted verification results in `docs/plans/2026-02-18-phase-13-verification-evidence.md`.
+- If GroupPolicy tooling is unavailable, use XML export/manual import fallback and record outcome in the runbook checks.
+
 ---
 
 ## Prerequisites
