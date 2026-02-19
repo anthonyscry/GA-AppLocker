@@ -368,7 +368,9 @@ function Update-SearchResultsPopup {
                 $entry.Element.Remove_MouseEnter($entry.Enter)
                 $entry.Element.Remove_MouseLeave($entry.Leave)
                 $entry.Element.Remove_MouseLeftButtonDown($entry.Click)
-            } catch { }
+            } catch {
+                Write-AppLockerLog -Message "[GlobalSearch] Failed to remove search result item event handlers: $_" -Level DEBUG
+            }
         }
     }
     $script:SearchResultHandlers = @()

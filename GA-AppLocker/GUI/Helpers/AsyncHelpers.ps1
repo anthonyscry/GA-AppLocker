@@ -104,6 +104,9 @@ function Invoke-AsyncOperation {
                 try {
                     Import-Module $ModulePath -Force -ErrorAction Stop
                     $moduleLoaded = $true
+                    # Get-WinEvent lives in Microsoft.PowerShell.Diagnostics — ensure it's
+                    # available in the runspace for event log scanning operations
+                    Import-Module Microsoft.PowerShell.Diagnostics -ErrorAction SilentlyContinue
                     # Log success for diagnostics
                     Write-Host "[AsyncHelpers] Module imported successfully in runspace: $ModulePath"
                 }
@@ -209,25 +212,29 @@ function Invoke-AsyncOperation {
                 
                 try {
                     $ctx.PowerShell.Stop()
-                } catch { }
-                
+                } catch {
+                    Write-AppLockerLog -Message "[AsyncHelpers] Failed to stop timed-out PowerShell instance: $_" -Level DEBUG
+                }
+
                 $timeoutMsg = "Operation timed out after $($ctx.TimeoutSeconds) seconds"
                 try {
                     Write-AppLockerLog -Message $timeoutMsg -Level 'WARNING'
                 } catch { }
-                
+
                 if ($ctx.OnError) {
                     & $ctx.OnError -ErrorMessage $timeoutMsg
                 }
                 else {
                     Show-Toast -Message $timeoutMsg -Type 'Warning'
                 }
-                
+
                 try {
                     $ctx.PowerShell.Dispose()
                     $ctx.Runspace.Close()
                     $ctx.Runspace.Dispose()
-                } catch { }
+                } catch {
+                    Write-AppLockerLog -Message "[AsyncHelpers] Failed to dispose timed-out runspace resources: $_" -Level DEBUG
+                }
                 return
             }
             
