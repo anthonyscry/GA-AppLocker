@@ -11,7 +11,7 @@ Requirements for v1.2.90 Production Hardening. Each maps to roadmap phases.
 
 - [ ] **ERR-01**: All empty catch blocks in GUI/Panels replace silent swallowing with contextual Write-AppLockerLog calls
 - [ ] **ERR-02**: All empty catch blocks in GUI/Helpers replace silent swallowing with contextual logging (excluding intentional cleanup catches)
-- [ ] **ERR-03**: All empty catch blocks in backend Modules replace silent swallowing with contextual logging
+- [x] **ERR-03**: All empty catch blocks in backend Modules replace silent swallowing with contextual logging
 - [ ] **ERR-04**: Functions with inconsistent return patterns standardized to `@{ Success; Data; Error }` format
 - [ ] **ERR-05**: Operator-facing errors in GUI panels surface via toast notifications instead of silent log-only handling
 
@@ -59,7 +59,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | ERR-01 | Phase 10 | Pending |
 | ERR-02 | Phase 10 | Pending |
-| ERR-03 | Phase 10 | Pending |
+| ERR-03 | Phase 10 | Complete |
 | ERR-04 | Phase 10 | Pending |
 | ERR-05 | Phase 10 | Pending |
 | TEST-01 | Phase 12 | Pending |

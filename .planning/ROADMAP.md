@@ -55,9 +55,9 @@ See `.planning/milestones/v1.2.88-ROADMAP.md` for full details.
   5. Operator-visible errors (scan failure, rule save failure, policy export failure) appear as toast notifications in the GUI, not only in the log file
 **Plans:** 4 plans
 Plans:
-- [ ] 10-01-PLAN.md -- Replace 105 empty catch blocks in 10 GUI Panel files with contextual logging (ERR-01)
-- [ ] 10-02-PLAN.md -- Replace 49 empty catch blocks in GUI Helpers, MainWindow, and Wizard files (ERR-02)
-- [ ] 10-03-PLAN.md -- Replace 25 empty catch blocks in 9 backend Module files with contextual logging (ERR-03)
+- [x] 10-01-PLAN.md -- Replace 105 empty catch blocks in 10 GUI Panel files with contextual logging (ERR-01)
+- [x] 10-02-PLAN.md -- Replace 49 empty catch blocks in GUI Helpers, MainWindow, and Wizard files (ERR-02)
+- [x] 10-03-PLAN.md -- Replace 25 empty catch blocks in 9 backend Module files with contextual logging (ERR-03)
 - [ ] 10-04-PLAN.md -- Standardize return patterns for 3 key functions and add toast notifications for operator errors (ERR-04, ERR-05)
 
 ### Phase 11: Performance Fixes
@@ -103,10 +103,10 @@ Plans:
 | 7. Event Ingestion and Bounded Retrieval | v1.2.88 | 3/3 | Complete | 2026-02-18 |
 | 8. Event Triage and Inspection Workbench | v1.2.88 | 2/2 | Complete | 2026-02-18 |
 | 9. Rule Generation from Event Selections | v1.2.88 | 2/2 | Complete | 2026-02-19 |
-| 10. Error Handling Hardening | v1.2.90 | 0/4 | Planned | - |
+| 10. Error Handling Hardening | v1.2.90 | 3/4 | In progress | - |
 | 11. Performance Fixes | v1.2.90 | 0/TBD | Not started | - |
 | 12. Module Test Coverage | v1.2.90 | 0/TBD | Not started | - |
 | 13. GUI and E2E Test Coverage | v1.2.90 | 0/TBD | Not started | - |
 
 ---
-*Last updated: 2026-02-19 after v1.2.90 roadmap creation*
+*Last updated: 2026-02-19 after 10-03 completion (backend module empty catches)*
