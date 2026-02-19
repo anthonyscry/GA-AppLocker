@@ -318,27 +318,27 @@ function Invoke-ScannerPanelDrop {
 
     # Filter for scannable files
     $scannableExtensions = @('.exe', '.dll', '.msi', '.msp', '.ps1', '.bat', '.cmd', '.vbs', '.js')
-    $scannableFiles = @()
-    $folders = @()
+    $scannableFiles = [System.Collections.Generic.List[string]]::new()
+    $folders = [System.Collections.Generic.List[string]]::new()
 
     foreach ($path in $Files) {
         if (Test-Path -Path $path -PathType Container) {
-            $folders += $path
+            [void]$folders.Add($path)
         }
         elseif (Test-Path -Path $path -PathType Leaf) {
             $ext = [System.IO.Path]::GetExtension($path).ToLower()
             if ($scannableExtensions -contains $ext) {
-                $scannableFiles += $path
+                [void]$scannableFiles.Add($path)
             }
         }
     }
 
     # If folders dropped, scan recursively
     foreach ($folder in $folders) {
-        $foundFiles = Get-ChildItem -Path $folder -Recurse -File -ErrorAction SilentlyContinue | 
+        $foundFiles = Get-ChildItem -Path $folder -Recurse -File -ErrorAction SilentlyContinue |
             Where-Object { $scannableExtensions -contains $_.Extension.ToLower() } |
             Select-Object -ExpandProperty FullName
-        $scannableFiles += $foundFiles
+        foreach ($f in @($foundFiles)) { [void]$scannableFiles.Add($f) }
     }
 
     if ($scannableFiles.Count -eq 0) {
@@ -505,13 +505,13 @@ function Invoke-DroppedFileScan {
     }
     else {
         # Fallback: basic file info extraction
-        $artifacts = @()
+        $artifacts = [System.Collections.Generic.List[PSCustomObject]]::new()
         foreach ($path in $FilePaths) {
             if (Test-Path $path) {
                 $file = Get-Item $path
                 $hash = (Get-FileHash -Path $path -Algorithm SHA256).Hash
-                
-                $artifacts += [PSCustomObject]@{
+
+                [void]$artifacts.Add([PSCustomObject]@{
                     FileName      = $file.Name
                     FilePath      = $file.FullName
                     Hash          = $hash
@@ -522,10 +522,10 @@ function Invoke-DroppedFileScan {
                     Publisher     = ''
                     ProductName   = ''
                     Version       = ''
-                }
+                })
             }
         }
-        
+
         $script:CurrentScanArtifacts += $artifacts
         Update-ArtifactsDataGrid -Window $Window
         Show-Toast -Message "Added $($artifacts.Count) artifacts" -Type 'Success'
