@@ -102,7 +102,10 @@ function Get-AppLockerEventLogs {
                     $rawEvents = Get-WinEvent -FilterHashtable $BoundFilterHash -MaxEvents $BoundMaxEvents -ErrorAction Stop
                     foreach ($ev in @($rawEvents)) {
                         $xmlStr = ''
-                        try { $xmlStr = $ev.ToXml() } catch { }
+                        try { $xmlStr = $ev.ToXml() } catch {
+                            # Intentional: ToXml() failure is non-fatal; raw XML is optional metadata
+                            # Write-AppLockerLog is not available inside Invoke-Command scriptblocks
+                        }
                         [PSCustomObject]@{
                             Id               = $ev.Id
                             LogName          = $ev.LogName
@@ -196,7 +199,9 @@ function script:ConvertTo-AppLockerEventRecord {
             $rawXml = [string]$Event.RawXml
         }
     }
-    catch { }
+    catch {
+        Write-ScanLog -Message "[Get-AppLockerEventLogs] Failed to extract raw XML from event (EventId=$($Event.Id)): $_" -Level DEBUG
+    }
 
     return [PSCustomObject]@{
         ComputerName    = $ComputerName
