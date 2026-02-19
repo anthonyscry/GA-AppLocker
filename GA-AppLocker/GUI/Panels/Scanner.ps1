@@ -60,12 +60,12 @@ function Initialize-ScannerPanel {
     $chkRemote = $Window.FindName('ChkScanRemote')
     if ($chkRemote) {
         $chkRemote.Add_Checked({
-            try { global:Update-ScanRemoteSectionVisibility -Window $global:GA_MainWindow } catch { }
+            try { global:Update-ScanRemoteSectionVisibility -Window $global:GA_MainWindow } catch { Write-AppLockerLog -Message "[Scanner] Failed to update remote section visibility on check: $_" -Level DEBUG }
         })
         $chkRemote.Add_Unchecked({
-            try { global:Update-ScanRemoteSectionVisibility -Window $global:GA_MainWindow } catch { }
+            try { global:Update-ScanRemoteSectionVisibility -Window $global:GA_MainWindow } catch { Write-AppLockerLog -Message "[Scanner] Failed to update remote section visibility on uncheck: $_" -Level DEBUG }
         })
-        try { global:Update-ScanRemoteSectionVisibility -Window $Window } catch { }
+        try { global:Update-ScanRemoteSectionVisibility -Window $Window } catch { Write-AppLockerLog -Message "[Scanner] Failed to initialize remote section visibility: $_" -Level DEBUG }
     }
 
     # High risk paths checkbox handler - add/remove paths from textbox
@@ -562,7 +562,7 @@ function global:Update-ScanRemoteSectionVisibility {
     $section.Visibility = if ($isRemote) { 'Visible' } else { 'Collapsed' }
 
     if ($isRemote) {
-        try { global:Update-WinRMAvailableCount -Window $win } catch { }
+        try { global:Update-WinRMAvailableCount -Window $win } catch { Write-AppLockerLog -Message "[Scanner] Failed to update WinRM available count: $_" -Level DEBUG }
     }
 }
 
@@ -661,7 +661,7 @@ function global:Invoke-StartArtifactScan {
     if (Get-Command -Name 'Show-LoadingOverlay' -ErrorAction SilentlyContinue) {
         Show-LoadingOverlay -Message 'Scan in progress...' -SubMessage "Starting scan: $scanName"
     }
-    try { Request-UiRender -Window $Window } catch { }
+    try { Request-UiRender -Window $Window } catch { Write-AppLockerLog -Message "[Scanner] Failed to request UI render before scan start: $_" -Level DEBUG }
 
     # Build scan parameters
     $scanParams = @{
@@ -721,6 +721,9 @@ function global:Invoke-StartArtifactScan {
                         Import-Module $modPath -Force -ErrorAction Stop
                     }
                 }
+                # Get-WinEvent lives in Microsoft.PowerShell.Diagnostics which isn't
+                # auto-loaded in a bare runspace — needed for Event Log scanning
+                Import-Module Microsoft.PowerShell.Diagnostics -ErrorAction SilentlyContinue
             
                 $machineCount = if ($SyncHash.Params.Machines) { $SyncHash.Params.Machines.Count } else { 0 }
                 $localText = if ($SyncHash.Params.ScanLocal) { 'local + ' } else { '' }
@@ -1561,7 +1564,7 @@ function global:Update-EventMetricsUI {
     foreach ($metric in @($filteredMetrics)) {
         $visibleDate = ''
         if ($metric.LastSeen) {
-            try { $visibleDate = [datetime]$metric.LastSeen } catch { }
+            try { $visibleDate = [datetime]$metric.LastSeen } catch { Write-AppLockerLog -Message "[Scanner] Failed to parse LastSeen date for scan metrics display: $_" -Level DEBUG }
         }
 
         $row = [PSCustomObject]@{
@@ -2039,7 +2042,7 @@ function global:Invoke-SelectMachinesForScan {
         $confirm = Show-AppLockerMessageBox $msg 'No WinRM Targets' 'YesNo' 'Question'
         if ($confirm -eq 'Yes') {
             Set-ActivePanel -PanelName 'PanelDiscovery'
-            try { Invoke-ButtonAction -Action 'TestConnectivity' } catch { }
+            try { Invoke-ButtonAction -Action 'TestConnectivity' } catch { Write-AppLockerLog -Message "[Scanner] Failed to invoke TestConnectivity action from scanner: $_" -Level WARN }
         }
         return
     }
@@ -2054,7 +2057,7 @@ function global:Invoke-SelectMachinesForScan {
             $confirm = Show-AppLockerMessageBox $msg 'No WinRM Targets' 'YesNo' 'Question'
             if ($confirm -eq 'Yes') {
                 Set-ActivePanel -PanelName 'PanelDiscovery'
-                try { Invoke-ButtonAction -Action 'TestConnectivity' } catch { }
+                try { Invoke-ButtonAction -Action 'TestConnectivity' } catch { Write-AppLockerLog -Message "[Scanner] Failed to invoke TestConnectivity action from scanner (no WinRM): $_" -Level WARN }
             }
             return
         }
@@ -2763,7 +2766,7 @@ function global:Invoke-DirectRuleGenerationWithSettings {
 
         $resolvedSid = if ($GenSettings.TargetSid) { [string]$GenSettings.TargetSid } else { 'S-1-5-11' }
         if ($resolvedSid.StartsWith('RESOLVE:')) {
-            try { $resolvedSid = Resolve-GroupSid -GroupName $resolvedSid } catch { }
+            try { $resolvedSid = Resolve-GroupSid -GroupName $resolvedSid } catch { Write-AppLockerLog -Message "[Scanner] Failed to resolve group SID '$resolvedSid' for artifact rule generation: $_" -Level DEBUG }
         }
 
         $genParams = @{
@@ -2796,8 +2799,8 @@ function global:Invoke-DirectRuleGenerationWithSettings {
             Show-Toast -Message 'Rule generation completed.' -Type 'Info'
         }
         try { Refresh-RulesPanelAfterGeneration -Window $win -Navigate } catch {
-            try { Set-ActivePanel -PanelName 'PanelRules' } catch { }
-            try { Update-RulesDataGrid -Window $win } catch { }
+            try { Set-ActivePanel -PanelName 'PanelRules' } catch { Write-AppLockerLog -Message "[Scanner] Failed to navigate to Rules panel after rule generation: $_" -Level WARN }
+            try { Update-RulesDataGrid -Window $win } catch { Write-AppLockerLog -Message "[Scanner] Failed to refresh rules grid after rule generation: $_" -Level WARN }
         }
         $global:GA_RuleGen_Window = $null
     }
@@ -2967,7 +2970,7 @@ function global:Invoke-DirectRuleGeneration {
 
         $resolvedSid = if ($TargetSid) { [string]$TargetSid } else { 'S-1-5-11' }
         if ($resolvedSid.StartsWith('RESOLVE:')) {
-            try { $resolvedSid = Resolve-GroupSid -GroupName $resolvedSid } catch { }
+            try { $resolvedSid = Resolve-GroupSid -GroupName $resolvedSid } catch { Write-AppLockerLog -Message "[Scanner] Failed to resolve group SID '$resolvedSid' for event-based rule generation: $_" -Level DEBUG }
         }
 
         return Invoke-BatchRuleGeneration -Artifacts $Artifacts `
@@ -2987,8 +2990,8 @@ function global:Invoke-DirectRuleGeneration {
             Show-Toast -Message 'Rule generation completed.' -Type 'Info'
         }
         try { Refresh-RulesPanelAfterGeneration -Window $win -Navigate } catch {
-            try { Set-ActivePanel -PanelName 'PanelRules' } catch { }
-            try { Update-RulesDataGrid -Window $win } catch { }
+            try { Set-ActivePanel -PanelName 'PanelRules' } catch { Write-AppLockerLog -Message "[Scanner] Failed to navigate to Rules panel after event-based rule generation: $_" -Level WARN }
+            try { Update-RulesDataGrid -Window $win } catch { Write-AppLockerLog -Message "[Scanner] Failed to refresh rules grid after event-based rule generation: $_" -Level WARN }
         }
         $global:GA_RuleGen_Window = $null
     }

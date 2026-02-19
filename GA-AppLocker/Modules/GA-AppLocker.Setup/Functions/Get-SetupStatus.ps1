@@ -31,8 +31,12 @@ function Get-SetupStatus {
         # Suppress all error output during module availability checks (silent on startup)
         $hasGP = $false
         $hasAD = $false
-        try { $hasGP = [bool](Get-Module -ListAvailable -Name 'GroupPolicy' -ErrorAction SilentlyContinue) } catch { }
-        try { $hasAD = [bool](Get-Module -ListAvailable -Name 'ActiveDirectory' -ErrorAction SilentlyContinue) } catch { }
+        try { $hasGP = [bool](Get-Module -ListAvailable -Name 'GroupPolicy' -ErrorAction SilentlyContinue) } catch {
+            Write-SetupLog -Message "[Get-SetupStatus] Failed to probe GroupPolicy module availability: $_" -Level DEBUG
+        }
+        try { $hasAD = [bool](Get-Module -ListAvailable -Name 'ActiveDirectory' -ErrorAction SilentlyContinue) } catch {
+            Write-SetupLog -Message "[Get-SetupStatus] Failed to probe ActiveDirectory module availability: $_" -Level DEBUG
+        }
 
         $status = [PSCustomObject]@{
             ModulesAvailable = [PSCustomObject]@{
@@ -62,11 +66,13 @@ function Get-SetupStatus {
                 $domainDN = Get-DomainDN
                 $link = $null
                 try {
-                    $link = Get-GPInheritance -Target $domainDN -ErrorAction SilentlyContinue | 
-                            Select-Object -ExpandProperty GpoLinks | 
+                    $link = Get-GPInheritance -Target $domainDN -ErrorAction SilentlyContinue |
+                            Select-Object -ExpandProperty GpoLinks |
                             Where-Object { $_.DisplayName -eq $script:DefaultGPONames.WinRM }
                 }
-                catch { }
+                catch {
+                    Write-SetupLog -Message "[Get-SetupStatus] Failed to get GPO inheritance for WinRM GPO link check: $_" -Level DEBUG
+                }
 
                 $winrmStateLabel = switch ($winrmGPO.GpoStatus.ToString()) {
                     'AllSettingsEnabled'  { 'Enabled' }
@@ -103,7 +109,9 @@ function Get-SetupStatus {
                             Select-Object -ExpandProperty GpoLinks |
                             Where-Object { $_.DisplayName -eq 'AppLocker-DisableWinRM' }
                 }
-                catch { }
+                catch {
+                    Write-SetupLog -Message "[Get-SetupStatus] Failed to get GPO inheritance for DisableWinRM GPO link check: $_" -Level DEBUG
+                }
 
                 $disableStateLabel = switch ($disableGPO.GpoStatus.ToString()) {
                     'AllSettingsEnabled'  { 'Enabled' }
@@ -254,8 +262,8 @@ function Initialize-AppLockerEnvironment {
 
         # Fix link states: Enable GPO active, Disable GPO inactive (ready but not applied)
         try {
-            Enable-WinRMGPO -GPOName 'AppLocker-EnableWinRM' -ErrorAction SilentlyContinue
-            Disable-WinRMGPO -GPOName 'AppLocker-DisableWinRM' -ErrorAction SilentlyContinue
+            Enable-WinRMGPO -GPOName 'AppLocker-EnableWinRM' -ErrorAction SilentlyContinue | Out-Null
+            Disable-WinRMGPO -GPOName 'AppLocker-DisableWinRM' -ErrorAction SilentlyContinue | Out-Null
         }
         catch {
             Write-SetupLog -Message "WinRM GPO link state update failed: $($_.Exception.Message)" -Level Warning

@@ -92,7 +92,9 @@ function Write-AppLockerLog {
     }
     catch {
         # Fallback: write to console if file write fails
-        try { Write-Warning "Failed to write to log file: $($_.Exception.Message)" } catch { }
+        try { Write-Warning "Failed to write to log file: $($_.Exception.Message)" } catch {
+            # Intentional: prevent recursive logging failure — Write-Warning itself may fail in WPF dispatcher context
+        }
     }
     #endregion
 

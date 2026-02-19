@@ -82,7 +82,9 @@ function Get-LocalArtifacts {
             try {
                 $Paths = @(Get-DefaultScanPaths)
             }
-            catch { }
+            catch {
+                Write-ScanLog -Message "[Get-LocalArtifacts] Failed to get default scan paths: $_" -Level DEBUG
+            }
         }
 
         # Defensive: fall back to hardcoded defaults when default resolver is unavailable.
@@ -90,8 +92,6 @@ function Get-LocalArtifacts {
             $Paths = @(
                 'C:\Program Files',
                 'C:\Program Files (x86)',
-                'C:\Windows\System32',
-                'C:\Windows\SysWOW64',
                 'C:\ProgramData',
                 'C:\Users\*\AppData\Local\Programs',
                 'C:\Users\*\AppData\Local\Microsoft\WindowsApps'

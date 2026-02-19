@@ -1,89 +1,82 @@
-# Requirements: GA-AppLocker v1.2.88 Event Viewer Rule Workbench
+# Requirements: GA-AppLocker v1.2.90
 
-**Defined:** 2026-02-17
+**Defined:** 2026-02-19
 **Core Value:** Reliable, operator-friendly policy management that stays responsive on large enterprise datasets
 
 ## v1 Requirements
 
-### Event Ingestion
+Requirements for v1.2.90 Production Hardening. Each maps to roadmap phases.
 
-- [x] **EVT-01**: Operator can open Event Viewer and load AppLocker events from the local machine.
-- [x] **EVT-02**: Operator can load AppLocker events from selected remote machines and see per-host success/failure status.
-- [x] **EVT-03**: Operator can run bounded event queries (time window and result cap) to avoid unbounded retrieval.
+### Error Handling
 
-### Filtering and Search
+- [x] **ERR-01**: All empty catch blocks in GUI/Panels replace silent swallowing with contextual Write-AppLockerLog calls
+- [x] **ERR-02**: All empty catch blocks in GUI/Helpers replace silent swallowing with contextual logging (excluding intentional cleanup catches)
+- [x] **ERR-03**: All empty catch blocks in backend Modules replace silent swallowing with contextual logging
+- [x] **ERR-04**: Functions with inconsistent return patterns standardized to `@{ Success; Data; Error }` format
+- [x] **ERR-05**: Operator-facing errors in GUI panels surface via toast notifications instead of silent log-only handling
 
-- [ ] **FLT-01**: Operator can filter events by AppLocker event code.
-- [ ] **FLT-02**: Operator can filter events by key metadata (host, user, action/outcome, and time range).
-- [ ] **FLT-03**: Operator can use a search bar to find events by path, signer, hash, message text, or host/user text.
+### Test Coverage
 
-### Event Inspection
+- [x] **TEST-01**: Credentials module has unit tests covering credential creation, retrieval, and tier-based fallback
+- [x] **TEST-02**: Deployment module has unit tests covering job creation, status tracking, and GPO import paths
+- [x] **TEST-03**: Setup module has unit tests covering environment initialization and WinRM GPO configuration
+- [ ] **TEST-04**: Major GUI panels (Scanner, Rules, Policy, Deploy) have behavioral tests for core workflows
+- [ ] **TEST-05**: E2E workflow test covers scan-to-rule-to-policy-to-deploy pipeline with mock data
 
-- [ ] **DET-01**: Operator can inspect normalized event details for a selected row (file identity, collection, user, machine, and action context).
-- [ ] **DET-02**: Operator can view raw event XML/message for forensic verification before taking action.
+### Performance
 
-### Rule Generation
-
-- [ ] **GEN-01**: Operator can generate a single AppLocker rule from one selected event.
-- [ ] **GEN-02**: Operator can generate rules from multiple selected events in one bulk action.
-- [ ] **GEN-03**: Operator can review deduplicated bulk candidates with frequency counts before creation.
-- [ ] **GEN-04**: Operator can create event-derived rules through the existing rules pipeline without bypassing standard review workflow.
+- [x] **PERF-01**: Export-PolicyToXml uses StringBuilder instead of string concatenation for rule XML assembly
+- [x] **PERF-02**: All ConvertTo-Json -Depth 10 calls reduced to -Depth 3 across the codebase
+- [x] **PERF-03**: DragDropHelpers array concatenation patterns replaced with List<T>
+- [x] **PERF-04**: Export-AppLockerHealthReport uses .NET APIs instead of Get-CimInstance and direct .Count instead of Measure-Object
 
 ## Future Requirements
 
-Deferred capabilities captured during scoping and research:
+Deferred beyond v1.2.90.
 
-### Event-Driven Exceptions
+### Tech Debt Carryover
 
-- **EXC-01**: Operator can create scoped rule exceptions directly from selected event context.
-
-### Event Enrichment
-
-- **ENR-01**: Operator can enrich selected events with targeted artifact scanning when signer/hash metadata is incomplete.
-
-### Guided Authoring
-
-- **REC-01**: Operator receives guided bulk strategy recommendations (for example publisher-first vs hash fallback) before committing generated rules.
-
-### Filter Workflow Enhancements
-
-- **FLT-04**: Operator can save and re-apply named filter presets for recurring triage workflows.
-
-### Advanced Safety Analytics
-
-- **RISK-01**: Operator can preview likely impact/blast radius of generated rules before policy promotion.
+- **DEBT-01**: CollectionType field emission from event retrieval backend (functional fallback exists)
+- **DEBT-02**: Promote script:-scoped functions called from global: context to proper global: scope
+- **DEBT-03**: Remote transport fallback details (WinRM vs event log RPC)
+- **DEBT-04**: Event query snapshot retention/pruning policy
 
 ## Out of Scope
 
 | Feature | Reason |
-| --- | --- |
-| Full SIEM replacement inside GA-AppLocker | Scope explosion beyond milestone intent; this milestone focuses on event-to-rule operations |
-| Auto-create and auto-approve rules from all events | Unsafe in secure environments and bypasses operator review controls |
-| Unbounded cross-forest remote event crawling | High reliability/auth complexity and not required for v1 milestone outcomes |
-| Real-time streaming event UI without bounded refresh windows | Increases UI churn and risk to responsiveness in PS 5.1 WPF workloads |
+|---------|--------|
+| New operator workflows or panels | This is a hardening milestone, not a feature release |
+| Validation module changes | Known-stable, locked area |
+| Rule import core path changes | Known-stable, locked area |
+| Full rewrite of GUI panel architecture | Disproportionate risk for hardening milestone |
+| External dependency additions | Air-gap constraint; hardening uses existing stack only |
 
 ## Traceability
 
+Which phases cover which requirements. Updated during roadmap creation.
+
 | Requirement | Phase | Status |
-| --- | --- | --- |
-| EVT-01 | Phase 7 | Complete |
-| EVT-02 | Phase 7 | Complete |
-| EVT-03 | Phase 7 | Complete |
-| FLT-01 | Phase 8 | Pending |
-| FLT-02 | Phase 8 | Pending |
-| FLT-03 | Phase 8 | Pending |
-| DET-01 | Phase 8 | Pending |
-| DET-02 | Phase 8 | Pending |
-| GEN-01 | Phase 9 | Pending |
-| GEN-02 | Phase 9 | Pending |
-| GEN-03 | Phase 9 | Pending |
-| GEN-04 | Phase 9 | Pending |
+|-------------|-------|--------|
+| ERR-01 | Phase 10 | Complete |
+| ERR-02 | Phase 10 | Complete |
+| ERR-03 | Phase 10 | Complete |
+| ERR-04 | Phase 10 | Complete |
+| ERR-05 | Phase 10 | Complete |
+| TEST-01 | Phase 12 | Complete |
+| TEST-02 | Phase 12 | Complete |
+| TEST-03 | Phase 12 | Complete |
+| TEST-04 | Phase 13 | Pending |
+| TEST-05 | Phase 13 | Pending |
+| PERF-01 | Phase 11 | Complete |
+| PERF-02 | Phase 11 | Complete |
+| PERF-03 | Phase 11 | Complete |
+| PERF-04 | Phase 11 | Complete |
 
 **Coverage:**
-- v1 requirements: 12 total
-- Mapped to phases: 12
-- Unmapped: 0 ✓
+- v1 requirements: 14 total
+- Mapped to phases: 14
+- Unmapped: 0
 
 ---
-*Requirements defined: 2026-02-17*
-*Last updated: 2026-02-17 after roadmap mapping for milestone v1.2.88*
+*Requirements defined: 2026-02-19*
+*Last updated: 2026-02-19 after roadmap creation — all 14 requirements mapped*

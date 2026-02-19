@@ -83,14 +83,16 @@ function Resolve-GroupSid {
         if ($sid) {
             try {
                 Write-AppLockerLog -Message "Resolved group '$GroupName' to SID: $($sid.Value)" -Level 'INFO'
-            } catch { }
+            } catch {
+                # Intentional: prevent recursive logging failure (Write-AppLockerLog may not be available in all scopes)
+            }
             $script:ResolvedGroupCache[$GroupName] = $sid.Value
             return $sid.Value
         }
     }
     catch {
-        # NTAccount translation failed - group may not exist locally
-        Write-AppLockerLog -Message "Empty catch in Resolve-GroupSid.ps1" -Level 'Debug' -NoConsole
+        # NTAccount translation failed - fallback chain continues to next resolution method
+        Write-AppLockerLog -Message "[Resolve-GroupSid] NTAccount translation failed for '$GroupName': $_" -Level DEBUG
     }
 
     # Method 2: Try with domain prefix (DOMAIN\GroupName)
@@ -103,15 +105,17 @@ function Resolve-GroupSid {
             if ($sid) {
                 try {
                     Write-AppLockerLog -Message "Resolved group '$domain\$GroupName' to SID: $($sid.Value)" -Level 'INFO'
-                } catch { }
+                } catch {
+                    # Intentional: prevent recursive logging failure (Write-AppLockerLog may not be available in all scopes)
+                }
                 $script:ResolvedGroupCache[$GroupName] = $sid.Value
                 return $sid.Value
             }
         }
     }
     catch {
-        # Also failed with domain prefix
-        Write-AppLockerLog -Message "Empty catch in Resolve-GroupSid.ps1" -Level 'Debug' -NoConsole
+        # Domain-prefix NTAccount translation failed - fallback chain continues to ADSI
+        Write-AppLockerLog -Message "[Resolve-GroupSid] Domain-prefix NTAccount translation failed for '$GroupName': $_" -Level DEBUG
     }
 
     # Method 3: ADSI/LDAP query fallback (works in air-gapped environments without AD module)
@@ -126,15 +130,17 @@ function Resolve-GroupSid {
                 $sidValue = $sidObj.Value
                 try {
                     Write-AppLockerLog -Message "Resolved group '$GroupName' to SID via ADSI: $sidValue" -Level 'INFO'
-                } catch { }
+                } catch {
+                    # Intentional: prevent recursive logging failure (Write-AppLockerLog may not be available in all scopes)
+                }
                 $script:ResolvedGroupCache[$GroupName] = $sidValue
                 return $sidValue
             }
         }
     }
     catch {
-        # ADSI query failed - machine may not be domain-joined or LDAP unreachable
-        Write-AppLockerLog -Message "Empty catch in Resolve-GroupSid.ps1" -Level 'Debug' -NoConsole
+        # ADSI query failed - machine may not be domain-joined or LDAP unreachable; fallback chain continues
+        Write-AppLockerLog -Message "[Resolve-GroupSid] ADSI query failed for '$GroupName': $_" -Level DEBUG
     }
 
     # Method 4: Try ADSI with explicit domain root
@@ -152,7 +158,9 @@ function Resolve-GroupSid {
                     $sidValue2 = $sidObj2.Value
                     try {
                         Write-AppLockerLog -Message "Resolved group '$GroupName' to SID via explicit LDAP: $sidValue2" -Level 'INFO'
-                    } catch { }
+                    } catch {
+                        # Intentional: prevent recursive logging failure (Write-AppLockerLog may not be available in all scopes)
+                    }
                     $script:ResolvedGroupCache[$GroupName] = $sidValue2
                     return $sidValue2
                 }
@@ -160,14 +168,16 @@ function Resolve-GroupSid {
         }
     }
     catch {
-        # Explicit LDAP also failed
-        Write-AppLockerLog -Message "Empty catch in Resolve-GroupSid.ps1" -Level 'Debug' -NoConsole
+        # Explicit LDAP also failed - all 4 resolution methods exhausted
+        Write-AppLockerLog -Message "[Resolve-GroupSid] Explicit LDAP query failed for '$GroupName': $_" -Level DEBUG
     }
 
     # Log warning only once per group name
     try {
         Write-AppLockerLog -Message "Could not resolve group '$GroupName' - using UNRESOLVED placeholder (all 4 methods failed: NTAccount, domain-prefix, ADSI, explicit LDAP)" -Level 'WARNING'
-    } catch { }
+    } catch {
+        # Intentional: prevent recursive logging failure (Write-AppLockerLog may not be available in all scopes)
+    }
 
     # Fallback: return placeholder or null
     # NOTE: Do NOT cache UNRESOLVED values so retries can succeed later

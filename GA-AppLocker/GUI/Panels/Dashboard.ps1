@@ -38,8 +38,8 @@ function global:Set-DashboardToggleInterlock {
             $busyLabel.Visibility = 'Visible'
         }
 
-        try { $win.Cursor = [System.Windows.Input.Cursors]::Wait } catch { }
-        try { Request-UiRender -Window $win } catch { }
+        try { $win.Cursor = [System.Windows.Input.Cursors]::Wait } catch { Write-AppLockerLog -Message "[Dashboard] Failed to set wait cursor: $_" -Level DEBUG }
+        try { Request-UiRender -Window $win } catch { Write-AppLockerLog -Message "[Dashboard] Failed to request UI render during toggle interlock: $_" -Level DEBUG }
         return
     }
 
@@ -60,7 +60,7 @@ function global:Set-DashboardToggleInterlock {
     }
 
     $global:GA_DashboardToggleEnabledSnapshot = @{}
-    try { $win.Cursor = [System.Windows.Input.Cursors]::Arrow } catch { }
+    try { $win.Cursor = [System.Windows.Input.Cursors]::Arrow } catch { Write-AppLockerLog -Message "[Dashboard] Failed to restore arrow cursor: $_" -Level DEBUG }
 }
 
 function Initialize-DashboardPanel {
@@ -133,8 +133,8 @@ function Initialize-DashboardPanel {
 
     # Load dashboard data (async to avoid blocking UI thread on low-perf systems)
     try { Update-DashboardStats -Window $Window -Async } catch { Update-DashboardStats -Window $Window }
-    try { Update-ModuleStatus -Window $Window } catch { }
-    try { Invoke-DashboardGpoRefresh -Window $Window } catch { }
+    try { Update-ModuleStatus -Window $Window } catch { Write-AppLockerLog -Message "[Dashboard] Failed to update module status: $_" -Level DEBUG }
+    try { Invoke-DashboardGpoRefresh -Window $Window } catch { Write-AppLockerLog -Message "[Dashboard] Failed to refresh GPO status on init: $_" -Level WARN }
 }
 
 function global:Update-DashboardGpoToggles {
@@ -266,7 +266,7 @@ function global:Invoke-DashboardStatsRefresh {
         foreach ($mod in @('GA-AppLocker.Core', 'GA-AppLocker.Storage', 'GA-AppLocker.Scanning', 'GA-AppLocker.Policy')) {
             $modPath = Join-Path $modulesDir "$mod\$mod.psd1"
             if (Test-Path $modPath) {
-                try { Import-Module $modPath -Force -ErrorAction Stop } catch { }
+                try { Import-Module $modPath -Force -ErrorAction Stop } catch { Write-AppLockerLog -Message "[Dashboard] Failed to import module '$mod' in background stats worker: $_" -Level DEBUG }
             }
         }
 
@@ -285,7 +285,7 @@ function global:Invoke-DashboardStatsRefresh {
                 $stats.RuleCounts = $countsResult
             }
         }
-        catch { }
+        catch { Write-AppLockerLog -Message "[Dashboard] Failed to get rule counts in background stats worker: $_" -Level DEBUG }
 
         if ($stats.RuleCounts) {
             try {
@@ -301,13 +301,13 @@ function global:Invoke-DashboardStatsRefresh {
                 }
                 $stats.PendingRules = @($pendingItems)
             }
-            catch { }
+            catch { Write-AppLockerLog -Message "[Dashboard] Failed to load pending rules list in background stats worker: $_" -Level DEBUG }
         }
 
         try {
             $stats.PolicyCount = Get-PolicyCount
         }
-        catch { }
+        catch { Write-AppLockerLog -Message "[Dashboard] Failed to get policy count in background stats worker: $_" -Level DEBUG }
 
         try {
             $scansResult = Get-ScanResults
@@ -328,7 +328,7 @@ function global:Invoke-DashboardStatsRefresh {
                                     $dateDisplay = ([datetime]$dateValue).ToString('MM/dd HH:mm')
                                 }
                             }
-                            catch { }
+                            catch { Write-AppLockerLog -Message "[Dashboard] Failed to parse scan date value: $_" -Level DEBUG }
                         }
                         [PSCustomObject]@{
                             Name  = $_.ScanName
@@ -338,7 +338,7 @@ function global:Invoke-DashboardStatsRefresh {
                     })
             }
         }
-        catch { }
+        catch { Write-AppLockerLog -Message "[Dashboard] Failed to load recent scan results in background stats worker: $_" -Level DEBUG }
 
         return $stats
     }
@@ -428,7 +428,7 @@ function global:Apply-DashboardStats {
     }
 
     Update-DashboardCharts -Window $Window -CountsResult $Stats.RuleCounts
-    try { Request-UiRender -Window $Window } catch { }
+    try { Request-UiRender -Window $Window } catch { Write-AppLockerLog -Message "[Dashboard] Failed to request UI render after applying stats: $_" -Level DEBUG }
 }
 
 function global:Update-DashboardStats {
@@ -445,7 +445,7 @@ function global:Update-DashboardStats {
         try {
             Invoke-DashboardStatsRefresh -Window $win
             return
-        } catch { }
+        } catch { Write-AppLockerLog -Message "[Dashboard] Failed to invoke async stats refresh: $_" -Level WARN }
     }
 
     if (-not $win.Dispatcher.CheckAccess()) {
@@ -455,7 +455,7 @@ function global:Update-DashboardStats {
                 [Action]{ Invoke-DashboardStatsRefresh -Window $win }
             ) | Out-Null
             return
-        } catch { }
+        } catch { Write-AppLockerLog -Message "[Dashboard] Failed to dispatch background stats refresh: $_" -Level WARN }
     }
 
     $Window = $win
@@ -569,7 +569,7 @@ function global:Update-DashboardStats {
                                 elseif ($dateValue -is [string]) {
                                     $dateDisplay = ([datetime]$dateValue).ToString('MM/dd HH:mm')
                                 }
-                            } catch { }
+                            } catch { Write-AppLockerLog -Message "[Dashboard] Failed to parse scan date for display: $_" -Level DEBUG }
                         }
                         [PSCustomObject]@{
                             Name  = $_.ScanName
@@ -581,7 +581,7 @@ function global:Update-DashboardStats {
             }
         }
 
-        try { Request-UiRender -Window $Window } catch { }
+        try { Request-UiRender -Window $Window } catch { Write-AppLockerLog -Message "[Dashboard] Failed to request UI render after updating stats: $_" -Level DEBUG }
     }
     catch {
         Write-Log -Level Warning -Message "Failed to update dashboard stats: $($_.Exception.Message)"

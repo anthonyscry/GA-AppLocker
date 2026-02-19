@@ -31,7 +31,7 @@ function Initialize-RulesPanel {
         'BtnLaunchRuleWizard', 'BtnCreateManualRule', 'BtnExportRulesXml', 'BtnExportRulesCsv',
         'BtnImportRulesXml', 'BtnRefreshRules', 'BtnApproveRule', 'BtnRejectRule', 'BtnReviewRule',
         'BtnDeleteRule', 'BtnViewRuleDetails', 'BtnViewRuleHistory', 'BtnAddRuleToPolicy',
-        'BtnAddServiceAllowRules', 'BtnAddAdminAllowRules', 'BtnRemoveDuplicateRules', 'BtnAddCommonDenyRules', 'BtnAddDenyBrowserRules',
+        'BtnAddServiceAllowRules', 'BtnAddAdminAllowRules', 'BtnAddAllowPathRules', 'BtnRemoveDuplicateRules', 'BtnAddCommonDenyRules', 'BtnAddDenyBrowserRules',
         'BtnChangeAction', 'BtnChangeGroup'
     )
 
@@ -282,7 +282,7 @@ function global:Update-RulesDataGrid {
                     elseif ($dateValue -is [string]) {
                         $createdDisplay = ([datetime]$dateValue).ToString('MM/dd HH:mm')
                     }
-                } catch { }
+                } catch { Write-AppLockerLog -Message "[Rules] Failed to parse rule created date for display: $_" -Level DEBUG }
             }
             $props['CreatedDisplay'] = $createdDisplay
             [PSCustomObject]$props
@@ -498,10 +498,10 @@ function global:Refresh-RulesPanelAfterGeneration {
     if (-not $win) { return }
 
     if ($Navigate) {
-        try { Set-ActivePanel -PanelName 'PanelRules' } catch { }
+        try { Set-ActivePanel -PanelName 'PanelRules' } catch { Write-AppLockerLog -Message "[Rules] Failed to navigate to Rules panel after generation: $_" -Level WARN }
     }
 
-    try { Reset-RulesIndexCache } catch { }
+    try { Reset-RulesIndexCache } catch { Write-AppLockerLog -Message "[Rules] Failed to reset rules index cache: $_" -Level DEBUG }
 
     # Clear text filter to avoid "no rules" confusion after generation
     $txtFilter = $win.FindName('TxtRuleFilter')
@@ -515,7 +515,7 @@ function global:Refresh-RulesPanelAfterGeneration {
         Update-RulesFilter -Window $win -Filter 'All'
     }
     catch {
-        try { Update-RulesDataGrid -Window $win } catch { }
+        try { Update-RulesDataGrid -Window $win } catch { Write-AppLockerLog -Message "[Rules] Failed to refresh rules grid after filter reset: $_" -Level WARN }
     }
 }
 
@@ -705,19 +705,25 @@ function global:Invoke-CreateManualRule {
         default { 'Path' }
     }
 
+    # Get collection type from dropdown (defaults to Exe)
+    $collectionCombo = $Window.FindName('CboManualRuleCollection')
+    $collectionType = if ($collectionCombo -and $collectionCombo.SelectedItem) {
+        $collectionCombo.SelectedItem.Content.ToString()
+    } else { 'Exe' }
+
     try {
         $result = switch ($ruleType) {
             'Path' {
-                New-PathRule -Path $value -Action $action -Description $desc -CollectionType 'Exe' -UserOrGroupSid $targetGroupSid -Save
+                New-PathRule -Path $value -Action $action -Description $desc -CollectionType $collectionType -UserOrGroupSid $targetGroupSid -Save
             }
             'Hash' {
-                New-HashRule -Hash $value -SourceFileName 'Manual' -Action $action -Description $desc -CollectionType 'Exe' -UserOrGroupSid $targetGroupSid -Save
+                New-HashRule -Hash $value -SourceFileName 'Manual' -Action $action -Description $desc -CollectionType $collectionType -UserOrGroupSid $targetGroupSid -Save
             }
             'Publisher' {
                 $parts = $value -split ','
                 $pubName = $parts[0].Trim()
                 $prodName = if ($parts.Count -gt 1) { $parts[1].Trim() } else { '*' }
-                New-PublisherRule -PublisherName $pubName -ProductName $prodName -Action $action -Description $desc -CollectionType 'Exe' -UserOrGroupSid $targetGroupSid -Save
+                New-PublisherRule -PublisherName $pubName -ProductName $prodName -Action $action -Description $desc -CollectionType $collectionType -UserOrGroupSid $targetGroupSid -Save
             }
         }
 
@@ -761,7 +767,7 @@ function global:Set-SelectedRuleStatus {
     if ($count -gt 50) {
         $ruleIds = @($selectedItems | ForEach-Object { $_.Id })
         $rulesPath = $null
-        try { $rulesPath = Join-Path (Get-AppLockerDataPath) 'Rules' } catch { }
+        try { $rulesPath = Join-Path (Get-AppLockerDataPath) 'Rules' } catch { Write-AppLockerLog -Message "[Rules] Failed to get AppLocker data path for bulk status update, using fallback: $_" -Level DEBUG }
         if (-not $rulesPath) { $rulesPath = Join-Path $env:LOCALAPPDATA 'GA-AppLocker\Rules' }
         $modulePath = (Get-Module GA-AppLocker).ModuleBase
 
@@ -821,8 +827,8 @@ function global:Set-SelectedRuleStatus {
 
             Reset-RulesSelectionState -Window $win
             Update-RulesDataGrid -Window $win
-            try { Update-DashboardStats -Window $win } catch { }
-            try { Update-WorkflowBreadcrumb -Window $win } catch { }
+            try { Update-DashboardStats -Window $win } catch { Write-AppLockerLog -Message "[Rules] Failed to update dashboard stats after bulk status change: $_" -Level DEBUG }
+            try { Update-WorkflowBreadcrumb -Window $win } catch { Write-AppLockerLog -Message "[Rules] Failed to update workflow breadcrumb after bulk status change: $_" -Level DEBUG }
 
             $updated = if ($Result -and $Result.Updated) { $Result.Updated } else { 0 }
             $errorCount = if ($Result -and $Result.Errors) { $Result.Errors.Count } else { 0 }
@@ -843,7 +849,7 @@ function global:Set-SelectedRuleStatus {
             param($TimeoutMessage)
             $win = $global:GA_BulkStatus_Window
             if ($win) {
-                try { Reset-RulesSelectionState -Window $win } catch { }
+                try { Reset-RulesSelectionState -Window $win } catch { Write-AppLockerLog -Message "[Rules] Failed to reset selection state on bulk status timeout: $_" -Level DEBUG }
             }
             $global:GA_BulkStatus_Window = $null
             $global:GA_BulkStatus_Status = $null
@@ -877,7 +883,7 @@ function global:Set-SelectedRuleStatus {
                     $rule = Get-Content -Path $ruleFile -Raw | ConvertFrom-Json
                     $rule.Status = $Status
                     $rule.ModifiedDate = $now
-                    $rule | ConvertTo-Json -Depth 10 | Set-Content -Path $ruleFile -Encoding UTF8
+                    $rule | ConvertTo-Json -Depth 3 | Set-Content -Path $ruleFile -Encoding UTF8
                     [void]$updatedIds.Add($item.Id)
                     $updated++
                 }
@@ -936,9 +942,9 @@ function global:Invoke-DeleteSelectedRules {
 
     # Get rules storage path on UI thread (module functions available here)
     $rulesPath = $null
-    try { $rulesPath = Get-RuleStoragePath } catch { }
+    try { $rulesPath = Get-RuleStoragePath } catch { Write-AppLockerLog -Message "[Rules] Failed to get rule storage path, trying fallback: $_" -Level DEBUG }
     if (-not $rulesPath) {
-        try { $rulesPath = Join-Path (Get-AppLockerDataPath) 'Rules' } catch { }
+        try { $rulesPath = Join-Path (Get-AppLockerDataPath) 'Rules' } catch { Write-AppLockerLog -Message "[Rules] Failed to get AppLocker data path for rules, using env fallback: $_" -Level DEBUG }
     }
     if (-not $rulesPath) { $rulesPath = Join-Path $env:LOCALAPPDATA 'GA-AppLocker\Rules' }
 
@@ -971,20 +977,20 @@ function global:Invoke-DeleteSelectedRules {
         $win = $global:GA_Delete_Window
 
         # Update in-memory index (fast: hashtable removals + Save-JsonIndex)
-        try { $null = Remove-RulesFromIndex -RuleIds $ids } catch { }
+        try { $null = Remove-RulesFromIndex -RuleIds $ids } catch { Write-AppLockerLog -Message "[Rules] Failed to remove rules from index after deletion: $_" -Level WARN }
 
         # Invalidate caches
-        try { Clear-AppLockerCache -Pattern 'GlobalSearch_*' | Out-Null } catch { }
-        try { Clear-AppLockerCache -Pattern 'RuleCounts*' | Out-Null } catch { }
-        try { Clear-AppLockerCache -Pattern 'RuleQuery*' | Out-Null } catch { }
+        try { Clear-AppLockerCache -Pattern 'GlobalSearch_*' | Out-Null } catch { Write-AppLockerLog -Message "[Rules] Failed to clear GlobalSearch cache after deletion: $_" -Level DEBUG }
+        try { Clear-AppLockerCache -Pattern 'RuleCounts*' | Out-Null } catch { Write-AppLockerLog -Message "[Rules] Failed to clear RuleCounts cache after deletion: $_" -Level DEBUG }
+        try { Clear-AppLockerCache -Pattern 'RuleQuery*' | Out-Null } catch { Write-AppLockerLog -Message "[Rules] Failed to clear RuleQuery cache after deletion: $_" -Level DEBUG }
 
         $deletedN = if ($bgResult) { $bgResult.Deleted } else { $cnt }
         Show-Toast -Message "Deleted $deletedN rule(s)." -Type 'Success'
 
         Reset-RulesSelectionState -Window $win
         Update-RulesDataGrid -Window $win
-        try { Update-DashboardStats -Window $win } catch { }
-        try { Update-WorkflowBreadcrumb -Window $win } catch { }
+        try { Update-DashboardStats -Window $win } catch { Write-AppLockerLog -Message "[Rules] Failed to update dashboard stats after rule deletion: $_" -Level DEBUG }
+        try { Update-WorkflowBreadcrumb -Window $win } catch { Write-AppLockerLog -Message "[Rules] Failed to update workflow breadcrumb after rule deletion: $_" -Level DEBUG }
 
         # Cleanup globals
         $global:GA_Delete_RuleIds = $null
@@ -996,8 +1002,8 @@ function global:Invoke-DeleteSelectedRules {
         param($TimeoutMessage)
         $win = $global:GA_Delete_Window
         if ($win) {
-            try { Reset-RulesSelectionState -Window $win } catch { }
-            try { Update-RulesDataGrid -Window $win } catch { }
+            try { Reset-RulesSelectionState -Window $win } catch { Write-AppLockerLog -Message "[Rules] Failed to reset selection state on delete timeout: $_" -Level DEBUG }
+            try { Update-RulesDataGrid -Window $win } catch { Write-AppLockerLog -Message "[Rules] Failed to refresh rules grid on delete timeout: $_" -Level DEBUG }
         }
         $global:GA_Delete_RuleIds = $null
         $global:GA_Delete_Count   = $null
@@ -1045,8 +1051,8 @@ function global:Invoke-ApproveTrustedVendors {
             Write-Log -Message $message
             Reset-RulesSelectionState -Window $win
             Update-RulesDataGrid -Window $win
-            try { Update-DashboardStats -Window $win } catch { }
-            try { Update-WorkflowBreadcrumb -Window $win } catch { }
+            try { Update-DashboardStats -Window $win } catch { Write-AppLockerLog -Message "[Rules] Failed to update dashboard stats after approving trusted vendors: $_" -Level DEBUG }
+            try { Update-WorkflowBreadcrumb -Window $win } catch { Write-AppLockerLog -Message "[Rules] Failed to update workflow breadcrumb after approving trusted vendors: $_" -Level DEBUG }
         }
         elseif ($Result) {
             Show-Toast -Message "Failed to approve rules: $($Result.Error)" -Type 'Error'
@@ -1117,8 +1123,8 @@ function global:Invoke-RemoveDuplicateRules {
                 Write-Log -Message $msg
                 Reset-RulesSelectionState -Window $win
                 Update-RulesDataGrid -Window $win
-                try { Update-DashboardStats -Window $win } catch { }
-                try { Update-WorkflowBreadcrumb -Window $win } catch { }
+                try { Update-DashboardStats -Window $win } catch { Write-AppLockerLog -Message "[Rules] Failed to update dashboard stats after deduplication: $_" -Level DEBUG }
+                try { Update-WorkflowBreadcrumb -Window $win } catch { Write-AppLockerLog -Message "[Rules] Failed to update workflow breadcrumb after deduplication: $_" -Level DEBUG }
             }
             elseif ($Result) {
                 Show-Toast -Message "Failed to remove duplicates: $($Result.Error)" -Type 'Error'
@@ -1163,7 +1169,7 @@ function global:Invoke-ExportRulesToXml {
     $dialog.RestoreDirectory = $true
     $dialog.CheckPathExists = $true
     $dialog.OverwritePrompt = $true
-    try { $dialog.AutoUpgradeEnabled = $false } catch { }
+    try { $dialog.AutoUpgradeEnabled = $false } catch { Write-AppLockerLog -Message "[Rules] Failed to set AutoUpgradeEnabled on XML export dialog: $_" -Level DEBUG }
 
     $dialogResult = $null
     try {
@@ -1236,7 +1242,7 @@ function global:Invoke-ExportRulesToCsv {
     $dialog.RestoreDirectory = $true
     $dialog.CheckPathExists = $true
     $dialog.OverwritePrompt = $true
-    try { $dialog.AutoUpgradeEnabled = $false } catch { }
+    try { $dialog.AutoUpgradeEnabled = $false } catch { Write-AppLockerLog -Message "[Rules] Failed to set AutoUpgradeEnabled on CSV export dialog: $_" -Level DEBUG }
 
     $dialogResult = $null
     try {
@@ -1380,7 +1386,7 @@ function global:Invoke-RulesContextAction {
             Set-SelectedRuleStatus -Window $Window -Status 'Review'
         }
         'AddRuleToPolicy' {
-            Invoke-AddRulesToPolicy -Window $Window
+            Invoke-AddSelectedRulesToPolicy -Window $Window
         }
         'ViewRuleDetails' {
             Show-RuleDetails -Window $Window
@@ -1461,6 +1467,81 @@ function global:Invoke-RulesContextAction {
         default {
             Write-Log -Level Warning -Message "Unknown context menu action: $Action"
         }
+    }
+}
+
+function global:Invoke-AddAllowPathRules {
+    <#
+    .SYNOPSIS
+        Creates allow path rules for System32 and SysWOW64.
+    .DESCRIPTION
+        Generates allow rules for %WINDIR%\System32\* and %WINDIR%\SysWOW64\*
+        across all 5 collection types for AppLocker-Users.
+    #>
+    param($Window)
+
+    $confirm = Show-AppLockerMessageBox "This will create Allow rules for Windows system paths:`n`n  - %WINDIR%\System32\*`n  - %WINDIR%\SysWOW64\*`n`nRules will be created for all 5 collection types (Exe, Dll, Msi, Script, Appx).`nStatus: Approved | Action: Allow | Target: AppLocker-Users`n`nDo you want to continue?" 'Create Allow Path Rules' 'YesNo' 'Question'
+
+    if ($confirm -ne 'Yes') { return }
+
+    Show-LoadingOverlay -Message 'Creating allow path rules...' -SubMessage 'Please wait'
+
+    try {
+        $targetSid = Resolve-GroupSid -GroupName 'AppLocker-Users'
+
+        $allowPaths = @(
+            @{ Path = '%WINDIR%\System32\*'; Desc = 'Windows System32' }
+            @{ Path = '%WINDIR%\SysWOW64\*'; Desc = 'Windows SysWOW64' }
+        )
+
+        $collectionTypes = @('Exe', 'Dll', 'Msi', 'Script', 'Appx')
+        $created = 0
+        $errors = [System.Collections.Generic.List[string]]::new()
+
+        foreach ($entry in $allowPaths) {
+            foreach ($collection in $collectionTypes) {
+                try {
+                    $ruleName = "Allow: $($entry.Desc) ($collection)"
+                    $ruleDesc = "Allow execution from system path: $($entry.Path) [$collection]"
+
+                    $result = New-PathRule `
+                        -Path $entry.Path `
+                        -Action 'Allow' `
+                        -CollectionType $collection `
+                        -Name $ruleName `
+                        -Description $ruleDesc `
+                        -UserOrGroupSid $targetSid `
+                        -Status 'Approved' `
+                        -Save
+
+                    if ($result.Success) {
+                        $created++
+                    }
+                    else {
+                        [void]$errors.Add("$ruleName`: $($result.Error)")
+                    }
+                }
+                catch {
+                    [void]$errors.Add("$($entry.Path) ($collection): $($_.Exception.Message)")
+                }
+            }
+        }
+    }
+    finally {
+        Hide-LoadingOverlay
+    }
+
+    Reset-RulesSelectionState -Window $Window
+    Update-RulesDataGrid -Window $Window
+    Update-DashboardStats -Window $Window
+    Update-WorkflowBreadcrumb -Window $Window
+
+    if ($created -gt 0) {
+        Show-Toast -Message "Created $created allow path rules ($($allowPaths.Count) paths x $($collectionTypes.Count) collections)." -Type 'Success'
+    }
+    if ($errors.Count -gt 0) {
+        Write-Log -Level Warning -Message "Errors creating allow path rules: $($errors -join '; ')"
+        Show-Toast -Message "Some allow path rules failed. Check logs." -Type 'Warning'
     }
 }
 
@@ -1554,54 +1635,76 @@ function global:Invoke-AddDenyBrowserRules {
         Creates deny rules for internet browsers targeting AppLocker-Admins.
     .DESCRIPTION
         Denies Internet Explorer, Microsoft Edge, Google Chrome, and Mozilla Firefox
-        for the AppLocker-Admins group. Covers both Program Files and Program Files (x86).
+        for AppLocker-Admins group only. Covers Program Files, Program Files (x86),
+        and user-profile install locations.
     #>
     param($Window)
 
-    $confirm = Show-AppLockerMessageBox "This will create Deny rules for internet browsers:`n`n  - Internet Explorer (iexplore.exe)`n  - Microsoft Edge (msedge.exe)`n  - Google Chrome (chrome.exe)`n  - Mozilla Firefox (firefox.exe)`n`nBoth Program Files and Program Files (x86) paths covered.`nStatus: Approved | Action: Deny | Target: AppLocker-Admins`n`nDo you want to continue?" 'Create Browser Deny Rules' 'YesNo' 'Question'
+    $confirm = Show-AppLockerMessageBox "This will create Deny rules for internet browsers:`n`n  - Internet Explorer (iexplore.exe) - 2 paths`n  - Microsoft Edge (msedge.exe) - 3 paths`n  - Google Chrome (chrome.exe) - 3 paths`n  - Mozilla Firefox (firefox.exe) - 2 paths`n`nCovers Program Files, Program Files (x86), and user-profile installs.`nTarget: AppLocker-Admins only (10 rules total)`nStatus: Approved | Action: Deny`n`nDo you want to continue?" 'Create Browser Deny Rules' 'YesNo' 'Question'
 
     if ($confirm -ne 'Yes') { return }
 
     Show-LoadingOverlay -Message 'Creating browser deny rules...' -SubMessage 'Please wait'
 
     try {
-        # Resolve the target group SID upfront (handles missing AD groups gracefully)
-        $targetSid = Resolve-GroupSid -GroupName 'AppLocker-Admins'
+        # Deny browsers for admins only
+        $targetGroups = @(
+            @{ Name = 'AppLocker-Admins'; Sid = (Resolve-GroupSid -GroupName 'AppLocker-Admins') }
+        )
 
+        # Use literal paths instead of %PROGRAMFILES(X86)% which is NOT a valid
+        # AppLocker path variable (AppLocker only recognizes %PROGRAMFILES%, %WINDIR%,
+        # %OSDRIVE%, %SYSTEM32%). Also cover user-profile install locations.
         $browsers = @(
-            @{ Name = 'Internet Explorer'; Paths = @('%PROGRAMFILES%\Internet Explorer\iexplore.exe', '%PROGRAMFILES(X86)%\Internet Explorer\iexplore.exe') }
-            @{ Name = 'Microsoft Edge';     Paths = @('%PROGRAMFILES%\Microsoft\Edge\Application\msedge.exe', '%PROGRAMFILES(X86)%\Microsoft\Edge\Application\msedge.exe') }
-            @{ Name = 'Google Chrome';      Paths = @('%PROGRAMFILES%\Google\Chrome\Application\chrome.exe', '%PROGRAMFILES(X86)%\Google\Chrome\Application\chrome.exe') }
-            @{ Name = 'Mozilla Firefox';    Paths = @('%PROGRAMFILES%\Mozilla Firefox\firefox.exe', '%PROGRAMFILES(X86)%\Mozilla Firefox\firefox.exe') }
+            @{ Name = 'Internet Explorer'; Paths = @(
+                '%PROGRAMFILES%\Internet Explorer\iexplore.exe',
+                'C:\Program Files (x86)\Internet Explorer\iexplore.exe'
+            )}
+            @{ Name = 'Microsoft Edge'; Paths = @(
+                '%PROGRAMFILES%\Microsoft\Edge\Application\msedge.exe',
+                'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe',
+                'C:\Users\*\AppData\Local\Microsoft\Edge\Application\msedge.exe'
+            )}
+            @{ Name = 'Google Chrome'; Paths = @(
+                '%PROGRAMFILES%\Google\Chrome\Application\chrome.exe',
+                'C:\Program Files (x86)\Google\Chrome\Application\chrome.exe',
+                'C:\Users\*\AppData\Local\Google\Chrome\Application\chrome.exe'
+            )}
+            @{ Name = 'Mozilla Firefox'; Paths = @(
+                '%PROGRAMFILES%\Mozilla Firefox\firefox.exe',
+                'C:\Program Files (x86)\Mozilla Firefox\firefox.exe'
+            )}
         )
 
         $created = 0
         $errors = @()
 
-        foreach ($browser in $browsers) {
-            foreach ($path in $browser.Paths) {
-                try {
-                    $ruleName = "Deny: $($browser.Name) ($path)"
-                    $ruleDesc = "Deny internet browser execution: $($browser.Name)"
+        foreach ($group in $targetGroups) {
+            foreach ($browser in $browsers) {
+                foreach ($path in $browser.Paths) {
+                    try {
+                        $ruleName = "Deny: $($browser.Name) - $($group.Name) ($path)"
+                        $ruleDesc = "Deny internet browser execution: $($browser.Name) for $($group.Name)"
 
-                    $result = New-PathRule `
-                        -Path $path `
-                        -Action 'Deny' `
-                        -CollectionType 'Exe' `
-                        -Name $ruleName `
-                        -Description $ruleDesc `
-                        -UserOrGroupSid $targetSid `
-                        -Status 'Approved' `
-                        -Save
+                        $result = New-PathRule `
+                            -Path $path `
+                            -Action 'Deny' `
+                            -CollectionType 'Exe' `
+                            -Name $ruleName `
+                            -Description $ruleDesc `
+                            -UserOrGroupSid $group.Sid `
+                            -Status 'Approved' `
+                            -Save
 
-                    if ($result.Success) {
-                        $created++
-                    } else {
-                        $errors += "$ruleName`: $($result.Error)"
+                        if ($result.Success) {
+                            $created++
+                        } else {
+                            $errors += "$ruleName`: $($result.Error)"
+                        }
                     }
-                }
-                catch {
-                    $errors += "$($browser.Name) ($path): $($_.Exception.Message)"
+                    catch {
+                        $errors += "$($browser.Name) ($path): $($_.Exception.Message)"
+                    }
                 }
             }
         }
@@ -1617,7 +1720,7 @@ function global:Invoke-AddDenyBrowserRules {
     Update-WorkflowBreadcrumb -Window $Window
 
     if ($created -gt 0) {
-        Show-Toast -Message "Created $created browser deny rules (4 browsers x 2 paths)." -Type 'Success'
+        Show-Toast -Message "Created $created browser deny rules." -Type 'Success'
     }
     if ($errors.Count -gt 0) {
         Write-Log -Level Warning -Message "Errors creating browser deny rules: $($errors -join '; ')"
@@ -1808,7 +1911,7 @@ function global:Invoke-ChangeSelectedRulesAction {
         if ($count -gt 50) {
             $ruleIds = @($selectedItems | ForEach-Object { $_.Id })
             $rulesPath = $null
-            try { $rulesPath = Join-Path (Get-AppLockerDataPath) 'Rules' } catch { }
+            try { $rulesPath = Join-Path (Get-AppLockerDataPath) 'Rules' } catch { Write-AppLockerLog -Message "[Rules] Failed to get AppLocker data path for bulk action update, using fallback: $_" -Level DEBUG }
             if (-not $rulesPath) { $rulesPath = Join-Path $env:LOCALAPPDATA 'GA-AppLocker\Rules' }
             $modulePath = (Get-Module GA-AppLocker).ModuleBase
 
@@ -1867,7 +1970,7 @@ function global:Invoke-ChangeSelectedRulesAction {
 
                 Reset-RulesSelectionState -Window $win
                 Update-RulesDataGrid -Window $win
-                try { Update-DashboardStats -Window $win } catch { }
+                try { Update-DashboardStats -Window $win } catch { Write-AppLockerLog -Message "[Rules] Failed to update dashboard stats after bulk action change: $_" -Level DEBUG }
 
                 $updated = if ($Result -and $Result.Updated) { $Result.Updated } else { 0 }
                 $errorCount = if ($Result -and $Result.Errors) { $Result.Errors.Count } else { 0 }
@@ -1887,7 +1990,7 @@ function global:Invoke-ChangeSelectedRulesAction {
                 param($TimeoutMessage)
                 $win = $global:GA_BulkAction_Window
                 if ($win) {
-                    try { Reset-RulesSelectionState -Window $win } catch { }
+                    try { Reset-RulesSelectionState -Window $win } catch { Write-AppLockerLog -Message "[Rules] Failed to reset selection state on bulk action timeout: $_" -Level DEBUG }
                 }
                 $global:GA_BulkAction_Window = $null
                 $global:GA_BulkAction_NewAction = $null
@@ -1915,7 +2018,7 @@ function global:Invoke-ChangeSelectedRulesAction {
                     $rule = Get-Content -Path $ruleFile -Raw | ConvertFrom-Json
                     $rule.Action = $newAction
                     $rule.ModifiedDate = $now
-                    $json = $rule | ConvertTo-Json -Depth 10
+                    $json = $rule | ConvertTo-Json -Depth 3
                     Set-Content -Path $ruleFile -Value $json -Encoding UTF8
                     [void]$updatedIds.Add($item.Id)
                     $updated++
@@ -2045,7 +2148,7 @@ function global:Invoke-ChangeSelectedRulesGroup {
         if ($count -gt 50) {
             $ruleIds = @($selectedItems | ForEach-Object { $_.Id })
             $rulesPath = $null
-            try { $rulesPath = Join-Path (Get-AppLockerDataPath) 'Rules' } catch { }
+            try { $rulesPath = Join-Path (Get-AppLockerDataPath) 'Rules' } catch { Write-AppLockerLog -Message "[Rules] Failed to get AppLocker data path for bulk group update, using fallback: $_" -Level DEBUG }
             if (-not $rulesPath) { $rulesPath = Join-Path $env:LOCALAPPDATA 'GA-AppLocker\Rules' }
             $modulePath = (Get-Module GA-AppLocker).ModuleBase
 
@@ -2106,7 +2209,7 @@ function global:Invoke-ChangeSelectedRulesGroup {
 
                 Reset-RulesSelectionState -Window $win
                 Update-RulesDataGrid -Window $win
-                try { Update-DashboardStats -Window $win } catch { }
+                try { Update-DashboardStats -Window $win } catch { Write-AppLockerLog -Message "[Rules] Failed to update dashboard stats after bulk group change: $_" -Level DEBUG }
 
                 $updated = if ($Result -and $Result.Updated) { $Result.Updated } else { 0 }
                 $errorCount = if ($Result -and $Result.Errors) { $Result.Errors.Count } else { 0 }
@@ -2127,7 +2230,7 @@ function global:Invoke-ChangeSelectedRulesGroup {
                 param($TimeoutMessage)
                 $win = $global:GA_BulkGroup_Window
                 if ($win) {
-                    try { Reset-RulesSelectionState -Window $win } catch { }
+                    try { Reset-RulesSelectionState -Window $win } catch { Write-AppLockerLog -Message "[Rules] Failed to reset selection state on bulk group timeout: $_" -Level DEBUG }
                 }
                 $global:GA_BulkGroup_Window = $null
                 $global:GA_BulkGroup_GroupName = $null
@@ -2156,7 +2259,7 @@ function global:Invoke-ChangeSelectedRulesGroup {
                     $rule = Get-Content -Path $ruleFile -Raw | ConvertFrom-Json
                     $rule.UserOrGroupSid = $targetSid
                     $rule.ModifiedDate = $now
-                    $json = $rule | ConvertTo-Json -Depth 10
+                    $json = $rule | ConvertTo-Json -Depth 3
                     Set-Content -Path $ruleFile -Value $json -Encoding UTF8
                     [void]$updatedIds.Add($item.Id)
                     $updated++

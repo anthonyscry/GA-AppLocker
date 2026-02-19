@@ -312,7 +312,7 @@ function Export-AuditLog {
             $auditLog | Export-Csv -Path $OutputPath -NoTypeInformation -Force
         }
         else {
-            $auditLog | ConvertTo-Json -Depth 10 | Set-Content $OutputPath -Force
+            $auditLog | ConvertTo-Json -Depth 3 | Set-Content $OutputPath -Force
         }
 
         return @{

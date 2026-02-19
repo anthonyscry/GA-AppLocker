@@ -84,14 +84,18 @@ function Test-PingConnectivity {
                 try {
                     Write-AppLockerLog -Level Warning -Message "Invalid hostname for ping: <null>"
                 }
-                catch { }
+                catch {
+                    # Intentional: suppress logging failure — Write-AppLockerLog unavailable in some call contexts
+                }
                 continue
             }
             if ([string]::IsNullOrWhiteSpace($hostname) -or $hostname -match $invalidHostnamePattern) {
                 try {
                     Write-AppLockerLog -Level Warning -Message "Invalid hostname for ping: '$hostname'"
                 }
-                catch { }
+                catch {
+                    # Intentional: suppress logging failure — Write-AppLockerLog unavailable in some call contexts
+                }
                 $pingResults[$hostname] = $false
                 continue
             }
@@ -111,22 +115,26 @@ function Test-PingConnectivity {
         # Parallel: use runspace pool (much faster than Start-Job due to lower overhead)
         $runspacePool = [RunspaceFactory]::CreateRunspacePool(1, [Math]::Min($effectiveThrottle, $Hostnames.Count))
         $runspacePool.Open()
-        
+
         $runspaces = [System.Collections.Generic.List[PSCustomObject]]::new()
-        
+
         foreach ($hostname in $Hostnames) {
             if ($null -eq $hostname) {
                 try {
                     Write-AppLockerLog -Level Warning -Message "Invalid hostname for ping: <null>"
                 }
-                catch { }
+                catch {
+                    # Intentional: suppress logging failure — Write-AppLockerLog unavailable in some call contexts
+                }
                 continue
             }
             if ([string]::IsNullOrWhiteSpace($hostname) -or $hostname -match $invalidHostnamePattern) {
                 try {
                     Write-AppLockerLog -Level Warning -Message "Invalid hostname for ping: '$hostname'"
                 }
-                catch { }
+                catch {
+                    # Intentional: suppress logging failure — Write-AppLockerLog unavailable in some call contexts
+                }
                 $pingResults[$hostname] = $false
                 continue
             }
@@ -178,7 +186,9 @@ function Test-PingConnectivity {
                     try {
                         $rs.PowerShell.Stop()
                     }
-                    catch { }
+                    catch {
+                        # Intentional: runspace Stop() failure is non-fatal; Dispose() follows immediately
+                    }
                 }
             }
             catch {
@@ -188,7 +198,7 @@ function Test-PingConnectivity {
                 $rs.PowerShell.Dispose()
             }
         }
-        
+
         $runspacePool.Close()
         $runspacePool.Dispose()
     }
@@ -363,7 +373,9 @@ function Test-MachineConnectivity {
                         }
                         else {
                             $winrmResults[$rs.Hostname] = $false
-                            try { $rs.PowerShell.Stop() } catch { }
+                            try { $rs.PowerShell.Stop() } catch {
+                                # Intentional: runspace Stop() failure is non-fatal; Dispose() follows immediately
+                            }
                         }
                     }
                     catch {

@@ -163,7 +163,7 @@ function Backup-AppLockerData {
         }
 
         # Write manifest
-        $backupManifest | ConvertTo-Json -Depth 10 | Set-Content (Join-Path $tempDir 'manifest.json') -Force
+        $backupManifest | ConvertTo-Json -Depth 3 | Set-Content (Join-Path $tempDir 'manifest.json') -Force
 
         # Create zip
         $outputDir = Split-Path $OutputPath -Parent

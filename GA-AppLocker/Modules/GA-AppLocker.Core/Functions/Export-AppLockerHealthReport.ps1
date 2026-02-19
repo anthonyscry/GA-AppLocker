@@ -61,22 +61,11 @@ function Export-AppLockerHealthReport {
         #endregion
 
         #region --- Get System Information ---
-        $osInfo = try {
-            $os = Get-CimInstance Win32_OperatingSystem -ErrorAction Stop
-            @{
-                Caption = $os.Caption
-                Version = $os.Version
-                BuildNumber = $os.BuildNumber
-                ServicePack = $os.ServicePackMajorVersion
-            }
-        }
-        catch {
-            @{
-                Caption = 'Unknown'
-                Version = 'Unknown'
-                BuildNumber = 'Unknown'
-                ServicePack = 'Unknown'
-            }
+        $osInfo = @{
+            Caption     = [System.Environment]::OSVersion.VersionString
+            Version     = [System.Environment]::OSVersion.Version.ToString()
+            BuildNumber = [System.Environment]::OSVersion.Version.Build.ToString()
+            ServicePack = [System.Environment]::OSVersion.ServicePack
         }
 
         $psInfo = @{
@@ -114,19 +103,19 @@ function Export-AppLockerHealthReport {
             $deploymentsPath = Join-Path $dataPath 'Deployments'
 
             $rulesCount = if (Test-Path $rulesPath) {
-                (Get-ChildItem $rulesPath -Filter '*.json' -ErrorAction SilentlyContinue | Measure-Object).Count
+                @(Get-ChildItem $rulesPath -Filter '*.json' -ErrorAction SilentlyContinue).Count
             } else { 0 }
 
             $policiesCount = if (Test-Path $policiesPath) {
-                (Get-ChildItem $policiesPath -Filter '*.json' -ErrorAction SilentlyContinue | Measure-Object).Count
+                @(Get-ChildItem $policiesPath -Filter '*.json' -ErrorAction SilentlyContinue).Count
             } else { 0 }
 
             $scansCount = if (Test-Path $scansPath) {
-                (Get-ChildItem $scansPath -ErrorAction SilentlyContinue | Measure-Object).Count
+                @(Get-ChildItem $scansPath -ErrorAction SilentlyContinue).Count
             } else { 0 }
 
             $deploymentsCount = if (Test-Path $deploymentsPath) {
-                (Get-ChildItem $deploymentsPath -Filter '*.json' -ErrorAction SilentlyContinue | Measure-Object).Count
+                @(Get-ChildItem $deploymentsPath -Filter '*.json' -ErrorAction SilentlyContinue).Count
             } else { 0 }
 
             $dataCounts = @{
@@ -153,16 +142,17 @@ function Export-AppLockerHealthReport {
                 $recentLogs = Get-Content $latestLog -Tail 50 -ErrorAction SilentlyContinue
 
                 # Parse log entries (limit to last 50)
-                $logEntries = @()
+                $logEntries = [System.Collections.Generic.List[PSCustomObject]]::new()
                 foreach ($line in $recentLogs) {
                     if ($line -match '\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\] \[(\w+)\] (.+)') {
-                        $logEntries += @{
+                        [void]$logEntries.Add([PSCustomObject]@{
                             Timestamp = $Matches[1]
                             Level = $Matches[2]
                             Message = $Matches[3].Trim()
-                        }
+                        })
                     }
                 }
+                $logEntries = @($logEntries)
             } else {
                 $logEntries = @()
             }

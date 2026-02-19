@@ -194,7 +194,8 @@ function global:Invoke-ButtonAction {
         'InitializeAppLockerGPOs' { Invoke-InitializeAppLockerGPOs -Window $win }
         'InitializeADStructure' { Invoke-InitializeADStructure -Window $win }
         'InitializeAll' { Invoke-InitializeAll -Window $win }
-        # Rules panel - Common Deny Rules
+        # Rules panel - Allow/Deny path rules
+        'AddAllowPathRules' { Invoke-AddAllowPathRules -Window $win }
         'AddCommonDenyRules' { Invoke-AddCommonDenyRules -Window $win }
         'AddDenyBrowserRules' { Invoke-AddDenyBrowserRules -Window $win }
         'ChangeRuleAction' { Invoke-ChangeSelectedRulesAction -Window $win }
@@ -346,15 +347,15 @@ function global:Set-ActivePanel {
 
     # Auto-refresh Dashboard stats on navigation
     if ($PanelName -eq 'PanelDashboard') {
-        try { Update-DashboardStats -Window $Window } catch { }
-        try { Invoke-DashboardGpoRefresh -Window $Window } catch { }
+        try { Update-DashboardStats -Window $Window } catch { Write-Log -Message "[MainWindow] Failed to update dashboard stats on navigation: $_" -Level DEBUG }
+        try { Invoke-DashboardGpoRefresh -Window $Window } catch { Write-Log -Message "[MainWindow] Failed to refresh GPO status on dashboard navigation: $_" -Level DEBUG }
     }
 
     # Auto-refresh Policy grid on navigation
     if ($PanelName -eq 'PanelPolicy') {
         $Window.Dispatcher.BeginInvoke(
             [System.Windows.Threading.DispatcherPriority]::Background,
-            [Action]{ try { Update-PoliciesDataGrid -Window $global:GA_MainWindow -Async -NoOverlay } catch { } }
+            [Action]{ try { Update-PoliciesDataGrid -Window $global:GA_MainWindow -Async -NoOverlay } catch { Write-Log -Message "[MainWindow] Failed to auto-refresh policies grid on panel navigation: $_" -Level DEBUG } }
         ) | Out-Null
     }
 
@@ -365,7 +366,7 @@ function global:Set-ActivePanel {
             [Action]{
                 Refresh-DeployPolicyCombo -Window $global:GA_MainWindow
                 Update-DeploymentJobsDataGrid -Window $global:GA_MainWindow
-                try { global:Update-AppLockerGpoLinkStatus -Window $global:GA_MainWindow } catch { }
+                try { global:Update-AppLockerGpoLinkStatus -Window $global:GA_MainWindow } catch { Write-Log -Message "[MainWindow] Failed to refresh GPO link status on Deploy panel navigation: $_" -Level DEBUG }
             }
         )
     }
@@ -374,7 +375,7 @@ function global:Set-ActivePanel {
     if ($PanelName -eq 'PanelSetup') {
         $Window.Dispatcher.BeginInvoke(
             [System.Windows.Threading.DispatcherPriority]::Background,
-            [Action]{ try { Update-SetupStatus -Window $global:GA_MainWindow } catch { } }
+            [Action]{ try { Update-SetupStatus -Window $global:GA_MainWindow } catch { Write-Log -Message "[MainWindow] Failed to refresh setup status on Setup panel navigation: $_" -Level DEBUG } }
         )
     }
 
@@ -777,7 +778,9 @@ function Initialize-MainWindow {
         if ($existingType) {
             $script:DwmApiType = $existingType
         }
-    } catch { }
+    } catch {
+        Write-Log -Message "[MainWindow] Win32.DwmApi type lookup failed (will attempt Add-Type): $_" -Level DEBUG
+    }
     if (-not $script:DwmApiType) {
         try {
             $dllImport = @'
@@ -785,7 +788,9 @@ function Initialize-MainWindow {
 public static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int value, int size);
 '@
             $script:DwmApiType = Add-Type -MemberDefinition $dllImport -Name 'DwmApi' -Namespace 'Win32' -PassThru -ErrorAction Stop
-        } catch { }
+        } catch {
+            Write-Log -Message "[MainWindow] Failed to compile Win32.DwmApi P/Invoke type (dark title bar unavailable): $_" -Level DEBUG
+        }
     }
 
     $Window.Add_SourceInitialized({
@@ -800,7 +805,9 @@ public static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int va
                 }
             }
         }
-        catch { }
+        catch {
+            Write-Log -Message "[MainWindow] Failed to apply dark title bar via DwmSetWindowAttribute: $_" -Level DEBUG
+        }
     })
 
     # Initialize navigation buttons
@@ -965,7 +972,9 @@ public static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int va
                 $dataPath = Get-AppLockerDataPath
                 # Insert line break after AppData for better display
                 $sysDataPath.Text = $dataPath -replace '(AppData\\)', "`$1`n"
-            } catch { }
+            } catch {
+                Write-Log -Message "[MainWindow] Failed to get/display AppLocker data path in system info: $_" -Level DEBUG
+            }
         }
         Write-Log -Message 'System info updated'
     }
@@ -979,14 +988,16 @@ public static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int va
         if ($settingsPath) {
             $settingsPath.Text = Get-AppLockerDataPath
         }
-    } catch { }
+    } catch {
+        Write-Log -Message "[MainWindow] Failed to update settings data path display: $_" -Level DEBUG
+    }
 
     # Register close handler for optional session save
     try {
         $global:GA_SaveSessionStateAction = { script:Save-CurrentSessionState }
         $Window.Add_Closing({
             param($sender, $e)
-            try { global:Handle-MainWindowClosing -Sender $sender -EventArgs $e } catch { }
+            try { global:Handle-MainWindowClosing -Sender $sender -EventArgs $e } catch { Write-Log -Message "[MainWindow] Failed to invoke window closing handler: $_" -Level DEBUG }
         })
         Write-Log -Message 'Close handler registered'
     }

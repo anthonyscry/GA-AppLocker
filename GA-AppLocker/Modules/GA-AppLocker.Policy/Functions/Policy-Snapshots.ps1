@@ -376,7 +376,7 @@ function Restore-PolicySnapshot {
         $restoredPolicy.RestoredFrom = $SnapshotId
         $restoredPolicy.RestoredAt = (Get-Date).ToString('o')
 
-        $restoredPolicy | ConvertTo-Json -Depth 10 | Set-Content -Path $policyFile -Encoding UTF8
+        $restoredPolicy | ConvertTo-Json -Depth 3 | Set-Content -Path $policyFile -Encoding UTF8
 
         # Restore rules
         $rulesPath = Join-Path $dataPath 'Rules'
@@ -384,7 +384,7 @@ function Restore-PolicySnapshot {
 
         foreach ($rule in $snapshot.Rules) {
             $ruleFile = Join-Path $rulesPath "$($rule.Id).json"
-            $rule | ConvertTo-Json -Depth 10 | Set-Content -Path $ruleFile -Encoding UTF8
+            $rule | ConvertTo-Json -Depth 3 | Set-Content -Path $ruleFile -Encoding UTF8
             $restoredRuleCount++
         }
 

@@ -32,7 +32,9 @@ function global:Show-AppLockerMessageBox {
                 if ($owner.WindowState -eq 'Minimized') { $owner.WindowState = 'Normal' }
                 $owner.Activate() | Out-Null
             }
-            catch { }
+            catch {
+                Write-AppLockerLog -Message "[UIHelpers] Failed to restore/activate owner window: $_" -Level DEBUG
+            }
 
             $result = [System.Windows.MessageBox]::Show($owner, $Message, $Title, $mbButton, $mbIcon)
         }
@@ -121,7 +123,9 @@ function global:Request-UiRender {
             }
         ) | Out-Null
     }
-    catch { }
+    catch {
+        Write-AppLockerLog -Message "[UIHelpers] Failed to request UI render via dispatcher: $_" -Level DEBUG
+    }
 }
 
 #endregion
@@ -224,15 +228,15 @@ function global:Stop-BackgroundWork {
     }
 
     $job = $global:GA_BackgroundJobs[$JobId]
-    try { $job.PS.Stop() } catch { }
-    try { $job.PS.Dispose() } catch { }
-    try { $job.Runspace.Close(); $job.Runspace.Dispose() } catch { }
+    try { $job.PS.Stop() } catch { Write-AppLockerLog -Message "[UIHelpers] Failed to stop PS instance for job $JobId`: $_" -Level DEBUG }
+    try { $job.PS.Dispose() } catch { Write-AppLockerLog -Message "[UIHelpers] Failed to dispose PS instance for job $JobId`: $_" -Level DEBUG }
+    try { $job.Runspace.Close(); $job.Runspace.Dispose() } catch { Write-AppLockerLog -Message "[UIHelpers] Failed to close/dispose runspace for job $JobId`: $_" -Level DEBUG }
     [void]$global:GA_BackgroundJobs.Remove($JobId)
 
     if ($global:GA_BackgroundJobs.Count -eq 0) {
-        try { Hide-LoadingOverlay } catch { }
+        try { Hide-LoadingOverlay } catch { Write-AppLockerLog -Message "[UIHelpers] Failed to hide loading overlay after job stop: $_" -Level DEBUG }
         if ($global:GA_BackgroundTimer) {
-            try { $global:GA_BackgroundTimer.Stop() } catch { }
+            try { $global:GA_BackgroundTimer.Stop() } catch { Write-AppLockerLog -Message "[UIHelpers] Failed to stop background monitor timer: $_" -Level DEBUG }
         }
     }
     else {
@@ -241,12 +245,12 @@ function global:Stop-BackgroundWork {
             if ($j -and $j.UsesOverlay) { $hasOverlayJobs = $true; break }
         }
         if (-not $hasOverlayJobs) {
-            try { Hide-LoadingOverlay } catch { }
+            try { Hide-LoadingOverlay } catch { Write-AppLockerLog -Message "[UIHelpers] Failed to hide loading overlay (no overlay jobs remain): $_" -Level DEBUG }
         }
     }
 
     if (-not $SuppressToast) {
-        try { Show-Toast -Message 'Background operation canceled.' -Type 'Info' } catch { }
+        try { Show-Toast -Message 'Background operation canceled.' -Type 'Info' } catch { Write-AppLockerLog -Message "[UIHelpers] Failed to show cancellation toast: $_" -Level DEBUG }
     }
 
     return $true
@@ -264,7 +268,7 @@ function global:Start-BackgroundMonitor {
         $global:GA_BackgroundTimer.Add_Tick({
             if (-not $global:GA_BackgroundJobs -or $global:GA_BackgroundJobs.Count -eq 0) {
                 # No jobs -- stop the timer to save CPU
-                try { Hide-LoadingOverlay } catch { }
+                try { Hide-LoadingOverlay } catch { Write-AppLockerLog -Message "[UIHelpers] Failed to hide loading overlay (no jobs): $_" -Level DEBUG }
                 $global:GA_BackgroundTimer.Stop()
                 return
             }
@@ -286,9 +290,9 @@ function global:Start-BackgroundMonitor {
 
                 if ($timedOut -and -not $done) {
                     # Kill hung job
-                    try { $job.PS.Stop() } catch { }
-                    try { $job.PS.Dispose() } catch { }
-                    try { $job.Runspace.Close(); $job.Runspace.Dispose() } catch { }
+                    try { $job.PS.Stop() } catch { Write-AppLockerLog -Message "[UIHelpers] Failed to stop timed-out PS instance (job $id): $_" -Level DEBUG }
+                    try { $job.PS.Dispose() } catch { Write-AppLockerLog -Message "[UIHelpers] Failed to dispose timed-out PS instance (job $id): $_" -Level DEBUG }
+                    try { $job.Runspace.Close(); $job.Runspace.Dispose() } catch { Write-AppLockerLog -Message "[UIHelpers] Failed to close/dispose timed-out runspace (job $id): $_" -Level DEBUG }
 
                     $timeoutMessage = "Operation timed out after $($job.Timeout)s."
                     if ($job.OnTimeout) {
@@ -317,8 +321,8 @@ function global:Start-BackgroundMonitor {
                 }
 
                 # Cleanup runspace
-                try { $job.PS.Dispose() } catch { }
-                try { $job.Runspace.Close(); $job.Runspace.Dispose() } catch { }
+                try { $job.PS.Dispose() } catch { Write-AppLockerLog -Message "[UIHelpers] Failed to dispose PS instance after completion (job $id): $_" -Level DEBUG }
+                try { $job.Runspace.Close(); $job.Runspace.Dispose() } catch { Write-AppLockerLog -Message "[UIHelpers] Failed to close/dispose runspace after completion (job $id): $_" -Level DEBUG }
 
                 if ($job.OnComplete) {
                     try {
@@ -343,13 +347,13 @@ function global:Start-BackgroundMonitor {
                     if ($j -and $j.UsesOverlay) { $hasOverlayJobs = $true; break }
                 }
                 if (-not $hasOverlayJobs) {
-                    try { Hide-LoadingOverlay } catch { }
+                    try { Hide-LoadingOverlay } catch { Write-AppLockerLog -Message "[UIHelpers] Failed to hide loading overlay (no overlay jobs in monitor tick): $_" -Level DEBUG }
                 }
             }
 
             # Auto-stop timer when no jobs remain
             if ($global:GA_BackgroundJobs.Count -eq 0) {
-                try { Hide-LoadingOverlay } catch { }
+                try { Hide-LoadingOverlay } catch { Write-AppLockerLog -Message "[UIHelpers] Failed to hide loading overlay (all jobs complete): $_" -Level DEBUG }
                 $global:GA_BackgroundTimer.Stop()
             }
         })

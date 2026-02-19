@@ -72,7 +72,10 @@ function global:Write-SetupLog {
         if (Get-Command -Name 'Write-AppLockerLog' -ErrorAction SilentlyContinue) {
             Write-AppLockerLog -Message $Message -Level $Level -NoConsole
         }
-    } catch { }
+    } catch {
+        # Intentional: global:Write-SetupLog is called from WPF dispatcher/timer callbacks;
+        # Write-AppLockerLog may fail in those contexts — suppress to prevent cascading errors
+    }
 }
 #endregion
 

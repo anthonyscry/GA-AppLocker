@@ -232,7 +232,7 @@ function Set-BulkRuleStatus {
                 $rule.Status = $Status
                 $rule.ModifiedDate = $now
 
-                $rule | ConvertTo-Json -Depth 10 | Set-Content -Path $filePath -Encoding UTF8
+                $rule | ConvertTo-Json -Depth 3 | Set-Content -Path $filePath -Encoding UTF8
 
                 $result.UpdatedCount++
 
@@ -395,7 +395,7 @@ function Approve-TrustedVendorRules {
                         $rule = Get-Content -Path $ruleFile -Raw | ConvertFrom-Json
                         $rule.Status = 'Approved'
                         $rule.ModifiedDate = $now
-                        $rule | ConvertTo-Json -Depth 10 | Set-Content -Path $ruleFile -Encoding UTF8
+                        $rule | ConvertTo-Json -Depth 3 | Set-Content -Path $ruleFile -Encoding UTF8
                         $updatedCount++
                     }
                 }

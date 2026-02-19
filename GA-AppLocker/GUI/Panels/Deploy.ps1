@@ -59,10 +59,10 @@ function Initialize-DeploymentPanel {
     $policyCombo = $Window.FindName('CboDeployPolicy')
     if ($policyCombo) {
         $policyCombo.Add_SelectionChanged({
-            try { global:Update-DeployTargetGpoHint -Window $global:GA_MainWindow } catch { }
+            try { global:Update-DeployTargetGpoHint -Window $global:GA_MainWindow } catch { Write-AppLockerLog -Message "[Deploy] Failed to update target GPO hint on policy selection change: $_" -Level DEBUG }
         })
     }
-    try { global:Update-DeployTargetGpoHint -Window $Window } catch { }
+    try { global:Update-DeployTargetGpoHint -Window $Window } catch { Write-AppLockerLog -Message "[Deploy] Failed to initialize deploy target GPO hint: $_" -Level DEBUG }
 
 
     # Check module status
@@ -146,7 +146,7 @@ function global:Refresh-DeployPolicyCombo {
         }
 
         Write-Log -Message "Refresh-DeployPolicyCombo: Loaded $($deployable.Count) policies into dropdown"
-        try { global:Update-DeployTargetGpoHint -Window $Window } catch { }
+        try { global:Update-DeployTargetGpoHint -Window $Window } catch { Write-AppLockerLog -Message "[Deploy] Failed to update target GPO hint after policy combo refresh: $_" -Level DEBUG }
     }
     catch {
         Write-Log -Message "Refresh-DeployPolicyCombo: Exception - $($_.Exception.Message)" -Level 'Error'
@@ -207,7 +207,7 @@ function global:Update-DeploymentJobsDataGrid {
                     elseif ($dateValue -is [string]) {
                         $createdDisplay = ([datetime]$dateValue).ToString('MM/dd HH:mm')
                     }
-                } catch { }
+                } catch { Write-AppLockerLog -Message "[Deploy] Failed to parse deployment job CreatedAt date for display: $_" -Level DEBUG }
             }
             $props['CreatedDisplay'] = $createdDisplay
             [PSCustomObject]$props
@@ -400,6 +400,8 @@ function global:Invoke-CreateDeploymentJob {
         }
     }
     catch {
+        Write-AppLockerLog -Message "[Deploy] Failed to create deployment job: $_" -Level ERROR
+        Show-Toast -Message "Deployment job creation failed: $_" -Type Error
         Show-AppLockerMessageBox "Error: $($_.Exception.Message)" 'Error' 'OK' 'Error'
     }
 }
@@ -676,7 +678,7 @@ function global:Show-DeploymentLog {
             try {
                 if ($job.CreatedAt -is [datetime]) { $created = $job.CreatedAt.ToString('yyyy-MM-dd HH:mm') }
                 elseif ($job.CreatedAt) { $created = ([datetime]$job.CreatedAt).ToString('yyyy-MM-dd HH:mm') }
-            } catch { }
+            } catch { Write-AppLockerLog -Message "[Deploy] Failed to parse job CreatedAt date for log export: $_" -Level DEBUG }
             $logText += "Policy:   $($job.PolicyName)`n"
             $logText += "GPO:      $($job.GPOName)`n"
             $logText += "Status:   $($job.Status)`n"
@@ -810,11 +812,14 @@ function global:Invoke-ExportDeployPolicyXml {
             Show-Toast -Message "Policy exported to XML" -Type 'Success'
             Show-AppLockerMessageBox "Policy '$($selectedPolicy.Name)' exported to:`n$($saveDialog.FileName)" 'Export Complete' 'OK' 'Information'
         } else {
+            Show-Toast -Message "Policy export failed: $($exportResult.Error)" -Type Error
             Show-AppLockerMessageBox "Export failed: $($exportResult.Error)" 'Error' 'OK' 'Error'
         }
     }
     catch {
         Hide-LoadingOverlay
+        Write-AppLockerLog -Message "[Deploy] Failed to export policy XML: $_" -Level ERROR
+        Show-Toast -Message "Policy export failed: $_" -Type Error
         Show-AppLockerMessageBox "Export failed: $($_.Exception.Message)" 'Error' 'OK' 'Error'
     }
 }
@@ -843,11 +848,14 @@ function global:Invoke-ImportDeployPolicyXml {
             Show-Toast -Message "Imported $count rules from XML" -Type 'Success'
             Show-AppLockerMessageBox "Imported $count rule(s) from:`n$($openDialog.FileName)" 'Import Complete' 'OK' 'Information'
         } else {
+            Show-Toast -Message "XML import failed: $($importResult.Error)" -Type Error
             Show-AppLockerMessageBox "Import failed: $($importResult.Error)" 'Error' 'OK' 'Error'
         }
     }
     catch {
         Hide-LoadingOverlay
+        Write-AppLockerLog -Message "[Deploy] Failed to import policy XML: $_" -Level ERROR
+        Show-Toast -Message "XML import failed: $_" -Type Error
         Show-AppLockerMessageBox "Import failed: $($_.Exception.Message)" 'Error' 'OK' 'Error'
     }
 }
@@ -881,6 +889,8 @@ function global:Invoke-ClearCompletedJobs {
         Update-DeploymentJobsDataGrid -Window $Window
     }
     catch {
+        Write-AppLockerLog -Message "[Deploy] Failed to clear completed jobs: $_" -Level ERROR
+        Show-Toast -Message "Failed to clear jobs: $_" -Type Error
         Show-AppLockerMessageBox "Error clearing jobs: $($_.Exception.Message)" 'Error' 'OK' 'Error'
     }
 }

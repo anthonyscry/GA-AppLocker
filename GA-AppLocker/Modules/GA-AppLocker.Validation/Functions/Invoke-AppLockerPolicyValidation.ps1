@@ -162,7 +162,7 @@ function Invoke-AppLockerPolicyValidation {
 
     # Export report if requested
     if ($OutputReport) {
-        $overallResult | ConvertTo-Json -Depth 10 | Out-File $OutputReport -Encoding UTF8
+        $overallResult | ConvertTo-Json -Depth 3 | Out-File $OutputReport -Encoding UTF8
         Write-Host "Report saved to: $OutputReport" -ForegroundColor Gray
     }
 

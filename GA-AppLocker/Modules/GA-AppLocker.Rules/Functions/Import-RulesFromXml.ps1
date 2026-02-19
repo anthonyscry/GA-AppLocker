@@ -275,7 +275,9 @@ function Import-RulesFromXml {
             $message += " ($skippedCount duplicates skipped)"
         }
         
-        try { Write-AppLockerLog -Message $message -Level 'INFO' } catch { }
+        try { Write-AppLockerLog -Message $message -Level 'INFO' } catch {
+            # Intentional: suppress logging failure — Write-AppLockerLog may not be available in all call contexts
+        }
         
         return @{
             Success = $true
@@ -286,7 +288,9 @@ function Import-RulesFromXml {
         }
     }
     catch {
-        try { Write-AppLockerLog -Message "Failed to import rules from XML: $($_.Exception.Message)" -Level 'ERROR' } catch { }
+        try { Write-AppLockerLog -Message "Failed to import rules from XML: $($_.Exception.Message)" -Level 'ERROR' } catch {
+            # Intentional: suppress logging failure — Write-AppLockerLog may not be available in all call contexts
+        }
         return @{
             Success = $false
             Error = $_.Exception.Message

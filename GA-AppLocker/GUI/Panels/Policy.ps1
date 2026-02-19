@@ -84,7 +84,7 @@ function Initialize-PolicyPanel {
     if ($dataGrid) {
         $dataGrid.Add_SelectionChanged({
                 param($sender, $e)
-                try { Update-SelectedPolicyInfo -Window $global:GA_MainWindow } catch { }
+                try { Update-SelectedPolicyInfo -Window $global:GA_MainWindow } catch { Write-AppLockerLog -Message "[Policy] Failed to update selected policy info on selection change: $_" -Level DEBUG }
             })
     }
 
@@ -157,7 +157,7 @@ function global:Update-PoliciesDataGrid {
                         elseif ($dateValue -is [string] -and $dateValue.Length -gt 0) {
                             $modifiedDisplay = ([datetime]$dateValue).ToString('MM/dd HH:mm')
                         }
-                    } catch { }
+                    } catch { Write-AppLockerLog -Message "[Policy] Failed to parse policy ModifiedAt date for display: $_" -Level DEBUG }
                 }
 
                 [void]$displayData.Add([PSCustomObject]@{
@@ -184,7 +184,7 @@ function global:Update-PoliciesDataGrid {
         # Update counters using already-fetched data
         Update-PolicyCounters -Window $Window -Policies $Result.Data
 
-        try { Update-SelectedPolicyInfo -Window $Window } catch { }
+        try { Update-SelectedPolicyInfo -Window $Window } catch { Write-AppLockerLog -Message "[Policy] Failed to update selected policy info after data grid refresh: $_" -Level DEBUG }
     }
 
     # Use async for initial/refresh loads
@@ -543,7 +543,7 @@ function global:Invoke-CreatePolicy {
         if ($result.Success) {
             # Set target GPO on the newly created policy
             if (-not [string]::IsNullOrWhiteSpace($targetGPO) -and $result.Data -and $result.Data.PolicyId) {
-                try { $null = Update-Policy -Id $result.Data.PolicyId -TargetGPO $targetGPO } catch { }
+                try { $null = Update-Policy -Id $result.Data.PolicyId -TargetGPO $targetGPO } catch { Write-AppLockerLog -Message "[Policy] Failed to set target GPO on newly created policy '$($result.Data.PolicyId)': $_" -Level WARN }
             }
 
             if ($txtName) { $txtName.Text = '' }

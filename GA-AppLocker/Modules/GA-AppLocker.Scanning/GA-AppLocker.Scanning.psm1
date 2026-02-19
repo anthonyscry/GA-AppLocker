@@ -43,15 +43,15 @@ function Get-DefaultScanPaths {
                 $script:DefaultScanPaths = @($config.DefaultScanPaths)
             }
         }
-        catch { }
+        catch {
+            Write-ScanLog -Message "[Scanning] Failed to load scan paths from config, using hardcoded defaults: $_" -Level WARN
+        }
         
         # Fallback if config unavailable
         if ($null -eq $script:DefaultScanPaths -or $script:DefaultScanPaths.Count -eq 0) {
             $script:DefaultScanPaths = @(
                 'C:\Program Files',
                 'C:\Program Files (x86)',
-                'C:\Windows\System32',
-                'C:\Windows\SysWOW64',
                 'C:\ProgramData',
                 'C:\Windows\Microsoft.NET',
                 'C:\Users\*\AppData\Local\Programs',
@@ -113,14 +113,18 @@ function script:Get-FileArtifact {
                 $sha256.Dispose()
             }
         }
-        catch { }
-        
+        catch {
+            Write-ScanLog -Message "[Scanning] Failed to hash file '$FilePath': $_" -Level DEBUG
+        }
+
         # Get version info (publisher, product, etc.)
         $versionInfo = $null
         try {
             $versionInfo = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($FilePath)
         }
-        catch { }
+        catch {
+            Write-ScanLog -Message "[Scanning] Failed to get version info for '$FilePath': $_" -Level DEBUG
+        }
         
         # Get digital signature — use .NET cert extraction (no CRL/OCSP network calls)
         # Get-AuthenticodeSignature triggers revocation checks that timeout on air-gapped networks
