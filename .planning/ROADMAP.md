@@ -69,7 +69,10 @@ Plans:
   2. All ConvertTo-Json calls in the codebase use -Depth 3 or lower — no -Depth 10 calls remain
   3. DragDropHelpers file-drop processing uses List<T> for artifact accumulation — no array += patterns remain in that file
   4. Export-AppLockerHealthReport returns without calling Get-CimInstance or Measure-Object — .NET IPGlobalProperties and direct .Count are used instead
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 11-01-PLAN.md -- StringBuilder for Export-PolicyToXml + .NET APIs for HealthReport (PERF-01, PERF-04)
+- [ ] 11-02-PLAN.md -- ConvertTo-Json depth reduction + DragDropHelpers List<T> (PERF-02, PERF-03)
 
 ### Phase 12: Module Test Coverage
 **Goal**: Credentials, Deployment, and Setup modules have unit tests verifying their core contracts
@@ -104,7 +107,7 @@ Plans:
 | 8. Event Triage and Inspection Workbench | v1.2.88 | 2/2 | Complete | 2026-02-18 |
 | 9. Rule Generation from Event Selections | v1.2.88 | 2/2 | Complete | 2026-02-19 |
 | 10. Error Handling Hardening | 4/4 | Complete    | 2026-02-19 | - |
-| 11. Performance Fixes | v1.2.90 | 0/TBD | Not started | - |
+| 11. Performance Fixes | v1.2.90 | 0/2 | Planned | - |
 | 12. Module Test Coverage | v1.2.90 | 0/TBD | Not started | - |
 | 13. GUI and E2E Test Coverage | v1.2.90 | 0/TBD | Not started | - |
 
