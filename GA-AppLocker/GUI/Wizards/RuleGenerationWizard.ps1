@@ -262,7 +262,7 @@ function global:Show-WizardStep2 {
             }
             $script:WizardState.Preview = $fallback
             Update-WizardPreviewUI -Preview $fallback
-            try { Show-Toast -Message 'Preview failed. Please retry.' -Type 'Warning' } catch { }
+            try { Show-Toast -Message 'Preview failed. Please retry.' -Type 'Warning' } catch { Write-Log -Message "[RuleWizard] Failed to show preview failure toast: $_" -Level DEBUG }
         }
     }
 
@@ -281,7 +281,7 @@ function global:Show-WizardStep2 {
         }
         $script:WizardState.Preview = $fallback
         Update-WizardPreviewUI -Preview $fallback
-        try { Show-Toast -Message $TimeoutMessage -Type 'Warning' } catch { }
+        try { Show-Toast -Message $TimeoutMessage -Type 'Warning' } catch { Write-Log -Message "[RuleWizard] Failed to show preview timeout toast: $_" -Level DEBUG }
     }
 
     $script:WizardState.PreviewJobId = Invoke-BackgroundWork -ScriptBlock $bgWork `
@@ -500,7 +500,7 @@ function global:Complete-WizardGeneration {
         
         # Show toast notification (use try-catch - Get-Command fails in WPF context)
         if ($Result.Success) {
-            try { Show-Toast -Message "Created $($Result.RulesCreated) rules in $($Result.Duration.TotalSeconds.ToString('F1'))s" -Type Success } catch { }
+            try { Show-Toast -Message "Created $($Result.RulesCreated) rules in $($Result.Duration.TotalSeconds.ToString('F1'))s" -Type Success } catch { Write-Log -Message "[RuleWizard] Failed to show generation success toast: $_" -Level DEBUG }
         }
     })
 }
@@ -586,12 +586,12 @@ function global:Close-RuleGenerationWizard {
 
     # Stop any in-flight preview/generation job when closing
     if ($script:WizardState.GenerationJobId) {
-        try { [void](Stop-BackgroundWork -JobId $script:WizardState.GenerationJobId -SuppressToast) } catch { }
+        try { [void](Stop-BackgroundWork -JobId $script:WizardState.GenerationJobId -SuppressToast) } catch { Write-Log -Message "[RuleWizard] Failed to stop in-flight generation job on wizard close: $_" -Level DEBUG }
         $script:WizardState.GenerationJobId = $null
-        try { Show-Toast -Message 'Rule generation canceled.' -Type 'Info' } catch { }
+        try { Show-Toast -Message 'Rule generation canceled.' -Type 'Info' } catch { Write-Log -Message "[RuleWizard] Failed to show generation canceled toast: $_" -Level DEBUG }
     }
     if ($script:WizardState.PreviewJobId) {
-        try { [void](Stop-BackgroundWork -JobId $script:WizardState.PreviewJobId -SuppressToast) } catch { }
+        try { [void](Stop-BackgroundWork -JobId $script:WizardState.PreviewJobId -SuppressToast) } catch { Write-Log -Message "[RuleWizard] Failed to stop in-flight preview job on wizard close: $_" -Level DEBUG }
         $script:WizardState.PreviewJobId = $null
     }
     
@@ -605,12 +605,14 @@ function global:Close-RuleGenerationWizard {
         Clear-AppLockerCache -Pattern 'GlobalSearch_*' | Out-Null
         Clear-AppLockerCache -Pattern 'RuleCounts*' | Out-Null
         Clear-AppLockerCache -Pattern 'RuleQuery*' | Out-Null
-    } catch { }
+    } catch {
+        Write-Log -Message "[RuleWizard] Failed to clear AppLocker cache on wizard close: $_" -Level DEBUG
+    }
 
     # Refresh Rules panel and reset filters so newly created rules are always visible
     try { Refresh-RulesPanelAfterGeneration -Window $global:GA_MainWindow } catch {
-        try { Reset-RulesIndexCache } catch { }
-        try { Update-RulesDataGrid -Window $global:GA_MainWindow } catch { }
+        try { Reset-RulesIndexCache } catch { Write-Log -Message "[RuleWizard] Failed to reset rules index cache (fallback after Refresh-RulesPanelAfterGeneration failure): $_" -Level DEBUG }
+        try { Update-RulesDataGrid -Window $global:GA_MainWindow } catch { Write-Log -Message "[RuleWizard] Failed to update rules data grid (fallback after Refresh-RulesPanelAfterGeneration failure): $_" -Level DEBUG }
     }
     
     # Refresh dashboard stats and sidebar counts
