@@ -114,5 +114,30 @@ Describe 'Scheduled scan event log configuration' -Tag @('Behavioral','Core') {
 
         $script:StartArtifactScanCallCount | Should -Be 1
         $script:LastStartArtifactScanParams.IncludeEventLogs | Should -Be $null
+        $script:LastStartArtifactScanParams.SkipWshScanning | Should -Be $null
+        $script:LastStartArtifactScanParams.SkipShellScanning | Should -Be $null
+    }
+
+    It 'persists WSH and Shell skip flags when creating a schedule' {
+        $result = New-ScheduledScan -Name 'ScriptParity' -ScanPaths @('C:\Windows') -Schedule 'Daily' -Time '05:30' -SkipWshScanning -SkipShellScanning
+
+        $result.Success | Should -BeTrue
+        $filePath = Join-Path $script:ScheduledScanTestPath "$($result.Data.Id).json"
+        $scheduled = Get-Content -Path $filePath -Raw | ConvertFrom-Json
+
+        $scheduled.SkipWshScanning | Should -BeTrue
+        $scheduled.SkipShellScanning | Should -BeTrue
+    }
+
+    It 'passes WSH and Shell skip flags to Start-ArtifactScan when running a scheduled scan' {
+        $creation = New-ScheduledScan -Name 'ScriptParityRun' -ScanPaths @('C:\Windows') -Schedule 'Daily' -Time '06:00' -SkipWshScanning -SkipShellScanning
+        $creation.Success | Should -BeTrue
+
+        $runResult = Invoke-ScheduledScan -Id $creation.Data.Id
+        $runResult.Success | Should -BeTrue
+
+        $script:StartArtifactScanCallCount | Should -Be 1
+        $script:LastStartArtifactScanParams.SkipWshScanning | Should -BeTrue
+        $script:LastStartArtifactScanParams.SkipShellScanning | Should -BeTrue
     }
 }

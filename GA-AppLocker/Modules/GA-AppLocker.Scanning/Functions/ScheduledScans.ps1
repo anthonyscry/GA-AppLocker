@@ -63,6 +63,12 @@ function New-ScheduledScan {
         [switch]$SkipDllScanning,
 
         [Parameter()]
+        [switch]$SkipWshScanning,
+
+        [Parameter()]
+        [switch]$SkipShellScanning,
+
+        [Parameter()]
         [switch]$IncludeEventLogs,
 
         [Parameter()]
@@ -84,6 +90,8 @@ function New-ScheduledScan {
             Time           = $Time
             DaysOfWeek     = $DaysOfWeek
             SkipDllScanning = $SkipDllScanning.IsPresent
+            SkipWshScanning = $SkipWshScanning.IsPresent
+            SkipShellScanning = $SkipShellScanning.IsPresent
             TargetMachines = $TargetMachines
             Enabled        = $Enabled.IsPresent
             IncludeEventLogs = $IncludeEventLogs.IsPresent

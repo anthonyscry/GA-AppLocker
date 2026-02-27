@@ -43,6 +43,8 @@ namespace System.Windows.Controls {
                 [string]$Schedule,
                 [string]$Time,
                 [switch]$SkipDllScanning,
+                [switch]$SkipWshScanning,
+                [switch]$SkipShellScanning,
                 [switch]$IncludeEventLogs,
                 [switch]$Enabled
             )
@@ -54,7 +56,9 @@ namespace System.Windows.Controls {
 
 function global:Get-CreateScheduleWindow {
     param(
-        [bool]$IncludeEvents
+        [bool]$IncludeEvents,
+        [bool]$SkipWsh = $false,
+        [bool]$SkipShell = $false
     )
 
     $cboType = New-MockComboBox -Items @([PSCustomObject]@{ Content = 'Daily' }) -SelectedIndex 0
@@ -65,6 +69,8 @@ function global:Get-CreateScheduleWindow {
         ChkScheduleEnabled  = New-MockCheckBox -IsChecked $true
         TxtScanPaths        = New-MockTextBox -Text 'C:\\Program Files'
         ChkSkipDllScanning  = New-MockCheckBox -IsChecked $false
+        ChkSkipWshScanning  = New-MockCheckBox -IsChecked $SkipWsh
+        ChkSkipShellScanning = New-MockCheckBox -IsChecked $SkipShell
         ChkIncludeEventLogs = New-MockCheckBox -IsChecked $IncludeEvents
     }
 }
@@ -485,6 +491,30 @@ Describe 'Invoke-CreateScheduledScan' {
         Invoke-CreateScheduledScan -Window $window
 
         Should -Invoke New-ScheduledScan -Exactly -Times 1 -ParameterFilter { -not $IncludeEventLogs }
+    }
+
+    It 'passes SkipWshScanning and SkipShellScanning when checkboxes are checked' {
+        $window = Get-CreateScheduleWindow -IncludeEvents $false -SkipWsh $true -SkipShell $true
+
+        Mock New-ScheduledScan { return @{ Success = $true; Data = @{ Id = 'checked-scripts' } } }
+
+        Invoke-CreateScheduledScan -Window $window
+
+        Should -Invoke New-ScheduledScan -Exactly -Times 1 -ParameterFilter {
+            $SkipWshScanning -eq $true -and $SkipShellScanning -eq $true
+        }
+    }
+
+    It 'does not set SkipWshScanning and SkipShellScanning when checkboxes are unchecked' {
+        $window = Get-CreateScheduleWindow -IncludeEvents $false -SkipWsh $false -SkipShell $false
+
+        Mock New-ScheduledScan { return @{ Success = $true; Data = @{ Id = 'unchecked-scripts' } } }
+
+        Invoke-CreateScheduledScan -Window $window
+
+        Should -Invoke New-ScheduledScan -Exactly -Times 1 -ParameterFilter {
+            -not $SkipWshScanning -and -not $SkipShellScanning
+        }
     }
 }
 

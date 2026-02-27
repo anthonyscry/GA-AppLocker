@@ -2283,6 +2283,8 @@ function global:Invoke-CreateScheduledScan {
     
     # Get other scan options
     $skipDll = $Window.FindName('ChkSkipDllScanning')
+    $skipWsh = $Window.FindName('ChkSkipWshScanning')
+    $skipShell = $Window.FindName('ChkSkipShellScanning')
     $includeEvents = $Window.FindName('ChkIncludeEventLogs')
     
     try {
@@ -2302,6 +2304,14 @@ function global:Invoke-CreateScheduledScan {
         
         if ($skipDll -and $skipDll.IsChecked) {
             $params.SkipDllScanning = $true
+        }
+
+        if ($skipWsh -and $skipWsh.IsChecked) {
+            $params.SkipWshScanning = $true
+        }
+
+        if ($skipShell -and $skipShell.IsChecked) {
+            $params.SkipShellScanning = $true
         }
 
         if ($includeEvents -and $includeEvents.IsChecked) {
