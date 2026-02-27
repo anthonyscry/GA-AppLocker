@@ -17,16 +17,21 @@ $ErrorActionPreference = 'Stop'
 
 $mustPassTests = @(
     (Join-Path $PSScriptRoot 'Behavioral\Workflows\CoreFlows.E2E.Tests.ps1'),
-    (Join-Path $PSScriptRoot 'Behavioral\Core\Rules.Behavior.Tests.ps1'),
-    (Join-Path $PSScriptRoot 'Behavioral\Core\Policy.Behavior.Tests.ps1'),
-    (Join-Path $PSScriptRoot 'Behavioral\GUI\RecentRegressions.Tests.ps1'),
-    (Join-Path $PSScriptRoot 'Behavioral\GUI\ADDiscovery.AutoRefresh.Tests.ps1'),
-    (Join-Path $PSScriptRoot 'Behavioral\GUI\Dashboard.WinRMButton.Tests.ps1')
+    (Join-Path $PSScriptRoot 'Behavioral\Workflows\Workflow.Mock.Tests.ps1'),
+    (Join-Path $PSScriptRoot 'Behavioral\GUI\Scanner.PanelWorkflow.Tests.ps1'),
+    (Join-Path $PSScriptRoot 'Behavioral\GUI\Rules.PanelWorkflow.Tests.ps1'),
+    (Join-Path $PSScriptRoot 'Behavioral\GUI\Policy.PanelWorkflow.Tests.ps1'),
+    (Join-Path $PSScriptRoot 'Behavioral\GUI\Deploy.PanelWorkflow.Tests.ps1')
 )
 
 $missing = @($mustPassTests | Where-Object { -not (Test-Path $_) })
 if ($missing.Count -gt 0) {
     throw "Must-pass test files missing:`n$($missing -join "`n")"
+}
+
+$phase13EvidencePath = Join-Path $PSScriptRoot '..\docs\plans\2026-02-18-phase-13-verification-evidence.md'
+if (-not (Test-Path $phase13EvidencePath)) {
+    throw "Phase 13 verification evidence file missing: $phase13EvidencePath"
 }
 
 Write-Host ''

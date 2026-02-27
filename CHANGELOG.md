@@ -2,6 +2,15 @@
 
 All notable changes to GA-AppLocker will be documented in this file.
 
+## [1.2.83] - 2026-02-18
+
+### Added
+- **Phase 13 release-readiness evidence pack** -- added targeted matrix, P0/P1 triage ledger, operator runbook checks, release notes draft, and verification evidence docs under `docs/plans/`.
+- **Phase 13 regression guardrails** -- added assertions for deployment prereq failure shape, setup status resilience, unsigned conversion edge handling, Event Viewer wiring, and workflow-level release smoke contract checks.
+
+### Fixed
+- **Unsigned conversion edge with explicit string false signed-state** -- conversion path now treats string false values as unsigned to preserve deterministic hash-rule selection.
+
 ## [1.2.82] - 2026-02-06
 
 ### Fixed

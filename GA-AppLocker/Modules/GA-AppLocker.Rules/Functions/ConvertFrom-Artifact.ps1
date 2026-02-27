@@ -115,6 +115,23 @@ function ConvertFrom-Artifact {
             foreach ($art in $allArtifacts) {
                 $ruleType = $PreferredRuleType
 
+                $isSigned = $false
+                if ($null -ne $art -and $art.PSObject.Properties.Name -contains 'IsSigned') {
+                    $rawIsSigned = $art.IsSigned
+                    if ($rawIsSigned -is [bool]) {
+                        $isSigned = [bool]$rawIsSigned
+                    }
+                    elseif ($null -ne $rawIsSigned) {
+                        $textIsSigned = [string]$rawIsSigned
+                        if (-not [string]::IsNullOrWhiteSpace($textIsSigned)) {
+                            $normalizedSigned = $textIsSigned.Trim().ToLowerInvariant()
+                            if ($normalizedSigned -in @('true', '1', 'yes', 'y')) {
+                                $isSigned = $true
+                            }
+                        }
+                    }
+                }
+
                 # Auto-detect rule type
                 # For Appx packages, PublisherName is used instead of SignerCertificate
                 $publisherString = if ($art.CollectionType -eq 'Appx' -and $art.PublisherName) {
@@ -124,7 +141,7 @@ function ConvertFrom-Artifact {
                 }
                 
                 if ($ruleType -eq 'Auto') {
-                    if ($art.IsSigned -and -not [string]::IsNullOrWhiteSpace($publisherString)) {
+                    if ($isSigned -and -not [string]::IsNullOrWhiteSpace($publisherString)) {
                         $ruleType = 'Publisher'
                     }
                     else {
@@ -137,7 +154,7 @@ function ConvertFrom-Artifact {
                     -PublisherName $publisherString `
                     -ProductName $art.ProductName `
                     -FilePath $art.FilePath `
-                    -IsSigned $art.IsSigned
+                    -IsSigned $isSigned
                 
                 $suggestedGroup = if ($groupSuggestion.Success) { $groupSuggestion.Data } else { $null }
 

@@ -167,6 +167,7 @@ Export-ModuleMember -Function @(
     'Disable-WinRMGPO',
     'Remove-WinRMGPO',
     'Initialize-DisableWinRMGPO',
-    'Remove-DisableWinRMGPO'
+    'Remove-DisableWinRMGPO',
+    'Invoke-PreflightDiagnostics'
 )
 #endregion

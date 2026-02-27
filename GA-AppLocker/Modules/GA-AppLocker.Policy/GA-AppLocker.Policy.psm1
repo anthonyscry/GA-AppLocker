@@ -73,6 +73,7 @@ Export-ModuleMember -Function @(
     # Rule Management
     'Add-RuleToPolicy',
     'Remove-RuleFromPolicy',
+    'Test-RuleMergeConflicts',
     # Targeting
     'Set-PolicyTarget',
     # Export

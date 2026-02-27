@@ -54,6 +54,29 @@ Describe 'Behavioral Rules: ConvertFrom-Artifact' -Tag @('Behavioral','Core') {
         $result.Data[0].RuleType | Should -Be 'Hash'
     }
 
+    It 'creates hash rules for unsigned artifacts with explicit false values' {
+        $artifact = [PSCustomObject]@{
+            FileName = 'false-string.exe'
+            FilePath = 'C:\temp\false-string.exe'
+            Extension = '.exe'
+            ProductName = 'FalseString'
+            ProductVersion = '1.0.0'
+            Publisher = 'Some Publisher'
+            PublisherName = 'CN=Some Publisher'
+            SignerCertificate = 'CN=Some Publisher'
+            IsSigned = 'False'
+            SHA256Hash = ('1' * 64)
+            FileSize = 1111
+            CollectionType = 'Exe'
+        }
+
+        $result = ConvertFrom-Artifact -Artifact $artifact -PreferredRuleType Auto
+
+        $result.Success | Should -BeTrue
+        $result.Data.Count | Should -Be 1
+        $result.Data[0].RuleType | Should -Be 'Hash'
+    }
+
     It 'Normalizes legacy artifact fields into publisher-ready contract' {
         $legacy = [PSCustomObject]@{
             FileName = 'signed-app.exe'
