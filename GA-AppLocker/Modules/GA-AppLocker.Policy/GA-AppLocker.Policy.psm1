@@ -74,6 +74,7 @@ Export-ModuleMember -Function @(
     'Add-RuleToPolicy',
     'Remove-RuleFromPolicy',
     'Test-RuleMergeConflicts',
+    'Test-RuleMergeConflicts',
     # Targeting
     'Set-PolicyTarget',
     # Export
@@ -83,6 +84,8 @@ Export-ModuleMember -Function @(
     'Compare-Policies',
     'Compare-RuleProperties',
     'Get-PolicyDiffReport',
+    'Get-PolicyDriftReport',
+    'Get-PolicyTelemetrySummary',
     # Policy Snapshots
     'New-PolicySnapshot',
     'Get-PolicySnapshots',

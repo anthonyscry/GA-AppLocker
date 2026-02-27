@@ -1,8 +1,11 @@
 # OpenSpec
 
-This repository uses OpenSpec change folders under `openspec/changes/` to capture intent before implementation.
+This directory stores versioned intent for GA-AppLocker changes.
 
-Each change should include:
+- `specs/`: stable capability specs
+- `changes/`: proposed work items and task breakdowns
 
-- `proposal.md` with purpose, scope, acceptance criteria, and risks
-- `tasks.md` with execution steps and checkpoints
+Each change folder should include at minimum:
+
+- `proposal.md` (purpose, scope, acceptance criteria, risks)
+- `tasks.md` (execution plan and checkpoints)

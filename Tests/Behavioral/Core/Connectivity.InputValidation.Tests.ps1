@@ -34,12 +34,12 @@ Describe 'Behavioral Connectivity: Test-PingConnectivity input validation' -Tag 
     }
 
     It 'Derives TimeoutMs from TimeoutSeconds when only seconds provided' {
-        Mock Get-WmiObject { [PSCustomObject]@{ StatusCode = 0 } }
+        Mock Get-WmiObject { [PSCustomObject]@{ StatusCode = 0 } } -ModuleName GA-AppLocker.Discovery
 
         $result = Test-PingConnectivity -Hostnames @('host1') -TimeoutSeconds 1
 
         $result['host1'] | Should -BeTrue
-        Assert-MockCalled Get-WmiObject -Times 1 -Exactly -ParameterFilter {
+        Should -Invoke Get-WmiObject -Times 1 -Exactly -ModuleName GA-AppLocker.Discovery -ParameterFilter {
             $Filter -match 'Timeout=1000'
         }
     }

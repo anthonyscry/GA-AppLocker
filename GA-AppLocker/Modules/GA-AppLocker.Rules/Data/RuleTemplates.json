@@ -1,7 +1,8 @@
 {
   "_comment": "Pre-built AppLocker rule templates for common enterprise applications",
-  "_version": "1.0",
+  "_version": "1.1",
   "_usage": "Import with Import-RuleTemplates or use New-RuleFromTemplate",
+  "_validPathVars": "AppLocker only recognizes: %OSDRIVE%, %WINDIR%, %SYSTEM32%, %PROGRAMFILES%. All other env vars (LOCALAPPDATA, TEMP, USERPROFILE, PROGRAMFILES(X86), APPDATA) are NOT resolved by AppLocker and must use literal paths.",
 
   "Microsoft Office": {
     "Description": "Microsoft Office 365/2019/2021 applications",
@@ -26,7 +27,7 @@
       {
         "Name": "Microsoft Office x86 - Path Rules",
         "Type": "Path",
-        "Path": "%PROGRAMFILES(X86)%\\Microsoft Office\\*",
+        "Path": "C:\\Program Files (x86)\\Microsoft Office\\*",
         "Action": "Allow",
         "UserOrGroup": "Everyone",
         "CollectionType": "Exe"
@@ -57,7 +58,15 @@
       {
         "Name": "Google Chrome - x86 Path",
         "Type": "Path",
-        "Path": "%PROGRAMFILES(X86)%\\Google\\Chrome\\*",
+        "Path": "C:\\Program Files (x86)\\Google\\Chrome\\*",
+        "Action": "Allow",
+        "UserOrGroup": "Everyone",
+        "CollectionType": "Exe"
+      },
+      {
+        "Name": "Google Chrome - User Install Path",
+        "Type": "Path",
+        "Path": "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\*",
         "Action": "Allow",
         "UserOrGroup": "Everyone",
         "CollectionType": "Exe"
@@ -111,7 +120,7 @@
       {
         "Name": "Adobe Reader x86 - Path Rules",
         "Type": "Path",
-        "Path": "%PROGRAMFILES(X86)%\\Adobe\\Acrobat*\\*",
+        "Path": "C:\\Program Files (x86)\\Adobe\\Acrobat*\\*",
         "Action": "Allow",
         "UserOrGroup": "Everyone",
         "CollectionType": "Exe"
@@ -178,9 +187,9 @@
         "CollectionType": "Exe"
       },
       {
-        "Name": "Zoom - AppData Path",
+        "Name": "Zoom - User Install Path",
         "Type": "Path",
-        "Path": "%LOCALAPPDATA%\\Zoom\\*",
+        "Path": "C:\\Users\\*\\AppData\\Local\\Zoom\\*",
         "Action": "Allow",
         "UserOrGroup": "Everyone",
         "CollectionType": "Exe"
@@ -209,9 +218,9 @@
         "CollectionType": "Exe"
       },
       {
-        "Name": "Microsoft Teams - AppData Path",
+        "Name": "Microsoft Teams - User Install Path",
         "Type": "Path",
-        "Path": "%LOCALAPPDATA%\\Microsoft\\Teams\\*",
+        "Path": "C:\\Users\\*\\AppData\\Local\\Microsoft\\Teams\\*",
         "Action": "Allow",
         "UserOrGroup": "Everyone",
         "CollectionType": "Exe"
@@ -240,9 +249,9 @@
         "CollectionType": "Exe"
       },
       {
-        "Name": "Slack - AppData Path",
+        "Name": "Slack - User Install Path",
         "Type": "Path",
-        "Path": "%LOCALAPPDATA%\\slack\\*",
+        "Path": "C:\\Users\\*\\AppData\\Local\\slack\\*",
         "Action": "Allow",
         "UserOrGroup": "Everyone",
         "CollectionType": "Exe"
@@ -271,9 +280,9 @@
         "CollectionType": "Exe"
       },
       {
-        "Name": "VS Code - AppData Path",
+        "Name": "VS Code - User Install Path",
         "Type": "Path",
-        "Path": "%LOCALAPPDATA%\\Programs\\Microsoft VS Code\\*",
+        "Path": "C:\\Users\\*\\AppData\\Local\\Programs\\Microsoft VS Code\\*",
         "Action": "Allow",
         "UserOrGroup": "Everyone",
         "CollectionType": "Exe"
@@ -304,7 +313,7 @@
       {
         "Name": "Java x86 - Path Rules",
         "Type": "Path",
-        "Path": "%PROGRAMFILES(X86)%\\Java\\*",
+        "Path": "C:\\Program Files (x86)\\Java\\*",
         "Action": "Allow",
         "UserOrGroup": "Everyone",
         "CollectionType": "Exe"
@@ -327,7 +336,7 @@
       {
         "Name": "Cisco AnyConnect - Path Rules",
         "Type": "Path",
-        "Path": "%PROGRAMFILES(X86)%\\Cisco\\Cisco AnyConnect*\\*",
+        "Path": "C:\\Program Files (x86)\\Cisco\\Cisco AnyConnect*\\*",
         "Action": "Allow",
         "UserOrGroup": "Everyone",
         "CollectionType": "Exe"
@@ -356,9 +365,9 @@
         "CollectionType": "Exe"
       },
       {
-        "Name": "Python - AppData Path",
+        "Name": "Python - User Install Path",
         "Type": "Path",
-        "Path": "%LOCALAPPDATA%\\Programs\\Python\\*",
+        "Path": "C:\\Users\\*\\AppData\\Local\\Programs\\Python\\*",
         "Action": "Allow",
         "UserOrGroup": "Everyone",
         "CollectionType": "Exe"
@@ -395,7 +404,7 @@
       {
         "Name": "Windows - System32",
         "Type": "Path",
-        "Path": "%SYSTEMROOT%\\System32\\*",
+        "Path": "%WINDIR%\\System32\\*",
         "Action": "Allow",
         "UserOrGroup": "Everyone",
         "CollectionType": "Exe"
@@ -403,7 +412,7 @@
       {
         "Name": "Windows - SysWOW64",
         "Type": "Path",
-        "Path": "%SYSTEMROOT%\\SysWOW64\\*",
+        "Path": "%WINDIR%\\SysWOW64\\*",
         "Action": "Allow",
         "UserOrGroup": "Everyone",
         "CollectionType": "Exe"
@@ -419,7 +428,7 @@
       {
         "Name": "Windows - Program Files x86",
         "Type": "Path",
-        "Path": "%PROGRAMFILES(X86)%\\*",
+        "Path": "C:\\Program Files (x86)\\*",
         "Action": "Allow",
         "UserOrGroup": "Everyone",
         "CollectionType": "Exe"
@@ -442,7 +451,7 @@
       {
         "Name": "Block - User Temp Folder",
         "Type": "Path",
-        "Path": "%TEMP%\\*",
+        "Path": "%OSDRIVE%\\Users\\*\\AppData\\Local\\Temp\\*",
         "Action": "Deny",
         "UserOrGroup": "Everyone",
         "CollectionType": "Exe"
@@ -450,7 +459,7 @@
       {
         "Name": "Block - User Downloads",
         "Type": "Path",
-        "Path": "%USERPROFILE%\\Downloads\\*",
+        "Path": "%OSDRIVE%\\Users\\*\\Downloads\\*",
         "Action": "Deny",
         "UserOrGroup": "Everyone",
         "CollectionType": "Exe"
@@ -458,15 +467,15 @@
       {
         "Name": "Block - User Desktop",
         "Type": "Path",
-        "Path": "%USERPROFILE%\\Desktop\\*",
+        "Path": "%OSDRIVE%\\Users\\*\\Desktop\\*",
         "Action": "Deny",
         "UserOrGroup": "Everyone",
         "CollectionType": "Exe"
       },
       {
-        "Name": "Block - AppData Local Temp",
+        "Name": "Block - Windows Temp",
         "Type": "Path",
-        "Path": "%LOCALAPPDATA%\\Temp\\*",
+        "Path": "%WINDIR%\\Temp\\*",
         "Action": "Deny",
         "UserOrGroup": "Everyone",
         "CollectionType": "Exe"
@@ -535,7 +544,7 @@
       {
         "Name": "Block Scripts - Temp",
         "Type": "Path",
-        "Path": "%TEMP%\\*",
+        "Path": "%OSDRIVE%\\Users\\*\\AppData\\Local\\Temp\\*",
         "Action": "Deny",
         "UserOrGroup": "Everyone",
         "CollectionType": "Script"
@@ -543,15 +552,15 @@
       {
         "Name": "Block Scripts - Downloads",
         "Type": "Path",
-        "Path": "%USERPROFILE%\\Downloads\\*",
+        "Path": "%OSDRIVE%\\Users\\*\\Downloads\\*",
         "Action": "Deny",
         "UserOrGroup": "Everyone",
         "CollectionType": "Script"
       },
       {
-        "Name": "Block Scripts - AppData",
+        "Name": "Block Scripts - AppData Roaming",
         "Type": "Path",
-        "Path": "%APPDATA%\\*",
+        "Path": "%OSDRIVE%\\Users\\*\\AppData\\Roaming\\*",
         "Action": "Deny",
         "UserOrGroup": "Everyone",
         "CollectionType": "Script"

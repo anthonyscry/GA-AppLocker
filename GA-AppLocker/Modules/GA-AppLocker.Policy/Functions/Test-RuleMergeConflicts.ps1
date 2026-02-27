@@ -21,9 +21,9 @@ function script:Get-PolicyRuleSemanticKey {
         'PATH' { $conditionParts += if ($Rule.Path) { $Rule.Path.ToString().Trim().ToUpperInvariant() } else { '' } }
         'PUBLISHER' {
             $conditionParts += @(
-                $(if ($Rule.PublisherName) { $Rule.PublisherName.ToString().Trim().ToUpperInvariant() } else { '' }),
-                $(if ($Rule.ProductName) { $Rule.ProductName.ToString().Trim().ToUpperInvariant() } else { '' }),
-                $(if ($Rule.BinaryName) { $Rule.BinaryName.ToString().Trim().ToUpperInvariant() } else { '' })
+                if ($Rule.PublisherName) { $Rule.PublisherName.ToString().Trim().ToUpperInvariant() } else { '' },
+                if ($Rule.ProductName) { $Rule.ProductName.ToString().Trim().ToUpperInvariant() } else { '' },
+                if ($Rule.BinaryName) { $Rule.BinaryName.ToString().Trim().ToUpperInvariant() } else { '' }
             )
         }
         default { $conditionParts += if ($Rule.Id) { $Rule.Id.ToString().Trim().ToUpperInvariant() } else { '' } }

@@ -1,14 +1,33 @@
+function script:New-PreflightCheck {
+    param(
+        [string]$Source,
+        [string]$Name,
+        [ValidateSet('Pass','Warn','Fail')] [string]$Status,
+        [string]$Message = 'No details provided'
+    )
+
+    return [PSCustomObject]@{
+        Source  = $Source
+        Name    = $Name
+        Status  = $Status
+        Message = if ($Message) { $Message } else { 'No details provided' }
+    }
+}
+
+function script:Add-PreflightCheckEntry {
+    param(
+        [System.Collections.Generic.List[PSCustomObject]]$CheckList,
+        [string]$Source,
+        [string]$Name,
+        [ValidateSet('Pass','Warn','Fail')] [string]$Status,
+        [string]$Message
+    )
+
+    $entry = New-PreflightCheck -Source $Source -Name $Name -Status $Status -Message $Message
+    [void]$CheckList.Add($entry)
+}
+
 function Invoke-PreflightDiagnostics {
-    <#
-    .SYNOPSIS
-        Runs Bundle A preflight diagnostics for Setup initialization.
-
-    .DESCRIPTION
-        Aggregates Test-Prerequisites checks with Get-SetupStatus insight and
-        returns a normalized list of Pass/Warn/Fail checks plus counts for
-        downstream callers (UI gating, toasts, dashboards).
-    #>
-
     [CmdletBinding()]
     [OutputType([PSCustomObject])]
     param()
@@ -21,156 +40,124 @@ function Invoke-PreflightDiagnostics {
 
     try {
         $checks = [System.Collections.Generic.List[PSCustomObject]]::new()
-        $prereqs = $null
-        $setupStatus = $null
 
+        $preReqResult = $null
         try {
-            $prereqs = Test-Prerequisites
+            $preReqResult = Test-Prerequisites
         }
         catch {
-            [void]$checks.Add([PSCustomObject]@{
-                Name    = 'Prerequisites command'
-                Status  = 'Fail'
-                Message = "Failed to run Test-Prerequisites: $($_.Exception.Message)"
-            })
+            Write-SetupLog -Message "[Invoke-PreflightDiagnostics] Test-Prerequisites failed: $($_.Exception.Message)" -Level 'Warning'
         }
 
-        if (-not $prereqs) {
-            $prereqs = [PSCustomObject]@{ AllPassed = $false; Checks = @() }
-            [void]$checks.Add([PSCustomObject]@{
-                Name    = 'Prerequisites data'
-                Status  = 'Fail'
-                Message = 'No prerequisite results returned.'
-            })
+        if ($preReqResult -and $preReqResult.Checks) {
+            foreach ($check in @($preReqResult.Checks)) {
+                $status = if ($check.Passed) { 'Pass' } else { 'Fail' }
+                $message = if ($check.Message) { $check.Message } else { 'No details provided' }
+                Add-PreflightCheckEntry -CheckList $checks -Source 'Prerequisites' -Name $check.Name -Status $status -Message $message
+            }
+        }
+        else {
+            Add-PreflightCheckEntry -CheckList $checks -Source 'Prerequisites' -Name 'Prerequisites evaluation' -Status 'Warn' -Message 'Prerequisites service unavailable'
         }
 
-        foreach ($check in @($prereqs.Checks)) {
-            $status = if ($check.Passed) { 'Pass' } else { 'Fail' }
-            [void]$checks.Add([PSCustomObject]@{
-                Name    = "Prerequisite: $($check.Name)"
-                Status  = $status
-                Message = $check.Message
-            })
-        }
-
+        $setupStatus = $null
         try {
             $setupStatus = Get-SetupStatus
         }
         catch {
-            [void]$checks.Add([PSCustomObject]@{
-                Name    = 'Setup status command'
-                Status  = 'Warn'
-                Message = "Failed to run Get-SetupStatus: $($_.Exception.Message)"
-            })
+            Write-SetupLog -Message "[Invoke-PreflightDiagnostics] Get-SetupStatus failed: $($_.Exception.Message)" -Level 'Warning'
         }
 
-        if ($setupStatus -and $setupStatus.Data) {
-            $modules = $setupStatus.Data.ModulesAvailable
-            if ($modules) {
-                foreach ($property in $modules.PSObject.Properties) {
-                    $moduleName = $property.Name
-                    $available = [bool]$property.Value
-                    $status = if ($available) { 'Pass' } else { 'Warn' }
-                    $message = if ($available) { 'Available' } else { 'Requires RSAT module' }
-                    [void]$checks.Add([PSCustomObject]@{
-                        Name    = "Module: $moduleName"
-                        Status  = $status
-                        Message = $message
-                    })
-                }
-            }
+        if ($setupStatus -and $setupStatus.Success -and $setupStatus.Data) {
+            $setupData = $setupStatus.Data
 
-            if ($setupStatus.Data.WinRM) {
-                $exists = $setupStatus.Data.WinRM.Exists
-                $status = if ($exists) { 'Pass' } else { 'Warn' }
-                $message = if ($exists) { $setupStatus.Data.WinRM.Status } else { 'WinRM GPO not created' }
-                [void]$checks.Add([PSCustomObject]@{
-                    Name    = 'WinRM GPO'
-                    Status  = $status
-                    Message = $message
-                })
-            }
-
-            if ($setupStatus.Data.DisableWinRM) {
-                $exists = $setupStatus.Data.DisableWinRM.Exists
-                $status = if ($exists) { 'Pass' } else { 'Warn' }
-                $message = if ($exists) { $setupStatus.Data.DisableWinRM.Status } else { 'Disable WinRM GPO not created' }
-                [void]$checks.Add([PSCustomObject]@{
-                    Name    = 'Disable WinRM GPO'
-                    Status  = $status
-                    Message = $message
-                })
-            }
-
-            $appLockerGPOs = @($setupStatus.Data.AppLockerGPOs)
-            if ($appLockerGPOs.Count -gt 0) {
-                $missing = @($appLockerGPOs | Where-Object { -not $_.Exists })
-                if ($missing.Count -eq 0) {
-                    [void]$checks.Add([PSCustomObject]@{
-                        Name    = 'AppLocker GPOs'
-                        Status  = 'Pass'
-                        Message = 'DC, Servers, Workstations present'
-                    })
-                }
-                else {
-                    $missingNames = @($missing | Select-Object -ExpandProperty Type)
-                    [void]$checks.Add([PSCustomObject]@{
-                        Name    = 'AppLocker GPOs'
-                        Status  = 'Warn'
-                        Message = "Missing: $($missingNames -join ', ')"
-                    })
+            if ($setupData.ModulesAvailable) {
+                foreach ($moduleProperty in $setupData.ModulesAvailable.PSObject.Properties) {
+                    $available = [bool]$moduleProperty.Value
+                    $status = if ($available) { 'Pass' } else { 'Fail' }
+                    $message = if ($available) { 'Available' } else { "Module $($moduleProperty.Name) is not available" }
+                    Add-PreflightCheckEntry -CheckList $checks -Source 'Setup Status' -Name "Module: $($moduleProperty.Name)" -Status $status -Message $message
                 }
             }
             else {
-                [void]$checks.Add([PSCustomObject]@{
-                    Name    = 'AppLocker GPOs'
-                    Status  = 'Warn'
-                    Message = 'GPO information unavailable'
-                })
+                Add-PreflightCheckEntry -CheckList $checks -Source 'Setup Status' -Name 'Module availability' -Status 'Warn' -Message 'Module availability unknown'
+            }
+
+            if ($setupData.WinRM) {
+                $winrmStatus = if ($setupData.WinRM.Exists) { 'Pass' } else { 'Warn' }
+                $message = if ($setupData.WinRM.Status) { $setupData.WinRM.Status } else { 'WinRM GPO status unavailable' }
+                Add-PreflightCheckEntry -CheckList $checks -Source 'Setup Status' -Name 'WinRM GPO' -Status $winrmStatus -Message $message
+            }
+            else {
+                Add-PreflightCheckEntry -CheckList $checks -Source 'Setup Status' -Name 'WinRM GPO' -Status 'Warn' -Message 'WinRM GPO status unavailable'
+            }
+
+            if ($setupData.DisableWinRM) {
+                $disableStatus = if ($setupData.DisableWinRM.Exists) { 'Pass' } else { 'Warn' }
+                $message = if ($setupData.DisableWinRM.Status) { $setupData.DisableWinRM.Status } else { 'Disable WinRM GPO status unavailable' }
+                Add-PreflightCheckEntry -CheckList $checks -Source 'Setup Status' -Name 'Disable WinRM GPO' -Status $disableStatus -Message $message
+            }
+            else {
+                Add-PreflightCheckEntry -CheckList $checks -Source 'Setup Status' -Name 'Disable WinRM GPO' -Status 'Warn' -Message 'Disable WinRM GPO status unavailable'
+            }
+
+            foreach ($gpo in @($setupData.AppLockerGPOs)) {
+                $gpoStatus = if ($gpo.Exists) { 'Pass' } else { 'Warn' }
+                $message = if ($gpo.Status) { $gpo.Status } else { 'AppLocker GPO status unavailable' }
+                Add-PreflightCheckEntry -CheckList $checks -Source 'Setup Status' -Name "AppLocker GPO: $($gpo.Type)" -Status $gpoStatus -Message $message
+            }
+
+            if ($setupData.ADStructure) {
+                $adStatus = 'Warn'
+                if ($setupData.ADStructure.OUExists -and ($setupData.ADStructure.GroupsFound -eq $setupData.ADStructure.GroupsTotal)) {
+                    $adStatus = 'Pass'
+                }
+
+                $message = if ($setupData.ADStructure.Status) { $setupData.ADStructure.Status } else { 'AD structure status unavailable' }
+                Add-PreflightCheckEntry -CheckList $checks -Source 'Setup Status' -Name 'AD Structure' -Status $adStatus -Message $message
+            }
+            else {
+                Add-PreflightCheckEntry -CheckList $checks -Source 'Setup Status' -Name 'AD Structure' -Status 'Warn' -Message 'AD structure status unavailable'
             }
         }
         else {
-            [void]$checks.Add([PSCustomObject]@{
-                Name    = 'Setup status data'
-                Status  = 'Warn'
-                Message = 'Setup status details are unavailable.'
-            })
+            Add-PreflightCheckEntry -CheckList $checks -Source 'Setup Status' -Name 'Setup status' -Status 'Warn' -Message 'Unable to read setup status'
         }
 
-        $passCount = 0
-        $warnCount = 0
-        $failCount = 0
+        $allChecks = @($checks)
 
-        foreach ($check in @($checks)) {
-            switch ($check.Status) {
-                'Pass' { $passCount++ }
-                'Warn' { $warnCount++ }
-                'Fail' { $failCount++ }
-            }
+        if ($allChecks.Count -eq 0) {
+            Add-PreflightCheckEntry -CheckList $checks -Source 'Preflight' -Name 'Diagnostics' -Status 'Warn' -Message 'No diagnostic checks executed'
+            $allChecks = @($checks)
         }
 
         $summary = [PSCustomObject]@{
-            Pass = $passCount
-            Warn = $warnCount
-            Fail = $failCount
+            Pass = 0
+            Warn = 0
+            Fail = 0
         }
 
-        $success = ($summary.Fail -eq 0)
+        foreach ($check in $allChecks) {
+            switch ($check.Status) {
+                'Pass' { $summary.Pass++ }
+                'Warn' { $summary.Warn++ }
+                'Fail' { $summary.Fail++ }
+            }
+        }
 
-        $result.Success = $success
+        $hasFailures = $summary.Fail -gt 0
+        $result.Success = -not $hasFailures
         $result.Data = [PSCustomObject]@{
-            Prerequisites = $prereqs
-            SetupStatus   = $setupStatus
-            Checks        = @($checks.ToArray())
-            Summary       = $summary
+            Checks           = $allChecks
+            Summary          = $summary
+            BlockingFailures = $hasFailures
         }
 
-        if (-not $success) {
-            $result.Error = 'Preflight diagnostics detected failed prerequisites'
-        }
+        Write-SetupLog -Message "Preflight diagnostics summary: Pass=$($summary.Pass) Warn=$($summary.Warn) Fail=$($summary.Fail)" -Level 'Info'
     }
     catch {
-        $result.Error = "Failed to run preflight diagnostics: $($_.Exception.Message)"
+        $result.Error = "Preflight diagnostics failed: $($_.Exception.Message)"
+        Write-SetupLog -Message $result.Error -Level 'Error'
     }
 
     return $result

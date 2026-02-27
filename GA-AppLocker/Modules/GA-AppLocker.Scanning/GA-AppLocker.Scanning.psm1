@@ -242,6 +242,8 @@ Export-ModuleMember -Function @(
     'Get-AppxArtifacts',
     'Get-AppLockerEventLogs',
     'Invoke-AppLockerEventQuery',
+    'Invoke-AppLockerEventCategorization',
+    'Get-AppLockerRuleCandidates',
     'Start-ArtifactScan',
     'Get-ScanResults',
     'Get-DefaultScanPaths',

@@ -51,18 +51,16 @@ function Get-AppLockerConfig {
             'C:\Program Files',
             'C:\Program Files (x86)',
             'C:\ProgramData',
-            'C:\Windows\System32',
-            'C:\Windows\SysWOW64',
             'C:\Users\*\AppData\Local\Programs',
             'C:\Users\*\AppData\Local\Microsoft\WindowsApps'
         )
 
         # High-risk paths for attention
         HighRiskPaths         = @(
-            '%USERPROFILE%\Downloads',
-            '%USERPROFILE%\Desktop',
-            '%TEMP%',
-            '%LOCALAPPDATA%\Temp'
+            'C:\Users\*\Downloads\*',
+            'C:\Users\*\Desktop\*',
+            'C:\Users\*\AppData\Local\Temp\*',
+            'C:\Windows\Temp\*'
         )
 
         # Default group assignments by rule collection
@@ -130,6 +128,17 @@ function Get-AppLockerConfig {
         }
         catch {
             Write-AppLockerLog -Level Warning -Message "Failed to load config: $($_.Exception.Message)"
+        }
+    }
+    #endregion
+
+    #region --- Config Migrations ---
+    # Remove System32/SysWOW64 from scan paths (moved to Allow Path rules instead)
+    if ($config['DefaultScanPaths']) {
+        $removePaths = @('C:\Windows\System32', 'C:\Windows\SysWOW64')
+        $filtered = @($config['DefaultScanPaths'] | Where-Object { $_ -notin $removePaths })
+        if ($filtered.Count -ne @($config['DefaultScanPaths']).Count) {
+            $config['DefaultScanPaths'] = $filtered
         }
     }
     #endregion

@@ -163,11 +163,11 @@ Export-ModuleMember -Function @(
     'Initialize-ADStructure',
     'Initialize-AppLockerEnvironment',
     'Get-SetupStatus',
+    'Invoke-PreflightDiagnostics',
     'Enable-WinRMGPO',
     'Disable-WinRMGPO',
     'Remove-WinRMGPO',
     'Initialize-DisableWinRMGPO',
-    'Remove-DisableWinRMGPO',
-    'Invoke-PreflightDiagnostics'
+    'Remove-DisableWinRMGPO'
 )
 #endregion

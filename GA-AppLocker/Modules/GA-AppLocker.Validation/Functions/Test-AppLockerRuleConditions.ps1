@@ -158,10 +158,15 @@ function Test-AppLockerRuleConditions {
                         }
                     }
 
-                    # Warn about user-writable paths
-                    $userWritablePaths = @('%TEMP%', '%TMP%', '%USERPROFILE%\Downloads', '%USERPROFILE%\Desktop')
+                    # Warn about user-writable paths (check both env var and literal patterns)
+                    $userWritablePaths = @(
+                        '*\Users\*\Downloads\*', '*\Users\*\Desktop\*',
+                        '*\Users\*\AppData\Local\Temp\*', '*\Windows\Temp\*',
+                        '*\Users\Public\*', '*\Users\*\Documents\*',
+                        '*\PerfLogs\*'
+                    )
                     foreach ($uwp in $userWritablePaths) {
-                        if ($path -like "*$uwp*") {
+                        if ($path -like $uwp) {
                             [void]$result.Warnings.Add("[$collectionType] Path rule '$name' includes user-writable location: $path")
                         }
                     }

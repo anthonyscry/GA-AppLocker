@@ -69,11 +69,11 @@ PowerShellVersion = '5.1'
 # NestedModules = @()
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
-FunctionsToExport = 'Initialize-WinRMGPO', 'Initialize-AppLockerGPOs',
-               'Initialize-ADStructure', 'Initialize-AppLockerEnvironment',
-               'Get-SetupStatus', 'Enable-WinRMGPO', 'Disable-WinRMGPO',
-               'Remove-WinRMGPO', 'Initialize-DisableWinRMGPO',
-               'Remove-DisableWinRMGPO', 'Invoke-PreflightDiagnostics'
+FunctionsToExport = 'Initialize-WinRMGPO', 'Initialize-AppLockerGPOs', 
+               'Initialize-ADStructure', 'Initialize-AppLockerEnvironment', 
+               'Get-SetupStatus', 'Invoke-PreflightDiagnostics', 'Enable-WinRMGPO', 
+               'Disable-WinRMGPO', 'Remove-WinRMGPO', 'Initialize-DisableWinRMGPO', 
+               'Remove-DisableWinRMGPO'
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
 CmdletsToExport = @()

@@ -96,7 +96,11 @@ Plans:
   1. Behavioral tests for Scanner, Rules, Policy, and Deploy panels exist and pass — covering load, filter, and action workflows for each panel
   2. An E2E workflow test executes the full scan-to-rule-to-policy-to-deploy pipeline using mock data without errors
   3. The full test suite passes at 100% after all new tests are added — no regressions introduced by error handling or performance changes
-**Plans**: TBD
+**Plans**: 0/3 planned
+Plans:
+- [ ] 13-01-PLAN.md -- Scanner and Rules panel behavioral workflow matrix coverage (TEST-04)
+- [ ] 13-02-PLAN.md -- Policy and Deploy panel behavioral workflow matrix coverage (TEST-04)
+- [ ] 13-03-PLAN.md -- End-to-end scan-to-deploy workflow checkpoints and phase verification (TEST-05)
 
 ## Progress
 
@@ -113,7 +117,7 @@ Plans:
 | 10. Error Handling Hardening | 4/4 | Complete    | 2026-02-19 | - |
 | 11. Performance Fixes | 2/2 | Complete    | 2026-02-19 | - |
 | 12. Module Test Coverage | 3/3 | Complete    | 2026-02-19 | - |
-| 13. GUI and E2E Test Coverage | v1.2.90 | 0/TBD | Not started | - |
+| 13. GUI and E2E Test Coverage | v1.2.90 | 0/3 | Planned | - |
 
 ---
-*Last updated: 2026-02-18 after Phase 12 planning (3 plans: Credentials, Deployment, Setup tests)*
+*Last updated: 2026-02-19 after Phase 13 planning (3 plans: GUI panel matrix + E2E checkpoints)*

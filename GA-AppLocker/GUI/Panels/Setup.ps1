@@ -392,8 +392,6 @@ function global:Invoke-InitializeADStructure {
 function global:Invoke-InitializeAll {
     param($Window)
 
-    $overlayVisible = $false
-
     try {
         $confirm = Show-AppLockerMessageBox "This will run ALL initialization steps:`n`n1. Create WinRM GPOs (Enable + Disable, linked to domain root)`n2. Create AppLocker GPOs (DC, Servers, Workstations)`n3. Create AppLocker OU and security groups`n`nThis requires Domain Admin permissions.`n`nContinue?" 'Full Initialization' 'YesNo' 'Warning'
 
@@ -401,32 +399,19 @@ function global:Invoke-InitializeAll {
 
         $preflight = Invoke-PreflightDiagnostics
         if (-not $preflight.Success) {
-            $failedChecks = @()
-            if ($preflight.Data -and $preflight.Data.Checks) {
-                $failedChecks = @($preflight.Data.Checks | Where-Object { $_.Status -eq 'Fail' })
-            }
-
-            $failedNames = if ($failedChecks.Count -gt 0) { @($failedChecks | Select-Object -ExpandProperty Name) } else { @('Prerequisite failure') }
-            $failedLines = if ($failedChecks.Count -gt 0) {
-                @($failedChecks | ForEach-Object { "- $($_.Name): $($_.Message)" })
-            }
-            else {
-                @('- Preflight diagnostics returned failure without detailed checks.')
-            }
-
-            Show-Toast -Message "Preflight checks failed: $($failedNames -join ', ')" -Type 'Error' -DurationMs 8000
-            Show-AppLockerMessageBox -Message ("Initialization blocked by preflight diagnostics:`n`n" + ($failedLines -join "`n")) -Title 'Preflight Diagnostics Failed' -Button OK -Icon Error | Out-Null
+            $preflightChecks = if ($preflight.Data -and $preflight.Data.Checks) { @($preflight.Data.Checks) } else { @() }
+            $blockingIssues = @($preflightChecks | Where-Object { $_.Status -eq 'Fail' })
+            $details = if ($blockingIssues.Count -gt 0) { $blockingIssues | ForEach-Object { "$($_.Name): $($_.Message)" } } else { 'Unknown blocking issue detected.' }
+            $message = "Preflight diagnostics detected blocking issues:`n$($details -join '`n')`n`nFix these before running full initialization."
+            Show-AppLockerMessageBox $message 'Preflight diagnostics blocked initialization' 'OK' 'Error'
             return
         }
 
-        $warningChecks = @($preflight.Data.Checks | Where-Object { $_.Status -eq 'Warn' })
-        if ($warningChecks.Count -gt 0) {
-            $warningNames = ($warningChecks | Select-Object -ExpandProperty Name) -join ', '
-            Show-Toast -Message "Preflight completed with warnings: $warningNames" -Type 'Warning' -DurationMs 6000
+        if ($preflight.Data -and $preflight.Data.Summary -and $preflight.Data.Summary.Warn -gt 0) {
+            Show-Toast -Message "Preflight warnings detected ($($preflight.Data.Summary.Warn)). Initialization will continue." -Type 'Warning' -DurationMs 5000
         }
 
         Show-LoadingOverlay -Message 'Running full initialization...' -SubMessage 'WinRM, AppLocker GPOs, AD structure'
-        $overlayVisible = $true
 
         $result = Initialize-AppLockerEnvironment
 
@@ -454,7 +439,7 @@ function global:Invoke-InitializeAll {
         Show-Toast -Message "Full initialization error: $($_.Exception.Message)" -Type 'Error' -DurationMs 6000
     }
     finally {
-        if ($overlayVisible) { Hide-LoadingOverlay }
+        Hide-LoadingOverlay
     }
 }
 

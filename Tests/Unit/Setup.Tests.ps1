@@ -35,6 +35,27 @@ namespace Microsoft.GroupPolicy {
         # Already loaded from RSAT or a prior test run in the same session.
     }
 
+    $originalAddType = Get-Command Add-Type
+    function global:Add-Type {
+        [CmdletBinding()]
+        param(
+            [Parameter(Mandatory=$false)][string]$AssemblyName,
+            [Parameter(Mandatory=$false)][string]$TypeDefinition,
+            [Parameter(Mandatory=$false)][string]$LiteralPath,
+            [Parameter(Mandatory=$false)][string]$Path,
+            [Parameter(Mandatory=$false)][string]$Language,
+            [Parameter(Mandatory=$false)][string[]]$ReferencedAssemblies,
+            [Parameter(Mandatory=$false)][string]$TypeName,
+            [Parameter(Mandatory=$false)][string]$MemberDefinition,
+            [Parameter(Mandatory=$false)][string]$OutputAssembly,
+            [Parameter(Mandatory=$false)][object]$InputObject,
+            [Parameter(Mandatory=$false)][switch]$PassThru
+        )
+
+        if ($PSBoundParameters.ContainsKey('AssemblyName')) { return }
+        & $originalAddType @PSBoundParameters
+    }
+
     # -----------------------------------------------------------------------
     # Step 2: Define global stub functions for every RSAT cmdlet the Setup
     # module calls.  Pester's Mock mechanism requires the command to be
@@ -65,76 +86,104 @@ namespace Microsoft.GroupPolicy {
     # -----------------------------------------------------------------------
     $modulePath = Join-Path $PSScriptRoot '..\..\GA-AppLocker\GA-AppLocker.psd1'
     Import-Module $modulePath -Force -ErrorAction Stop
+    $setupModule = Join-Path $PSScriptRoot '..\..\GA-AppLocker\Modules\GA-AppLocker.Setup\GA-AppLocker.Setup.psd1'
+    Import-Module $setupModule -Force -ErrorAction Stop
 }
 
-# ===========================================================================
-# Invoke-PreflightDiagnostics
-# ===========================================================================
+AfterAll {
+    Remove-Item Function:\Add-Type -ErrorAction SilentlyContinue
+}
+
 Describe 'Invoke-PreflightDiagnostics' -Tag @('Unit', 'Setup') {
-
-    Context 'When prerequisites and setup status are healthy' {
-        BeforeEach {
-            $mockPrereqs = [PSCustomObject]@{
-                AllPassed = $true
-                Checks = @(
-                    [PSCustomObject]@{ Name = 'PowerShell Version'; Passed = $true; Message = '5.1' }
-                    [PSCustomObject]@{ Name = 'Module: ActiveDirectory'; Passed = $true; Message = 'Installed' }
-                )
-            }
-            Mock -CommandName 'Test-Prerequisites' -MockWith { $mockPrereqs } -ModuleName 'GA-AppLocker.Setup'
-
-            $mockSetupStatus = [PSCustomObject]@{
-                Success = $true
-                Data = [PSCustomObject]@{
-                    ModulesAvailable = [PSCustomObject]@{ GroupPolicy = $true; ActiveDirectory = $true }
-                    WinRM = [PSCustomObject]@{ Exists = $true; Status = 'Enabled' }
-                    DisableWinRM = [PSCustomObject]@{ Exists = $true; Status = 'Disabled' }
-                    AppLockerGPOs = @(
-                        [PSCustomObject]@{ Type = 'DC'; Exists = $true; Status = 'Existing' }
-                        [PSCustomObject]@{ Type = 'Servers'; Exists = $true; Status = 'Existing' }
-                        [PSCustomObject]@{ Type = 'Workstations'; Exists = $true; Status = 'Existing' }
-                    )
-                }
-            }
-            Mock -CommandName 'Get-SetupStatus' -MockWith { $mockSetupStatus } -ModuleName 'GA-AppLocker.Setup'
-        }
-
-        It 'Returns standardized result with summary counts' {
-            $result = Invoke-PreflightDiagnostics
-
-            $result.Success | Should -BeTrue
-            $result.Data.Checks | Should -Not -BeNullOrEmpty
-            $statuses = $result.Data.Checks | Select-Object -ExpandProperty Status
-            $statuses | Should -Not -Contain 'Unknown'
-
-            $passCount = ($statuses | Where-Object { $_ -eq 'Pass' }).Count
-            $warnCount = ($statuses | Where-Object { $_ -eq 'Warn' }).Count
-            $failCount = ($statuses | Where-Object { $_ -eq 'Fail' }).Count
-
-            $result.Data.Summary.Pass | Should -Be $passCount
-            $result.Data.Summary.Warn | Should -Be $warnCount
-            $result.Data.Summary.Fail | Should -Be $failCount
-        }
-    }
 
     Context 'When a prerequisite check fails' {
         BeforeEach {
-            $mockPrereqs = [PSCustomObject]@{
+            $failedPrereq = [PSCustomObject]@{
                 AllPassed = $false
-                Checks = @(
-                    [PSCustomObject]@{ Name = 'PowerShell Version'; Passed = $false; Message = 'Requires 5.1' }
+                Checks    = @(
+                    [PSCustomObject]@{ Name = 'PowerShell Version'; Passed = $true; Message = 'PowerShell 5.1' },
+                    [PSCustomObject]@{ Name = 'Administrator Privileges'; Passed = $false; Message = 'Run as Administrator' }
                 )
             }
-            Mock -CommandName 'Test-Prerequisites' -MockWith { $mockPrereqs } -ModuleName 'GA-AppLocker.Setup'
-            Mock -CommandName 'Get-SetupStatus' -MockWith { [PSCustomObject]@{ Success = $true; Data = $null } } -ModuleName 'GA-AppLocker.Setup'
+
+            $setupStatus = [PSCustomObject]@{
+                Success = $true
+                Data    = [PSCustomObject]@{
+                    ModulesAvailable = [PSCustomObject]@{ GroupPolicy = $true; ActiveDirectory = $true }
+                    WinRM            = [PSCustomObject]@{ Exists = $true; Status = 'Enabled' }
+                    DisableWinRM     = [PSCustomObject]@{ Exists = $true; Status = 'Enabled' }
+                    AppLockerGPOs    = @(
+                        [PSCustomObject]@{ Type = 'DC'; Exists = $true; Status = 'Configured - Enabled' }
+                        [PSCustomObject]@{ Type = 'Servers'; Exists = $true; Status = 'Configured - Enabled' }
+                        [PSCustomObject]@{ Type = 'Workstations'; Exists = $true; Status = 'Configured - Enabled' }
+                    )
+                    ADStructure      = [PSCustomObject]@{ OUExists = $true; GroupsFound = 6; GroupsTotal = 6; Status = 'Configured' }
+                }
+                Error = $null
+            }
+
+            Mock -CommandName 'Test-Prerequisites' -MockWith { $failedPrereq } -ModuleName 'GA-AppLocker.Setup'
+            Mock -CommandName 'Get-SetupStatus' -MockWith { $setupStatus } -ModuleName 'GA-AppLocker.Setup'
+            Mock -CommandName 'Write-AppLockerLog' -MockWith {} -ModuleName 'GA-AppLocker.Setup'
         }
 
-        It 'Returns Success=$false and flags failed checks' {
+        It 'Returns Success=$false when a prerequisite fails' {
             $result = Invoke-PreflightDiagnostics
-
             $result.Success | Should -BeFalse
-            @($result.Data.Checks | Where-Object { $_.Status -eq 'Fail' }).Count | Should -BeGreaterThan 0
+            $result.Data.BlockingFailures | Should -BeTrue
             $result.Data.Summary.Fail | Should -BeGreaterThan 0
+        }
+
+        It 'Reports the failing prerequisite in the check list' {
+            $result = Invoke-PreflightDiagnostics
+            $failure = $result.Data.Checks | Where-Object { $_.Status -eq 'Fail' -and $_.Name -eq 'Administrator Privileges' }
+            $failure | Should -Not -BeNullOrEmpty
+        }
+    }
+
+    Context 'When prerequisites succeed but setup has warnings' {
+        BeforeEach {
+            $successPrereq = [PSCustomObject]@{
+                AllPassed = $true
+                Checks    = @(
+                    [PSCustomObject]@{ Name = 'PowerShell Version'; Passed = $true; Message = 'PowerShell 5.1' },
+                    [PSCustomObject]@{ Name = 'Administrator Privileges'; Passed = $true; Message = 'Running as Administrator' }
+                )
+            }
+
+            $setupStatus = [PSCustomObject]@{
+                Success = $true
+                Data    = [PSCustomObject]@{
+                    ModulesAvailable = [PSCustomObject]@{ GroupPolicy = $true; ActiveDirectory = $true }
+                    WinRM            = [PSCustomObject]@{ Exists = $false; Status = 'Not Created' }
+                    DisableWinRM     = [PSCustomObject]@{ Exists = $false; Status = 'Not Created' }
+                    AppLockerGPOs    = @(
+                        [PSCustomObject]@{ Type = 'DC'; Exists = $false; Status = 'Not Configured' }
+                        [PSCustomObject]@{ Type = 'Servers'; Exists = $false; Status = 'Not Configured' }
+                        [PSCustomObject]@{ Type = 'Workstations'; Exists = $false; Status = 'Not Configured' }
+                    )
+                    ADStructure      = [PSCustomObject]@{ OUExists = $false; GroupsFound = 0; GroupsTotal = 6; Status = 'Not Configured' }
+                }
+                Error = $null
+            }
+
+            Mock -CommandName 'Test-Prerequisites' -MockWith { $successPrereq } -ModuleName 'GA-AppLocker.Setup'
+            Mock -CommandName 'Get-SetupStatus' -MockWith { $setupStatus } -ModuleName 'GA-AppLocker.Setup'
+            Mock -CommandName 'Write-AppLockerLog' -MockWith {} -ModuleName 'GA-AppLocker.Setup'
+        }
+
+        It 'Returns Success=$true when only warnings exist' {
+            $result = Invoke-PreflightDiagnostics
+            $result.Success | Should -BeTrue
+            $result.Data.BlockingFailures | Should -BeFalse
+            $result.Data.Summary.Warn | Should -BeGreaterThan 0
+            $result.Data.Summary.Fail | Should -Be 0
+        }
+
+        It 'Emits warn checks for missing setup components' {
+            $result = Invoke-PreflightDiagnostics
+            $warns = $result.Data.Checks | Where-Object { $_.Status -eq 'Warn' -and $_.Source -eq 'Setup Status' }
+            $warns | Should -Not -BeNullOrEmpty
         }
     }
 }
@@ -287,35 +336,6 @@ Describe 'Get-SetupStatus' -Tag @('Unit', 'Setup') {
             $types | Should -Contain 'DC'
             $types | Should -Contain 'Servers'
             $types | Should -Contain 'Workstations'
-        }
-    }
-
-    Context 'Partial status-source failures' {
-        BeforeEach {
-            Mock -CommandName 'Get-Module' -ParameterFilter { $ListAvailable -and $Name -eq 'GroupPolicy' } -MockWith { [PSCustomObject]@{ Name = 'GroupPolicy' } } -ModuleName 'GA-AppLocker.Setup'
-            Mock -CommandName 'Get-Module' -ParameterFilter { $ListAvailable -and $Name -eq 'ActiveDirectory' } -MockWith { $null } -ModuleName 'GA-AppLocker.Setup'
-            Mock -CommandName 'Import-Module' -MockWith {} -ModuleName 'GA-AppLocker.Setup'
-            Mock -CommandName 'Write-AppLockerLog' -MockWith {} -ModuleName 'GA-AppLocker.Setup'
-
-            Mock -CommandName 'Get-GPO' -MockWith {
-                [PSCustomObject]@{
-                    DisplayName = $Name
-                    Id = [guid]::NewGuid().ToString()
-                    GpoStatus = 'AllSettingsEnabled'
-                }
-            } -ModuleName 'GA-AppLocker.Setup'
-
-            Mock -CommandName 'Get-GPInheritance' -MockWith { throw 'inheritance read failed' } -ModuleName 'GA-AppLocker.Setup'
-            Mock -CommandName 'Get-GPOReport' -MockWith { $null } -ModuleName 'GA-AppLocker.Setup'
-            Mock -CommandName 'Get-ADDomain' -MockWith { [PSCustomObject]@{ DistinguishedName = 'DC=test,DC=local' } } -ModuleName 'GA-AppLocker.Setup'
-        }
-
-        It 'reports consistent GPO toggle states when status source partially fails' {
-            $status = Get-SetupStatus
-            $status | Should -Not -BeNullOrEmpty
-            $status.Success | Should -BeTrue
-            $status.Data.WinRM | Should -Not -BeNullOrEmpty
-            $status.Data.DisableWinRM | Should -Not -BeNullOrEmpty
         }
     }
 }

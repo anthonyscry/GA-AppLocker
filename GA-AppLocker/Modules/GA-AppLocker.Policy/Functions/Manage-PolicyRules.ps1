@@ -30,7 +30,7 @@ function Add-RuleToPolicy {
         $policyFile = Join-Path $policiesPath "$PolicyId.json"
 
         if (-not (Test-Path $policyFile)) {
-            return @{
+            return @{ 
                 Success = $false
                 Error   = "Policy not found: $PolicyId"
             }
@@ -55,6 +55,17 @@ function Add-RuleToPolicy {
         # Ensure RuleIds is an array
         if (-not $policy.RuleIds) {
             $policy | Add-Member -NotePropertyName 'RuleIds' -NotePropertyValue @() -Force
+        }
+
+        $conflictResult = Test-RuleMergeConflicts -PolicyId $PolicyId -RuleId $RuleId
+        if (-not $conflictResult.Success) {
+            return @{ Success = $false; Data = $conflictResult.Data; Error = "Unable to evaluate merge conflicts: $($conflictResult.Error)" }
+        }
+
+        if ($conflictResult.Data.ContradictionCount -gt 0) {
+            $firstConflict = $conflictResult.Data.Contradictions[0]
+            $errorMessage = "Merge blocked: Contradictory rule actions detected in $($conflictResult.Data.ContradictionCount) rule set(s). First conflict: $($firstConflict.RuleType) '$($firstConflict.Condition)' for principal '$($firstConflict.Principal)'."
+            return @{ Success = $false; Error = $errorMessage; Data = $conflictResult.Data }
         }
 
         $currentRules = [System.Collections.Generic.List[string]]::new()
@@ -154,10 +165,24 @@ function Remove-RuleFromPolicy {
         $policyFile = Join-Path $policiesPath "$PolicyId.json"
 
         if (-not (Test-Path $policyFile)) {
-            return @{
+            return @{ 
                 Success = $false
                 Error   = "Policy not found: $PolicyId"
             }
+        }
+
+        $conflictCheck = Test-RuleMergeConflicts -PolicyId $PolicyId -RuleIds $RuleId
+        if (-not $conflictCheck.Success) {
+            return @{ Success = $false; Error = $conflictCheck.Error }
+        }
+
+        if ($conflictCheck.Data.HasConflicts) {
+            $firstConflict = @($conflictCheck.Data.Conflicts | Select-Object -First 1)
+            $policyAction = if ($firstConflict.PolicyAction) { $firstConflict.PolicyAction } else { 'Unknown' }
+            $incomingAction = if ($firstConflict.IncomingAction) { $firstConflict.IncomingAction } else { 'Unknown' }
+            $errorMessage = "Conflicting rule action detected for policy '$PolicyId' (existing $policyAction vs incoming $incomingAction)."
+
+            return @{ Success = $false; Error = $errorMessage; Data = $conflictCheck.Data }
         }
 
         $policy = Get-Content -Path $policyFile -Raw | ConvertFrom-Json
