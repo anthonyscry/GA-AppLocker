@@ -69,13 +69,14 @@ PowerShellVersion = '5.1'
 # NestedModules = @()
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
-FunctionsToExport = 'New-Policy', 'Get-Policy', 'Get-AllPolicies', 'Get-PolicyCount', 
-               'Update-Policy', 'Remove-Policy', 'Set-PolicyStatus', 
-               'Add-RuleToPolicy', 'Remove-RuleFromPolicy', 'Set-PolicyTarget', 
-               'Export-PolicyToXml', 'Test-PolicyCompliance', 'Compare-Policies', 
-               'Compare-RuleProperties', 'Get-PolicyDiffReport', 
-               'New-PolicySnapshot', 'Get-PolicySnapshots', 'Get-PolicySnapshot', 
-               'Restore-PolicySnapshot', 'Remove-PolicySnapshot', 
+FunctionsToExport = 'New-Policy', 'Get-Policy', 'Get-AllPolicies', 'Get-PolicyCount',
+               'Update-Policy', 'Remove-Policy', 'Set-PolicyStatus',
+               'Add-RuleToPolicy', 'Remove-RuleFromPolicy', 'Test-RuleMergeConflicts',
+               'Set-PolicyTarget',
+               'Export-PolicyToXml', 'Test-PolicyCompliance', 'Compare-Policies',
+               'Compare-RuleProperties', 'Get-PolicyDiffReport',
+               'New-PolicySnapshot', 'Get-PolicySnapshots', 'Get-PolicySnapshot',
+               'Restore-PolicySnapshot', 'Remove-PolicySnapshot',
                'Invoke-PolicySnapshotCleanup'
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.

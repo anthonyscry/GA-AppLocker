@@ -36,6 +36,20 @@ function Add-RuleToPolicy {
             }
         }
 
+        $conflictCheck = Test-RuleMergeConflicts -PolicyId $PolicyId -RuleIds $RuleId
+        if (-not $conflictCheck.Success) {
+            return @{ Success = $false; Error = $conflictCheck.Error }
+        }
+
+        if ($conflictCheck.Data.HasConflicts) {
+            $firstConflict = @($conflictCheck.Data.Conflicts | Select-Object -First 1)
+            $policyAction = if ($firstConflict.PolicyAction) { $firstConflict.PolicyAction } else { 'Unknown' }
+            $incomingAction = if ($firstConflict.IncomingAction) { $firstConflict.IncomingAction } else { 'Unknown' }
+            $errorMessage = "Conflicting rule action detected for policy '$PolicyId' (existing $policyAction vs incoming $incomingAction)."
+
+            return @{ Success = $false; Error = $errorMessage; Data = $conflictCheck.Data }
+        }
+
         $policy = Get-Content -Path $policyFile -Raw | ConvertFrom-Json
 
         # Ensure RuleIds is an array

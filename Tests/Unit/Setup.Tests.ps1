@@ -68,6 +68,78 @@ namespace Microsoft.GroupPolicy {
 }
 
 # ===========================================================================
+# Invoke-PreflightDiagnostics
+# ===========================================================================
+Describe 'Invoke-PreflightDiagnostics' -Tag @('Unit', 'Setup') {
+
+    Context 'When prerequisites and setup status are healthy' {
+        BeforeEach {
+            $mockPrereqs = [PSCustomObject]@{
+                AllPassed = $true
+                Checks = @(
+                    [PSCustomObject]@{ Name = 'PowerShell Version'; Passed = $true; Message = '5.1' }
+                    [PSCustomObject]@{ Name = 'Module: ActiveDirectory'; Passed = $true; Message = 'Installed' }
+                )
+            }
+            Mock -CommandName 'Test-Prerequisites' -MockWith { $mockPrereqs } -ModuleName 'GA-AppLocker.Setup'
+
+            $mockSetupStatus = [PSCustomObject]@{
+                Success = $true
+                Data = [PSCustomObject]@{
+                    ModulesAvailable = [PSCustomObject]@{ GroupPolicy = $true; ActiveDirectory = $true }
+                    WinRM = [PSCustomObject]@{ Exists = $true; Status = 'Enabled' }
+                    DisableWinRM = [PSCustomObject]@{ Exists = $true; Status = 'Disabled' }
+                    AppLockerGPOs = @(
+                        [PSCustomObject]@{ Type = 'DC'; Exists = $true; Status = 'Existing' }
+                        [PSCustomObject]@{ Type = 'Servers'; Exists = $true; Status = 'Existing' }
+                        [PSCustomObject]@{ Type = 'Workstations'; Exists = $true; Status = 'Existing' }
+                    )
+                }
+            }
+            Mock -CommandName 'Get-SetupStatus' -MockWith { $mockSetupStatus } -ModuleName 'GA-AppLocker.Setup'
+        }
+
+        It 'Returns standardized result with summary counts' {
+            $result = Invoke-PreflightDiagnostics
+
+            $result.Success | Should -BeTrue
+            $result.Data.Checks | Should -Not -BeNullOrEmpty
+            $statuses = $result.Data.Checks | Select-Object -ExpandProperty Status
+            $statuses | Should -Not -Contain 'Unknown'
+
+            $passCount = ($statuses | Where-Object { $_ -eq 'Pass' }).Count
+            $warnCount = ($statuses | Where-Object { $_ -eq 'Warn' }).Count
+            $failCount = ($statuses | Where-Object { $_ -eq 'Fail' }).Count
+
+            $result.Data.Summary.Pass | Should -Be $passCount
+            $result.Data.Summary.Warn | Should -Be $warnCount
+            $result.Data.Summary.Fail | Should -Be $failCount
+        }
+    }
+
+    Context 'When a prerequisite check fails' {
+        BeforeEach {
+            $mockPrereqs = [PSCustomObject]@{
+                AllPassed = $false
+                Checks = @(
+                    [PSCustomObject]@{ Name = 'PowerShell Version'; Passed = $false; Message = 'Requires 5.1' }
+                )
+            }
+            Mock -CommandName 'Test-Prerequisites' -MockWith { $mockPrereqs } -ModuleName 'GA-AppLocker.Setup'
+            Mock -CommandName 'Get-SetupStatus' -MockWith { [PSCustomObject]@{ Success = $true; Data = $null } } -ModuleName 'GA-AppLocker.Setup'
+        }
+
+        It 'Returns Success=$false and flags failed checks' {
+            $result = Invoke-PreflightDiagnostics
+
+            $result.Success | Should -BeFalse
+            @($result.Data.Checks | Where-Object { $_.Status -eq 'Fail' }).Count | Should -BeGreaterThan 0
+            $result.Data.Summary.Fail | Should -BeGreaterThan 0
+        }
+    }
+}
+
+# ===========================================================================
 # Get-SetupStatus
 # ===========================================================================
 Describe 'Get-SetupStatus' -Tag @('Unit', 'Setup') {
