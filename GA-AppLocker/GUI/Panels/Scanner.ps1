@@ -2303,7 +2303,11 @@ function global:Invoke-CreateScheduledScan {
         if ($skipDll -and $skipDll.IsChecked) {
             $params.SkipDllScanning = $true
         }
-        
+
+        if ($includeEvents -and $includeEvents.IsChecked) {
+            $params.IncludeEventLogs = $true
+        }
+
         $result = New-ScheduledScan @params
         
         Hide-LoadingOverlay

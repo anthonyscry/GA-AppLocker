@@ -18,6 +18,55 @@ BeforeAll {
             )
         }
     }
+    if (-not (Get-Command -Name 'Show-LoadingOverlay' -ErrorAction SilentlyContinue)) {
+        function global:Show-LoadingOverlay {
+            param([string]$Message, [string]$SubMessage)
+        }
+    }
+    if (-not (Get-Command -Name 'Hide-LoadingOverlay' -ErrorAction SilentlyContinue)) {
+        function global:Hide-LoadingOverlay { }
+    }
+    if (-not ([System.Management.Automation.PSTypeName]'System.Windows.Controls.ComboBoxItem').Type) {
+        Add-Type -TypeDefinition @'
+namespace System.Windows.Controls {
+    public class ComboBoxItem {
+        public object Content { get; set; }
+    }
+}
+'@
+    }
+    if (-not (Get-Command -Name 'New-ScheduledScan' -ErrorAction SilentlyContinue)) {
+        function global:New-ScheduledScan {
+            param(
+                [string]$Name,
+                [string[]]$ScanPaths,
+                [string]$Schedule,
+                [string]$Time,
+                [switch]$SkipDllScanning,
+                [switch]$IncludeEventLogs,
+                [switch]$Enabled
+            )
+
+            return @{ Success = $true; Data = @{ Id = 'mock-schedule' } }
+        }
+    }
+}
+
+function global:Get-CreateScheduleWindow {
+    param(
+        [bool]$IncludeEvents
+    )
+
+    $cboType = New-MockComboBox -Items @([PSCustomObject]@{ Content = 'Daily' }) -SelectedIndex 0
+    return New-MockWpfWindow -Elements @{
+        TxtScheduleName     = New-MockTextBox -Text 'Event Log Scan'
+        CboScheduleType     = $cboType
+        TxtScheduleTime     = New-MockTextBox -Text '02:00'
+        ChkScheduleEnabled  = New-MockCheckBox -IsChecked $true
+        TxtScanPaths        = New-MockTextBox -Text 'C:\\Program Files'
+        ChkSkipDllScanning  = New-MockCheckBox -IsChecked $false
+        ChkIncludeEventLogs = New-MockCheckBox -IsChecked $IncludeEvents
+    }
 }
 
 Describe 'Get-ScanEventMetrics' {
@@ -407,6 +456,35 @@ Describe 'Invoke-GenerateRuleFromEventTrigger' {
         Invoke-GenerateRuleFromEventTrigger -Window $win
 
         Should -Invoke Invoke-GenerateRuleFromSelectedEvent -Times 0
+    }
+}
+
+Describe 'Invoke-CreateScheduledScan' {
+    BeforeEach {
+        Mock Show-LoadingOverlay { }
+        Mock Hide-LoadingOverlay { }
+        Mock Show-Toast { }
+        Mock Initialize-ScheduledScansList { }
+    }
+
+    It 'passes IncludeEventLogs when the checkbox is checked' {
+        $window = Get-CreateScheduleWindow -includeEvents $true
+
+        Mock New-ScheduledScan { return @{ Success = $true; Data = @{ Id = 'checked' } } }
+
+        Invoke-CreateScheduledScan -Window $window
+
+        Should -Invoke New-ScheduledScan -Exactly -Times 1 -ParameterFilter { $IncludeEventLogs -eq $true }
+    }
+
+    It 'does not set IncludeEventLogs when the checkbox is unchecked' {
+        $window = Get-CreateScheduleWindow -includeEvents $false
+
+        Mock New-ScheduledScan { return @{ Success = $true; Data = @{ Id = 'unchecked' } } }
+
+        Invoke-CreateScheduledScan -Window $window
+
+        Should -Invoke New-ScheduledScan -Exactly -Times 1 -ParameterFilter { -not $IncludeEventLogs }
     }
 }
 
